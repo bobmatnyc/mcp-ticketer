@@ -1,0 +1,14 @@
+{
+  "id": "task-20250924002724",
+  "title": "Test CLI Ticket",
+  "description": "Testing CLI functionality",
+  "status": "in-progress",
+  "priority": "high",
+  "tags": [],
+  "parent_issue": null,
+  "parent_epic": null,
+  "assignee": "test-user",
+  "created_at": "2025-09-24T00:27:24.981552",
+  "updated_at": "2025-09-24T00:28:08.442785",
+  "type": "task"
+}

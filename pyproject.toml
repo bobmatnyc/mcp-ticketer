@@ -1,0 +1,120 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-ticketer"
+version = "0.1.0"
+description = "Universal ticket management interface with MCP support"
+readme = "README.md"
+requires-python = ">=3.13"
+license = {text = "MIT"}
+authors = [
+    {name = "MCP Ticketer Team", email = "team@mcp-ticketer.dev"}
+]
+keywords = ["mcp", "tickets", "issue-tracking", "project-management"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Bug Tracking",
+]
+
+dependencies = [
+    "pydantic>=2.0",
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "ai-trackdown-pytools>=1.5.0",
+    "httpx>=0.25.0",
+    "typing-extensions>=4.8.0",
+    "gql[httpx]>=3.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+]
+
+mcp = [
+    "mcp>=0.1.0",
+]
+
+jira = [
+    "jira>=3.5.0",
+]
+
+github = [
+    "PyGithub>=2.1.0",
+]
+
+[project.scripts]
+mcp-ticket = "mcp_ticketer.cli.main:main"
+mcp-ticket-server = "mcp_ticketer.mcp.server:main"
+
+[project.urls]
+Homepage = "https://github.com/mcp-ticketer/mcp-ticketer"
+Documentation = "https://mcp-ticketer.readthedocs.io"
+Repository = "https://github.com/mcp-ticketer/mcp-ticketer"
+Issues = "https://github.com/mcp-ticketer/mcp-ticketer/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["mcp_ticketer*"]
+
+[tool.setuptools.package-data]
+mcp_ticketer = ["py.typed"]
+
+[tool.black]
+line-length = 88
+target-version = ['py313']
+include = '\.pyi?$'
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # do not perform function calls in argument defaults
+    "W191",  # indentation contains tabs
+]
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.4"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.coverage.run]
+source = ["mcp_ticketer"]
+omit = ["*/tests/*", "*/test_*.py"]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false

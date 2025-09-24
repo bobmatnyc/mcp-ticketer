@@ -1,0 +1,11 @@
+{
+  "deployment_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "last_check_time": 1758682148.236991,
+  "last_check_results": {
+    "agents": {},
+    "summary": {
+      "total_agents": 0
+    }
+  },
+  "agent_count": 0
+}

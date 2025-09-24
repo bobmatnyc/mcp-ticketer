@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+# MCP Ticketer Server wrapper script
+# Automatically manages virtual environment and runs the MCP server
+
+set -e
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_DIR="$SCRIPT_DIR/venv"
+PYTHON_VERSION="3.13"
+
+# Check if Python 3.13 is available
+if ! command -v python$PYTHON_VERSION &> /dev/null; then
+    echo "Error: Python $PYTHON_VERSION is required but not found."
+    echo "Please install Python $PYTHON_VERSION and try again."
+    exit 1
+fi
+
+# Create virtual environment if it doesn't exist
+if [ ! -d "$VENV_DIR" ]; then
+    echo "Creating virtual environment..."
+    python$PYTHON_VERSION -m venv "$VENV_DIR"
+fi
+
+# Activate virtual environment
+source "$VENV_DIR/bin/activate"
+
+# Install/upgrade package if needed
+if [ ! -f "$VENV_DIR/.installed" ] || [ "$SCRIPT_DIR/pyproject.toml" -nt "$VENV_DIR/.installed" ]; then
+    echo "Installing/updating MCP Ticketer..."
+    pip install -q --upgrade pip
+    pip install -q -e "$SCRIPT_DIR"
+    touch "$VENV_DIR/.installed"
+fi
+
+# Run the MCP server
+exec python -m mcp_ticketer.mcp.server "$@"
