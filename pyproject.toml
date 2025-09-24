@@ -1,85 +1,154 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=68", "setuptools-scm>=8", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-ticketer"
-version = "0.1.0"
-description = "Universal ticket management interface with MCP support"
+dynamic = ["version"]
+description = "Universal ticket management interface for AI agents with MCP support"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
-    {name = "MCP Ticketer Team", email = "team@mcp-ticketer.dev"}
+    {name = "MCP Ticketer Team", email = "support@mcp-ticketer.io"}
 ]
-keywords = ["mcp", "tickets", "issue-tracking", "project-management"]
+maintainers = [
+    {name = "MCP Ticketer Team", email = "support@mcp-ticketer.io"}
+]
+keywords = [
+    "mcp",
+    "tickets",
+    "jira",
+    "linear",
+    "github",
+    "issue-tracking",
+    "project-management",
+    "ai",
+    "automation",
+    "agent",
+    "ticketing",
+]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Software Development :: Bug Tracking",
+    "Topic :: System :: Monitoring",
+    "Topic :: Internet :: WWW/HTTP",
+    "Typing :: Typed",
 ]
 
 dependencies = [
     "pydantic>=2.0",
     "typer>=0.9.0",
     "rich>=13.0.0",
-    "ai-trackdown-pytools>=1.5.0",
     "httpx>=0.25.0",
     "typing-extensions>=4.8.0",
-    "gql[httpx]>=3.0.0",
     "python-dotenv>=1.0.0",
+    "psutil>=5.9.0",
 ]
 
 [project.optional-dependencies]
+all = [
+    "mcp-ticketer[jira,linear,github,mcp]",
+]
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",
+    "pytest-timeout>=2.2.0",
+    "pytest-mock>=3.12.0",
     "black>=23.0.0",
     "ruff>=0.1.0",
     "mypy>=1.5.0",
+    "tox>=4.11.0",
+    "pre-commit>=3.5.0",
+    "bump2version>=1.0.1",
 ]
-
+docs = [
+    "sphinx>=7.2.0",
+    "sphinx-rtd-theme>=2.0.0",
+    "sphinx-autodoc-typehints>=1.25.0",
+    "sphinx-click>=5.1.0",
+    "myst-parser>=2.0.0",
+]
 mcp = [
     "mcp>=0.1.0",
 ]
-
 jira = [
     "jira>=3.5.0",
+    "ai-trackdown-pytools>=1.5.0",
 ]
-
+linear = [
+    "gql[httpx]>=3.0.0",
+]
 github = [
     "PyGithub>=2.1.0",
 ]
+test = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "pytest-timeout>=2.2.0",
+    "pytest-mock>=3.12.0",
+    "responses>=0.24.0",
+]
 
 [project.scripts]
-mcp-ticket = "mcp_ticketer.cli.main:main"
-mcp-ticket-server = "mcp_ticketer.mcp.server:main"
+mcp-ticketer = "mcp_ticketer.cli.main:main"
+mcp-ticketer-server = "mcp_ticketer.mcp.server:main"
 
 [project.urls]
 Homepage = "https://github.com/mcp-ticketer/mcp-ticketer"
 Documentation = "https://mcp-ticketer.readthedocs.io"
 Repository = "https://github.com/mcp-ticketer/mcp-ticketer"
 Issues = "https://github.com/mcp-ticketer/mcp-ticketer/issues"
+Changelog = "https://github.com/mcp-ticketer/mcp-ticketer/blob/main/CHANGELOG.md"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+zip-safe = false
+
+[tool.setuptools.dynamic]
+version = {attr = "mcp_ticketer.__version__.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["mcp_ticketer*"]
+exclude = ["tests*"]
 
 [tool.setuptools.package-data]
-mcp_ticketer = ["py.typed"]
+mcp_ticketer = ["py.typed", "*.json", "*.yaml", "*.yml"]
 
 [tool.black]
 line-length = 88
-target-version = ['py313']
+target-version = ['py39', 'py310', 'py311', 'py312', 'py313']
 include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.git
+  | \.venv
+  | build
+  | dist
+  | \.tox
+  | \.eggs
+)/
+'''
 
 [tool.ruff]
-target-version = "py313"
+target-version = "py39"
 line-length = 88
 select = [
     "E",  # pycodestyle errors
@@ -89,32 +158,118 @@ select = [
     "B",  # flake8-bugbear
     "C4", # flake8-comprehensions
     "UP", # pyupgrade
+    "D",  # pydocstyle
+    "N",  # pep8-naming
+    "S",  # bandit
+    "T",  # flake8-print
 ]
 ignore = [
     "E501",  # line too long (handled by black)
     "B008",  # do not perform function calls in argument defaults
     "W191",  # indentation contains tabs
+    "D100",  # Missing docstring in public module
+    "D104",  # Missing docstring in public package
+    "D107",  # Missing docstring in __init__
+    "S101",  # Use of assert detected
 ]
 
+[tool.ruff.per-file-ignores]
+"tests/*" = ["S", "D", "T"]
+"**/__init__.py" = ["D", "F401"]
+
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
-disallow_any_generics = true
+disallow_any_generics = false
 ignore_missing_imports = true
+no_implicit_reexport = true
+strict_equality = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
 
 [tool.pytest.ini_options]
 minversion = "7.4"
-addopts = "-ra -q --strict-markers"
+addopts = """
+    -ra
+    -q
+    --strict-markers
+    --cov=mcp_ticketer
+    --cov-report=term-missing
+    --cov-report=html
+    --cov-report=xml
+"""
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "adapter: marks tests for specific adapters",
+]
 
 [tool.coverage.run]
 source = ["mcp_ticketer"]
-omit = ["*/tests/*", "*/test_*.py"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*",
+]
 
 [tool.coverage.report]
 precision = 2
 show_missing = true
 skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = py39, py310, py311, py312, py313, lint, mypy, docs
+isolated_build = true
+
+[testenv]
+deps =
+    pytest
+    pytest-asyncio
+    pytest-cov
+    pytest-timeout
+    pytest-mock
+commands =
+    pytest {posargs}
+
+[testenv:lint]
+deps =
+    black
+    ruff
+commands =
+    black --check src tests
+    ruff check src tests
+
+[testenv:mypy]
+deps =
+    mypy
+    types-requests
+commands =
+    mypy src
+
+[testenv:docs]
+deps =
+    sphinx
+    sphinx-rtd-theme
+    sphinx-autodoc-typehints
+    sphinx-click
+    myst-parser
+commands =
+    sphinx-build -W -b html docs docs/_build
+"""

@@ -1,0 +1,53 @@
+# Include documentation and metadata files
+include README.md
+include LICENSE
+include CHANGELOG.md
+include CONTRIBUTING.md
+include RELEASING.md
+include pyproject.toml
+include setup.py
+
+# Include requirements files
+include requirements.txt
+include requirements-dev.txt
+
+# Include type stubs
+include src/mcp_ticketer/py.typed
+
+# Include configuration examples
+include .env.example
+include docs/*.md
+include docs/*.rst
+
+# Include test configuration
+include pytest.ini
+include tox.ini
+include .coveragerc
+
+# Include GitHub workflows
+recursive-include .github *.yml *.yaml
+
+# Include documentation source
+recursive-include docs *.rst *.md *.txt *.py Makefile
+
+# Include tests (optional, usually excluded in wheels)
+recursive-include tests *.py *.json *.yaml *.yml
+
+# Exclude compiled and cache files
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude __pycache__
+global-exclude .DS_Store
+global-exclude .git
+global-exclude .gitignore
+global-exclude *.swp
+global-exclude *~
+
+# Exclude build artifacts
+exclude .tox
+exclude .coverage
+exclude .pytest_cache
+exclude htmlcov
+exclude dist
+exclude build
+exclude *.egg-info

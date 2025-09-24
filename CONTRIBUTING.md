@@ -39,7 +39,7 @@ We pledge to make participation in our project and community a harassment-free e
 
 ### Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project team at team@mcp-ticketer.dev. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project team at team@mcp-ticketerer.dev. All complaints will be reviewed and investigated promptly and fairly.
 
 ## Getting Started
 
@@ -76,11 +76,11 @@ Looking to contribute but not sure where to start? Here are some good first issu
 ```bash
 # Fork the repository on GitHub
 # Then clone your fork
-git clone https://github.com/yourusername/mcp-ticketer.git
-cd mcp-ticketer
+git clone https://github.com/yourusername/mcp-ticketerer.git
+cd mcp-ticketerer
 
 # Add upstream remote
-git remote add upstream https://github.com/mcp-ticketer/mcp-ticketer.git
+git remote add upstream https://github.com/mcp-ticketerer/mcp-ticketerer.git
 ```
 
 ### 2. Environment Setup
@@ -97,15 +97,15 @@ pip install -e ".[dev,mcp,jira,github]"
 pre-commit install
 
 # Verify installation
-mcp-ticket --version
+mcp-ticketerer --version
 ```
 
 ### 3. Configuration
 
 ```bash
 # Create test configuration
-mkdir -p ~/.mcp-ticketer
-cat > ~/.mcp-ticketer/config.json << EOF
+mkdir -p ~/.mcp-ticketerer
+cat > ~/.mcp-ticketerer/config.json << EOF
 {
   "adapter": "aitrackdown",
   "config": {
@@ -115,9 +115,9 @@ cat > ~/.mcp-ticketer/config.json << EOF
 EOF
 
 # Test installation
-mcp-ticket init --adapter aitrackdown
-mcp-ticket create "Test ticket" --description "Testing setup"
-mcp-ticket list
+mcp-ticketer init --adapter aitrackdown
+mcp-ticketer create "Test ticket" --description "Testing setup"
+mcp-ticketer list
 ```
 
 ### 4. IDE Setup

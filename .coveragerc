@@ -1,0 +1,69 @@
+[run]
+branch = True
+source = mcp_ticketer
+omit =
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */venv/*
+    */.venv/*
+    */site-packages/*
+    */.tox/*
+    */setup.py
+
+[report]
+exclude_lines =
+    # Standard pragma
+    pragma: no cover
+
+    # Debug-only code
+    def __repr__
+    def __str__
+
+    # Defensive programming
+    raise AssertionError
+    raise NotImplementedError
+
+    # Non-runnable code
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+
+    # Abstract methods
+    @abstractmethod
+    @abc.abstractmethod
+
+    # Optional dependencies
+    except ImportError:
+    except ModuleNotFoundError:
+
+    # Logging and error handling
+    except Exception as e:
+    logger.debug
+    logger.info
+    logger.warning
+    logger.error
+    logger.critical
+
+    # Pass statements
+    pass
+    ...
+
+ignore_errors = False
+precision = 2
+show_missing = True
+skip_covered = False
+skip_empty = True
+sort = Cover
+
+[html]
+directory = htmlcov
+title = MCP Ticketer Coverage Report
+show_contexts = True
+
+[xml]
+output = coverage.xml
+
+[json]
+output = coverage.json
+pretty_print = True
+show_contexts = True

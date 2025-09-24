@@ -1,0 +1,159 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        exclude:
+          # Exclude some combinations to reduce CI time
+          - os: macos-latest
+            python-version: '3.9'
+          - os: windows-latest
+            python-version: '3.9'
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for better coverage reports
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+        cache-dependency-path: |
+          pyproject.toml
+          requirements*.txt
+
+    - name: Install system dependencies (Ubuntu)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libsystemd-dev
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -e ".[test,dev]"
+
+    - name: Lint with ruff
+      run: |
+        ruff check src tests --format github
+
+    - name: Format check with black
+      run: |
+        black --check --diff src tests
+
+    - name: Type check with mypy
+      run: |
+        mypy src --ignore-missing-imports
+
+    - name: Test with pytest
+      env:
+        PYTHONPATH: ${{ github.workspace }}/src
+      run: |
+        pytest tests/ \
+          --verbose \
+          --cov=mcp_ticketer \
+          --cov-report=xml \
+          --cov-report=term-missing \
+          --cov-report=html \
+          --junit-xml=junit.xml \
+          --timeout=60
+
+    - name: Upload coverage to Codecov
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ matrix.os }}-py${{ matrix.python-version }}
+        path: |
+          junit.xml
+          htmlcov/
+        retention-days: 7
+
+    - name: Upload coverage reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-${{ matrix.os }}-py${{ matrix.python-version }}
+        path: |
+          coverage.xml
+          .coverage
+        retention-days: 7
+
+  integration:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[all,test]"
+
+    - name: Run integration tests
+      env:
+        JIRA_SERVER: ${{ secrets.JIRA_SERVER }}
+        JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+        JIRA_TOKEN: ${{ secrets.JIRA_TOKEN }}
+        LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        pytest tests/ -m integration --verbose --timeout=120
+
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit safety
+
+    - name: Security check with bandit
+      run: |
+        bandit -r src/ -ll -i -x tests/
+
+    - name: Check for known vulnerabilities
+      run: |
+        pip install -e .
+        safety check --json

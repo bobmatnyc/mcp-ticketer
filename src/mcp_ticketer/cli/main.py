@@ -16,12 +16,14 @@ from dotenv import load_dotenv
 from ..core import Task, TicketState, Priority, AdapterRegistry
 from ..core.models import SearchQuery
 from ..adapters import AITrackdownAdapter
+from ..queue import Queue, QueueStatus, WorkerManager
+from .queue_commands import app as queue_app
 
 # Load environment variables
 load_dotenv()
 
 app = typer.Typer(
-    name="mcp-ticket",
+    name="mcp-ticketer",
     help="Universal ticket management interface",
     add_completion=False,
 )
@@ -54,11 +56,76 @@ def save_config(config: dict) -> None:
         json.dump(config, f, indent=2)
 
 
-def get_adapter():
-    """Get configured adapter instance."""
+def merge_config(updates: dict) -> dict:
+    """Merge updates into existing config.
+
+    Args:
+        updates: Configuration updates to merge
+
+    Returns:
+        Updated configuration
+    """
     config = load_config()
-    adapter_type = config.get("adapter", "aitrackdown")
-    adapter_config = config.get("config", {})
+
+    # Handle default_adapter
+    if "default_adapter" in updates:
+        config["default_adapter"] = updates["default_adapter"]
+
+    # Handle adapter-specific configurations
+    if "adapters" in updates:
+        if "adapters" not in config:
+            config["adapters"] = {}
+        for adapter_name, adapter_config in updates["adapters"].items():
+            if adapter_name not in config["adapters"]:
+                config["adapters"][adapter_name] = {}
+            config["adapters"][adapter_name].update(adapter_config)
+
+    return config
+
+
+def get_adapter(override_adapter: Optional[str] = None, override_config: Optional[dict] = None):
+    """Get configured adapter instance.
+
+    Args:
+        override_adapter: Override the default adapter type
+        override_config: Override configuration for the adapter
+    """
+    config = load_config()
+
+    # Use override adapter if provided, otherwise use default
+    if override_adapter:
+        adapter_type = override_adapter
+        # If we have a stored config for this adapter, use it
+        adapters_config = config.get("adapters", {})
+        adapter_config = adapters_config.get(adapter_type, {})
+        # Override with provided config if any
+        if override_config:
+            adapter_config.update(override_config)
+    else:
+        # Use default adapter from config
+        adapter_type = config.get("default_adapter", "aitrackdown")
+        # Get config for the default adapter
+        adapters_config = config.get("adapters", {})
+        adapter_config = adapters_config.get(adapter_type, {})
+
+    # Fallback to legacy config format for backward compatibility
+    if not adapter_config and "config" in config:
+        adapter_config = config["config"]
+
+    # Add environment variables for authentication
+    import os
+    if adapter_type == "linear":
+        if not adapter_config.get("api_key"):
+            adapter_config["api_key"] = os.getenv("LINEAR_API_KEY")
+    elif adapter_type == "github":
+        if not adapter_config.get("api_key") and not adapter_config.get("token"):
+            adapter_config["api_key"] = os.getenv("GITHUB_TOKEN")
+    elif adapter_type == "jira":
+        if not adapter_config.get("api_token"):
+            adapter_config["api_token"] = os.getenv("JIRA_ACCESS_TOKEN")
+        if not adapter_config.get("email"):
+            adapter_config["email"] = os.getenv("JIRA_ACCESS_USER")
+
     return AdapterRegistry.get_adapter(adapter_type, adapter_config)
 
 
@@ -119,19 +186,19 @@ def init(
 ) -> None:
     """Initialize MCP Ticketer configuration."""
     config = {
-        "adapter": adapter.value,
-        "config": {}
+        "default_adapter": adapter.value,
+        "adapters": {}
     }
 
     if adapter == AdapterType.AITRACKDOWN:
-        config["config"]["base_path"] = base_path or ".aitrackdown"
+        config["adapters"]["aitrackdown"] = {"base_path": base_path or ".aitrackdown"}
     elif adapter == AdapterType.LINEAR:
         # For Linear, we need team_id and optionally api_key
         if not team_id:
             console.print("[red]Error:[/red] --team-id is required for Linear adapter")
             raise typer.Exit(1)
 
-        config["config"]["team_id"] = team_id
+        config["adapters"]["linear"] = {"team_id": team_id}
 
         # Check for API key in environment or parameter
         linear_api_key = api_key or os.getenv("LINEAR_API_KEY")
@@ -139,7 +206,7 @@ def init(
             console.print("[yellow]Warning:[/yellow] No Linear API key provided.")
             console.print("Set LINEAR_API_KEY environment variable or use --api-key option")
         else:
-            config["config"]["api_key"] = linear_api_key
+            config["adapters"]["linear"]["api_key"] = linear_api_key
 
     elif adapter == AdapterType.JIRA:
         # For JIRA, we need server, email, and API token
@@ -164,12 +231,14 @@ def init(
             console.print("[dim]Generate token at: https://id.atlassian.com/manage/api-tokens[/dim]")
             raise typer.Exit(1)
 
-        config["config"]["server"] = server
-        config["config"]["email"] = email
-        config["config"]["api_token"] = token
+        config["adapters"]["jira"] = {
+            "server": server,
+            "email": email,
+            "api_token": token
+        }
 
         if project:
-            config["config"]["project_key"] = project
+            config["adapters"]["jira"]["project_key"] = project
         else:
             console.print("[yellow]Warning:[/yellow] No default project key specified")
             console.print("You may need to specify project key for some operations")
@@ -197,13 +266,163 @@ def init(
             console.print("[dim]Required scopes: repo (for private repos) or public_repo (for public repos)[/dim]")
             raise typer.Exit(1)
 
-        config["config"]["owner"] = owner
-        config["config"]["repo"] = repo
-        config["config"]["token"] = token
+        config["adapters"]["github"] = {
+            "owner": owner,
+            "repo": repo,
+            "token": token
+        }
 
     save_config(config)
     console.print(f"[green]✓[/green] Initialized with {adapter.value} adapter")
     console.print(f"[dim]Configuration saved to {CONFIG_FILE}[/dim]")
+
+
+@app.command("set")
+def set_config(
+    adapter: Optional[AdapterType] = typer.Option(
+        None,
+        "--adapter",
+        "-a",
+        help="Set default adapter"
+    ),
+    team_key: Optional[str] = typer.Option(
+        None,
+        "--team-key",
+        help="Linear team key (e.g., BTA)"
+    ),
+    team_id: Optional[str] = typer.Option(
+        None,
+        "--team-id",
+        help="Linear team ID"
+    ),
+    owner: Optional[str] = typer.Option(
+        None,
+        "--owner",
+        help="GitHub repository owner"
+    ),
+    repo: Optional[str] = typer.Option(
+        None,
+        "--repo",
+        help="GitHub repository name"
+    ),
+    server: Optional[str] = typer.Option(
+        None,
+        "--server",
+        help="JIRA server URL"
+    ),
+    project: Optional[str] = typer.Option(
+        None,
+        "--project",
+        help="JIRA project key"
+    ),
+    base_path: Optional[str] = typer.Option(
+        None,
+        "--base-path",
+        help="AITrackdown base path"
+    ),
+) -> None:
+    """Set default adapter and adapter-specific configuration.
+
+    When called without arguments, shows current configuration.
+    """
+    if not any([adapter, team_key, team_id, owner, repo, server, project, base_path]):
+        # Show current configuration
+        config = load_config()
+        console.print("[bold]Current Configuration:[/bold]")
+        console.print(f"Default adapter: [cyan]{config.get('default_adapter', 'aitrackdown')}[/cyan]")
+
+        adapters_config = config.get("adapters", {})
+        if adapters_config:
+            console.print("\n[bold]Adapter Settings:[/bold]")
+            for adapter_name, adapter_config in adapters_config.items():
+                console.print(f"\n[cyan]{adapter_name}:[/cyan]")
+                for key, value in adapter_config.items():
+                    # Don't display sensitive values like tokens
+                    if "token" in key.lower() or "key" in key.lower() and "team" not in key.lower():
+                        value = "***" if value else "not set"
+                    console.print(f"  {key}: {value}")
+        return
+
+    updates = {}
+
+    # Set default adapter
+    if adapter:
+        updates["default_adapter"] = adapter.value
+        console.print(f"[green]✓[/green] Default adapter set to: {adapter.value}")
+
+    # Build adapter-specific configuration
+    adapter_configs = {}
+
+    # Linear configuration
+    if team_key or team_id:
+        linear_config = {}
+        if team_key:
+            linear_config["team_key"] = team_key
+        if team_id:
+            linear_config["team_id"] = team_id
+        adapter_configs["linear"] = linear_config
+        console.print(f"[green]✓[/green] Linear settings updated")
+
+    # GitHub configuration
+    if owner or repo:
+        github_config = {}
+        if owner:
+            github_config["owner"] = owner
+        if repo:
+            github_config["repo"] = repo
+        adapter_configs["github"] = github_config
+        console.print(f"[green]✓[/green] GitHub settings updated")
+
+    # JIRA configuration
+    if server or project:
+        jira_config = {}
+        if server:
+            jira_config["server"] = server
+        if project:
+            jira_config["project_key"] = project
+        adapter_configs["jira"] = jira_config
+        console.print(f"[green]✓[/green] JIRA settings updated")
+
+    # AITrackdown configuration
+    if base_path:
+        adapter_configs["aitrackdown"] = {"base_path": base_path}
+        console.print(f"[green]✓[/green] AITrackdown settings updated")
+
+    if adapter_configs:
+        updates["adapters"] = adapter_configs
+
+    # Merge and save configuration
+    if updates:
+        config = merge_config(updates)
+        save_config(config)
+        console.print(f"[dim]Configuration saved to {CONFIG_FILE}[/dim]")
+
+
+@app.command("status")
+def status_command():
+    """Show queue and worker status."""
+    queue = Queue()
+    manager = WorkerManager()
+
+    # Get queue stats
+    stats = queue.get_stats()
+    pending = stats.get(QueueStatus.PENDING.value, 0)
+
+    # Show queue status
+    console.print("[bold]Queue Status:[/bold]")
+    console.print(f"  Pending: {pending}")
+    console.print(f"  Processing: {stats.get(QueueStatus.PROCESSING.value, 0)}")
+    console.print(f"  Completed: {stats.get(QueueStatus.COMPLETED.value, 0)}")
+    console.print(f"  Failed: {stats.get(QueueStatus.FAILED.value, 0)}")
+
+    # Show worker status
+    worker_status = manager.get_status()
+    if worker_status["running"]:
+        console.print(f"\n[green]● Worker is running[/green] (PID: {worker_status.get('pid')})")
+    else:
+        console.print("\n[red]○ Worker is not running[/red]")
+        if pending > 0:
+            console.print("[yellow]Note: There are pending items. Start worker with 'mcp-ticketer worker start'[/yellow]")
 
 
 @app.command()
@@ -233,25 +452,43 @@ def create(
         "-a",
         help="Assignee username"
     ),
+    adapter: Optional[AdapterType] = typer.Option(
+        None,
+        "--adapter",
+        help="Override default adapter"
+    ),
 ) -> None:
     """Create a new ticket."""
-    async def _create():
-        adapter = get_adapter()
-        task = Task(
-            title=title,
-            description=description,
-            priority=priority,
-            tags=tags or [],
-            assignee=assignee,
-        )
-        created = await adapter.create(task)
-        return created
+    # Get the adapter name
+    config = load_config()
+    adapter_name = adapter.value if adapter else config.get("default_adapter", "aitrackdown")
 
-    task = asyncio.run(_create())
-    console.print(f"[green]✓[/green] Created ticket: {task.id}")
-    console.print(f"  Title: {task.title}")
-    console.print(f"  State: {task.state}")
-    console.print(f"  Priority: {task.priority}")
+    # Create task data
+    task_data = {
+        "title": title,
+        "description": description,
+        "priority": priority.value if isinstance(priority, Priority) else priority,
+        "tags": tags or [],
+        "assignee": assignee,
+    }
+
+    # Add to queue
+    queue = Queue()
+    queue_id = queue.add(
+        ticket_data=task_data,
+        adapter=adapter_name,
+        operation="create"
+    )
+
+    console.print(f"[green]✓[/green] Queued ticket creation: {queue_id}")
+    console.print(f"  Title: {title}")
+    console.print(f"  Priority: {priority}")
+    console.print("[dim]Use 'mcp-ticketer status {queue_id}' to check progress[/dim]")
+
+    # Start worker if needed
+    manager = WorkerManager()
+    if manager.start_if_needed():
+        console.print("[dim]Worker started to process request[/dim]")
 
 
 @app.command("list")
@@ -274,16 +511,21 @@ def list_tickets(
         "-l",
         help="Maximum number of tickets"
     ),
+    adapter: Optional[AdapterType] = typer.Option(
+        None,
+        "--adapter",
+        help="Override default adapter"
+    ),
 ) -> None:
     """List tickets with optional filters."""
     async def _list():
-        adapter = get_adapter()
+        adapter_instance = get_adapter(override_adapter=adapter.value if adapter else None)
         filters = {}
         if state:
             filters["state"] = state
         if priority:
             filters["priority"] = priority
-        return await adapter.list(limit=limit, filters=filters)
+        return await adapter_instance.list(limit=limit, filters=filters)
 
     tickets = asyncio.run(_list())
 
@@ -320,14 +562,19 @@ def show(
         "-c",
         help="Show comments"
     ),
+    adapter: Optional[AdapterType] = typer.Option(
+        None,
+        "--adapter",
+        help="Override default adapter"
+    ),
 ) -> None:
     """Show detailed ticket information."""
     async def _show():
-        adapter = get_adapter()
-        ticket = await adapter.read(ticket_id)
+        adapter_instance = get_adapter(override_adapter=adapter.value if adapter else None)
+        ticket = await adapter_instance.read(ticket_id)
         ticket_comments = None
         if comments and ticket:
-            ticket_comments = await adapter.get_comments(ticket_id)
+            ticket_comments = await adapter_instance.get_comments(ticket_id)
         return ticket, ticket_comments
 
     ticket, ticket_comments = asyncio.run(_show())
@@ -382,6 +629,11 @@ def update(
         "-a",
         help="New assignee"
     ),
+    adapter: Optional[AdapterType] = typer.Option(
+        None,
+        "--adapter",
+        help="Override default adapter"
+    ),
 ) -> None:
     """Update ticket fields."""
     updates = {}
@@ -390,7 +642,7 @@ def update(
     if description:
         updates["description"] = description
     if priority:
-        updates["priority"] = priority
+        updates["priority"] = priority.value if isinstance(priority, Priority) else priority
     if assignee:
         updates["assignee"] = assignee
 
@@ -398,47 +650,67 @@ def update(
         console.print("[yellow]No updates specified[/yellow]")
         raise typer.Exit(1)
 
-    async def _update():
-        adapter = get_adapter()
-        return await adapter.update(ticket_id, updates)
+    # Get the adapter name
+    config = load_config()
+    adapter_name = adapter.value if adapter else config.get("default_adapter", "aitrackdown")
 
-    ticket = asyncio.run(_update())
+    # Add ticket_id to updates
+    updates["ticket_id"] = ticket_id
 
-    if ticket:
-        console.print(f"[green]✓[/green] Updated ticket: {ticket.id}")
-        for key, value in updates.items():
+    # Add to queue
+    queue = Queue()
+    queue_id = queue.add(
+        ticket_data=updates,
+        adapter=adapter_name,
+        operation="update"
+    )
+
+    console.print(f"[green]✓[/green] Queued ticket update: {queue_id}")
+    for key, value in updates.items():
+        if key != "ticket_id":
             console.print(f"  {key}: {value}")
-    else:
-        console.print(f"[red]✗[/red] Failed to update ticket: {ticket_id}")
-        raise typer.Exit(1)
+    console.print("[dim]Use 'mcp-ticketer status {queue_id}' to check progress[/dim]")
+
+    # Start worker if needed
+    manager = WorkerManager()
+    if manager.start_if_needed():
+        console.print("[dim]Worker started to process request[/dim]")
 
 
 @app.command()
 def transition(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
     state: TicketState = typer.Argument(..., help="Target state"),
+    adapter: Optional[AdapterType] = typer.Option(
+        None,
+        "--adapter",
+        help="Override default adapter"
+    ),
 ) -> None:
     """Change ticket state with validation."""
-    async def _transition():
-        adapter = get_adapter()
+    # Get the adapter name
+    config = load_config()
+    adapter_name = adapter.value if adapter else config.get("default_adapter", "aitrackdown")
 
-        # Validate transition
-        if not await adapter.validate_transition(ticket_id, state):
-            return None, False
+    # Add to queue
+    queue = Queue()
+    queue_id = queue.add(
+        ticket_data={
+            "ticket_id": ticket_id,
+            "state": state.value if hasattr(state, 'value') else state
+        },
+        adapter=adapter_name,
+        operation="transition"
+    )
 
-        return await adapter.transition_state(ticket_id, state), True
+    console.print(f"[green]✓[/green] Queued state transition: {queue_id}")
+    console.print(f"  Ticket: {ticket_id} → {state}")
+    console.print("[dim]Use 'mcp-ticketer status {queue_id}' to check progress[/dim]")
 
-    ticket, valid = asyncio.run(_transition())
-
-    if not valid:
-        console.print(f"[red]✗[/red] Invalid state transition to {state}")
-        raise typer.Exit(1)
-
-    if ticket:
-        console.print(f"[green]✓[/green] Transitioned ticket {ticket.id} to {state}")
-    else:
-        console.print(f"[red]✗[/red] Failed to transition ticket: {ticket_id}")
-        raise typer.Exit(1)
+    # Start worker if needed
+    manager = WorkerManager()
+    if manager.start_if_needed():
+        console.print("[dim]Worker started to process request[/dim]")
 
 
 @app.command()
@@ -448,10 +720,15 @@ def search(
     priority: Optional[Priority] = typer.Option(None, "--priority", "-p"),
     assignee: Optional[str] = typer.Option(None, "--assignee", "-a"),
     limit: int = typer.Option(10, "--limit", "-l"),
+    adapter: Optional[AdapterType] = typer.Option(
+        None,
+        "--adapter",
+        help="Override default adapter"
+    ),
 ) -> None:
     """Search tickets with advanced query."""
     async def _search():
-        adapter = get_adapter()
+        adapter_instance = get_adapter(override_adapter=adapter.value if adapter else None)
         search_query = SearchQuery(
             query=query,
             state=state,
@@ -459,7 +736,7 @@ def search(
             assignee=assignee,
             limit=limit,
         )
-        return await adapter.search(search_query)
+        return await adapter_instance.search(search_query)
 
     tickets = asyncio.run(_search())
 
@@ -476,6 +753,54 @@ def search(
         if ticket.assignee:
             console.print(f"  Assignee: {ticket.assignee}")
         console.print()
+
+
+# Add queue command to main app
+app.add_typer(queue_app, name="queue")
+
+
+@app.command()
+def check(
+    queue_id: str = typer.Argument(..., help="Queue ID to check")
+):
+    """Check status of a queued operation."""
+    queue = Queue()
+    item = queue.get_item(queue_id)
+
+    if not item:
+        console.print(f"[red]Queue item not found: {queue_id}[/red]")
+        raise typer.Exit(1)
+
+    # Display status
+    console.print(f"\n[bold]Queue Item: {item.id}[/bold]")
+    console.print(f"Operation: {item.operation}")
+    console.print(f"Adapter: {item.adapter}")
+
+    # Status with color
+    if item.status == QueueStatus.COMPLETED:
+        console.print(f"Status: [green]{item.status}[/green]")
+    elif item.status == QueueStatus.FAILED:
+        console.print(f"Status: [red]{item.status}[/red]")
+    elif item.status == QueueStatus.PROCESSING:
+        console.print(f"Status: [yellow]{item.status}[/yellow]")
+    else:
+        console.print(f"Status: {item.status}")
+
+    # Timestamps
+    console.print(f"Created: {item.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
+    if item.processed_at:
+        console.print(f"Processed: {item.processed_at.strftime('%Y-%m-%d %H:%M:%S')}")
+
+    # Error or result
+    if item.error_message:
+        console.print(f"\n[red]Error:[/red] {item.error_message}")
+    elif item.result:
+        console.print(f"\n[green]Result:[/green]")
+        for key, value in item.result.items():
+            console.print(f"  {key}: {value}")
+
+    if item.retry_count > 0:
+        console.print(f"\nRetry Count: {item.retry_count}")
 
 
 def main():

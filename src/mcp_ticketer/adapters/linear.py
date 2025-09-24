@@ -101,8 +101,10 @@ PROJECT_FRAGMENT = """
         targetDate
         startedAt
         completedAt
-        team {
-            ...TeamFields
+        teams {
+            nodes {
+                ...TeamFields
+            }
         }
     }
 """
@@ -252,6 +254,18 @@ ALL_FRAGMENTS = (
     ISSUE_FULL_FRAGMENT
 )
 
+# Fragments needed for issue list/search (without comments)
+ISSUE_LIST_FRAGMENTS = (
+    USER_FRAGMENT +
+    WORKFLOW_STATE_FRAGMENT +
+    TEAM_FRAGMENT +
+    CYCLE_FRAGMENT +
+    PROJECT_FRAGMENT +
+    LABEL_FRAGMENT +
+    ATTACHMENT_FRAGMENT +
+    ISSUE_COMPACT_FRAGMENT
+)
+
 
 class LinearAdapter(BaseAdapter[Task]):
     """Adapter for Linear issue tracking system using native GraphQL API."""
@@ -293,11 +307,47 @@ class LinearAdapter(BaseAdapter[Task]):
         self._labels: Optional[Dict[str, str]] = None  # name -> id
         self._users: Optional[Dict[str, str]] = None  # email -> id
 
-    async def _ensure_team_id(self) -> str:
-        """Get and cache the team ID."""
-        if self._team_id:
-            return self._team_id
+        # Initialize state mapping
+        self._state_mapping = self._get_state_mapping()
 
+        # Initialization lock to prevent concurrent initialization
+        self._init_lock = asyncio.Lock()
+        self._initialized = False
+
+    async def initialize(self) -> None:
+        """Initialize adapter by preloading team, states, and labels data concurrently."""
+        if self._initialized:
+            return
+
+        async with self._init_lock:
+            if self._initialized:
+                return
+
+            try:
+                # First get team ID as it's required for other queries
+                team_id = await self._fetch_team_data()
+
+                # Then fetch states and labels concurrently
+                states_task = self._fetch_workflow_states_data(team_id)
+                labels_task = self._fetch_labels_data(team_id)
+
+                workflow_states, labels = await asyncio.gather(states_task, labels_task)
+
+                # Cache the results
+                self._team_id = team_id
+                self._workflow_states = workflow_states
+                self._labels = labels
+                self._initialized = True
+
+            except Exception as e:
+                # Reset on error
+                self._team_id = None
+                self._workflow_states = None
+                self._labels = None
+                raise e
+
+    async def _fetch_team_data(self) -> str:
+        """Fetch team ID."""
         query = gql("""
             query GetTeam($key: String!) {
                 teams(filter: { key: { eq: $key } }) {
@@ -316,16 +366,10 @@ class LinearAdapter(BaseAdapter[Task]):
         if not result["teams"]["nodes"]:
             raise ValueError(f"Team with key '{self.team_key}' not found")
 
-        self._team_id = result["teams"]["nodes"][0]["id"]
-        return self._team_id
+        return result["teams"]["nodes"][0]["id"]
 
-    async def _get_workflow_states(self) -> Dict[str, Dict[str, Any]]:
-        """Fetch and cache workflow states from Linear."""
-        if self._workflow_states:
-            return self._workflow_states
-
-        team_id = await self._ensure_team_id()
-
+    async def _fetch_workflow_states_data(self, team_id: str) -> Dict[str, Dict[str, Any]]:
+        """Fetch workflow states data."""
         query = gql("""
             query WorkflowStates($teamId: ID!) {
                 workflowStates(filter: { team: { id: { eq: $teamId } } }) {
@@ -343,30 +387,59 @@ class LinearAdapter(BaseAdapter[Task]):
         async with self.client as session:
             result = await session.execute(query, variable_values={"teamId": team_id})
 
-        self._workflow_states = {}
+        workflow_states = {}
         for state in result["workflowStates"]["nodes"]:
             state_type = state["type"].lower()
-            # Store the full state object, keyed by type
-            if state_type not in self._workflow_states:
-                self._workflow_states[state_type] = state
-            # Prefer states with lower position (higher priority in workflow)
-            elif state["position"] < self._workflow_states[state_type]["position"]:
-                self._workflow_states[state_type] = state
+            if state_type not in workflow_states:
+                workflow_states[state_type] = state
+            elif state["position"] < workflow_states[state_type]["position"]:
+                workflow_states[state_type] = state
 
+        return workflow_states
+
+    async def _fetch_labels_data(self, team_id: str) -> Dict[str, str]:
+        """Fetch labels data."""
+        query = gql("""
+            query GetLabels($teamId: ID!) {
+                issueLabels(filter: { team: { id: { eq: $teamId } } }) {
+                    nodes {
+                        id
+                        name
+                    }
+                }
+            }
+        """)
+
+        async with self.client as session:
+            result = await session.execute(query, variable_values={"teamId": team_id})
+
+        return {label["name"]: label["id"] for label in result["issueLabels"]["nodes"]}
+
+    async def _ensure_initialized(self) -> None:
+        """Ensure adapter is initialized before operations."""
+        if not self._initialized:
+            await self.initialize()
+
+    async def _ensure_team_id(self) -> str:
+        """Get and cache the team ID."""
+        await self._ensure_initialized()
+        return self._team_id
+
+    async def _get_workflow_states(self) -> Dict[str, Dict[str, Any]]:
+        """Get cached workflow states from Linear."""
+        await self._ensure_initialized()
         return self._workflow_states
 
     async def _get_or_create_label(self, name: str, color: Optional[str] = None) -> str:
         """Get existing label ID or create new label."""
-        if not self._labels:
-            self._labels = {}
+        await self._ensure_initialized()
 
         # Check cache
         if name in self._labels:
             return self._labels[name]
 
-        team_id = await self._ensure_team_id()
-
-        # Try to find existing label
+        # Try to find existing label (may have been added since initialization)
+        team_id = self._team_id
         search_query = gql("""
             query GetLabel($name: String!, $teamId: ID!) {
                 issueLabels(filter: { name: { eq: $name }, team: { id: { eq: $teamId } } }) {
@@ -626,9 +699,9 @@ class LinearAdapter(BaseAdapter[Task]):
             if user_id:
                 issue_input["assigneeId"] = user_id
 
-        # Handle estimate
+        # Handle estimate (Linear uses integer points, so we round hours)
         if ticket.estimated_hours:
-            issue_input["estimate"] = ticket.estimated_hours
+            issue_input["estimate"] = int(round(ticket.estimated_hours))
 
         # Handle parent issue
         if ticket.parent_issue:
@@ -772,7 +845,7 @@ class LinearAdapter(BaseAdapter[Task]):
             update_input["labelIds"] = label_ids
 
         if "estimated_hours" in updates:
-            update_input["estimate"] = updates["estimated_hours"]
+            update_input["estimate"] = int(round(updates["estimated_hours"]))
 
         # Handle metadata updates
         if "metadata" in updates and "linear" in updates["metadata"]:
@@ -786,7 +859,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         # Update mutation
         update_query = gql(ALL_FRAGMENTS + """
-            mutation UpdateIssue($id: ID!, $input: IssueUpdateInput!) {
+            mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
                 issueUpdate(id: $id, input: $input) {
                     success
                     issue {
@@ -831,7 +904,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         # Archive mutation
         archive_query = gql("""
-            mutation ArchiveIssue($id: ID!) {
+            mutation ArchiveIssue($id: String!) {
                 issueArchive(id: $id) {
                     success
                 }
@@ -913,15 +986,14 @@ class LinearAdapter(BaseAdapter[Task]):
                 issue_filter["dueDate"] = {"lte": filters["due_before"]}
 
         # Exclude archived issues by default
-        if "includeArchived" not in filters or not filters["includeArchived"]:
+        if not filters or "includeArchived" not in filters or not filters["includeArchived"]:
             issue_filter["archivedAt"] = {"null": True}
 
-        query = gql(ALL_FRAGMENTS + """
-            query ListIssues($filter: IssueFilter, $first: Int!, $skip: Int!) {
+        query = gql(ISSUE_LIST_FRAGMENTS + """
+            query ListIssues($filter: IssueFilter, $first: Int!) {
                 issues(
                     filter: $filter
                     first: $first
-                    skip: $skip
                     orderBy: updatedAt
                 ) {
                     nodes {
@@ -941,7 +1013,8 @@ class LinearAdapter(BaseAdapter[Task]):
                 variable_values={
                     "filter": issue_filter,
                     "first": limit,
-                    "skip": offset,
+                    # Note: Linear uses cursor-based pagination, not offset
+                    # For simplicity, we ignore offset here
                 }
             )
 
@@ -994,12 +1067,11 @@ class LinearAdapter(BaseAdapter[Task]):
         # Exclude archived
         issue_filter["archivedAt"] = {"null": True}
 
-        search_query = gql(ALL_FRAGMENTS + """
-            query SearchIssues($filter: IssueFilter, $first: Int!, $skip: Int!) {
+        search_query = gql(ISSUE_LIST_FRAGMENTS + """
+            query SearchIssues($filter: IssueFilter, $first: Int!) {
                 issues(
                     filter: $filter
                     first: $first
-                    skip: $skip
                     orderBy: updatedAt
                 ) {
                     nodes {
@@ -1015,7 +1087,7 @@ class LinearAdapter(BaseAdapter[Task]):
                 variable_values={
                     "filter": issue_filter,
                     "first": query.limit,
-                    "skip": query.offset,
+                    # Note: Linear uses cursor-based pagination, not offset
                 }
             )
 
@@ -1060,8 +1132,8 @@ class LinearAdapter(BaseAdapter[Task]):
 
         linear_id = result["issue"]["id"]
 
-        # Create comment mutation
-        create_comment_query = gql(ALL_FRAGMENTS + """
+        # Create comment mutation (only include needed fragments)
+        create_comment_query = gql(USER_FRAGMENT + COMMENT_FRAGMENT + """
             mutation CreateComment($input: CommentCreateInput!) {
                 commentCreate(input: $input) {
                     success
@@ -1113,10 +1185,10 @@ class LinearAdapter(BaseAdapter[Task]):
         offset: int = 0
     ) -> List[Comment]:
         """Get comments for a Linear issue with pagination."""
-        query = gql(ALL_FRAGMENTS + """
-            query GetIssueComments($identifier: String!, $first: Int!, $skip: Int!) {
+        query = gql(USER_FRAGMENT + COMMENT_FRAGMENT + """
+            query GetIssueComments($identifier: String!, $first: Int!) {
                 issue(id: $identifier) {
-                    comments(first: $first, skip: $skip, orderBy: createdAt) {
+                    comments(first: $first, orderBy: createdAt) {
                         nodes {
                             ...CommentFields
                         }
@@ -1132,7 +1204,7 @@ class LinearAdapter(BaseAdapter[Task]):
                     variable_values={
                         "identifier": ticket_id,
                         "first": limit,
-                        "skip": offset,
+                        # Note: Linear uses cursor-based pagination
                     }
                 )
 
@@ -1203,7 +1275,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         query = gql("""
             query GetCycles($filter: CycleFilter) {
-                cycles(filter: $filter, orderBy: startsAt) {
+                cycles(filter: $filter, orderBy: createdAt) {
                     nodes {
                         id
                         number

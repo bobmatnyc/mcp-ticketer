@@ -1,99 +1,68 @@
-"""Test script to find available teams in Linear workspace."""
-
+#!/usr/bin/env python3
+"""
+Test script to find the correct Linear team key
+"""
 import asyncio
 import os
-
-# Add the source directory to the path
-import sys
-sys.path.insert(0, '/Users/masa/Projects/managed/mcp-ticketer/src')
-
+from pathlib import Path
+from dotenv import load_dotenv
 from gql import gql, Client
 from gql.transport.httpx import HTTPXAsyncTransport
 
+# Load environment variables
+env_path = Path('.env.local')
+if env_path.exists():
+    load_dotenv(env_path)
 
-async def list_teams():
-    """List all available teams in the Linear workspace."""
-
-    # Load environment
-    from dotenv import load_dotenv
-    load_dotenv('.env.local')
-
-    api_key = os.getenv("LINEAR_API_KEY")
+async def find_teams():
+    """Find available teams in the Linear workspace"""
+    api_key = os.getenv('LINEAR_API_KEY')
     if not api_key:
-        raise ValueError("LINEAR_API_KEY not found in environment")
+        print("LINEAR_API_KEY not found!")
+        return
 
-    # Setup GraphQL client
     transport = HTTPXAsyncTransport(
         url="https://api.linear.app/graphql",
-        headers={"Authorization": api_key},
-        timeout=30.0,
+        headers={"Authorization": api_key}
     )
-    client = Client(transport=transport, fetch_schema_from_transport=False)
 
-    # Query to get all teams
+    client = Client(transport=transport)
+
+    # Query to get teams
     query = gql("""
         query GetTeams {
             teams {
                 nodes {
                     id
-                    name
                     key
+                    name
                     description
-                    createdAt
-                    issueCount
                 }
             }
         }
     """)
 
-    async with client as session:
-        result = await session.execute(query)
+    try:
+        result = await client.execute_async(query)
+        teams = result.get('teams', {}).get('nodes', [])
 
-    print("Available teams in the Linear workspace:")
-    print("=" * 60)
-
-    teams = result["teams"]["nodes"]
-    if not teams:
-        print("No teams found!")
-    else:
+        print(f"Found {len(teams)} team(s) in Linear workspace:\n")
         for team in teams:
             print(f"Team Name: {team['name']}")
             print(f"  Key: {team['key']}")
             print(f"  ID: {team['id']}")
-            print(f"  Description: {team.get('description', 'N/A')}")
-            print(f"  Issue Count: {team.get('issueCount', 0)}")
-            print(f"  Created: {team['createdAt']}")
-            print("-" * 60)
+            if team.get('description'):
+                print(f"  Description: {team['description']}")
+            print()
 
-    # Also try to get workspace info
-    workspace_query = gql("""
-        query GetWorkspace {
-            organization {
-                id
-                name
-                urlKey
-                createdAt
-            }
-        }
-    """)
+        if teams:
+            print(f"✓ Use team key '{teams[0]['key']}' for the Linear adapter")
+            return teams[0]['key']
+        else:
+            print("No teams found. Check your API key permissions.")
 
-    try:
-        async with client as session:
-            workspace_result = await session.execute(workspace_query)
-
-        print("\nWorkspace Information:")
-        print("=" * 60)
-        org = workspace_result.get("organization")
-        if org:
-            print(f"Name: {org['name']}")
-            print(f"URL Key: {org['urlKey']}")
-            print(f"ID: {org['id']}")
-            print(f"Created: {org['createdAt']}")
     except Exception as e:
-        print(f"\nCould not fetch workspace info: {e}")
-
-    await transport.close()
-
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(list_teams())
+    asyncio.run(find_teams())

@@ -153,10 +153,10 @@ class GitHubAdapter(BaseAdapter[Task]):
         """
         super().__init__(config)
 
-        # Get authentication token
-        self.token = config.get("token") or os.getenv("GITHUB_TOKEN")
+        # Get authentication token - support both 'api_key' and 'token' for compatibility
+        self.token = config.get("api_key") or config.get("token") or os.getenv("GITHUB_TOKEN")
         if not self.token:
-            raise ValueError("GitHub token required (config.token or GITHUB_TOKEN env var)")
+            raise ValueError("GitHub token required (config.api_key, config.token or GITHUB_TOKEN env var)")
 
         # Get repository information
         self.owner = config.get("owner") or os.getenv("GITHUB_OWNER")

@@ -26,6 +26,13 @@ fi
 # Activate virtual environment
 source "$VENV_DIR/bin/activate"
 
+# Load environment variables from .env.local if it exists
+if [ -f "$SCRIPT_DIR/.env.local" ]; then
+    set -a  # automatically export all variables
+    source "$SCRIPT_DIR/.env.local"
+    set +a  # turn off automatic export
+fi
+
 # Install/upgrade package if needed
 if [ ! -f "$VENV_DIR/.installed" ] || [ "$SCRIPT_DIR/pyproject.toml" -nt "$VENV_DIR/.installed" ]; then
     echo "Installing/updating MCP Ticketer..."

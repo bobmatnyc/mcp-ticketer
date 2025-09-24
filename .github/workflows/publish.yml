@@ -1,0 +1,163 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'testpypi'
+        type: choice
+        options:
+          - testpypi
+          - pypi
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for setuptools-scm
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine setuptools wheel setuptools-scm
+
+    - name: Build package
+      run: |
+        python -m build
+
+    - name: Check package with twine
+      run: |
+        twine check dist/*
+
+    - name: Store build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+        retention-days: 7
+
+  test-install:
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.9', '3.11', '3.13']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+
+    - name: Test installation from wheel
+      run: |
+        pip install dist/*.whl
+        mcp-ticketer --version
+        python -c "import mcp_ticketer; print(mcp_ticketer.__version__)"
+
+    - name: Test installation from sdist
+      run: |
+        pip uninstall -y mcp-ticketer
+        pip install dist/*.tar.gz
+        mcp-ticketer --version
+
+  publish-testpypi:
+    needs: test-install
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'testpypi'
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/mcp-ticketer/
+
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+
+    - name: Publish to TestPyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        skip-existing: true
+
+  publish-pypi:
+    needs: test-install
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'pypi')
+    environment:
+      name: pypi
+      url: https://pypi.org/project/mcp-ticketer/
+
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
+
+  create-github-release:
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+
+    - name: Create GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh release create "${{ github.ref_name }}" \
+          --title "Release ${{ github.ref_name }}" \
+          --generate-notes \
+          dist/*
+
+  announce:
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+
+    steps:
+    - name: Announce release
+      run: |
+        echo "🎉 mcp-ticketer ${{ github.ref_name }} has been released!"
+        echo "📦 PyPI: https://pypi.org/project/mcp-ticketer/"
+        echo "📚 Docs: https://mcp-ticketer.readthedocs.io/"

@@ -8,6 +8,7 @@ venv/
 env/
 ENV/
 .venv
+.virtualenv
 
 # Distribution / packaging
 .Python
@@ -23,42 +24,160 @@ parts/
 sdist/
 var/
 wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
+pip-wheel-metadata/
+*.dist-info/
 
-# Testing
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
 .tox/
+.nox/
 .coverage
 .coverage.*
 .cache
 nosetests.xml
 coverage.xml
 *.cover
+*.py,cover
 .hypothesis/
 .pytest_cache/
+cover/
+htmlcov/
+junit.xml
 
-# IDE
+# Translations
+*.mo
+*.pot
+
+# Django stuff
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff
+instance/
+.webassets-cache
+
+# Scrapy stuff
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+docs/_static/
+docs/_templates/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# IDEs
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 .DS_Store
+Thumbs.db
 
 # Project specific
 .aitrackdown/
 .test_aitrackdown/
 .mcp-ticketer/
+test-tickets/
 
-# Logs
-*.log
-logs/
-
-# Environment
+# Environment variables
 .env
 .env.local
+.env.*.local
+.envrc
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Virtual environment marker
 venv/.installed
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor backups
+*~
+\#*\#
+.\#*
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+*.old
+
+# Build artifacts
+*.pyd
+*.pyo
+*.whl
+src/*.egg-info/
+
+# Documentation build
+docs/api/
+docs/_autosummary/
+
+# CI/CD
+.github/workflows/test-results/
+.github/workflows/coverage/
+
+# Package management
+poetry.lock
+Pipfile.lock
+package-lock.json
+yarn.lock

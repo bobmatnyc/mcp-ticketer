@@ -1,0 +1,100 @@
+name: Documentation
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'docs/**'
+      - 'src/**'
+      - 'README.md'
+      - 'CHANGELOG.md'
+      - 'pyproject.toml'
+      - '.readthedocs.yaml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'docs/**'
+      - 'src/**'
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[docs]"
+
+    - name: Build documentation
+      run: |
+        cd docs
+        make clean
+        make html SPHINXOPTS="-W --keep-going"
+
+    - name: Check for broken links
+      run: |
+        pip install linkchecker
+        linkchecker docs/_build/html/index.html --config docs/.linkcheckerrc || true
+
+    - name: Upload documentation artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: documentation
+        path: docs/_build/html/
+        retention-days: 7
+
+  deploy-docs:
+    needs: build-docs
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download documentation artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: documentation
+        path: docs/_build/html/
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs/_build/html
+        publish_branch: gh-pages
+        force_orphan: true
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
+        commit_message: 'Deploy documentation for ${{ github.sha }}'
+
+  check-changelog:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Check if CHANGELOG.md was updated
+      run: |
+        if ! git diff --name-only origin/main..HEAD | grep -q "CHANGELOG.md"; then
+          echo "⚠️  Warning: CHANGELOG.md has not been updated"
+          echo "Please update CHANGELOG.md with your changes"
+        else
+          echo "✅ CHANGELOG.md has been updated"
+        fi

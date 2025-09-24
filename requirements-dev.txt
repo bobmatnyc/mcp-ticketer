@@ -1,0 +1,45 @@
+# Development dependencies
+# This file is auto-generated from pyproject.toml
+# Install with: pip install -r requirements-dev.txt
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+pytest-timeout>=2.2.0
+pytest-mock>=3.12.0
+pytest-xdist>=3.5.0
+responses>=0.24.0
+
+# Code Quality
+black>=23.0.0
+ruff>=0.1.0
+mypy>=1.5.0
+isort>=5.12.0
+pylint>=3.0.0
+
+# Documentation
+sphinx>=7.2.0
+sphinx-rtd-theme>=2.0.0
+sphinx-autodoc-typehints>=1.25.0
+sphinx-click>=5.1.0
+myst-parser>=2.0.0
+
+# Build & Release
+build>=1.0.0
+twine>=4.0.0
+setuptools>=68.0.0
+wheel>=0.41.0
+setuptools-scm>=8.0.0
+bump2version>=1.0.1
+
+# Development Tools
+ipython>=8.0.0
+ipdb>=0.13.0
+pre-commit>=3.5.0
+tox>=4.11.0
+
+# Security
+bandit>=1.7.5
+safety>=3.0.0
+pip-audit>=2.6.0

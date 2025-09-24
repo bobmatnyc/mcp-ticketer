@@ -48,12 +48,12 @@ echo "✓ Installation complete!"
 echo
 echo "To get started:"
 echo "  1. Activate the virtual environment: source venv/bin/activate"
-echo "  2. Initialize configuration: mcp-ticket init"
-echo "  3. Create your first ticket: mcp-ticket create 'Hello World'"
+echo "  2. Initialize configuration: mcp-ticketer init"
+echo "  3. Create your first ticket: mcp-ticketer create 'Hello World'"
 echo
 echo "Or use the wrapper scripts directly:"
-echo "  ./mcp-ticket init"
-echo "  ./mcp-ticket create 'Hello World'"
+echo "  ./mcp-ticketer init"
+echo "  ./mcp-ticketer create 'Hello World'"
 echo
 echo "Run tests to verify installation:"
 echo "  python test_basic.py"

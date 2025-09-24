@@ -204,6 +204,81 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             }
         return self._custom_fields_cache
 
+    def _convert_from_adf(self, adf_content: Any) -> str:
+        """Convert Atlassian Document Format (ADF) to plain text.
+
+        This extracts text content from ADF structure for display.
+        """
+        if not adf_content:
+            return ""
+
+        # If it's already a string, return it (JIRA Server)
+        if isinstance(adf_content, str):
+            return adf_content
+
+        # Handle ADF structure
+        if not isinstance(adf_content, dict):
+            return str(adf_content)
+
+        content_nodes = adf_content.get("content", [])
+        lines = []
+
+        for node in content_nodes:
+            if node.get("type") == "paragraph":
+                paragraph_text = ""
+                for content_item in node.get("content", []):
+                    if content_item.get("type") == "text":
+                        paragraph_text += content_item.get("text", "")
+                lines.append(paragraph_text)
+            elif node.get("type") == "heading":
+                heading_text = ""
+                for content_item in node.get("content", []):
+                    if content_item.get("type") == "text":
+                        heading_text += content_item.get("text", "")
+                lines.append(heading_text)
+
+        return "\n".join(lines)
+
+    def _convert_to_adf(self, text: str) -> Dict[str, Any]:
+        """Convert plain text to Atlassian Document Format (ADF).
+
+        ADF is required for JIRA Cloud description fields.
+        This creates a simple document with paragraphs for each line.
+        """
+        if not text:
+            return {
+                "type": "doc",
+                "version": 1,
+                "content": []
+            }
+
+        # Split text into lines and create paragraphs
+        lines = text.split('\n')
+        content = []
+
+        for line in lines:
+            if line.strip():  # Non-empty line
+                content.append({
+                    "type": "paragraph",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": line
+                        }
+                    ]
+                })
+            else:  # Empty line becomes empty paragraph
+                content.append({
+                    "type": "paragraph",
+                    "content": []
+                })
+
+        return {
+            "type": "doc",
+            "version": 1,
+            "content": content
+        }
+
     def _map_priority_to_jira(self, priority: Priority) -> str:
         """Map universal priority to JIRA priority."""
         mapping = {
@@ -273,13 +348,19 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         is_epic = "epic" in issue_type
 
         # Extract common fields
+        # Convert ADF description back to plain text if needed
+        description = self._convert_from_adf(fields.get("description", ""))
+
         base_data = {
             "id": issue.get("key"),
             "title": fields.get("summary", ""),
-            "description": fields.get("description", ""),
+            "description": description,
             "state": self._map_state_from_jira(fields.get("status", {})),
             "priority": self._map_priority_from_jira(fields.get("priority")),
-            "tags": [label.get("name", "") for label in fields.get("labels", [])],
+            "tags": [
+                label.get("name", "") if isinstance(label, dict) else str(label)
+                for label in fields.get("labels", [])
+            ],
             "created_at": datetime.fromisoformat(
                 fields.get("created", "").replace("Z", "+00:00")
             ) if fields.get("created") else None,
@@ -335,9 +416,12 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         issue_type: Optional[str] = None
     ) -> Dict[str, Any]:
         """Convert universal ticket to JIRA issue fields."""
+        # Convert description to ADF format for JIRA Cloud
+        description = self._convert_to_adf(ticket.description or "") if self.is_cloud else (ticket.description or "")
+
         fields = {
             "summary": ticket.title,
-            "description": ticket.description or "",
+            "description": description,
             "labels": ticket.tags,
             "priority": {"name": self._map_priority_to_jira(ticket.priority)},
         }
@@ -481,10 +565,10 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
         jql = " AND ".join(jql_parts) if jql_parts else "ORDER BY created DESC"
 
-        # Search issues
+        # Search issues using the new API endpoint
         data = await self._make_request(
             "POST",
-            "search",
+            "search/jql",  # Updated to use new API endpoint
             data={
                 "jql": jql,
                 "startAt": offset,
@@ -531,10 +615,10 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
         jql = " AND ".join(jql_parts) if jql_parts else "ORDER BY created DESC"
 
-        # Execute search
+        # Execute search using the new API endpoint
         data = await self._make_request(
             "POST",
-            "search",
+            "search/jql",  # Updated to use new API endpoint
             data={
                 "jql": jql,
                 "startAt": query.offset,
