@@ -30,10 +30,10 @@ echo "✓ Found Python: $($PYTHON_CMD --version)"
 # Create virtual environment
 echo
 echo "Creating virtual environment..."
-$PYTHON_CMD -m venv venv
+$PYTHON_CMD -m .venv .venv
 
 # Activate virtual environment
-source venv/bin/activate
+source .venv/bin/activate
 
 # Upgrade pip
 echo "Upgrading pip..."
@@ -47,7 +47,7 @@ echo
 echo "✓ Installation complete!"
 echo
 echo "To get started:"
-echo "  1. Activate the virtual environment: source venv/bin/activate"
+echo "  1. Activate the virtual environment: source .venv/bin/activate"
 echo "  2. Initialize configuration: mcp-ticketer init"
 echo "  3. Create your first ticket: mcp-ticketer create 'Hello World'"
 echo

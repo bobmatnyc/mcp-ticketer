@@ -2869,7 +2869,7 @@ echo "Setting up MCP Ticketer development environment..."
 
 # Create virtual environment
 python3.13 -m venv venv
-source venv/bin/activate
+source .venv/bin/activate
 
 # Install dependencies
 pip install -e ".[dev,mcp,jira,github]"
@@ -2893,7 +2893,7 @@ pytest tests/unit/ -v
 
 echo "Development environment ready!"
 echo "Next steps:"
-echo "  1. source venv/bin/activate"
+echo "  1. source .venv/bin/activate"
 echo "  2. pytest tests/ -v"
 echo "  3. mcp-ticket init --adapter aitrackdown"
 ```

@@ -108,7 +108,6 @@ test = [
 
 [project.scripts]
 mcp-ticketer = "mcp_ticketer.cli.main:main"
-mcp-ticketer-server = "mcp_ticketer.mcp.server:main"
 
 [project.urls]
 Homepage = "https://github.com/mcp-ticketer/mcp-ticketer"

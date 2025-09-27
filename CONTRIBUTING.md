@@ -88,7 +88,7 @@ git remote add upstream https://github.com/mcp-ticketerer/mcp-ticketerer.git
 ```bash
 # Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source .venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install development dependencies
 pip install -e ".[dev,mcp,jira,github]"
@@ -140,7 +140,7 @@ Recommended extensions:
 Settings:
 ```json
 {
-  "python.defaultInterpreterPath": "./venv/bin/python",
+  "python.defaultInterpreterPath": "./.venv/bin/python",
   "python.testing.pytestEnabled": true,
   "python.testing.pytestArgs": ["tests/"],
   "python.linting.enabled": true,

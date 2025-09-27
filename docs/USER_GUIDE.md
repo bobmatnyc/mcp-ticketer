@@ -34,7 +34,7 @@ pip install mcp-ticketer
 git clone https://github.com/mcp-ticketer/mcp-ticketer.git
 cd mcp-ticketer
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+source .venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -e ".[dev]"
 ```
 

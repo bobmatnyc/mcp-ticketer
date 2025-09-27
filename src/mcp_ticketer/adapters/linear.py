@@ -1343,6 +1343,226 @@ class LinearAdapter(BaseAdapter[Task]):
 
         return result.get("reactionCreate", {}).get("success", False)
 
+    async def link_to_pull_request(
+        self,
+        ticket_id: str,
+        pr_url: str,
+        pr_number: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Link a Linear issue to a GitHub pull request.
+
+        Args:
+            ticket_id: Linear issue identifier (e.g., 'BTA-123')
+            pr_url: GitHub PR URL
+            pr_number: Optional PR number (extracted from URL if not provided)
+
+        Returns:
+            Dictionary with link status and details
+        """
+        # Parse PR URL to extract details
+        import re
+        pr_pattern = r"github\.com/([^/]+)/([^/]+)/pull/(\d+)"
+        match = re.search(pr_pattern, pr_url)
+
+        if not match:
+            raise ValueError(f"Invalid GitHub PR URL format: {pr_url}")
+
+        owner, repo, extracted_pr_number = match.groups()
+        if not pr_number:
+            pr_number = int(extracted_pr_number)
+
+        # Create an attachment to link the PR
+        create_query = gql("""
+            mutation CreateAttachment($input: AttachmentCreateInput!) {
+                attachmentCreate(input: $input) {
+                    attachment {
+                        id
+                        url
+                        title
+                        subtitle
+                        source
+                    }
+                    success
+                }
+            }
+        """)
+
+        # Get the issue ID from the identifier
+        issue = await self.read(ticket_id)
+        if not issue:
+            raise ValueError(f"Issue {ticket_id} not found")
+
+        # Create attachment input
+        attachment_input = {
+            "issueId": issue.metadata.get("linear", {}).get("id"),
+            "url": pr_url,
+            "title": f"Pull Request #{pr_number}",
+            "subtitle": f"{owner}/{repo}",
+            "source": {
+                "type": "githubPr",
+                "data": {
+                    "number": pr_number,
+                    "owner": owner,
+                    "repo": repo,
+                }
+            },
+        }
+
+        async with self.client as session:
+            result = await session.execute(
+                create_query,
+                variable_values={"input": attachment_input}
+            )
+
+        if result.get("attachmentCreate", {}).get("success"):
+            attachment = result["attachmentCreate"]["attachment"]
+
+            # Also add a comment about the PR link
+            comment_text = f"Linked to GitHub PR: {pr_url}"
+            await self.add_comment(
+                Comment(
+                    ticket_id=ticket_id,
+                    content=comment_text,
+                    author="system",
+                )
+            )
+
+            return {
+                "success": True,
+                "attachment_id": attachment["id"],
+                "pr_url": pr_url,
+                "pr_number": pr_number,
+                "linked_issue": ticket_id,
+                "message": f"Successfully linked PR #{pr_number} to issue {ticket_id}",
+            }
+        else:
+            return {
+                "success": False,
+                "pr_url": pr_url,
+                "pr_number": pr_number,
+                "linked_issue": ticket_id,
+                "message": "Failed to create attachment link",
+            }
+
+    async def create_pull_request_for_issue(
+        self,
+        ticket_id: str,
+        github_config: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Create a GitHub PR for a Linear issue using GitHub integration.
+
+        This requires GitHub integration to be configured in Linear.
+
+        Args:
+            ticket_id: Linear issue identifier
+            github_config: GitHub configuration including:
+                - owner: GitHub repository owner
+                - repo: GitHub repository name
+                - base_branch: Target branch (default: main)
+                - head_branch: Source branch (auto-generated if not provided)
+
+        Returns:
+            Dictionary with PR creation status
+        """
+        # Get the issue details
+        issue = await self.read(ticket_id)
+        if not issue:
+            raise ValueError(f"Issue {ticket_id} not found")
+
+        # Generate branch name if not provided
+        head_branch = github_config.get("head_branch")
+        if not head_branch:
+            # Use Linear's branch naming convention
+            # e.g., "bta-123-fix-authentication-bug"
+            safe_title = "-".join(
+                issue.title.lower()
+                .replace("[", "")
+                .replace("]", "")
+                .replace("#", "")
+                .replace("/", "-")
+                .replace("\\", "-")
+                .split()[:5]  # Limit to 5 words
+            )
+            head_branch = f"{ticket_id.lower()}-{safe_title}"
+
+        # Update the issue with the branch name
+        update_query = gql("""
+            mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
+                issueUpdate(id: $id, input: $input) {
+                    issue {
+                        id
+                        identifier
+                        branchName
+                    }
+                    success
+                }
+            }
+        """)
+
+        linear_id = issue.metadata.get("linear", {}).get("id")
+        if not linear_id:
+            # Need to get the full issue ID
+            search_result = await self._search_by_identifier(ticket_id)
+            if not search_result:
+                raise ValueError(f"Could not find Linear ID for issue {ticket_id}")
+            linear_id = search_result["id"]
+
+        async with self.client as session:
+            result = await session.execute(
+                update_query,
+                variable_values={
+                    "id": linear_id,
+                    "input": {"branchName": head_branch}
+                }
+            )
+
+        if result.get("issueUpdate", {}).get("success"):
+            # Prepare PR metadata to return
+            pr_metadata = {
+                "branch_name": head_branch,
+                "issue_id": ticket_id,
+                "issue_title": issue.title,
+                "issue_description": issue.description,
+                "github_owner": github_config.get("owner"),
+                "github_repo": github_config.get("repo"),
+                "base_branch": github_config.get("base_branch", "main"),
+                "message": f"Branch name '{head_branch}' set for issue {ticket_id}. Use GitHub integration or API to create the actual PR.",
+            }
+
+            # Add a comment about the branch
+            await self.add_comment(
+                Comment(
+                    ticket_id=ticket_id,
+                    content=f"Branch created: `{head_branch}`\nReady for pull request to `{pr_metadata['base_branch']}`",
+                    author="system",
+                )
+            )
+
+            return pr_metadata
+        else:
+            raise ValueError(f"Failed to update issue {ticket_id} with branch name")
+
+    async def _search_by_identifier(self, identifier: str) -> Optional[Dict[str, Any]]:
+        """Search for an issue by its identifier."""
+        search_query = gql("""
+            query SearchIssue($identifier: String!) {
+                issue(id: $identifier) {
+                    id
+                    identifier
+                }
+            }
+        """)
+
+        try:
+            async with self.client as session:
+                result = await session.execute(
+                    search_query,
+                    variable_values={"identifier": identifier}
+                )
+            return result.get("issue")
+        except:
+            return None
+
     async def close(self) -> None:
         """Close the GraphQL client connection."""
         if hasattr(self.client, 'close_async'):

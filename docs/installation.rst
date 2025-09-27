@@ -63,11 +63,11 @@ We strongly recommend using a virtual environment to avoid conflicts with other 
 .. code-block:: bash
 
    # Create virtual environment
-   python -m venv venv
+   python -m venv .venv
 
    # Activate virtual environment
    # On Linux/macOS:
-   source venv/bin/activate
+   source .venv/bin/activate
    # On Windows:
    venv\Scripts\activate
 

@@ -15,6 +15,79 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Analytics dashboard
 - Webhook notification support
 
+## [0.1.9] - 2025-09-26
+
+### Added
+- PR creation and linking support via new MCP tools
+- Synchronous mode for immediate ticket ID return
+- Timeout configuration for ticket operations
+
+### Fixed
+- Fixed ticket creation to return actual ticket identifier instead of just queue_id
+- Enhanced error handling and response formats
+
+## [0.1.8] - 2025-09-24
+
+### Added
+- Implemented `tools/call` method handler for MCP protocol compliance
+- Claude Desktop can now invoke tools through the standard MCP tools/call interface
+- Added proper JSON serialization with datetime support for tool responses
+- Created `.claude.json` configuration for local MCP server integration
+
+### Fixed
+- MCP server now handles tool invocations from Claude Desktop correctly
+- Fixed JSON serialization errors for datetime objects in responses
+
+## [0.1.7] - 2025-09-24
+
+### Fixed
+- MCP tools schema corrected from "parameters" to "inputSchema" for proper Claude Desktop compatibility
+- This fix ensures Claude Desktop correctly recognizes and can invoke MCP tools
+
+## [0.1.6] - 2025-09-24
+
+### Changed
+- Patch version bump for stable release with MCP protocol fix
+
+## [0.1.5] - 2025-09-24
+
+### Fixed
+- MCP protocol version updated to "2024-11-05" for proper Claude Desktop compatibility
+- Previous versions used "0.1.0" and "1.0.0" which were not recognized by Claude Desktop
+
+## [0.1.4] - 2025-09-24
+
+### Fixed
+- MCP protocol version corrected from "1.0.0" to "0.1.0" for Claude Desktop compatibility
+
+## [0.1.3] - 2025-09-24
+
+### Added
+- Local development script `mcp_server.sh` for running from project directory
+- Pipx installation support for system-wide deployment
+- Claude Desktop configuration documentation
+
+### Fixed
+- MCP server connection stability with improved error handling
+- Better EOF and broken pipe handling in MCP server
+- Proper stderr logging to avoid JSON-RPC interference
+
+### Changed
+- Simplified MCP installation with single recommended pipx approach
+- Improved MCP server robustness for Claude Desktop integration
+
+## [0.1.2] - 2025-09-24
+
+### Changed
+- **MCP Integration**: Consolidated MCP server as subcommand `mcp-ticketer mcp` instead of separate entry point
+- **Virtual Environment**: Standardized on `.venv` directory name (was `venv`)
+- Updated all documentation and scripts to use `.venv` convention
+
+### Fixed
+- MCP server now properly implements `initialize` method per MCP protocol specification
+- Fixed MCP server startup errors with Claude Desktop integration
+- Corrected version reporting in MCP server (was showing 0.1.0, now shows correct version)
+
 ## [0.1.1] - 2025-09-24
 
 ### Changed

@@ -4,7 +4,7 @@
 source .env.local
 
 # Activate virtual environment
-source venv/bin/activate
+source .venv/bin/activate
 
 echo "Testing 'set' command functionality..."
 echo "========================================"

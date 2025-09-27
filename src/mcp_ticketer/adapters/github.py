@@ -965,6 +965,269 @@ class GitHubAdapter(BaseAdapter[Task]):
 
         return response.status_code == 201
 
+    async def create_pull_request(
+        self,
+        ticket_id: str,
+        base_branch: str = "main",
+        head_branch: Optional[str] = None,
+        title: Optional[str] = None,
+        body: Optional[str] = None,
+        draft: bool = False,
+    ) -> Dict[str, Any]:
+        """Create a pull request linked to an issue.
+
+        Args:
+            ticket_id: Issue number to link the PR to
+            base_branch: Target branch for the PR (default: main)
+            head_branch: Source branch name (auto-generated if not provided)
+            title: PR title (uses ticket title if not provided)
+            body: PR description (auto-generated with issue link if not provided)
+            draft: Create as draft PR
+
+        Returns:
+            Dictionary with PR details including number, url, and branch
+        """
+        try:
+            issue_number = int(ticket_id)
+        except ValueError:
+            raise ValueError(f"Invalid issue number: {ticket_id}")
+
+        # Get the issue details
+        issue = await self.read(ticket_id)
+        if not issue:
+            raise ValueError(f"Issue #{ticket_id} not found")
+
+        # Auto-generate branch name if not provided
+        if not head_branch:
+            # Create branch name from issue number and title
+            # e.g., "123-fix-authentication-bug"
+            safe_title = "-".join(
+                issue.title.lower()
+                .replace("[", "")
+                .replace("]", "")
+                .replace("#", "")
+                .replace("/", "-")
+                .replace("\\", "-")
+                .split()[:5]  # Limit to 5 words
+            )
+            head_branch = f"{issue_number}-{safe_title}"
+
+        # Auto-generate title if not provided
+        if not title:
+            # Include issue number in PR title
+            title = f"[#{issue_number}] {issue.title}"
+
+        # Auto-generate body if not provided
+        if not body:
+            body = f"""## Summary
+
+This PR addresses issue #{issue_number}.
+
+**Issue:** #{issue_number} - {issue.title}
+**Link:** {issue.metadata.get('github', {}).get('url', '')}
+
+## Description
+
+{issue.description or 'No description provided.'}
+
+## Changes
+
+- [ ] Implementation details to be added
+
+## Testing
+
+- [ ] Tests have been added/updated
+- [ ] All tests pass
+
+## Checklist
+
+- [ ] Code follows project style guidelines
+- [ ] Self-review completed
+- [ ] Documentation updated if needed
+
+Fixes #{issue_number}
+"""
+
+        # Check if the head branch exists
+        try:
+            branch_response = await self.client.get(
+                f"/repos/{self.owner}/{self.repo}/branches/{head_branch}"
+            )
+            branch_exists = branch_response.status_code == 200
+        except httpx.HTTPError:
+            branch_exists = False
+
+        if not branch_exists:
+            # Get the base branch SHA
+            base_response = await self.client.get(
+                f"/repos/{self.owner}/{self.repo}/branches/{base_branch}"
+            )
+            base_response.raise_for_status()
+            base_sha = base_response.json()["commit"]["sha"]
+
+            # Create the new branch
+            ref_response = await self.client.post(
+                f"/repos/{self.owner}/{self.repo}/git/refs",
+                json={
+                    "ref": f"refs/heads/{head_branch}",
+                    "sha": base_sha,
+                }
+            )
+
+            if ref_response.status_code != 201:
+                # Branch might already exist on remote, try to use it
+                pass
+
+        # Create the pull request
+        pr_data = {
+            "title": title,
+            "body": body,
+            "head": head_branch,
+            "base": base_branch,
+            "draft": draft,
+        }
+
+        pr_response = await self.client.post(
+            f"/repos/{self.owner}/{self.repo}/pulls",
+            json=pr_data
+        )
+
+        if pr_response.status_code == 422:
+            # PR might already exist, try to get it
+            search_response = await self.client.get(
+                f"/repos/{self.owner}/{self.repo}/pulls",
+                params={
+                    "head": f"{self.owner}:{head_branch}",
+                    "base": base_branch,
+                    "state": "open",
+                }
+            )
+
+            if search_response.status_code == 200:
+                existing_prs = search_response.json()
+                if existing_prs:
+                    pr = existing_prs[0]
+                    return {
+                        "number": pr["number"],
+                        "url": pr["html_url"],
+                        "api_url": pr["url"],
+                        "branch": head_branch,
+                        "state": pr["state"],
+                        "draft": pr.get("draft", False),
+                        "title": pr["title"],
+                        "existing": True,
+                        "linked_issue": issue_number,
+                    }
+
+            raise ValueError(f"Failed to create PR: {pr_response.text}")
+
+        pr_response.raise_for_status()
+        pr = pr_response.json()
+
+        # Add a comment to the issue about the PR
+        await self.add_comment(
+            Comment(
+                ticket_id=ticket_id,
+                content=f"Pull request #{pr['number']} has been created: {pr['html_url']}",
+                author="system",
+            )
+        )
+
+        return {
+            "number": pr["number"],
+            "url": pr["html_url"],
+            "api_url": pr["url"],
+            "branch": head_branch,
+            "state": pr["state"],
+            "draft": pr.get("draft", False),
+            "title": pr["title"],
+            "linked_issue": issue_number,
+        }
+
+    async def link_existing_pull_request(
+        self,
+        ticket_id: str,
+        pr_url: str,
+    ) -> Dict[str, Any]:
+        """Link an existing pull request to a ticket.
+
+        Args:
+            ticket_id: Issue number to link the PR to
+            pr_url: GitHub PR URL to link
+
+        Returns:
+            Dictionary with link status and PR details
+        """
+        try:
+            issue_number = int(ticket_id)
+        except ValueError:
+            raise ValueError(f"Invalid issue number: {ticket_id}")
+
+        # Parse PR URL to extract owner, repo, and PR number
+        # Expected format: https://github.com/owner/repo/pull/123
+        import re
+        pr_pattern = r"github\.com/([^/]+)/([^/]+)/pull/(\d+)"
+        match = re.search(pr_pattern, pr_url)
+
+        if not match:
+            raise ValueError(f"Invalid GitHub PR URL format: {pr_url}")
+
+        pr_owner, pr_repo, pr_number = match.groups()
+
+        # Verify the PR is from the same repository
+        if pr_owner != self.owner or pr_repo != self.repo:
+            raise ValueError(
+                f"PR must be from the same repository ({self.owner}/{self.repo})"
+            )
+
+        # Get PR details
+        pr_response = await self.client.get(
+            f"/repos/{self.owner}/{self.repo}/pulls/{pr_number}"
+        )
+
+        if pr_response.status_code == 404:
+            raise ValueError(f"Pull request #{pr_number} not found")
+
+        pr_response.raise_for_status()
+        pr = pr_response.json()
+
+        # Update PR body to include issue reference if not already present
+        current_body = pr.get("body", "")
+        issue_ref = f"#{issue_number}"
+
+        if issue_ref not in current_body:
+            # Add issue reference to the body
+            updated_body = current_body or ""
+            if updated_body:
+                updated_body += "\n\n"
+            updated_body += f"Related to #{issue_number}"
+
+            # Update the PR
+            update_response = await self.client.patch(
+                f"/repos/{self.owner}/{self.repo}/pulls/{pr_number}",
+                json={"body": updated_body}
+            )
+            update_response.raise_for_status()
+
+        # Add a comment to the issue about the PR
+        await self.add_comment(
+            Comment(
+                ticket_id=ticket_id,
+                content=f"Linked to pull request #{pr_number}: {pr_url}",
+                author="system",
+            )
+        )
+
+        return {
+            "success": True,
+            "pr_number": pr["number"],
+            "pr_url": pr["html_url"],
+            "pr_title": pr["title"],
+            "pr_state": pr["state"],
+            "linked_issue": issue_number,
+            "message": f"Successfully linked PR #{pr_number} to issue #{issue_number}",
+        }
+
     async def close(self) -> None:
         """Close the HTTP client connection."""
         await self.client.aclose()

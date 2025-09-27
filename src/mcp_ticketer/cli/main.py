@@ -803,6 +803,66 @@ def check(
         console.print(f"\nRetry Count: {item.retry_count}")
 
 
+@app.command()
+def mcp(
+    adapter: Optional[AdapterType] = typer.Option(
+        None,
+        "--adapter",
+        "-a",
+        help="Override default adapter type"
+    ),
+    base_path: Optional[str] = typer.Option(
+        None,
+        "--base-path",
+        help="Base path for AITrackdown adapter"
+    ),
+):
+    """Start MCP server for JSON-RPC communication over stdio."""
+    from ..mcp.server import MCPTicketServer
+
+    # Load configuration
+    config = load_config()
+
+    # Determine adapter type
+    adapter_type = adapter.value if adapter else config.get("default_adapter", "aitrackdown")
+
+    # Get adapter configuration
+    adapters_config = config.get("adapters", {})
+    adapter_config = adapters_config.get(adapter_type, {})
+
+    # Override with command line options if provided
+    if base_path and adapter_type == "aitrackdown":
+        adapter_config["base_path"] = base_path
+
+    # Fallback to legacy config format
+    if not adapter_config and "config" in config:
+        adapter_config = config["config"]
+
+    # MCP server uses stdio for JSON-RPC, so we can't print to stdout
+    # Only print to stderr to avoid interfering with the protocol
+    import sys
+    if sys.stderr.isatty():
+        # Only print if stderr is a terminal (not redirected)
+        console.file = sys.stderr
+        console.print(f"[green]Starting MCP server[/green] with {adapter_type} adapter")
+        console.print("[dim]Server running on stdio. Send JSON-RPC requests via stdin.[/dim]")
+
+    # Create and run server
+    try:
+        server = MCPTicketServer(adapter_type, adapter_config)
+        asyncio.run(server.run())
+    except KeyboardInterrupt:
+        # Also send this to stderr
+        if sys.stderr.isatty():
+            console.print("\n[yellow]Server stopped by user[/yellow]")
+        if 'server' in locals():
+            asyncio.run(server.stop())
+    except Exception as e:
+        # Log error to stderr
+        sys.stderr.write(f"MCP server error: {e}\n")
+        sys.exit(1)
+
+
 def main():
     """Main entry point."""
     app()
