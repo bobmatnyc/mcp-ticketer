@@ -15,6 +15,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Analytics dashboard
 - Webhook notification support
 
+## [0.1.10] - 2025-09-29
+
+### Fixed
+- Fixed missing gql dependency in main dependencies list
+- Resolves runtime errors when gql package is not available
+- Users no longer need to manually inject gql with pipx
+
 ## [0.1.9] - 2025-09-26
 
 ### Added
