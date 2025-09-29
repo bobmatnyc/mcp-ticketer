@@ -18,6 +18,7 @@ from ..core.models import SearchQuery
 from ..adapters import AITrackdownAdapter
 from ..queue import Queue, QueueStatus, WorkerManager
 from .queue_commands import app as queue_app
+from ..__version__ import __version__
 
 # Load environment variables
 load_dotenv()
@@ -28,6 +29,31 @@ app = typer.Typer(
     add_completion=False,
 )
 console = Console()
+
+
+def version_callback(value: bool):
+    """Print version and exit."""
+    if value:
+        console.print(f"mcp-ticketer version {__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def main_callback(
+    version: bool = typer.Option(
+        None,
+        "--version",
+        "-v",
+        callback=version_callback,
+        is_eager=True,
+        help="Show version and exit"
+    ),
+):
+    """
+    MCP Ticketer - Universal ticket management interface.
+    """
+    pass
+
 
 # Configuration file management
 CONFIG_FILE = Path.home() / ".mcp-ticketer" / "config.json"
