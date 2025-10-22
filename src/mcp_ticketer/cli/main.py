@@ -1135,7 +1135,7 @@ def check(
 
 
 @app.command()
-def mcp(
+def serve(
     adapter: Optional[AdapterType] = typer.Option(
         None,
         "--adapter",
@@ -1148,7 +1148,11 @@ def mcp(
         help="Base path for AITrackdown adapter"
     ),
 ):
-    """Start MCP server for JSON-RPC communication over stdio."""
+    """Start MCP server for JSON-RPC communication over stdio.
+
+    This command is used by Claude Code/Desktop when connecting to the MCP server.
+    You typically don't need to run this manually - use 'mcp-ticketer mcp' to configure.
+    """
     from ..mcp.server import MCPTicketServer
 
     # Load configuration
@@ -1192,6 +1196,38 @@ def mcp(
         # Log error to stderr
         sys.stderr.write(f"MCP server error: {e}\n")
         sys.exit(1)
+
+
+@app.command()
+def mcp(
+    global_config: bool = typer.Option(
+        False,
+        "--global",
+        "-g",
+        help="Configure Claude Desktop instead of project-level"
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Overwrite existing configuration"
+    ),
+):
+    """Configure Claude Code to use mcp-ticketer MCP server.
+
+    Reads configuration from .mcp-ticketer/config.json and updates
+    Claude Code's MCP settings accordingly.
+
+    By default, configures project-level (.mcp/config.json).
+    Use --global to configure Claude Desktop instead.
+    """
+    from ..cli.mcp_configure import configure_claude_mcp
+
+    try:
+        configure_claude_mcp(global_config=global_config, force=force)
+    except Exception as e:
+        console.print(f"[red]✗ Configuration failed:[/red] {e}")
+        raise typer.Exit(1)
 
 
 def main():
