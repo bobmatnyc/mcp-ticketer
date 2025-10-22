@@ -71,10 +71,34 @@ class AdapterType(str, Enum):
 
 
 def load_config() -> dict:
-    """Load configuration from file."""
+    """Load configuration from file.
+
+    Resolution order:
+    1. Project-specific config (.mcp-ticketer/config.json in cwd)
+    2. Global config (~/.mcp-ticketer/config.json)
+
+    Returns:
+        Configuration dictionary
+    """
+    # Check project-specific config first
+    project_config = Path.cwd() / ".mcp-ticketer" / "config.json"
+    if project_config.exists():
+        try:
+            with open(project_config, "r") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            console.print(f"[yellow]Warning: Could not load project config: {e}[/yellow]")
+            # Fall through to global config
+
+    # Fall back to global config
     if CONFIG_FILE.exists():
-        with open(CONFIG_FILE, "r") as f:
-            return json.load(f)
+        try:
+            with open(CONFIG_FILE, "r") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            console.print(f"[yellow]Warning: Could not load global config: {e}[/yellow]")
+
+    # Default fallback
     return {"adapter": "aitrackdown", "config": {"base_path": ".aitrackdown"}}
 
 
@@ -1152,10 +1176,18 @@ def serve(
 
     This command is used by Claude Code/Desktop when connecting to the MCP server.
     You typically don't need to run this manually - use 'mcp-ticketer mcp' to configure.
+
+    Configuration Resolution:
+    - When MCP server starts, it uses the current working directory (cwd)
+    - The cwd is set by Claude Code/Desktop from the 'cwd' field in .mcp/config.json
+    - Configuration is loaded with this priority:
+      1. Project-specific: .mcp-ticketer/config.json in cwd
+      2. Global: ~/.mcp-ticketer/config.json
+      3. Default: aitrackdown adapter with .aitrackdown base path
     """
     from ..mcp.server import MCPTicketServer
 
-    # Load configuration
+    # Load configuration (respects project-specific config in cwd)
     config = load_config()
 
     # Determine adapter type

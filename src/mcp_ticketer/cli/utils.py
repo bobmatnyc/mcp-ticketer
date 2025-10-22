@@ -31,10 +31,34 @@ class CommonPatterns:
 
     @staticmethod
     def load_config() -> dict:
-        """Load configuration from file."""
+        """Load configuration from file.
+
+        Resolution order:
+        1. Project-specific config (.mcp-ticketer/config.json in cwd)
+        2. Global config (~/.mcp-ticketer/config.json)
+
+        Returns:
+            Configuration dictionary
+        """
+        # Check project-specific config first
+        project_config = Path.cwd() / ".mcp-ticketer" / "config.json"
+        if project_config.exists():
+            try:
+                with open(project_config, "r") as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, IOError) as e:
+                console.print(f"[yellow]Warning: Could not load project config: {e}[/yellow]")
+                # Fall through to global config
+
+        # Fall back to global config
         if CommonPatterns.CONFIG_FILE.exists():
-            with open(CommonPatterns.CONFIG_FILE, "r") as f:
-                return json.load(f)
+            try:
+                with open(CommonPatterns.CONFIG_FILE, "r") as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, IOError) as e:
+                console.print(f"[yellow]Warning: Could not load global config: {e}[/yellow]")
+
+        # Default fallback
         return {"adapter": "aitrackdown", "config": {"base_path": ".aitrackdown"}}
 
     @staticmethod
