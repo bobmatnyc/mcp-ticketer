@@ -30,6 +30,15 @@ class BaseAdapter(ABC, Generic[T]):
         pass
 
     @abstractmethod
+    def validate_credentials(self) -> tuple[bool, str]:
+        """Validate that required credentials are present.
+
+        Returns:
+            (is_valid, error_message) - Tuple of validation result and error message
+        """
+        pass
+
+    @abstractmethod
     async def create(self, ticket: T) -> T:
         """Create a new ticket.
 

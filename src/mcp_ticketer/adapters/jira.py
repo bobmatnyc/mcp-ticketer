@@ -89,6 +89,20 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         self._issue_types_cache: Dict[str, Any] = {}
         self._custom_fields_cache: Dict[str, Any] = {}
 
+    def validate_credentials(self) -> tuple[bool, str]:
+        """Validate that required credentials are present.
+
+        Returns:
+            (is_valid, error_message) - Tuple of validation result and error message
+        """
+        if not self.server:
+            return False, "JIRA_SERVER is required but not found. Set it in .env.local or environment."
+        if not self.email:
+            return False, "JIRA_EMAIL is required but not found. Set it in .env.local or environment."
+        if not self.api_token:
+            return False, "JIRA_API_TOKEN is required but not found. Set it in .env.local or environment."
+        return True, ""
+
     def _get_state_mapping(self) -> Dict[TicketState, str]:
         """Map universal states to common JIRA workflow states."""
         return {
@@ -457,6 +471,11 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
     async def create(self, ticket: Union[Epic, Task]) -> Union[Epic, Task]:
         """Create a new JIRA issue."""
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
         # Prepare issue fields
         fields = self._ticket_to_issue_fields(ticket)
 
@@ -476,6 +495,11 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
     async def read(self, ticket_id: str) -> Optional[Union[Epic, Task]]:
         """Read a JIRA issue by key."""
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
         try:
             issue = await self._make_request(
                 "GET",
@@ -494,6 +518,11 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         updates: Dict[str, Any]
     ) -> Optional[Union[Epic, Task]]:
         """Update a JIRA issue."""
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
         # Read current issue
         current = await self.read(ticket_id)
         if not current:
@@ -530,6 +559,11 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
     async def delete(self, ticket_id: str) -> bool:
         """Delete a JIRA issue."""
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
         try:
             await self._make_request("DELETE", f"issue/{ticket_id}")
             return True

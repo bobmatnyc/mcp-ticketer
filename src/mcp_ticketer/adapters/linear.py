@@ -520,6 +520,18 @@ class LinearAdapter(BaseAdapter[Task]):
 
         return None
 
+    def validate_credentials(self) -> tuple[bool, str]:
+        """Validate that required credentials are present.
+
+        Returns:
+            (is_valid, error_message) - Tuple of validation result and error message
+        """
+        if not self.api_key:
+            return False, "LINEAR_API_KEY is required but not found. Set it in .env.local or environment."
+        if not self.team_key:
+            return False, "Linear team_key is required in configuration. Set it in .mcp-ticketer/config.json"
+        return True, ""
+
     def _get_state_mapping(self) -> Dict[TicketState, str]:
         """Get mapping from universal states to Linear state types.
 
@@ -711,6 +723,11 @@ class LinearAdapter(BaseAdapter[Task]):
 
     async def create(self, ticket: Task) -> Task:
         """Create a new Linear issue with full field support."""
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
         team_id = await self._ensure_team_id()
         states = await self._get_workflow_states()
 
@@ -821,6 +838,11 @@ class LinearAdapter(BaseAdapter[Task]):
 
     async def read(self, ticket_id: str) -> Optional[Task]:
         """Read a Linear issue by identifier with full details."""
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
         query = gql(ALL_FRAGMENTS + """
             query GetIssue($identifier: String!) {
                 issue(id: $identifier) {
@@ -846,6 +868,11 @@ class LinearAdapter(BaseAdapter[Task]):
 
     async def update(self, ticket_id: str, updates: Dict[str, Any]) -> Optional[Task]:
         """Update a Linear issue with comprehensive field support."""
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
         # First get the Linear internal ID
         query = gql("""
             query GetIssueId($identifier: String!) {
@@ -944,6 +971,11 @@ class LinearAdapter(BaseAdapter[Task]):
 
     async def delete(self, ticket_id: str) -> bool:
         """Archive (soft delete) a Linear issue."""
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
         # Get Linear ID
         query = gql("""
             query GetIssueId($identifier: String!) {

@@ -4,11 +4,30 @@ import asyncio
 import json
 import sys
 from typing import Any, Dict, List, Optional
+from pathlib import Path
+from dotenv import load_dotenv
 
 from ..core import Task, TicketState, Priority, AdapterRegistry
 from ..core.models import SearchQuery, Comment
 from ..adapters import AITrackdownAdapter
 from ..queue import Queue, QueueStatus, WorkerManager
+
+# Load environment variables early (prioritize .env.local)
+# Check for .env.local first (takes precedence)
+env_local_file = Path.cwd() / ".env.local"
+if env_local_file.exists():
+    load_dotenv(env_local_file, override=True)
+    sys.stderr.write(f"[MCP Server] Loaded environment from: {env_local_file}\n")
+else:
+    # Fall back to .env
+    env_file = Path.cwd() / ".env"
+    if env_file.exists():
+        load_dotenv(env_file, override=True)
+        sys.stderr.write(f"[MCP Server] Loaded environment from: {env_file}\n")
+    else:
+        # Try default dotenv loading (searches upward)
+        load_dotenv(override=True)
+        sys.stderr.write("[MCP Server] Loaded environment from default search path\n")
 
 
 class MCPTicketServer:

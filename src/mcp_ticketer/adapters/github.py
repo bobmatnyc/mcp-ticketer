@@ -191,6 +191,20 @@ class GitHubAdapter(BaseAdapter[Task]):
         self._milestones_cache: Optional[List[Dict[str, Any]]] = None
         self._rate_limit: Dict[str, Any] = {}
 
+    def validate_credentials(self) -> tuple[bool, str]:
+        """Validate that required credentials are present.
+
+        Returns:
+            (is_valid, error_message) - Tuple of validation result and error message
+        """
+        if not self.token:
+            return False, "GITHUB_TOKEN is required but not found. Set it in .env.local or environment."
+        if not self.owner:
+            return False, "GitHub owner is required in configuration. Set GITHUB_OWNER in .env.local or configure with 'mcp-ticketer init --adapter github --github-owner <owner>'"
+        if not self.repo:
+            return False, "GitHub repo is required in configuration. Set GITHUB_REPO in .env.local or configure with 'mcp-ticketer init --adapter github --github-repo <repo>'"
+        return True, ""
+
     def _get_state_mapping(self) -> Dict[TicketState, str]:
         """Map universal states to GitHub states."""
         return {
@@ -379,6 +393,11 @@ class GitHubAdapter(BaseAdapter[Task]):
 
     async def create(self, ticket: Task) -> Task:
         """Create a new GitHub issue."""
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
         # Prepare labels
         labels = ticket.tags.copy() if ticket.tags else []
 
@@ -448,6 +467,11 @@ class GitHubAdapter(BaseAdapter[Task]):
 
     async def read(self, ticket_id: str) -> Optional[Task]:
         """Read a GitHub issue by number."""
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
         try:
             issue_number = int(ticket_id)
         except ValueError:
@@ -468,6 +492,11 @@ class GitHubAdapter(BaseAdapter[Task]):
 
     async def update(self, ticket_id: str, updates: Dict[str, Any]) -> Optional[Task]:
         """Update a GitHub issue."""
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
         try:
             issue_number = int(ticket_id)
         except ValueError:
@@ -584,6 +613,11 @@ class GitHubAdapter(BaseAdapter[Task]):
 
     async def delete(self, ticket_id: str) -> bool:
         """Delete (close) a GitHub issue."""
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
         try:
             issue_number = int(ticket_id)
         except ValueError:

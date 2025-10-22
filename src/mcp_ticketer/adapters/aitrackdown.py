@@ -40,6 +40,20 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             self.tracker = None
             self.tickets_dir.mkdir(parents=True, exist_ok=True)
 
+    def validate_credentials(self) -> tuple[bool, str]:
+        """Validate that required credentials are present.
+
+        AITrackdown is file-based and doesn't require credentials.
+
+        Returns:
+            (is_valid, error_message) - Always returns (True, "") for AITrackdown
+        """
+        # AITrackdown is file-based and doesn't require API credentials
+        # Just verify the base_path is accessible
+        if not self.base_path:
+            return False, "AITrackdown base_path is required in configuration"
+        return True, ""
+
     def _get_state_mapping(self) -> Dict[TicketState, str]:
         """Map universal states to AI-Trackdown states."""
         return {
