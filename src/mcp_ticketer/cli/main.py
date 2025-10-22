@@ -23,8 +23,17 @@ from .configure import configure_wizard, show_current_config, set_adapter_config
 from .migrate_config import migrate_config_command
 from .discover import app as discover_app
 
-# Load environment variables
+# Load environment variables from .env files
+# Priority: .env.local (highest) > .env (base)
+# This matches the pattern used in worker.py and server.py
+
+# Load .env first (base configuration)
 load_dotenv()
+
+# Load .env.local with override=True (project-specific overrides)
+env_local = Path.cwd() / ".env.local"
+if env_local.exists():
+    load_dotenv(env_local, override=True)
 
 app = typer.Typer(
     name="mcp-ticketer",
