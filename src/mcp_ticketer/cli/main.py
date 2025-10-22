@@ -19,6 +19,8 @@ from ..adapters import AITrackdownAdapter
 from ..queue import Queue, QueueStatus, WorkerManager
 from .queue_commands import app as queue_app
 from ..__version__ import __version__
+from .configure import configure_wizard, show_current_config, set_adapter_config
+from .migrate_config import migrate_config_command
 
 # Load environment variables
 load_dotenv()
@@ -422,6 +424,85 @@ def set_config(
         config = merge_config(updates)
         save_config(config)
         console.print(f"[dim]Configuration saved to {CONFIG_FILE}[/dim]")
+
+
+@app.command("configure")
+def configure_command(
+    show: bool = typer.Option(
+        False,
+        "--show",
+        help="Show current configuration"
+    ),
+    adapter: Optional[str] = typer.Option(
+        None,
+        "--adapter",
+        help="Set default adapter type"
+    ),
+    api_key: Optional[str] = typer.Option(
+        None,
+        "--api-key",
+        help="Set API key/token"
+    ),
+    project_id: Optional[str] = typer.Option(
+        None,
+        "--project-id",
+        help="Set project ID"
+    ),
+    team_id: Optional[str] = typer.Option(
+        None,
+        "--team-id",
+        help="Set team ID (Linear)"
+    ),
+    global_scope: bool = typer.Option(
+        False,
+        "--global",
+        "-g",
+        help="Save to global config instead of project-specific"
+    ),
+) -> None:
+    """Configure MCP Ticketer integration.
+
+    Run without arguments to launch interactive wizard.
+    Use --show to display current configuration.
+    Use options to set specific values directly.
+    """
+    # Show configuration
+    if show:
+        show_current_config()
+        return
+
+    # Direct configuration
+    if any([adapter, api_key, project_id, team_id]):
+        set_adapter_config(
+            adapter=adapter,
+            api_key=api_key,
+            project_id=project_id,
+            team_id=team_id,
+            global_scope=global_scope
+        )
+        return
+
+    # Run interactive wizard
+    configure_wizard()
+
+
+@app.command("migrate-config")
+def migrate_config(
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Show what would be done without making changes"
+    ),
+) -> None:
+    """Migrate configuration from old format to new format.
+
+    This command will:
+    1. Detect old configuration format
+    2. Convert to new schema
+    3. Backup old config
+    4. Apply new config
+    """
+    migrate_config_command(dry_run=dry_run)
 
 
 @app.command("status")

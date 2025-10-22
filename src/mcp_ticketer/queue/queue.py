@@ -173,7 +173,10 @@ class Queue:
                     ''', (QueueStatus.PROCESSING.value, row[0]))
                     conn.commit()
 
-                    return QueueItem.from_row(row)
+                    # Create QueueItem from row and update status
+                    item = QueueItem.from_row(row)
+                    item.status = QueueStatus.PROCESSING
+                    return item
 
         return None
 

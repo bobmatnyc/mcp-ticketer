@@ -168,7 +168,8 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Create a new task."""
         # Generate ID if not provided
         if not ticket.id:
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            # Use microseconds to ensure uniqueness
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
             prefix = "epic" if isinstance(ticket, Epic) else "task"
             ticket.id = f"{prefix}-{timestamp}"
 
@@ -277,9 +278,9 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             )
             tasks = [self._task_from_ai_ticket(t.__dict__) for t in tickets]
         else:
-            # Direct file operation
+            # Direct file operation - read all files, filter, then paginate
             ticket_files = sorted(self.tickets_dir.glob("*.json"))
-            for ticket_file in ticket_files[offset:offset + limit]:
+            for ticket_file in ticket_files:
                 with open(ticket_file, "r") as f:
                     ai_ticket = json.load(f)
                     task = self._task_from_ai_ticket(ai_ticket)
@@ -303,7 +304,10 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
                     tasks.append(task)
 
-        return tasks[:limit]
+            # Apply pagination after filtering
+            tasks = tasks[offset:offset + limit]
+
+        return tasks
 
     async def search(self, query: SearchQuery) -> List[Task]:
         """Search tasks using query parameters."""
@@ -357,7 +361,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Add comment to a task."""
         # Generate ID
         if not comment.id:
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
             comment.id = f"comment-{timestamp}"
 
         comment.created_at = datetime.now()

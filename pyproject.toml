@@ -148,8 +148,10 @@ extend-exclude = '''
 '''
 
 [tool.ruff]
-target-version = "py39"
+target-version = "0.1.12"
 line-length = 88
+
+[tool.ruff.lint]
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
@@ -173,7 +175,7 @@ ignore = [
     "S101",  # Use of assert detected
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S", "D", "T"]
 "**/__init__.py" = ["D", "F401"]
 
