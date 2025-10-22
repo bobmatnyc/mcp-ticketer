@@ -302,14 +302,6 @@ class LinearAdapter(BaseAdapter[Task]):
 
         self.api_url = config.get("api_url", "https://api.linear.app/graphql")
 
-        # Setup GraphQL client with authentication
-        transport = HTTPXAsyncTransport(
-            url=self.api_url,
-            headers={"Authorization": self.api_key},
-            timeout=30.0,
-        )
-        self.client = Client(transport=transport, fetch_schema_from_transport=False)
-
         # Caches for frequently used data
         self._team_id: Optional[str] = None
         self._workflow_states: Optional[Dict[str, Dict[str, Any]]] = None
@@ -322,6 +314,22 @@ class LinearAdapter(BaseAdapter[Task]):
         # Initialization lock to prevent concurrent initialization
         self._init_lock = asyncio.Lock()
         self._initialized = False
+
+    def _create_client(self) -> Client:
+        """Create a fresh GraphQL client for each operation.
+
+        This prevents 'Transport is already connected' errors by ensuring
+        each operation gets its own client and transport instance.
+
+        Returns:
+            Client: Fresh GraphQL client instance
+        """
+        transport = HTTPXAsyncTransport(
+            url=self.api_url,
+            headers={"Authorization": self.api_key},
+            timeout=30.0,
+        )
+        return Client(transport=transport, fetch_schema_from_transport=False)
 
     async def initialize(self) -> None:
         """Initialize adapter by preloading team, states, and labels data concurrently."""
@@ -374,7 +382,8 @@ class LinearAdapter(BaseAdapter[Task]):
                 }
             """)
 
-            async with self.client as session:
+            client = self._create_client()
+            async with client as session:
                 result = await session.execute(query, variable_values={"id": self.team_id_config})
 
             if not result.get("team"):
@@ -395,7 +404,8 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """)
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(query, variable_values={"key": self.team_key})
 
         if not result["teams"]["nodes"]:
@@ -419,7 +429,8 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """)
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(query, variable_values={"teamId": team_id})
 
         workflow_states = {}
@@ -445,7 +456,8 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """)
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(query, variable_values={"teamId": team_id})
 
         return {label["name"]: label["id"] for label in result["issueLabels"]["nodes"]}
@@ -486,7 +498,8 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """)
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 search_query,
                 variable_values={"name": name, "teamId": team_id}
@@ -516,7 +529,8 @@ class LinearAdapter(BaseAdapter[Task]):
         if color:
             label_input["color"] = color
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 create_query,
                 variable_values={"input": label_input}
@@ -545,7 +559,8 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """)
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(query, variable_values={"email": email})
 
         if result["users"]["nodes"]:
@@ -827,7 +842,8 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             """)
-            async with self.client as session:
+            client = self._create_client()
+            async with client as session:
                 parent_result = await session.execute(
                     parent_query,
                     variable_values={"identifier": ticket.parent_issue}
@@ -859,7 +875,8 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """)
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 create_query,
                 variable_values={"input": issue_input}
@@ -887,7 +904,8 @@ class LinearAdapter(BaseAdapter[Task]):
         """)
 
         try:
-            async with self.client as session:
+            client = self._create_client()
+            async with client as session:
                 result = await session.execute(
                     query,
                     variable_values={"identifier": ticket_id}
@@ -917,7 +935,8 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """)
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 query,
                 variable_values={"identifier": ticket_id}
@@ -993,7 +1012,8 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """)
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 update_query,
                 variable_values={"id": linear_id, "input": update_input}
@@ -1020,7 +1040,8 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """)
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 query,
                 variable_values={"identifier": ticket_id}
@@ -1040,7 +1061,8 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """)
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 archive_query,
                 variable_values={"id": linear_id}
@@ -1136,7 +1158,8 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """)
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 query,
                 variable_values={
@@ -1210,7 +1233,8 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """)
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 search_query,
                 variable_values={
@@ -1250,7 +1274,8 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """)
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 query,
                 variable_values={"identifier": comment.ticket_id}
@@ -1282,7 +1307,8 @@ class LinearAdapter(BaseAdapter[Task]):
         if comment.metadata and "parent_comment_id" in comment.metadata:
             comment_input["parentId"] = comment.metadata["parent_comment_id"]
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 create_comment_query,
                 variable_values={"input": comment_input}
@@ -1327,7 +1353,8 @@ class LinearAdapter(BaseAdapter[Task]):
         """)
 
         try:
-            async with self.client as session:
+            client = self._create_client()
+            async with client as session:
                 result = await session.execute(
                     query,
                     variable_values={
@@ -1383,7 +1410,8 @@ class LinearAdapter(BaseAdapter[Task]):
         if description:
             project_input["description"] = description
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 create_query,
                 variable_values={"input": project_input}
@@ -1424,7 +1452,8 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """)
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 query,
                 variable_values={"filter": cycle_filter}
@@ -1459,7 +1488,8 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """)
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 create_query,
                 variable_values={
@@ -1537,7 +1567,8 @@ class LinearAdapter(BaseAdapter[Task]):
             },
         }
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 create_query,
                 variable_values={"input": attachment_input}
@@ -1636,7 +1667,8 @@ class LinearAdapter(BaseAdapter[Task]):
                 raise ValueError(f"Could not find Linear ID for issue {ticket_id}")
             linear_id = search_result["id"]
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 update_query,
                 variable_values={
@@ -1683,7 +1715,8 @@ class LinearAdapter(BaseAdapter[Task]):
         """)
 
         try:
-            async with self.client as session:
+            client = self._create_client()
+            async with client as session:
                 result = await session.execute(
                     search_query,
                     variable_values={"identifier": identifier}
@@ -1736,7 +1769,8 @@ class LinearAdapter(BaseAdapter[Task]):
         if "lead_id" in kwargs:
             project_input["leadId"] = kwargs["lead_id"]
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 create_query,
                 variable_values={"input": project_input}
@@ -1766,7 +1800,8 @@ class LinearAdapter(BaseAdapter[Task]):
         """)
 
         try:
-            async with self.client as session:
+            client = self._create_client()
+            async with client as session:
                 result = await session.execute(
                     query,
                     variable_values={"id": epic_id}
@@ -1815,7 +1850,8 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """)
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 query,
                 variable_values={
@@ -1882,7 +1918,8 @@ class LinearAdapter(BaseAdapter[Task]):
         """)
 
         try:
-            async with self.client as session:
+            client = self._create_client()
+            async with client as session:
                 result = await session.execute(
                     query,
                     variable_values={"projectId": epic_id, "first": 100}
@@ -1935,7 +1972,8 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """)
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             parent_result = await session.execute(
                 parent_query,
                 variable_values={"identifier": parent_id}
@@ -2000,7 +2038,8 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """)
 
-        async with self.client as session:
+        client = self._create_client()
+        async with client as session:
             result = await session.execute(
                 create_query,
                 variable_values={"input": issue_input}
@@ -2034,7 +2073,8 @@ class LinearAdapter(BaseAdapter[Task]):
         """)
 
         try:
-            async with self.client as session:
+            client = self._create_client()
+            async with client as session:
                 result = await session.execute(
                     query,
                     variable_values={"identifier": issue_id}
@@ -2055,11 +2095,13 @@ class LinearAdapter(BaseAdapter[Task]):
             return []
 
     async def close(self) -> None:
-        """Close the GraphQL client connection."""
-        if hasattr(self.client, 'close_async'):
-            await self.client.close_async()
-        elif hasattr(self.client.transport, 'close'):
-            await self.client.transport.close()
+        """Close the GraphQL client connection.
+
+        Since we create fresh clients for each operation, there's no persistent
+        connection to close. Each client's transport is automatically closed when
+        the async context manager exits.
+        """
+        pass
 
 
 # Register the adapter
