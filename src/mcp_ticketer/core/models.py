@@ -14,6 +14,14 @@ class Priority(str, Enum):
     CRITICAL = "critical"
 
 
+class TicketType(str, Enum):
+    """Ticket type hierarchy."""
+    EPIC = "epic"        # Strategic level (Projects in Linear, Milestones in GitHub)
+    ISSUE = "issue"      # Work item level (standard issues/tasks)
+    TASK = "task"        # Sub-task level (sub-issues, checkboxes)
+    SUBTASK = "subtask"  # Alias for task (for clarity)
+
+
 class TicketState(str, Enum):
     """Universal ticket states with state machine abstraction."""
     OPEN = "open"
@@ -65,24 +73,68 @@ class BaseTicket(BaseModel):
 
 
 class Epic(BaseTicket):
-    """Epic - highest level container for work."""
-    ticket_type: str = Field(default="epic", frozen=True)
+    """Epic - highest level container for work (Projects in Linear, Milestones in GitHub)."""
+    ticket_type: TicketType = Field(default=TicketType.EPIC, frozen=True, description="Always EPIC type")
     child_issues: List[str] = Field(
         default_factory=list,
         description="IDs of child issues"
     )
 
+    def validate_hierarchy(self) -> List[str]:
+        """Validate epic hierarchy rules.
+
+        Returns:
+            List of validation errors (empty if valid)
+        """
+        # Epics don't have parents in our hierarchy
+        return []
+
 
 class Task(BaseTicket):
-    """Task - individual work item."""
-    ticket_type: str = Field(default="task", frozen=True)
-    parent_issue: Optional[str] = Field(None, description="Parent issue ID")
-    parent_epic: Optional[str] = Field(None, description="Parent epic ID")
+    """Task - individual work item (can be ISSUE or TASK type)."""
+    ticket_type: TicketType = Field(default=TicketType.ISSUE, description="Ticket type in hierarchy")
+    parent_issue: Optional[str] = Field(None, description="Parent issue ID (for tasks)")
+    parent_epic: Optional[str] = Field(None, description="Parent epic ID (for issues)")
     assignee: Optional[str] = Field(None, description="Assigned user")
+    children: List[str] = Field(default_factory=list, description="Child task IDs")
 
     # Additional fields common across systems
     estimated_hours: Optional[float] = Field(None, description="Time estimate")
     actual_hours: Optional[float] = Field(None, description="Actual time spent")
+
+    def is_epic(self) -> bool:
+        """Check if this is an epic (should use Epic class instead)."""
+        return self.ticket_type == TicketType.EPIC
+
+    def is_issue(self) -> bool:
+        """Check if this is a standard issue."""
+        return self.ticket_type == TicketType.ISSUE
+
+    def is_task(self) -> bool:
+        """Check if this is a sub-task."""
+        return self.ticket_type in (TicketType.TASK, TicketType.SUBTASK)
+
+    def validate_hierarchy(self) -> List[str]:
+        """Validate ticket hierarchy rules.
+
+        Returns:
+            List of validation errors (empty if valid)
+        """
+        errors = []
+
+        # Tasks must have parent issue
+        if self.is_task() and not self.parent_issue:
+            errors.append("Tasks must have a parent_issue (issue)")
+
+        # Issues should not have parent_issue (use epic_id instead)
+        if self.is_issue() and self.parent_issue:
+            errors.append("Issues should use parent_epic, not parent_issue")
+
+        # Tasks should not have both parent_issue and parent_epic
+        if self.is_task() and self.parent_epic:
+            errors.append("Tasks should only have parent_issue, not parent_epic (epic comes from parent issue)")
+
+        return errors
 
 
 class Comment(BaseModel):

@@ -301,7 +301,15 @@ class ConfigValidator:
 
 
 class ConfigResolver:
-    """Resolve configuration from multiple sources with hierarchical precedence."""
+    """Resolve configuration from multiple sources with hierarchical precedence.
+
+    Resolution order (highest to lowest priority):
+    1. CLI overrides
+    2. Environment variables
+    3. Project-specific config (.mcp-ticketer/config.json)
+    4. Auto-discovered .env files
+    5. Global config (~/.mcp-ticketer/config.json)
+    """
 
     # Global config location
     GLOBAL_CONFIG_PATH = Path.home() / ".mcp-ticketer" / "config.json"
@@ -309,15 +317,18 @@ class ConfigResolver:
     # Project config location (relative to project root)
     PROJECT_CONFIG_SUBPATH = ".mcp-ticketer" / Path("config.json")
 
-    def __init__(self, project_path: Optional[Path] = None):
+    def __init__(self, project_path: Optional[Path] = None, enable_env_discovery: bool = True):
         """Initialize config resolver.
 
         Args:
             project_path: Path to project root (defaults to cwd)
+            enable_env_discovery: Enable auto-discovery from .env files (default: True)
         """
         self.project_path = project_path or Path.cwd()
+        self.enable_env_discovery = enable_env_discovery
         self._global_config: Optional[TicketerConfig] = None
         self._project_config: Optional[TicketerConfig] = None
+        self._discovered_config: Optional['DiscoveryResult'] = None
 
     def load_global_config(self) -> TicketerConfig:
         """Load global configuration from ~/.mcp-ticketer/config.json."""
@@ -380,6 +391,22 @@ class ConfigResolver:
             json.dump(config.to_dict(), f, indent=2)
         logger.info(f"Saved project config to {config_path}")
 
+    def get_discovered_config(self) -> Optional['DiscoveryResult']:
+        """Get auto-discovered configuration from .env files.
+
+        Returns:
+            DiscoveryResult if env discovery is enabled, None otherwise
+        """
+        if not self.enable_env_discovery:
+            return None
+
+        if self._discovered_config is None:
+            # Import here to avoid circular dependency
+            from .env_discovery import discover_config
+            self._discovered_config = discover_config(self.project_path)
+
+        return self._discovered_config
+
     def resolve_adapter_config(
         self,
         adapter_name: Optional[str] = None,
@@ -389,9 +416,10 @@ class ConfigResolver:
 
         Precedence (highest to lowest):
         1. CLI overrides
-        2. Environment variables
-        3. Project-specific config
-        4. Global config
+        2. Environment variables (os.getenv)
+        3. Project-specific config (.mcp-ticketer/config.json)
+        4. Auto-discovered .env files
+        5. Global config (~/.mcp-ticketer/config.json)
 
         Args:
             adapter_name: Name of adapter to configure (defaults to default_adapter)
@@ -410,7 +438,16 @@ class ConfigResolver:
         elif project_config and project_config.default_adapter:
             target_adapter = project_config.default_adapter
         else:
-            target_adapter = global_config.default_adapter
+            # Try to infer from discovered config
+            discovered = self.get_discovered_config()
+            if discovered:
+                primary = discovered.get_primary_adapter()
+                if primary:
+                    target_adapter = primary.adapter_type
+                else:
+                    target_adapter = global_config.default_adapter
+            else:
+                target_adapter = global_config.default_adapter
 
         # Start with empty config
         resolved_config = {"adapter": target_adapter}
@@ -420,7 +457,23 @@ class ConfigResolver:
             global_adapter_config = global_config.adapters[target_adapter].to_dict()
             resolved_config.update(global_adapter_config)
 
-        # 2. Apply project-specific config if exists
+        # 2. Apply auto-discovered .env config (if enabled)
+        if self.enable_env_discovery:
+            discovered = self.get_discovered_config()
+            if discovered:
+                discovered_adapter = discovered.get_adapter_by_type(target_adapter)
+                if discovered_adapter:
+                    # Merge discovered config
+                    discovered_dict = {
+                        k: v for k, v in discovered_adapter.config.items()
+                        if k != "adapter"  # Don't override adapter type
+                    }
+                    resolved_config.update(discovered_dict)
+                    logger.debug(
+                        f"Applied auto-discovered config from {discovered_adapter.found_in}"
+                    )
+
+        # 3. Apply project-specific config if exists
         if project_config:
             # Check if this project has specific adapter config
             project_path_str = str(self.project_path)
@@ -433,11 +486,11 @@ class ConfigResolver:
                 proj_global_adapter_config = project_config.adapters[target_adapter].to_dict()
                 resolved_config.update(proj_global_adapter_config)
 
-        # 3. Apply environment variable overrides
+        # 4. Apply environment variable overrides (os.getenv)
         env_overrides = self._get_env_overrides(target_adapter)
         resolved_config.update(env_overrides)
 
-        # 4. Apply CLI overrides
+        # 5. Apply CLI overrides
         if cli_overrides:
             resolved_config.update(cli_overrides)
 

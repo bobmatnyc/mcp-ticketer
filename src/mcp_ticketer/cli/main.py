@@ -21,6 +21,7 @@ from .queue_commands import app as queue_app
 from ..__version__ import __version__
 from .configure import configure_wizard, show_current_config, set_adapter_config
 from .migrate_config import migrate_config_command
+from .discover import app as discover_app
 
 # Load environment variables
 load_dotenv()
@@ -864,6 +865,9 @@ def search(
 
 # Add queue command to main app
 app.add_typer(queue_app, name="queue")
+
+# Add discover command to main app
+app.add_typer(discover_app, name="discover")
 
 
 @app.command()

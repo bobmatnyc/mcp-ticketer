@@ -1,8 +1,8 @@
 """Base adapter abstract class for ticket systems."""
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Dict, Any, TypeVar, Generic
-from .models import Epic, Task, Comment, SearchQuery, TicketState
+from typing import List, Optional, Dict, Any, TypeVar, Generic, Union
+from .models import Epic, Task, Comment, SearchQuery, TicketState, TicketType
 
 # Generic type for tickets
 T = TypeVar("T", Epic, Task)
@@ -205,6 +205,159 @@ class BaseAdapter(ABC, Generic[T]):
             except ValueError:
                 return False
         return current_state.can_transition_to(target_state)
+
+    # Epic/Issue/Task Hierarchy Methods
+
+    async def create_epic(
+        self,
+        title: str,
+        description: Optional[str] = None,
+        **kwargs
+    ) -> Optional[Epic]:
+        """Create epic (top-level grouping).
+
+        Args:
+            title: Epic title
+            description: Epic description
+            **kwargs: Additional adapter-specific fields
+
+        Returns:
+            Created epic or None if failed
+        """
+        epic = Epic(
+            title=title,
+            description=description,
+            ticket_type=TicketType.EPIC,
+            **{k: v for k, v in kwargs.items() if k in Epic.__fields__}
+        )
+        result = await self.create(epic)
+        if isinstance(result, Epic):
+            return result
+        return None
+
+    async def get_epic(self, epic_id: str) -> Optional[Epic]:
+        """Get epic by ID.
+
+        Args:
+            epic_id: Epic identifier
+
+        Returns:
+            Epic if found, None otherwise
+        """
+        # Default implementation - subclasses should override for platform-specific logic
+        result = await self.read(epic_id)
+        if isinstance(result, Epic):
+            return result
+        return None
+
+    async def list_epics(self, **kwargs) -> List[Epic]:
+        """List all epics.
+
+        Args:
+            **kwargs: Adapter-specific filter parameters
+
+        Returns:
+            List of epics
+        """
+        # Default implementation - subclasses should override
+        filters = kwargs.copy()
+        filters["ticket_type"] = TicketType.EPIC
+        results = await self.list(filters=filters)
+        return [r for r in results if isinstance(r, Epic)]
+
+    async def create_issue(
+        self,
+        title: str,
+        description: Optional[str] = None,
+        epic_id: Optional[str] = None,
+        **kwargs
+    ) -> Optional[Task]:
+        """Create issue, optionally linked to epic.
+
+        Args:
+            title: Issue title
+            description: Issue description
+            epic_id: Optional parent epic ID
+            **kwargs: Additional adapter-specific fields
+
+        Returns:
+            Created issue or None if failed
+        """
+        task = Task(
+            title=title,
+            description=description,
+            ticket_type=TicketType.ISSUE,
+            parent_epic=epic_id,
+            **{k: v for k, v in kwargs.items() if k in Task.__fields__}
+        )
+        return await self.create(task)
+
+    async def list_issues_by_epic(self, epic_id: str) -> List[Task]:
+        """List all issues in epic.
+
+        Args:
+            epic_id: Epic identifier
+
+        Returns:
+            List of issues belonging to epic
+        """
+        # Default implementation - subclasses should override for efficiency
+        filters = {"parent_epic": epic_id, "ticket_type": TicketType.ISSUE}
+        results = await self.list(filters=filters)
+        return [r for r in results if isinstance(r, Task) and r.is_issue()]
+
+    async def create_task(
+        self,
+        title: str,
+        parent_id: str,
+        description: Optional[str] = None,
+        **kwargs
+    ) -> Optional[Task]:
+        """Create task as sub-ticket of parent issue.
+
+        Args:
+            title: Task title
+            parent_id: Required parent issue ID
+            description: Task description
+            **kwargs: Additional adapter-specific fields
+
+        Returns:
+            Created task or None if failed
+
+        Raises:
+            ValueError: If parent_id is not provided
+        """
+        if not parent_id:
+            raise ValueError("Tasks must have a parent_id (issue)")
+
+        task = Task(
+            title=title,
+            description=description,
+            ticket_type=TicketType.TASK,
+            parent_issue=parent_id,
+            **{k: v for k, v in kwargs.items() if k in Task.__fields__}
+        )
+
+        # Validate hierarchy before creating
+        errors = task.validate_hierarchy()
+        if errors:
+            raise ValueError(f"Invalid task hierarchy: {'; '.join(errors)}")
+
+        return await self.create(task)
+
+    async def list_tasks_by_issue(self, issue_id: str) -> List[Task]:
+        """List all tasks under an issue.
+
+        Args:
+            issue_id: Issue identifier
+
+        Returns:
+            List of tasks belonging to issue
+        """
+        # Default implementation - subclasses should override for efficiency
+        filters = {"parent_issue": issue_id, "ticket_type": TicketType.TASK}
+        results = await self.list(filters=filters)
+        return [r for r in results if isinstance(r, Task) and r.is_task()]
 
     async def close(self) -> None:
         """Close adapter and cleanup resources."""

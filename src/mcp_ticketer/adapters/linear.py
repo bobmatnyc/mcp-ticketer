@@ -12,7 +12,7 @@ from gql.transport.exceptions import TransportQueryError
 import httpx
 
 from ..core.adapter import BaseAdapter
-from ..core.models import Epic, Task, Comment, SearchQuery, TicketState, Priority
+from ..core.models import Epic, Task, Comment, SearchQuery, TicketState, Priority, TicketType
 from ..core.registry import AdapterRegistry
 
 
@@ -629,6 +629,20 @@ class LinearAdapter(BaseAdapter[Task]):
             child_ids = [child["identifier"] for child in issue["children"]["nodes"]]
             metadata["linear"]["child_issues"] = child_ids
 
+        # Determine ticket type based on parent relationships
+        ticket_type = TicketType.ISSUE
+        parent_issue_id = None
+        parent_epic_id = None
+
+        if issue.get("parent"):
+            # Has a parent issue, so this is a sub-task
+            ticket_type = TicketType.TASK
+            parent_issue_id = issue["parent"]["identifier"]
+        elif issue.get("project"):
+            # Has a project but no parent, so it's a standard issue under an epic
+            ticket_type = TicketType.ISSUE
+            parent_epic_id = issue["project"]["id"]
+
         return Task(
             id=issue["identifier"],
             title=issue["title"],
@@ -636,14 +650,62 @@ class LinearAdapter(BaseAdapter[Task]):
             state=state,
             priority=priority,
             tags=tags,
-            parent_issue=issue.get("parent", {}).get("identifier") if issue.get("parent") else None,
-            parent_epic=issue.get("project", {}).get("id") if issue.get("project") else None,
+            ticket_type=ticket_type,
+            parent_issue=parent_issue_id,
+            parent_epic=parent_epic_id,
             assignee=issue.get("assignee", {}).get("email") if issue.get("assignee") else None,
+            children=child_ids,
             estimated_hours=issue.get("estimate"),
             created_at=datetime.fromisoformat(issue["createdAt"].replace("Z", "+00:00"))
             if issue.get("createdAt") else None,
             updated_at=datetime.fromisoformat(issue["updatedAt"].replace("Z", "+00:00"))
             if issue.get("updatedAt") else None,
+            metadata=metadata,
+        )
+
+    def _epic_from_linear_project(self, project: Dict[str, Any]) -> Epic:
+        """Convert Linear project to universal Epic."""
+        # Map project state to ticket state
+        project_state = project.get("state", "planned").lower()
+        state_mapping = {
+            "planned": TicketState.OPEN,
+            "started": TicketState.IN_PROGRESS,
+            "paused": TicketState.WAITING,
+            "completed": TicketState.DONE,
+            "canceled": TicketState.CLOSED,
+        }
+        state = state_mapping.get(project_state, TicketState.OPEN)
+
+        # Extract teams
+        teams = []
+        if project.get("teams") and project["teams"].get("nodes"):
+            teams = [team["name"] for team in project["teams"]["nodes"]]
+
+        metadata = {
+            "linear": {
+                "id": project["id"],
+                "state": project.get("state"),
+                "url": project.get("url"),
+                "icon": project.get("icon"),
+                "color": project.get("color"),
+                "target_date": project.get("targetDate"),
+                "started_at": project.get("startedAt"),
+                "completed_at": project.get("completedAt"),
+                "teams": teams,
+            }
+        }
+
+        return Epic(
+            id=project["id"],
+            title=project["name"],
+            description=project.get("description"),
+            state=state,
+            ticket_type=TicketType.EPIC,
+            tags=[f"team:{team}" for team in teams],
+            created_at=datetime.fromisoformat(project["createdAt"].replace("Z", "+00:00"))
+            if project.get("createdAt") else None,
+            updated_at=datetime.fromisoformat(project["updatedAt"].replace("Z", "+00:00"))
+            if project.get("updatedAt") else None,
             metadata=metadata,
         )
 
@@ -1562,6 +1624,368 @@ class LinearAdapter(BaseAdapter[Task]):
             return result.get("issue")
         except:
             return None
+
+    # Epic/Issue/Task Hierarchy Methods (Linear: Project = Epic, Issue = Issue, Sub-issue = Task)
+
+    async def create_epic(
+        self,
+        title: str,
+        description: Optional[str] = None,
+        **kwargs
+    ) -> Optional[Epic]:
+        """Create epic (Linear Project).
+
+        Args:
+            title: Epic/Project name
+            description: Epic/Project description
+            **kwargs: Additional fields (e.g., target_date, lead_id)
+
+        Returns:
+            Created epic or None if failed
+        """
+        team_id = await self._ensure_team_id()
+
+        create_query = gql(PROJECT_FRAGMENT + """
+            mutation CreateProject($input: ProjectCreateInput!) {
+                projectCreate(input: $input) {
+                    success
+                    project {
+                        ...ProjectFields
+                    }
+                }
+            }
+        """)
+
+        project_input = {
+            "name": title,
+            "teamIds": [team_id],
+        }
+        if description:
+            project_input["description"] = description
+
+        # Handle additional Linear-specific fields
+        if "target_date" in kwargs:
+            project_input["targetDate"] = kwargs["target_date"]
+        if "lead_id" in kwargs:
+            project_input["leadId"] = kwargs["lead_id"]
+
+        async with self.client as session:
+            result = await session.execute(
+                create_query,
+                variable_values={"input": project_input}
+            )
+
+        if not result["projectCreate"]["success"]:
+            return None
+
+        project = result["projectCreate"]["project"]
+        return self._epic_from_linear_project(project)
+
+    async def get_epic(self, epic_id: str) -> Optional[Epic]:
+        """Get epic (Linear Project) by ID.
+
+        Args:
+            epic_id: Linear project ID
+
+        Returns:
+            Epic if found, None otherwise
+        """
+        query = gql(PROJECT_FRAGMENT + """
+            query GetProject($id: String!) {
+                project(id: $id) {
+                    ...ProjectFields
+                }
+            }
+        """)
+
+        try:
+            async with self.client as session:
+                result = await session.execute(
+                    query,
+                    variable_values={"id": epic_id}
+                )
+
+            if result.get("project"):
+                return self._epic_from_linear_project(result["project"])
+        except TransportQueryError:
+            pass
+
+        return None
+
+    async def list_epics(self, **kwargs) -> List[Epic]:
+        """List all Linear Projects (Epics).
+
+        Args:
+            **kwargs: Optional filters (team_id, state)
+
+        Returns:
+            List of epics
+        """
+        team_id = await self._ensure_team_id()
+
+        # Build project filter
+        project_filter = {"team": {"id": {"eq": team_id}}}
+
+        if "state" in kwargs:
+            # Map TicketState to Linear project state
+            state_mapping = {
+                TicketState.OPEN: "planned",
+                TicketState.IN_PROGRESS: "started",
+                TicketState.WAITING: "paused",
+                TicketState.DONE: "completed",
+                TicketState.CLOSED: "canceled",
+            }
+            linear_state = state_mapping.get(kwargs["state"], "planned")
+            project_filter["state"] = {"eq": linear_state}
+
+        query = gql(PROJECT_FRAGMENT + """
+            query ListProjects($filter: ProjectFilter, $first: Int!) {
+                projects(filter: $filter, first: $first, orderBy: updatedAt) {
+                    nodes {
+                        ...ProjectFields
+                    }
+                }
+            }
+        """)
+
+        async with self.client as session:
+            result = await session.execute(
+                query,
+                variable_values={
+                    "filter": project_filter,
+                    "first": kwargs.get("limit", 50)
+                }
+            )
+
+        epics = []
+        for project in result["projects"]["nodes"]:
+            epics.append(self._epic_from_linear_project(project))
+
+        return epics
+
+    async def create_issue(
+        self,
+        title: str,
+        description: Optional[str] = None,
+        epic_id: Optional[str] = None,
+        **kwargs
+    ) -> Optional[Task]:
+        """Create issue and optionally associate with project (epic).
+
+        Args:
+            title: Issue title
+            description: Issue description
+            epic_id: Optional Linear project ID (epic)
+            **kwargs: Additional fields
+
+        Returns:
+            Created issue or None if failed
+        """
+        # Use existing create method but ensure it's created as an ISSUE type
+        task = Task(
+            title=title,
+            description=description,
+            ticket_type=TicketType.ISSUE,
+            parent_epic=epic_id,
+            **{k: v for k, v in kwargs.items() if k in Task.__fields__}
+        )
+
+        # The existing create method handles project association via parent_epic field
+        return await self.create(task)
+
+    async def list_issues_by_epic(self, epic_id: str) -> List[Task]:
+        """List all issues in a Linear project (epic).
+
+        Args:
+            epic_id: Linear project ID
+
+        Returns:
+            List of issues belonging to project
+        """
+        query = gql(ISSUE_LIST_FRAGMENTS + """
+            query GetProjectIssues($projectId: String!, $first: Int!) {
+                project(id: $projectId) {
+                    issues(first: $first) {
+                        nodes {
+                            ...IssueCompactFields
+                        }
+                    }
+                }
+            }
+        """)
+
+        try:
+            async with self.client as session:
+                result = await session.execute(
+                    query,
+                    variable_values={"projectId": epic_id, "first": 100}
+                )
+
+            if not result.get("project"):
+                return []
+
+            issues = []
+            for issue_data in result["project"]["issues"]["nodes"]:
+                task = self._task_from_linear_issue(issue_data)
+                # Only return issues (not sub-tasks)
+                if task.is_issue():
+                    issues.append(task)
+
+            return issues
+        except TransportQueryError:
+            return []
+
+    async def create_task(
+        self,
+        title: str,
+        parent_id: str,
+        description: Optional[str] = None,
+        **kwargs
+    ) -> Optional[Task]:
+        """Create task as sub-issue of parent.
+
+        Args:
+            title: Task title
+            parent_id: Required parent issue identifier (e.g., 'BTA-123')
+            description: Task description
+            **kwargs: Additional fields
+
+        Returns:
+            Created task or None if failed
+
+        Raises:
+            ValueError: If parent_id is not provided
+        """
+        if not parent_id:
+            raise ValueError("Tasks must have a parent_id (issue identifier)")
+
+        # Get parent issue's Linear ID
+        parent_query = gql("""
+            query GetIssueId($identifier: String!) {
+                issue(id: $identifier) {
+                    id
+                }
+            }
+        """)
+
+        async with self.client as session:
+            parent_result = await session.execute(
+                parent_query,
+                variable_values={"identifier": parent_id}
+            )
+
+        if not parent_result.get("issue"):
+            raise ValueError(f"Parent issue {parent_id} not found")
+
+        parent_linear_id = parent_result["issue"]["id"]
+
+        # Create task using existing create method
+        task = Task(
+            title=title,
+            description=description,
+            ticket_type=TicketType.TASK,
+            parent_issue=parent_id,
+            **{k: v for k, v in kwargs.items() if k in Task.__fields__}
+        )
+
+        # Validate hierarchy
+        errors = task.validate_hierarchy()
+        if errors:
+            raise ValueError(f"Invalid task hierarchy: {'; '.join(errors)}")
+
+        # Create with parent relationship
+        team_id = await self._ensure_team_id()
+        states = await self._get_workflow_states()
+
+        # Map state to Linear state ID
+        linear_state_type = self._map_state_to_linear(task.state)
+        state_data = states.get(linear_state_type)
+        if not state_data:
+            state_data = states.get("backlog")
+        state_id = state_data["id"] if state_data else None
+
+        # Build issue input (sub-issue)
+        issue_input = {
+            "title": task.title,
+            "teamId": team_id,
+            "parentId": parent_linear_id,  # This makes it a sub-issue
+        }
+
+        if task.description:
+            issue_input["description"] = task.description
+
+        if state_id:
+            issue_input["stateId"] = state_id
+
+        # Set priority
+        if task.priority:
+            issue_input["priority"] = LinearPriorityMapping.TO_LINEAR.get(task.priority, 3)
+
+        # Create sub-issue mutation
+        create_query = gql(ALL_FRAGMENTS + """
+            mutation CreateSubIssue($input: IssueCreateInput!) {
+                issueCreate(input: $input) {
+                    success
+                    issue {
+                        ...IssueFullFields
+                    }
+                }
+            }
+        """)
+
+        async with self.client as session:
+            result = await session.execute(
+                create_query,
+                variable_values={"input": issue_input}
+            )
+
+        if not result["issueCreate"]["success"]:
+            return None
+
+        created_issue = result["issueCreate"]["issue"]
+        return self._task_from_linear_issue(created_issue)
+
+    async def list_tasks_by_issue(self, issue_id: str) -> List[Task]:
+        """List all tasks (sub-issues) under an issue.
+
+        Args:
+            issue_id: Issue identifier (e.g., 'BTA-123')
+
+        Returns:
+            List of tasks belonging to issue
+        """
+        query = gql(ISSUE_LIST_FRAGMENTS + """
+            query GetIssueSubtasks($identifier: String!) {
+                issue(id: $identifier) {
+                    children {
+                        nodes {
+                            ...IssueCompactFields
+                        }
+                    }
+                }
+            }
+        """)
+
+        try:
+            async with self.client as session:
+                result = await session.execute(
+                    query,
+                    variable_values={"identifier": issue_id}
+                )
+
+            if not result.get("issue"):
+                return []
+
+            tasks = []
+            for child_data in result["issue"]["children"]["nodes"]:
+                task = self._task_from_linear_issue(child_data)
+                # Only return tasks (sub-issues)
+                if task.is_task():
+                    tasks.append(task)
+
+            return tasks
+        except TransportQueryError:
+            return []
 
     async def close(self) -> None:
         """Close the GraphQL client connection."""
