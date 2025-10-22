@@ -414,7 +414,7 @@ class ConfigResolver:
     ) -> Dict[str, Any]:
         """Resolve adapter configuration with hierarchical precedence.
 
-        Precedence (highest to lowest):
+        Resolution order (highest to lowest priority):
         1. CLI overrides
         2. Environment variables (os.getenv)
         3. Project-specific config (.mcp-ticketer/config.json)
@@ -432,7 +432,7 @@ class ConfigResolver:
         global_config = self.load_global_config()
         project_config = self.load_project_config()
 
-        # Determine which adapter to use
+        # Determine which adapter to use (check project config first)
         if adapter_name:
             target_adapter = adapter_name
         elif project_config and project_config.default_adapter:
@@ -452,7 +452,7 @@ class ConfigResolver:
         # Start with empty config
         resolved_config = {"adapter": target_adapter}
 
-        # 1. Apply global adapter config
+        # 1. Apply global adapter config (LOWEST PRIORITY)
         if target_adapter in global_config.adapters:
             global_adapter_config = global_config.adapters[target_adapter].to_dict()
             resolved_config.update(global_adapter_config)
@@ -473,7 +473,7 @@ class ConfigResolver:
                         f"Applied auto-discovered config from {discovered_adapter.found_in}"
                     )
 
-        # 3. Apply project-specific config if exists
+        # 3. Apply project-specific config (HIGHER PRIORITY - overrides global and .env)
         if project_config:
             # Check if this project has specific adapter config
             project_path_str = str(self.project_path)
@@ -486,11 +486,11 @@ class ConfigResolver:
                 proj_global_adapter_config = project_config.adapters[target_adapter].to_dict()
                 resolved_config.update(proj_global_adapter_config)
 
-        # 4. Apply environment variable overrides (os.getenv)
+        # 4. Apply environment variable overrides (os.getenv - HIGHER PRIORITY)
         env_overrides = self._get_env_overrides(target_adapter)
         resolved_config.update(env_overrides)
 
-        # 5. Apply CLI overrides
+        # 5. Apply CLI overrides (HIGHEST PRIORITY)
         if cli_overrides:
             resolved_config.update(cli_overrides)
 

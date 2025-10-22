@@ -160,11 +160,22 @@ def get_adapter(override_adapter: Optional[str] = None, override_config: Optiona
 
 @app.command()
 def init(
-    adapter: AdapterType = typer.Option(
-        AdapterType.AITRACKDOWN,
+    adapter: Optional[str] = typer.Option(
+        None,
         "--adapter",
         "-a",
-        help="Adapter type to use"
+        help="Adapter type to use (auto-detected from .env if not specified)"
+    ),
+    project_path: Optional[str] = typer.Option(
+        None,
+        "--path",
+        help="Project path (default: current directory)"
+    ),
+    global_config: bool = typer.Option(
+        False,
+        "--global",
+        "-g",
+        help="Save to global config instead of project-specific"
     ),
     base_path: Optional[str] = typer.Option(
         None,
@@ -213,97 +224,204 @@ def init(
         help="GitHub Personal Access Token"
     ),
 ) -> None:
-    """Initialize MCP Ticketer configuration."""
+    """Initialize mcp-ticketer for the current project.
+
+    Creates .mcp-ticketer/config.json in the current directory with
+    auto-detected or specified adapter configuration.
+
+    Examples:
+        # Auto-detect from .env.local
+        mcp-ticketer init
+
+        # Force specific adapter
+        mcp-ticketer init --adapter linear
+
+        # Initialize for different project
+        mcp-ticketer init --path /path/to/project
+
+        # Save globally (not recommended)
+        mcp-ticketer init --global
+    """
+    from pathlib import Path
+    from ..core.project_config import ConfigResolver
+    from ..core.env_discovery import discover_config
+
+    # Determine project path
+    proj_path = Path(project_path) if project_path else Path.cwd()
+
+    # Check if already initialized (unless using --global)
+    if not global_config:
+        config_path = proj_path / ".mcp-ticketer" / "config.json"
+
+        if config_path.exists():
+            if not typer.confirm(
+                f"Configuration already exists at {config_path}. Overwrite?",
+                default=False
+            ):
+                console.print("[yellow]Initialization cancelled.[/yellow]")
+                raise typer.Exit(0)
+
+    # 1. Try auto-discovery if no adapter specified
+    discovered = None
+    adapter_type = adapter
+
+    if not adapter_type:
+        console.print("[cyan]🔍 Auto-discovering configuration from .env files...[/cyan]")
+        discovered = discover_config(proj_path)
+
+        if discovered and discovered.adapters:
+            primary = discovered.get_primary_adapter()
+            if primary:
+                adapter_type = primary.adapter_type
+                console.print(f"[green]✓ Detected {adapter_type} adapter from environment files[/green]")
+
+                # Show what was discovered
+                console.print(f"\n[dim]Configuration found in: {primary.found_in}[/dim]")
+                console.print(f"[dim]Confidence: {primary.confidence:.0%}[/dim]")
+            else:
+                adapter_type = "aitrackdown"  # Fallback
+                console.print("[yellow]⚠ No credentials found, defaulting to aitrackdown[/yellow]")
+        else:
+            adapter_type = "aitrackdown"  # Fallback
+            console.print("[yellow]⚠ No .env files found, defaulting to aitrackdown[/yellow]")
+
+    # 2. Create configuration based on adapter type
     config = {
-        "default_adapter": adapter.value,
+        "default_adapter": adapter_type,
         "adapters": {}
     }
 
-    if adapter == AdapterType.AITRACKDOWN:
+    # 3. If discovered and matches adapter_type, use discovered config
+    if discovered and adapter_type != "aitrackdown":
+        discovered_adapter = discovered.get_adapter_by_type(adapter_type)
+        if discovered_adapter:
+            config["adapters"][adapter_type] = discovered_adapter.config
+
+    # 4. Handle manual configuration for specific adapters
+    if adapter_type == "aitrackdown":
         config["adapters"]["aitrackdown"] = {"base_path": base_path or ".aitrackdown"}
-    elif adapter == AdapterType.LINEAR:
-        # For Linear, we need team_id and optionally api_key
-        if not team_id:
-            console.print("[red]Error:[/red] --team-id is required for Linear adapter")
-            raise typer.Exit(1)
 
-        config["adapters"]["linear"] = {"team_id": team_id}
+    elif adapter_type == "linear":
+        # If not auto-discovered, build from CLI params
+        if adapter_type not in config["adapters"]:
+            linear_config = {}
 
-        # Check for API key in environment or parameter
-        linear_api_key = api_key or os.getenv("LINEAR_API_KEY")
-        if not linear_api_key:
-            console.print("[yellow]Warning:[/yellow] No Linear API key provided.")
-            console.print("Set LINEAR_API_KEY environment variable or use --api-key option")
+            # Team ID
+            if team_id:
+                linear_config["team_id"] = team_id
+
+            # API Key
+            linear_api_key = api_key or os.getenv("LINEAR_API_KEY")
+            if linear_api_key:
+                linear_config["api_key"] = linear_api_key
+            elif not discovered:
+                console.print("[yellow]Warning:[/yellow] No Linear API key provided.")
+                console.print("Set LINEAR_API_KEY environment variable or use --api-key option")
+
+            if linear_config:
+                config["adapters"]["linear"] = linear_config
+
+    elif adapter_type == "jira":
+        # If not auto-discovered, build from CLI params
+        if adapter_type not in config["adapters"]:
+            server = jira_server or os.getenv("JIRA_SERVER")
+            email = jira_email or os.getenv("JIRA_EMAIL")
+            token = api_key or os.getenv("JIRA_API_TOKEN")
+            project = jira_project or os.getenv("JIRA_PROJECT_KEY")
+
+            if not server:
+                console.print("[red]Error:[/red] JIRA server URL is required")
+                console.print("Use --jira-server or set JIRA_SERVER environment variable")
+                raise typer.Exit(1)
+
+            if not email:
+                console.print("[red]Error:[/red] JIRA email is required")
+                console.print("Use --jira-email or set JIRA_EMAIL environment variable")
+                raise typer.Exit(1)
+
+            if not token:
+                console.print("[red]Error:[/red] JIRA API token is required")
+                console.print("Use --api-key or set JIRA_API_TOKEN environment variable")
+                console.print("[dim]Generate token at: https://id.atlassian.com/manage/api-tokens[/dim]")
+                raise typer.Exit(1)
+
+            jira_config = {
+                "server": server,
+                "email": email,
+                "api_token": token
+            }
+
+            if project:
+                jira_config["project_key"] = project
+
+            config["adapters"]["jira"] = jira_config
+
+    elif adapter_type == "github":
+        # If not auto-discovered, build from CLI params
+        if adapter_type not in config["adapters"]:
+            owner = github_owner or os.getenv("GITHUB_OWNER")
+            repo = github_repo or os.getenv("GITHUB_REPO")
+            token = github_token or os.getenv("GITHUB_TOKEN")
+
+            if not owner:
+                console.print("[red]Error:[/red] GitHub repository owner is required")
+                console.print("Use --github-owner or set GITHUB_OWNER environment variable")
+                raise typer.Exit(1)
+
+            if not repo:
+                console.print("[red]Error:[/red] GitHub repository name is required")
+                console.print("Use --github-repo or set GITHUB_REPO environment variable")
+                raise typer.Exit(1)
+
+            if not token:
+                console.print("[red]Error:[/red] GitHub Personal Access Token is required")
+                console.print("Use --github-token or set GITHUB_TOKEN environment variable")
+                console.print("[dim]Create token at: https://github.com/settings/tokens/new[/dim]")
+                console.print("[dim]Required scopes: repo (for private repos) or public_repo (for public repos)[/dim]")
+                raise typer.Exit(1)
+
+            config["adapters"]["github"] = {
+                "owner": owner,
+                "repo": repo,
+                "token": token
+            }
+
+    # 5. Save to appropriate location
+    if global_config:
+        # Save to ~/.mcp-ticketer/config.json
+        resolver = ConfigResolver(project_path=proj_path)
+        config_file_path = resolver.GLOBAL_CONFIG_PATH
+        config_file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(config_file_path, 'w') as f:
+            json.dump(config, f, indent=2)
+
+        console.print(f"[green]✓ Initialized with {adapter_type} adapter[/green]")
+        console.print(f"[dim]Global configuration saved to {config_file_path}[/dim]")
+    else:
+        # Save to ./.mcp-ticketer/config.json (PROJECT-SPECIFIC)
+        config_file_path = proj_path / ".mcp-ticketer" / "config.json"
+        config_file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(config_file_path, 'w') as f:
+            json.dump(config, f, indent=2)
+
+        console.print(f"[green]✓ Initialized with {adapter_type} adapter[/green]")
+        console.print(f"[dim]Project configuration saved to {config_file_path}[/dim]")
+
+        # Add .mcp-ticketer to .gitignore if not already there
+        gitignore_path = proj_path / ".gitignore"
+        if gitignore_path.exists():
+            gitignore_content = gitignore_path.read_text()
+            if ".mcp-ticketer" not in gitignore_content:
+                with open(gitignore_path, 'a') as f:
+                    f.write("\n# MCP Ticketer\n.mcp-ticketer/\n")
+                console.print("[dim]✓ Added .mcp-ticketer/ to .gitignore[/dim]")
         else:
-            config["adapters"]["linear"]["api_key"] = linear_api_key
-
-    elif adapter == AdapterType.JIRA:
-        # For JIRA, we need server, email, and API token
-        server = jira_server or os.getenv("JIRA_SERVER")
-        email = jira_email or os.getenv("JIRA_EMAIL")
-        token = api_key or os.getenv("JIRA_API_TOKEN")
-        project = jira_project or os.getenv("JIRA_PROJECT_KEY")
-
-        if not server:
-            console.print("[red]Error:[/red] JIRA server URL is required")
-            console.print("Use --jira-server or set JIRA_SERVER environment variable")
-            raise typer.Exit(1)
-
-        if not email:
-            console.print("[red]Error:[/red] JIRA email is required")
-            console.print("Use --jira-email or set JIRA_EMAIL environment variable")
-            raise typer.Exit(1)
-
-        if not token:
-            console.print("[red]Error:[/red] JIRA API token is required")
-            console.print("Use --api-key or set JIRA_API_TOKEN environment variable")
-            console.print("[dim]Generate token at: https://id.atlassian.com/manage/api-tokens[/dim]")
-            raise typer.Exit(1)
-
-        config["adapters"]["jira"] = {
-            "server": server,
-            "email": email,
-            "api_token": token
-        }
-
-        if project:
-            config["adapters"]["jira"]["project_key"] = project
-        else:
-            console.print("[yellow]Warning:[/yellow] No default project key specified")
-            console.print("You may need to specify project key for some operations")
-
-    elif adapter == AdapterType.GITHUB:
-        # For GitHub, we need owner, repo, and token
-        owner = github_owner or os.getenv("GITHUB_OWNER")
-        repo = github_repo or os.getenv("GITHUB_REPO")
-        token = github_token or os.getenv("GITHUB_TOKEN")
-
-        if not owner:
-            console.print("[red]Error:[/red] GitHub repository owner is required")
-            console.print("Use --github-owner or set GITHUB_OWNER environment variable")
-            raise typer.Exit(1)
-
-        if not repo:
-            console.print("[red]Error:[/red] GitHub repository name is required")
-            console.print("Use --github-repo or set GITHUB_REPO environment variable")
-            raise typer.Exit(1)
-
-        if not token:
-            console.print("[red]Error:[/red] GitHub Personal Access Token is required")
-            console.print("Use --github-token or set GITHUB_TOKEN environment variable")
-            console.print("[dim]Create token at: https://github.com/settings/tokens/new[/dim]")
-            console.print("[dim]Required scopes: repo (for private repos) or public_repo (for public repos)[/dim]")
-            raise typer.Exit(1)
-
-        config["adapters"]["github"] = {
-            "owner": owner,
-            "repo": repo,
-            "token": token
-        }
-
-    save_config(config)
-    console.print(f"[green]✓[/green] Initialized with {adapter.value} adapter")
-    console.print(f"[dim]Configuration saved to {CONFIG_FILE}[/dim]")
+            # Create .gitignore if it doesn't exist
+            with open(gitignore_path, 'w') as f:
+                f.write("# MCP Ticketer\n.mcp-ticketer/\n")
+            console.print("[dim]✓ Created .gitignore with .mcp-ticketer/[/dim]")
 
 
 @app.command("set")
