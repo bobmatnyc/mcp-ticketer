@@ -424,6 +424,108 @@ def init(
             console.print("[dim]✓ Created .gitignore with .mcp-ticketer/[/dim]")
 
 
+@app.command()
+def install(
+    adapter: Optional[str] = typer.Option(
+        None,
+        "--adapter",
+        "-a",
+        help="Adapter type to use (auto-detected from .env if not specified)"
+    ),
+    project_path: Optional[str] = typer.Option(
+        None,
+        "--path",
+        help="Project path (default: current directory)"
+    ),
+    global_config: bool = typer.Option(
+        False,
+        "--global",
+        "-g",
+        help="Save to global config instead of project-specific"
+    ),
+    base_path: Optional[str] = typer.Option(
+        None,
+        "--base-path",
+        "-p",
+        help="Base path for ticket storage (AITrackdown only)"
+    ),
+    api_key: Optional[str] = typer.Option(
+        None,
+        "--api-key",
+        help="API key for Linear or API token for JIRA"
+    ),
+    team_id: Optional[str] = typer.Option(
+        None,
+        "--team-id",
+        help="Linear team ID (required for Linear adapter)"
+    ),
+    jira_server: Optional[str] = typer.Option(
+        None,
+        "--jira-server",
+        help="JIRA server URL (e.g., https://company.atlassian.net)"
+    ),
+    jira_email: Optional[str] = typer.Option(
+        None,
+        "--jira-email",
+        help="JIRA user email for authentication"
+    ),
+    jira_project: Optional[str] = typer.Option(
+        None,
+        "--jira-project",
+        help="Default JIRA project key"
+    ),
+    github_owner: Optional[str] = typer.Option(
+        None,
+        "--github-owner",
+        help="GitHub repository owner"
+    ),
+    github_repo: Optional[str] = typer.Option(
+        None,
+        "--github-repo",
+        help="GitHub repository name"
+    ),
+    github_token: Optional[str] = typer.Option(
+        None,
+        "--github-token",
+        help="GitHub Personal Access Token"
+    ),
+) -> None:
+    """Initialize mcp-ticketer for the current project (alias for init).
+
+    This command is synonymous with 'init' and provides the same functionality.
+    Creates .mcp-ticketer/config.json in the current directory with
+    auto-detected or specified adapter configuration.
+
+    Examples:
+        # Auto-detect from .env.local
+        mcp-ticketer install
+
+        # Force specific adapter
+        mcp-ticketer install --adapter linear
+
+        # Initialize for different project
+        mcp-ticketer install --path /path/to/project
+
+        # Save globally (not recommended)
+        mcp-ticketer install --global
+    """
+    # Call init with all parameters
+    init(
+        adapter=adapter,
+        project_path=project_path,
+        global_config=global_config,
+        base_path=base_path,
+        api_key=api_key,
+        team_id=team_id,
+        jira_server=jira_server,
+        jira_email=jira_email,
+        jira_project=jira_project,
+        github_owner=github_owner,
+        github_repo=github_repo,
+        github_token=github_token,
+    )
+
+
 @app.command("set")
 def set_config(
     adapter: Optional[AdapterType] = typer.Option(
