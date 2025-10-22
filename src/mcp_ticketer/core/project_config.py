@@ -211,9 +211,9 @@ class ConfigValidator:
             if field not in config or not config[field]:
                 return False, f"Linear config missing required field: {field}"
 
-        # Warn if team_id is missing but don't fail
-        if not config.get("team_id"):
-            logger.warning("Linear config missing team_id - may be required for some operations")
+        # Require either team_key or team_id (team_id is preferred)
+        if not config.get("team_key") and not config.get("team_id"):
+            return False, "Linear config requires either team_key (short key like 'BTA') or team_id (UUID)"
 
         return True, None
 

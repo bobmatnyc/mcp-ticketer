@@ -70,18 +70,24 @@ class AdapterType(str, Enum):
     GITHUB = "github"
 
 
-def load_config() -> dict:
+def load_config(project_dir: Optional[Path] = None) -> dict:
     """Load configuration from file.
 
+    Args:
+        project_dir: Optional project directory to load config from
+
     Resolution order:
-    1. Project-specific config (.mcp-ticketer/config.json in cwd)
+    1. Project-specific config (.mcp-ticketer/config.json in project_dir or cwd)
     2. Global config (~/.mcp-ticketer/config.json)
 
     Returns:
         Configuration dictionary
     """
+    # Use provided project_dir or current working directory
+    base_dir = project_dir or Path.cwd()
+
     # Check project-specific config first
-    project_config = Path.cwd() / ".mcp-ticketer" / "config.json"
+    project_config = base_dir / ".mcp-ticketer" / "config.json"
     if project_config.exists():
         try:
             with open(project_config, "r") as f:

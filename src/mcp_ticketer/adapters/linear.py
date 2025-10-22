@@ -277,8 +277,11 @@ class LinearAdapter(BaseAdapter[Task]):
             config: Configuration with:
                 - api_key: Linear API key (or LINEAR_API_KEY env var)
                 - workspace: Linear workspace name (optional, for documentation)
-                - team_key: Linear team key (required, e.g., 'BTA')
+                - team_key: Linear team key (e.g., 'BTA') OR
+                - team_id: Linear team UUID (e.g., '02d15669-7351-4451-9719-807576c16049')
                 - api_url: Optional Linear API URL
+
+        Note: Either team_key or team_id is required. If both are provided, team_id takes precedence.
         """
         super().__init__(config)
 
@@ -288,9 +291,15 @@ class LinearAdapter(BaseAdapter[Task]):
             raise ValueError("Linear API key required (config.api_key or LINEAR_API_KEY env var)")
 
         self.workspace = config.get("workspace")  # Optional, for documentation
-        self.team_key = config.get("team_key")
-        if not self.team_key:
-            raise ValueError("Linear team_key is required in configuration")
+
+        # Support both team_key (short key) and team_id (UUID)
+        self.team_key = config.get("team_key")  # Short key like "BTA"
+        self.team_id_config = config.get("team_id")  # UUID like "02d15669-..."
+
+        # Require at least one team identifier
+        if not self.team_key and not self.team_id_config:
+            raise ValueError("Either team_key or team_id is required in configuration")
+
         self.api_url = config.get("api_url", "https://api.linear.app/graphql")
 
         # Setup GraphQL client with authentication
@@ -347,9 +356,35 @@ class LinearAdapter(BaseAdapter[Task]):
                 raise e
 
     async def _fetch_team_data(self) -> str:
-        """Fetch team ID."""
+        """Fetch team ID.
+
+        If team_id is configured, validate it exists and return it.
+        If team_key is configured, fetch the team_id by key.
+        """
+        # If team_id (UUID) is provided, use it directly (preferred)
+        if self.team_id_config:
+            # Validate that this team ID exists
+            query = gql("""
+                query GetTeamById($id: String!) {
+                    team(id: $id) {
+                        id
+                        name
+                        key
+                    }
+                }
+            """)
+
+            async with self.client as session:
+                result = await session.execute(query, variable_values={"id": self.team_id_config})
+
+            if not result.get("team"):
+                raise ValueError(f"Team with ID '{self.team_id_config}' not found")
+
+            return result["team"]["id"]
+
+        # Otherwise, fetch team ID by key
         query = gql("""
-            query GetTeam($key: String!) {
+            query GetTeamByKey($key: String!) {
                 teams(filter: { key: { eq: $key } }) {
                     nodes {
                         id
@@ -528,8 +563,8 @@ class LinearAdapter(BaseAdapter[Task]):
         """
         if not self.api_key:
             return False, "LINEAR_API_KEY is required but not found. Set it in .env.local or environment."
-        if not self.team_key:
-            return False, "Linear team_key is required in configuration. Set it in .mcp-ticketer/config.json"
+        if not self.team_key and not self.team_id_config:
+            return False, "Either Linear team_key or team_id is required in configuration. Set it in .mcp-ticketer/config.json"
         return True, ""
 
     def _get_state_mapping(self) -> Dict[TicketState, str]:

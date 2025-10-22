@@ -32,6 +32,7 @@ class QueueItem:
     error_message: Optional[str] = None
     retry_count: int = 0
     result: Optional[Dict[str, Any]] = None
+    project_dir: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for storage."""
@@ -54,7 +55,8 @@ class QueueItem:
             processed_at=datetime.fromisoformat(row[6]) if row[6] else None,
             error_message=row[7],
             retry_count=row[8],
-            result=json.loads(row[9]) if row[9] else None
+            result=json.loads(row[9]) if row[9] else None,
+            project_dir=row[10] if len(row) > 10 else None
         )
 
 
@@ -109,31 +111,43 @@ class Queue:
                 ON queue(adapter)
             ''')
 
+            # Migration: Add project_dir column if it doesn't exist
+            cursor = conn.execute("PRAGMA table_info(queue)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if 'project_dir' not in columns:
+                conn.execute('ALTER TABLE queue ADD COLUMN project_dir TEXT')
+
             conn.commit()
 
     def add(self,
             ticket_data: Dict[str, Any],
             adapter: str,
-            operation: str) -> str:
+            operation: str,
+            project_dir: Optional[str] = None) -> str:
         """Add item to queue.
 
         Args:
             ticket_data: The ticket data for the operation
             adapter: Name of the adapter to use
             operation: Operation to perform (create, update, delete, etc.)
+            project_dir: Project directory for config resolution (defaults to current directory)
 
         Returns:
             Queue ID for tracking
         """
         queue_id = f"Q-{uuid.uuid4().hex[:8].upper()}"
 
+        # Default to current working directory if not provided
+        if project_dir is None:
+            project_dir = str(Path.cwd())
+
         with self._lock:
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute('''
                     INSERT INTO queue (
                         id, ticket_data, adapter, operation,
-                        status, created_at, retry_count
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        status, created_at, retry_count, project_dir
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     queue_id,
                     json.dumps(ticket_data),
@@ -141,7 +155,8 @@ class Queue:
                     operation,
                     QueueStatus.PENDING.value,
                     datetime.now().isoformat(),
-                    0
+                    0,
+                    project_dir
                 ))
                 conn.commit()
 

@@ -303,15 +303,26 @@ class Worker:
         Returns:
             Adapter instance
         """
-        # Load configuration
+        # Load configuration from the project directory where the item was created
         from ..cli.main import load_config
+        from pathlib import Path
+        import os
 
-        config = load_config()
+        # Use item's project_dir if available, otherwise use current directory
+        project_path = Path(item.project_dir) if item.project_dir else None
+
+        # Load environment variables from project directory's .env.local if it exists
+        if project_path:
+            env_file = project_path / ".env.local"
+            if env_file.exists():
+                logger.debug(f"Loading environment from {env_file}")
+                load_dotenv(env_file)
+
+        config = load_config(project_dir=project_path)
         adapters_config = config.get("adapters", {})
         adapter_config = adapters_config.get(item.adapter, {})
 
         # Add environment variables for authentication
-        import os
         if item.adapter == "linear":
             if not adapter_config.get("api_key"):
                 adapter_config["api_key"] = os.getenv("LINEAR_API_KEY")
