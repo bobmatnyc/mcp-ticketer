@@ -148,7 +148,7 @@ extend-exclude = '''
 '''
 
 [tool.ruff]
-target-version = "0.1.18"
+target-version = "0.1.19"
 line-length = 88
 
 [tool.ruff.lint]
