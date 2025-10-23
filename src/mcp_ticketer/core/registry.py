@@ -1,6 +1,6 @@
 """Adapter registry for dynamic adapter management."""
 
-from typing import Any, Dict, Optional, Type
+from typing import Any, Optional
 
 from .adapter import BaseAdapter
 
@@ -8,11 +8,11 @@ from .adapter import BaseAdapter
 class AdapterRegistry:
     """Registry for managing ticket system adapters."""
 
-    _adapters: Dict[str, Type[BaseAdapter]] = {}
-    _instances: Dict[str, BaseAdapter] = {}
+    _adapters: dict[str, type[BaseAdapter]] = {}
+    _instances: dict[str, BaseAdapter] = {}
 
     @classmethod
-    def register(cls, name: str, adapter_class: Type[BaseAdapter]) -> None:
+    def register(cls, name: str, adapter_class: type[BaseAdapter]) -> None:
         """Register an adapter class.
 
         Args:
@@ -37,7 +37,7 @@ class AdapterRegistry:
 
     @classmethod
     def get_adapter(
-        cls, name: str, config: Optional[Dict[str, Any]] = None, force_new: bool = False
+        cls, name: str, config: Optional[dict[str, Any]] = None, force_new: bool = False
     ) -> BaseAdapter:
         """Get or create an adapter instance.
 
@@ -75,7 +75,7 @@ class AdapterRegistry:
         return instance
 
     @classmethod
-    def list_adapters(cls) -> Dict[str, Type[BaseAdapter]]:
+    def list_adapters(cls) -> dict[str, type[BaseAdapter]]:
         """List all registered adapters.
 
         Returns:
@@ -114,7 +114,7 @@ class AdapterRegistry:
         cls._instances.clear()
 
 
-def adapter_factory(adapter_type: str, config: Dict[str, Any]) -> BaseAdapter:
+def adapter_factory(adapter_type: str, config: dict[str, Any]) -> BaseAdapter:
     """Factory function for creating adapters.
 
     Args:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 
@@ -41,11 +41,11 @@ class MockAdapter(BaseAdapter[Task]):
         self.tickets_db[ticket.id] = ticket
         return ticket
 
-    async def read(self, ticket_id: str) -> Optional[Task]:
+    async def read(self, ticket_id: str) -> Task | None:
         """Read a ticket."""
         return self.tickets_db.get(ticket_id)
 
-    async def update(self, ticket_id: str, updates: dict[str, Any]) -> Optional[Task]:
+    async def update(self, ticket_id: str, updates: dict[str, Any]) -> Task | None:
         """Update a ticket."""
         ticket = self.tickets_db.get(ticket_id)
         if not ticket:
@@ -68,7 +68,7 @@ class MockAdapter(BaseAdapter[Task]):
         self,
         limit: int = 10,
         offset: int = 0,
-        filters: Optional[dict[str, Any]] = None,
+        filters: dict[str, Any] | None = None,
     ) -> list[Task]:
         """List tickets."""
         tickets = list(self.tickets_db.values())
@@ -100,7 +100,7 @@ class MockAdapter(BaseAdapter[Task]):
 
     async def transition_state(
         self, ticket_id: str, target_state: TicketState
-    ) -> Optional[Task]:
+    ) -> Task | None:
         """Transition state."""
         if not await self.validate_transition(ticket_id, target_state):
             return None

@@ -1,10 +1,11 @@
 """Linear adapter implementation using native GraphQL API with full feature support."""
 
 import asyncio
+import builtins
 import os
 from datetime import date, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from gql import Client, gql
 from gql.transport.exceptions import TransportQueryError
@@ -278,7 +279,7 @@ ISSUE_LIST_FRAGMENTS = (
 class LinearAdapter(BaseAdapter[Task]):
     """Adapter for Linear issue tracking system using native GraphQL API."""
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """Initialize Linear adapter.
 
         Args:
@@ -315,9 +316,9 @@ class LinearAdapter(BaseAdapter[Task]):
 
         # Caches for frequently used data
         self._team_id: Optional[str] = None
-        self._workflow_states: Optional[Dict[str, Dict[str, Any]]] = None
-        self._labels: Optional[Dict[str, str]] = None  # name -> id
-        self._users: Optional[Dict[str, str]] = None  # email -> id
+        self._workflow_states: Optional[dict[str, dict[str, Any]]] = None
+        self._labels: Optional[dict[str, str]] = None  # name -> id
+        self._users: Optional[dict[str, str]] = None  # email -> id
 
         # Initialize state mapping
         self._state_mapping = self._get_state_mapping()
@@ -435,7 +436,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
     async def _fetch_workflow_states_data(
         self, team_id: str
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> dict[str, dict[str, Any]]:
         """Fetch workflow states data."""
         query = gql(
             """
@@ -467,7 +468,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         return workflow_states
 
-    async def _fetch_labels_data(self, team_id: str) -> Dict[str, str]:
+    async def _fetch_labels_data(self, team_id: str) -> dict[str, str]:
         """Fetch labels data."""
         query = gql(
             """
@@ -498,7 +499,7 @@ class LinearAdapter(BaseAdapter[Task]):
         await self._ensure_initialized()
         return self._team_id
 
-    async def _get_workflow_states(self) -> Dict[str, Dict[str, Any]]:
+    async def _get_workflow_states(self) -> dict[str, dict[str, Any]]:
         """Get cached workflow states from Linear."""
         await self._ensure_initialized()
         return self._workflow_states
@@ -619,7 +620,7 @@ class LinearAdapter(BaseAdapter[Task]):
             )
         return True, ""
 
-    def _get_state_mapping(self) -> Dict[TicketState, str]:
+    def _get_state_mapping(self) -> dict[TicketState, str]:
         """Get mapping from universal states to Linear state types.
 
         Required by BaseAdapter abstract method.
@@ -643,7 +644,7 @@ class LinearAdapter(BaseAdapter[Task]):
         return self._state_mapping.get(state, LinearStateType.BACKLOG)
 
     def _map_linear_state(
-        self, state_data: Dict[str, Any], labels: List[str]
+        self, state_data: dict[str, Any], labels: list[str]
     ) -> TicketState:
         """Map Linear state and labels to universal state."""
         state_type = state_data.get("type", "").lower()
@@ -669,7 +670,7 @@ class LinearAdapter(BaseAdapter[Task]):
         }
         return state_mapping.get(state_type, TicketState.OPEN)
 
-    def _task_from_linear_issue(self, issue: Dict[str, Any]) -> Task:
+    def _task_from_linear_issue(self, issue: dict[str, Any]) -> Task:
         """Convert Linear issue to universal Task."""
         # Extract labels
         tags = []
@@ -786,7 +787,7 @@ class LinearAdapter(BaseAdapter[Task]):
             metadata=metadata,
         )
 
-    def _epic_from_linear_project(self, project: Dict[str, Any]) -> Epic:
+    def _epic_from_linear_project(self, project: dict[str, Any]) -> Epic:
         """Convert Linear project to universal Epic."""
         # Map project state to ticket state
         project_state = project.get("state", "planned").lower()
@@ -1005,7 +1006,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         return None
 
-    async def update(self, ticket_id: str, updates: Dict[str, Any]) -> Optional[Task]:
+    async def update(self, ticket_id: str, updates: dict[str, Any]) -> Optional[Task]:
         """Update a Linear issue with comprehensive field support."""
         # Validate credentials before attempting operation
         is_valid, error_message = self.validate_credentials()
@@ -1162,8 +1163,8 @@ class LinearAdapter(BaseAdapter[Task]):
         return result.get("issueArchive", {}).get("success", False)
 
     async def list(
-        self, limit: int = 10, offset: int = 0, filters: Optional[Dict[str, Any]] = None
-    ) -> List[Task]:
+        self, limit: int = 10, offset: int = 0, filters: Optional[dict[str, Any]] = None
+    ) -> list[Task]:
         """List Linear issues with comprehensive filtering."""
         team_id = await self._ensure_team_id()
 
@@ -1271,7 +1272,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         return tasks
 
-    async def search(self, query: SearchQuery) -> List[Task]:
+    async def search(self, query: SearchQuery) -> builtins.list[Task]:
         """Search Linear issues with advanced filtering and text search."""
         team_id = await self._ensure_team_id()
 
@@ -1445,7 +1446,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
     async def get_comments(
         self, ticket_id: str, limit: int = 10, offset: int = 0
-    ) -> List[Comment]:
+    ) -> builtins.list[Comment]:
         """Get comments for a Linear issue with pagination."""
         query = gql(
             USER_FRAGMENT
@@ -1546,7 +1547,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         return result["projectCreate"]["project"]["id"]
 
-    async def get_cycles(self, active_only: bool = True) -> List[Dict[str, Any]]:
+    async def get_cycles(self, active_only: bool = True) -> builtins.list[dict[str, Any]]:
         """Get Linear cycles (sprints) for the team."""
         team_id = await self._ensure_team_id()
 
@@ -1638,7 +1639,7 @@ class LinearAdapter(BaseAdapter[Task]):
         ticket_id: str,
         pr_url: str,
         pr_number: Optional[int] = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Link a Linear issue to a GitHub pull request.
 
         Args:
@@ -1741,8 +1742,8 @@ class LinearAdapter(BaseAdapter[Task]):
     async def create_pull_request_for_issue(
         self,
         ticket_id: str,
-        github_config: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        github_config: dict[str, Any],
+    ) -> dict[str, Any]:
         """Create a GitHub PR for a Linear issue using GitHub integration.
 
         This requires GitHub integration to be configured in Linear.
@@ -1837,7 +1838,7 @@ class LinearAdapter(BaseAdapter[Task]):
         else:
             raise ValueError(f"Failed to update issue {ticket_id} with branch name")
 
-    async def _search_by_identifier(self, identifier: str) -> Optional[Dict[str, Any]]:
+    async def _search_by_identifier(self, identifier: str) -> Optional[dict[str, Any]]:
         """Search for an issue by its identifier."""
         search_query = gql(
             """
@@ -1950,7 +1951,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         return None
 
-    async def list_epics(self, **kwargs) -> List[Epic]:
+    async def list_epics(self, **kwargs) -> builtins.list[Epic]:
         """List all Linear Projects (Epics).
 
         Args:
@@ -2037,7 +2038,7 @@ class LinearAdapter(BaseAdapter[Task]):
         # The existing create method handles project association via parent_epic field
         return await self.create(task)
 
-    async def list_issues_by_epic(self, epic_id: str) -> List[Task]:
+    async def list_issues_by_epic(self, epic_id: str) -> builtins.list[Task]:
         """List all issues in a Linear project (epic).
 
         Args:
@@ -2197,7 +2198,7 @@ class LinearAdapter(BaseAdapter[Task]):
         created_issue = result["issueCreate"]["issue"]
         return self._task_from_linear_issue(created_issue)
 
-    async def list_tasks_by_issue(self, issue_id: str) -> List[Task]:
+    async def list_tasks_by_issue(self, issue_id: str) -> builtins.list[Task]:
         """List all tasks (sub-issues) under an issue.
 
         Args:

@@ -4,7 +4,7 @@ import asyncio
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from dotenv import load_dotenv
 
@@ -34,7 +34,7 @@ class MCPTicketServer:
     """MCP server for ticket operations over stdio."""
 
     def __init__(
-        self, adapter_type: str = "aitrackdown", config: Optional[Dict[str, Any]] = None
+        self, adapter_type: str = "aitrackdown", config: Optional[dict[str, Any]] = None
     ):
         """Initialize MCP server.
 
@@ -48,7 +48,7 @@ class MCPTicketServer:
         )
         self.running = False
 
-    async def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    async def handle_request(self, request: dict[str, Any]) -> dict[str, Any]:
         """Handle JSON-RPC request.
 
         Args:
@@ -105,7 +105,7 @@ class MCPTicketServer:
 
     def _error_response(
         self, request_id: Any, code: int, message: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create error response.
 
         Args:
@@ -123,7 +123,7 @@ class MCPTicketServer:
             "id": request_id,
         }
 
-    async def _handle_create(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_create(self, params: dict[str, Any]) -> dict[str, Any]:
         """Handle ticket creation."""
         # Queue the operation instead of direct execution
         queue = Queue()
@@ -216,12 +216,12 @@ class MCPTicketServer:
             # Wait before next poll
             await asyncio.sleep(poll_interval)
 
-    async def _handle_read(self, params: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def _handle_read(self, params: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle ticket read."""
         ticket = await self.adapter.read(params["ticket_id"])
         return ticket.model_dump() if ticket else None
 
-    async def _handle_update(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_update(self, params: dict[str, Any]) -> dict[str, Any]:
         """Handle ticket update."""
         # Queue the operation
         queue = Queue()
@@ -295,7 +295,7 @@ class MCPTicketServer:
             # Wait before next poll
             await asyncio.sleep(poll_interval)
 
-    async def _handle_delete(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_delete(self, params: dict[str, Any]) -> dict[str, Any]:
         """Handle ticket deletion."""
         # Queue the operation
         queue = Queue()
@@ -315,7 +315,7 @@ class MCPTicketServer:
             "message": f"Ticket deletion queued with ID: {queue_id}",
         }
 
-    async def _handle_list(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _handle_list(self, params: dict[str, Any]) -> list[dict[str, Any]]:
         """Handle ticket listing."""
         tickets = await self.adapter.list(
             limit=params.get("limit", 10),
@@ -324,13 +324,13 @@ class MCPTicketServer:
         )
         return [ticket.model_dump() for ticket in tickets]
 
-    async def _handle_search(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _handle_search(self, params: dict[str, Any]) -> list[dict[str, Any]]:
         """Handle ticket search."""
         query = SearchQuery(**params)
         tickets = await self.adapter.search(query)
         return [ticket.model_dump() for ticket in tickets]
 
-    async def _handle_transition(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_transition(self, params: dict[str, Any]) -> dict[str, Any]:
         """Handle state transition."""
         # Queue the operation
         queue = Queue()
@@ -405,7 +405,7 @@ class MCPTicketServer:
             # Wait before next poll
             await asyncio.sleep(poll_interval)
 
-    async def _handle_comment(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_comment(self, params: dict[str, Any]) -> dict[str, Any]:
         """Handle comment operations."""
         operation = params.get("operation", "add")
 
@@ -444,7 +444,7 @@ class MCPTicketServer:
         else:
             raise ValueError(f"Unknown comment operation: {operation}")
 
-    async def _handle_queue_status(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_queue_status(self, params: dict[str, Any]) -> dict[str, Any]:
         """Check status of queued operation."""
         queue_id = params.get("queue_id")
         if not queue_id:
@@ -475,7 +475,7 @@ class MCPTicketServer:
 
         return response
 
-    async def _handle_create_pr(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_create_pr(self, params: dict[str, Any]) -> dict[str, Any]:
         """Handle PR creation for a ticket."""
         ticket_id = params.get("ticket_id")
         if not ticket_id:
@@ -563,7 +563,7 @@ class MCPTicketServer:
                 "ticket_id": ticket_id,
             }
 
-    async def _handle_link_pr(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_link_pr(self, params: dict[str, Any]) -> dict[str, Any]:
         """Handle linking an existing PR to a ticket."""
         ticket_id = params.get("ticket_id")
         pr_url = params.get("pr_url")
@@ -617,7 +617,7 @@ class MCPTicketServer:
                 "pr_url": pr_url,
             }
 
-    async def _handle_initialize(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_initialize(self, params: dict[str, Any]) -> dict[str, Any]:
         """Handle initialize request from MCP client.
 
         Args:
@@ -633,7 +633,7 @@ class MCPTicketServer:
             "capabilities": {"tools": {"listChanged": False}},
         }
 
-    async def _handle_tools_list(self) -> Dict[str, Any]:
+    async def _handle_tools_list(self) -> dict[str, Any]:
         """List available MCP tools."""
         return {
             "tools": [
@@ -781,7 +781,7 @@ class MCPTicketServer:
             ]
         }
 
-    async def _handle_tools_call(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_tools_call(self, params: dict[str, Any]) -> dict[str, Any]:
         """Handle tool invocation from MCP client.
 
         Args:

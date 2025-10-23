@@ -5,7 +5,7 @@ import json
 import os
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import typer
 from dotenv import load_dotenv
@@ -800,7 +800,7 @@ def create(
     priority: Priority = typer.Option(
         Priority.MEDIUM, "--priority", "-p", help="Priority level"
     ),
-    tags: Optional[List[str]] = typer.Option(
+    tags: Optional[list[str]] = typer.Option(
         None, "--tag", "-t", help="Tags (can be specified multiple times)"
     ),
     assignee: Optional[str] = typer.Option(
@@ -1026,6 +1026,7 @@ def transition(
 
         # Legacy positional syntax (still supported):
         mcp-ticketer transition BTA-215 done
+
     """
     # Determine which state to use (prefer flag over positional)
     target_state = state if state is not None else state_positional

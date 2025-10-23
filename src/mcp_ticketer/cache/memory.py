@@ -5,7 +5,7 @@ import hashlib
 import json
 import time
 from functools import wraps
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 
 class CacheEntry:
@@ -37,7 +37,7 @@ class MemoryCache:
             default_ttl: Default TTL in seconds (5 minutes)
 
         """
-        self._cache: Dict[str, CacheEntry] = {}
+        self._cache: dict[str, CacheEntry] = {}
         self._default_ttl = default_ttl
         self._lock = asyncio.Lock()
 

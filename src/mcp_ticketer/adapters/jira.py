@@ -1,11 +1,12 @@
 """JIRA adapter implementation using REST API v3."""
 
 import asyncio
+import builtins
 import logging
 import os
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 import httpx
 from httpx import AsyncClient, HTTPStatusError, TimeoutException
@@ -42,7 +43,7 @@ class JiraPriority(str, Enum):
 class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
     """Adapter for JIRA using REST API v3."""
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """Initialize JIRA adapter.
 
         Args:
@@ -93,10 +94,10 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         }
 
         # Cache for workflow states and transitions
-        self._workflow_cache: Dict[str, Any] = {}
-        self._priority_cache: List[Dict[str, Any]] = []
-        self._issue_types_cache: Dict[str, Any] = {}
-        self._custom_fields_cache: Dict[str, Any] = {}
+        self._workflow_cache: dict[str, Any] = {}
+        self._priority_cache: list[dict[str, Any]] = []
+        self._issue_types_cache: dict[str, Any] = {}
+        self._custom_fields_cache: dict[str, Any] = {}
 
     def validate_credentials(self) -> tuple[bool, str]:
         """Validate that required credentials are present.
@@ -122,7 +123,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             )
         return True, ""
 
-    def _get_state_mapping(self) -> Dict[TicketState, str]:
+    def _get_state_mapping(self) -> dict[TicketState, str]:
         """Map universal states to common JIRA workflow states."""
         return {
             TicketState.OPEN: "To Do",
@@ -148,10 +149,10 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         self,
         method: str,
         endpoint: str,
-        data: Optional[Dict[str, Any]] = None,
-        params: Optional[Dict[str, Any]] = None,
+        data: Optional[dict[str, Any]] = None,
+        params: Optional[dict[str, Any]] = None,
         retry_count: int = 0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Make HTTP request to JIRA API with retry logic.
 
         Args:
@@ -207,7 +208,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                 )
                 raise e
 
-    async def _get_priorities(self) -> List[Dict[str, Any]]:
+    async def _get_priorities(self) -> list[dict[str, Any]]:
         """Get available priorities from JIRA."""
         if not self._priority_cache:
             self._priority_cache = await self._make_request("GET", "priority")
@@ -215,7 +216,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
     async def _get_issue_types(
         self, project_key: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get available issue types for a project."""
         key = project_key or self.project_key
         if key not in self._issue_types_cache:
@@ -223,12 +224,12 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             self._issue_types_cache[key] = data.get("issueTypes", [])
         return self._issue_types_cache[key]
 
-    async def _get_transitions(self, issue_key: str) -> List[Dict[str, Any]]:
+    async def _get_transitions(self, issue_key: str) -> list[dict[str, Any]]:
         """Get available transitions for an issue."""
         data = await self._make_request("GET", f"issue/{issue_key}/transitions")
         return data.get("transitions", [])
 
-    async def _get_custom_fields(self) -> Dict[str, str]:
+    async def _get_custom_fields(self) -> dict[str, str]:
         """Get custom field definitions."""
         if not self._custom_fields_cache:
             fields = await self._make_request("GET", "field")
@@ -274,7 +275,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
         return "\n".join(lines)
 
-    def _convert_to_adf(self, text: str) -> Dict[str, Any]:
+    def _convert_to_adf(self, text: str) -> dict[str, Any]:
         """Convert plain text to Atlassian Document Format (ADF).
 
         ADF is required for JIRA Cloud description fields.
@@ -308,7 +309,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         return mapping.get(priority, JiraPriority.MEDIUM)
 
     def _map_priority_from_jira(
-        self, jira_priority: Optional[Dict[str, Any]]
+        self, jira_priority: Optional[dict[str, Any]]
     ) -> Priority:
         """Map JIRA priority to universal priority."""
         if not jira_priority:
@@ -325,7 +326,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         else:
             return Priority.MEDIUM
 
-    def _map_state_from_jira(self, status: Dict[str, Any]) -> TicketState:
+    def _map_state_from_jira(self, status: dict[str, Any]) -> TicketState:
         """Map JIRA status to universal state."""
         if not status:
             return TicketState.OPEN
@@ -359,7 +360,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         else:
             return TicketState.OPEN
 
-    def _issue_to_ticket(self, issue: Dict[str, Any]) -> Union[Epic, Task]:
+    def _issue_to_ticket(self, issue: dict[str, Any]) -> Union[Epic, Task]:
         """Convert JIRA issue to universal ticket model."""
         fields = issue.get("fields", {})
 
@@ -443,7 +444,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
     def _ticket_to_issue_fields(
         self, ticket: Union[Epic, Task], issue_type: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Convert universal ticket to JIRA issue fields."""
         # Convert description to ADF format for JIRA Cloud
         description = (
@@ -526,7 +527,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             raise
 
     async def update(
-        self, ticket_id: str, updates: Dict[str, Any]
+        self, ticket_id: str, updates: dict[str, Any]
     ) -> Optional[Union[Epic, Task]]:
         """Update a JIRA issue."""
         # Validate credentials before attempting operation
@@ -584,8 +585,8 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             raise
 
     async def list(
-        self, limit: int = 10, offset: int = 0, filters: Optional[Dict[str, Any]] = None
-    ) -> List[Union[Epic, Task]]:
+        self, limit: int = 10, offset: int = 0, filters: Optional[dict[str, Any]] = None
+    ) -> list[Union[Epic, Task]]:
         """List JIRA issues with pagination."""
         # Build JQL query
         jql_parts = []
@@ -624,7 +625,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         issues = data.get("issues", [])
         return [self._issue_to_ticket(issue) for issue in issues]
 
-    async def search(self, query: SearchQuery) -> List[Union[Epic, Task]]:
+    async def search(self, query: SearchQuery) -> builtins.list[Union[Epic, Task]]:
         """Search JIRA issues using JQL."""
         # Build JQL query
         jql_parts = []
@@ -749,7 +750,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
     async def get_comments(
         self, ticket_id: str, limit: int = 10, offset: int = 0
-    ) -> List[Comment]:
+    ) -> builtins.list[Comment]:
         """Get comments for a JIRA issue."""
         # Fetch issue with comments
         params = {"expand": "comments", "fields": "comment"}
@@ -785,7 +786,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
     async def get_project_info(
         self, project_key: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get JIRA project information including workflows and fields."""
         key = project_key or self.project_key
         if not key:
@@ -805,7 +806,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             "custom_fields": custom_fields,
         }
 
-    async def execute_jql(self, jql: str, limit: int = 50) -> List[Union[Epic, Task]]:
+    async def execute_jql(self, jql: str, limit: int = 50) -> builtins.list[Union[Epic, Task]]:
         """Execute a raw JQL query.
 
         Args:
@@ -830,7 +831,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         issues = data.get("issues", [])
         return [self._issue_to_ticket(issue) for issue in issues]
 
-    async def get_sprints(self, board_id: Optional[int] = None) -> List[Dict[str, Any]]:
+    async def get_sprints(self, board_id: Optional[int] = None) -> builtins.list[dict[str, Any]]:
         """Get active sprints for a board (requires JIRA Software).
 
         Args:

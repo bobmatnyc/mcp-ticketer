@@ -14,7 +14,7 @@ import os
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -69,9 +69,9 @@ class AdapterConfig:
     project_id: Optional[str] = None
 
     # Additional adapter-specific configuration
-    additional_config: Dict[str, Any] = field(default_factory=dict)
+    additional_config: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary, filtering None values."""
         result = {}
         for key, value in asdict(self).items():
@@ -80,7 +80,7 @@ class AdapterConfig:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "AdapterConfig":
+    def from_dict(cls, data: dict[str, Any]) -> "AdapterConfig":
         """Create from dictionary."""
         # Extract known fields
         known_fields = {
@@ -126,14 +126,14 @@ class ProjectConfig:
     api_key: Optional[str] = None
     project_id: Optional[str] = None
     team_id: Optional[str] = None
-    additional_config: Dict[str, Any] = field(default_factory=dict)
+    additional_config: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {k: v for k, v in asdict(self).items() if v is not None}
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ProjectConfig":
+    def from_dict(cls, data: dict[str, Any]) -> "ProjectConfig":
         """Create from dictionary."""
         return cls(**{k: v for k, v in data.items() if k in cls.__annotations__})
 
@@ -143,18 +143,18 @@ class HybridConfig:
     """Configuration for hybrid mode (multi-adapter sync)."""
 
     enabled: bool = False
-    adapters: List[str] = field(default_factory=list)
+    adapters: list[str] = field(default_factory=list)
     primary_adapter: Optional[str] = None
     sync_strategy: SyncStrategy = SyncStrategy.PRIMARY_SOURCE
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         result = asdict(self)
         result["sync_strategy"] = self.sync_strategy.value
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "HybridConfig":
+    def from_dict(cls, data: dict[str, Any]) -> "HybridConfig":
         """Create from dictionary."""
         data = data.copy()
         if "sync_strategy" in data:
@@ -167,11 +167,11 @@ class TicketerConfig:
     """Complete ticketer configuration with hierarchical resolution."""
 
     default_adapter: str = "aitrackdown"
-    project_configs: Dict[str, ProjectConfig] = field(default_factory=dict)
-    adapters: Dict[str, AdapterConfig] = field(default_factory=dict)
+    project_configs: dict[str, ProjectConfig] = field(default_factory=dict)
+    adapters: dict[str, AdapterConfig] = field(default_factory=dict)
     hybrid_mode: Optional[HybridConfig] = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "default_adapter": self.default_adapter,
@@ -185,7 +185,7 @@ class TicketerConfig:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "TicketerConfig":
+    def from_dict(cls, data: dict[str, Any]) -> "TicketerConfig":
         """Create from dictionary."""
         # Parse project configs
         project_configs = {}
@@ -216,7 +216,7 @@ class ConfigValidator:
     """Validate adapter configurations."""
 
     @staticmethod
-    def validate_linear_config(config: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+    def validate_linear_config(config: dict[str, Any]) -> tuple[bool, Optional[str]]:
         """Validate Linear adapter configuration.
 
         Returns:
@@ -238,7 +238,7 @@ class ConfigValidator:
         return True, None
 
     @staticmethod
-    def validate_github_config(config: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+    def validate_github_config(config: dict[str, Any]) -> tuple[bool, Optional[str]]:
         """Validate GitHub adapter configuration.
 
         Returns:
@@ -267,7 +267,7 @@ class ConfigValidator:
         return True, None
 
     @staticmethod
-    def validate_jira_config(config: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+    def validate_jira_config(config: dict[str, Any]) -> tuple[bool, Optional[str]]:
         """Validate JIRA adapter configuration.
 
         Returns:
@@ -288,7 +288,7 @@ class ConfigValidator:
 
     @staticmethod
     def validate_aitrackdown_config(
-        config: Dict[str, Any],
+        config: dict[str, Any],
     ) -> tuple[bool, Optional[str]]:
         """Validate AITrackdown adapter configuration.
 
@@ -302,7 +302,7 @@ class ConfigValidator:
 
     @classmethod
     def validate(
-        cls, adapter_type: str, config: Dict[str, Any]
+        cls, adapter_type: str, config: dict[str, Any]
     ) -> tuple[bool, Optional[str]]:
         """Validate configuration for any adapter type.
 
@@ -459,8 +459,8 @@ class ConfigResolver:
     def resolve_adapter_config(
         self,
         adapter_name: Optional[str] = None,
-        cli_overrides: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        cli_overrides: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
         """Resolve adapter configuration with hierarchical precedence.
 
         Resolution order (highest to lowest priority):
@@ -551,7 +551,7 @@ class ConfigResolver:
 
         return resolved_config
 
-    def _get_env_overrides(self, adapter_type: str) -> Dict[str, Any]:
+    def _get_env_overrides(self, adapter_type: str) -> dict[str, Any]:
         """Get configuration overrides from environment variables.
 
         Args:

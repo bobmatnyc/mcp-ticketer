@@ -320,9 +320,9 @@ class TestAITrackdownAdapterList:
         adapter = AITrackdownAdapter({"base_path": str(temp_path)})
 
         # Create tickets
-        task1 = await adapter.create(Task(title="Task 1"))
-        task2 = await adapter.create(Task(title="Task 2"))
-        task3 = await adapter.create(Task(title="Task 3"))
+        await adapter.create(Task(title="Task 1"))
+        await adapter.create(Task(title="Task 2"))
+        await adapter.create(Task(title="Task 3"))
 
         # Verify files were created
         ticket_files = list(adapter.tickets_dir.glob("*.json"))

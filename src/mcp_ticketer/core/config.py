@@ -6,7 +6,7 @@ import os
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 import yaml
 from pydantic import BaseModel, Field, root_validator, validator
@@ -31,7 +31,7 @@ class BaseAdapterConfig(BaseModel):
     enabled: bool = True
     timeout: float = 30.0
     max_retries: int = 3
-    rate_limit: Optional[Dict[str, Any]] = None
+    rate_limit: Optional[dict[str, Any]] = None
 
 
 class GitHubConfig(BaseAdapterConfig):
@@ -43,10 +43,10 @@ class GitHubConfig(BaseAdapterConfig):
     repo: Optional[str] = Field(None, env="GITHUB_REPO")
     api_url: str = "https://api.github.com"
     use_projects_v2: bool = False
-    custom_priority_scheme: Optional[Dict[str, List[str]]] = None
+    custom_priority_scheme: Optional[dict[str, list[str]]] = None
 
     @validator("token", pre=True, always=True)
-    def validate_token(cls, v):
+    def validate_token(self, v):
         if not v:
             v = os.getenv("GITHUB_TOKEN")
         if not v:
@@ -54,7 +54,7 @@ class GitHubConfig(BaseAdapterConfig):
         return v
 
     @validator("owner", pre=True, always=True)
-    def validate_owner(cls, v):
+    def validate_owner(self, v):
         if not v:
             v = os.getenv("GITHUB_OWNER")
         if not v:
@@ -62,7 +62,7 @@ class GitHubConfig(BaseAdapterConfig):
         return v
 
     @validator("repo", pre=True, always=True)
-    def validate_repo(cls, v):
+    def validate_repo(self, v):
         if not v:
             v = os.getenv("GITHUB_REPO")
         if not v:
@@ -82,7 +82,7 @@ class JiraConfig(BaseAdapterConfig):
     verify_ssl: bool = True
 
     @validator("server", pre=True, always=True)
-    def validate_server(cls, v):
+    def validate_server(self, v):
         if not v:
             v = os.getenv("JIRA_SERVER")
         if not v:
@@ -90,7 +90,7 @@ class JiraConfig(BaseAdapterConfig):
         return v.rstrip("/")
 
     @validator("email", pre=True, always=True)
-    def validate_email(cls, v):
+    def validate_email(self, v):
         if not v:
             v = os.getenv("JIRA_EMAIL")
         if not v:
@@ -98,7 +98,7 @@ class JiraConfig(BaseAdapterConfig):
         return v
 
     @validator("api_token", pre=True, always=True)
-    def validate_api_token(cls, v):
+    def validate_api_token(self, v):
         if not v:
             v = os.getenv("JIRA_API_TOKEN")
         if not v:
@@ -116,7 +116,7 @@ class LinearConfig(BaseAdapterConfig):
     api_url: str = "https://api.linear.app/graphql"
 
     @validator("api_key", pre=True, always=True)
-    def validate_api_key(cls, v):
+    def validate_api_key(self, v):
         if not v:
             v = os.getenv("LINEAR_API_KEY")
         if not v:
@@ -155,7 +155,7 @@ class LoggingConfig(BaseModel):
 class AppConfig(BaseModel):
     """Main application configuration."""
 
-    adapters: Dict[
+    adapters: dict[
         str, Union[GitHubConfig, JiraConfig, LinearConfig, AITrackdownConfig]
     ] = {}
     queue: QueueConfig = QueueConfig()
@@ -164,7 +164,7 @@ class AppConfig(BaseModel):
     default_adapter: Optional[str] = None
 
     @root_validator(skip_on_failure=True)
-    def validate_adapters(cls, values):
+    def validate_adapters(self, values):
         """Validate adapter configurations."""
         adapters = values.get("adapters", {})
 
@@ -185,7 +185,7 @@ class AppConfig(BaseModel):
         """Get configuration for a specific adapter."""
         return self.adapters.get(adapter_name)
 
-    def get_enabled_adapters(self) -> Dict[str, BaseAdapterConfig]:
+    def get_enabled_adapters(self) -> dict[str, BaseAdapterConfig]:
         """Get all enabled adapters."""
         return {
             name: config for name, config in self.adapters.items() if config.enabled
@@ -197,7 +197,7 @@ class ConfigurationManager:
 
     _instance: Optional["ConfigurationManager"] = None
     _config: Optional[AppConfig] = None
-    _config_file_paths: List[Path] = []
+    _config_file_paths: list[Path] = []
 
     def __new__(cls) -> "ConfigurationManager":
         """Singleton pattern for global config access."""
@@ -209,7 +209,7 @@ class ConfigurationManager:
         """Initialize configuration manager."""
         if not hasattr(self, "_initialized"):
             self._initialized = True
-            self._config_cache: Dict[str, Any] = {}
+            self._config_cache: dict[str, Any] = {}
             self._find_config_files()
 
     def _find_config_files(self) -> None:
@@ -302,7 +302,7 @@ class ConfigurationManager:
         self._config = AppConfig(**config_data)
         return self._config
 
-    def _load_config_file(self, config_path: Path) -> Dict[str, Any]:
+    def _load_config_file(self, config_path: Path) -> dict[str, Any]:
         """Load configuration from YAML or JSON file."""
         try:
             with open(config_path, encoding="utf-8") as file:
@@ -332,7 +332,7 @@ class ConfigurationManager:
         config = self.get_config()
         return config.get_adapter_config(adapter_name)
 
-    def get_enabled_adapters(self) -> Dict[str, BaseAdapterConfig]:
+    def get_enabled_adapters(self) -> dict[str, BaseAdapterConfig]:
         """Get all enabled adapter configurations."""
         config = self.get_config()
         return config.get_enabled_adapters()

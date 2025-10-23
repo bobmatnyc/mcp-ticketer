@@ -4,7 +4,7 @@ import asyncio
 import logging
 import time
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 import httpx
 from httpx import AsyncClient, TimeoutException
@@ -32,8 +32,8 @@ class RetryConfig:
         max_delay: float = 60.0,
         exponential_base: float = 2.0,
         jitter: bool = True,
-        retry_on_status: Optional[List[int]] = None,
-        retry_on_exceptions: Optional[List[type]] = None,
+        retry_on_status: Optional[list[int]] = None,
+        retry_on_exceptions: Optional[list[type]] = None,
     ):
         self.max_retries = max_retries
         self.initial_delay = initial_delay
@@ -94,7 +94,7 @@ class BaseHTTPClient:
     def __init__(
         self,
         base_url: str,
-        headers: Optional[Dict[str, str]] = None,
+        headers: Optional[dict[str, str]] = None,
         auth: Optional[Union[httpx.Auth, tuple]] = None,
         timeout: float = 30.0,
         retry_config: Optional[RetryConfig] = None,
@@ -200,10 +200,10 @@ class BaseHTTPClient:
         self,
         method: Union[HTTPMethod, str],
         endpoint: str,
-        data: Optional[Dict[str, Any]] = None,
-        json: Optional[Dict[str, Any]] = None,
-        params: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
+        data: Optional[dict[str, Any]] = None,
+        json: Optional[dict[str, Any]] = None,
+        params: Optional[dict[str, Any]] = None,
+        headers: Optional[dict[str, str]] = None,
         timeout: Optional[float] = None,
         retry_count: int = 0,
         **kwargs,
@@ -313,7 +313,7 @@ class BaseHTTPClient:
         """Make DELETE request."""
         return await self.request(HTTPMethod.DELETE, endpoint, **kwargs)
 
-    async def get_json(self, endpoint: str, **kwargs) -> Dict[str, Any]:
+    async def get_json(self, endpoint: str, **kwargs) -> dict[str, Any]:
         """Make GET request and return JSON response."""
         response = await self.get(endpoint, **kwargs)
 
@@ -323,7 +323,7 @@ class BaseHTTPClient:
 
         return response.json()
 
-    async def post_json(self, endpoint: str, **kwargs) -> Dict[str, Any]:
+    async def post_json(self, endpoint: str, **kwargs) -> dict[str, Any]:
         """Make POST request and return JSON response."""
         response = await self.post(endpoint, **kwargs)
 
@@ -333,7 +333,7 @@ class BaseHTTPClient:
 
         return response.json()
 
-    async def put_json(self, endpoint: str, **kwargs) -> Dict[str, Any]:
+    async def put_json(self, endpoint: str, **kwargs) -> dict[str, Any]:
         """Make PUT request and return JSON response."""
         response = await self.put(endpoint, **kwargs)
 
@@ -343,7 +343,7 @@ class BaseHTTPClient:
 
         return response.json()
 
-    async def patch_json(self, endpoint: str, **kwargs) -> Dict[str, Any]:
+    async def patch_json(self, endpoint: str, **kwargs) -> dict[str, Any]:
         """Make PATCH request and return JSON response."""
         response = await self.patch(endpoint, **kwargs)
 
@@ -353,7 +353,7 @@ class BaseHTTPClient:
 
         return response.json()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get client statistics."""
         return self.stats.copy()
 

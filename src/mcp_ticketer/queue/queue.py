@@ -8,7 +8,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 class QueueStatus(str, Enum):
@@ -25,7 +25,7 @@ class QueueItem:
     """Represents a queued operation."""
 
     id: str
-    ticket_data: Dict[str, Any]
+    ticket_data: dict[str, Any]
     adapter: str
     operation: str
     status: QueueStatus
@@ -33,7 +33,7 @@ class QueueItem:
     processed_at: Optional[datetime] = None
     error_message: Optional[str] = None
     retry_count: int = 0
-    result: Optional[Dict[str, Any]] = None
+    result: Optional[dict[str, Any]] = None
     project_dir: Optional[str] = None
 
     def to_dict(self) -> dict:
@@ -132,7 +132,7 @@ class Queue:
 
     def add(
         self,
-        ticket_data: Dict[str, Any],
+        ticket_data: dict[str, Any],
         adapter: str,
         operation: str,
         project_dir: Optional[str] = None,
@@ -224,7 +224,7 @@ class Queue:
         queue_id: str,
         status: QueueStatus,
         error_message: Optional[str] = None,
-        result: Optional[Dict[str, Any]] = None,
+        result: Optional[dict[str, Any]] = None,
     ):
         """Update queue item status.
 
@@ -310,7 +310,7 @@ class Queue:
 
     def list_items(
         self, status: Optional[QueueStatus] = None, limit: int = 50
-    ) -> List[QueueItem]:
+    ) -> list[QueueItem]:
         """List queue items.
 
         Args:
@@ -414,7 +414,7 @@ class Queue:
                 )
                 conn.commit()
 
-    def get_stats(self) -> Dict[str, int]:
+    def get_stats(self) -> dict[str, int]:
         """Get queue statistics.
 
         Returns:

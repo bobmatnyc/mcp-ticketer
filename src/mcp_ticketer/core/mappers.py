@@ -3,7 +3,7 @@
 import logging
 from abc import ABC, abstractmethod
 from functools import lru_cache
-from typing import Any, Dict, Generic, List, Optional, TypeVar
+from typing import Any, Generic, Optional, TypeVar
 
 from .models import Priority, TicketState
 
@@ -16,16 +16,16 @@ U = TypeVar("U")
 class BiDirectionalDict(Generic[T, U]):
     """Bidirectional dictionary for efficient lookups in both directions."""
 
-    def __init__(self, mapping: Dict[T, U]):
+    def __init__(self, mapping: dict[T, U]):
         """Initialize with forward mapping.
 
         Args:
             mapping: Forward mapping dictionary
 
         """
-        self._forward: Dict[T, U] = mapping.copy()
-        self._reverse: Dict[U, T] = {v: k for k, v in mapping.items()}
-        self._cache: Dict[str, Any] = {}
+        self._forward: dict[T, U] = mapping.copy()
+        self._reverse: dict[U, T] = {v: k for k, v in mapping.items()}
+        self._cache: dict[str, Any] = {}
 
     def get_forward(self, key: T, default: Optional[U] = None) -> Optional[U]:
         """Get value by forward key."""
@@ -43,15 +43,15 @@ class BiDirectionalDict(Generic[T, U]):
         """Check if reverse key exists."""
         return key in self._reverse
 
-    def forward_keys(self) -> List[T]:
+    def forward_keys(self) -> list[T]:
         """Get all forward keys."""
         return list(self._forward.keys())
 
-    def reverse_keys(self) -> List[U]:
+    def reverse_keys(self) -> list[U]:
         """Get all reverse keys."""
         return list(self._reverse.keys())
 
-    def items(self) -> List[tuple[T, U]]:
+    def items(self) -> list[tuple[T, U]]:
         """Get all key-value pairs."""
         return list(self._forward.items())
 
@@ -67,7 +67,7 @@ class BaseMapper(ABC):
 
         """
         self.cache_size = cache_size
-        self._cache: Dict[str, Any] = {}
+        self._cache: dict[str, Any] = {}
 
     @abstractmethod
     def get_mapping(self) -> BiDirectionalDict:
@@ -83,7 +83,7 @@ class StateMapper(BaseMapper):
     """Universal state mapping utility."""
 
     def __init__(
-        self, adapter_type: str, custom_mappings: Optional[Dict[str, Any]] = None
+        self, adapter_type: str, custom_mappings: Optional[dict[str, Any]] = None
     ):
         """Initialize state mapper.
 
@@ -221,7 +221,7 @@ class StateMapper(BaseMapper):
         self._cache[cache_key] = result
         return result
 
-    def get_available_states(self) -> List[str]:
+    def get_available_states(self) -> list[str]:
         """Get all available adapter states."""
         return self.get_mapping().reverse_keys()
 
@@ -258,7 +258,7 @@ class PriorityMapper(BaseMapper):
     """Universal priority mapping utility."""
 
     def __init__(
-        self, adapter_type: str, custom_mappings: Optional[Dict[str, Any]] = None
+        self, adapter_type: str, custom_mappings: Optional[dict[str, Any]] = None
     ):
         """Initialize priority mapper.
 
@@ -418,11 +418,11 @@ class PriorityMapper(BaseMapper):
         self._cache[cache_key] = result
         return result
 
-    def get_available_priorities(self) -> List[Any]:
+    def get_available_priorities(self) -> list[Any]:
         """Get all available adapter priorities."""
         return self.get_mapping().reverse_keys()
 
-    def get_priority_labels(self, priority: Priority) -> List[str]:
+    def get_priority_labels(self, priority: Priority) -> list[str]:
         """Get possible label names for a priority (GitHub-style).
 
         Args:
@@ -445,7 +445,7 @@ class PriorityMapper(BaseMapper):
 
         return priority_labels.get(priority, [])
 
-    def detect_priority_from_labels(self, labels: List[str]) -> Priority:
+    def detect_priority_from_labels(self, labels: list[str]) -> Priority:
         """Detect priority from issue labels (GitHub-style).
 
         Args:
@@ -478,12 +478,12 @@ class PriorityMapper(BaseMapper):
 class MapperRegistry:
     """Registry for managing mappers across different adapters."""
 
-    _state_mappers: Dict[str, StateMapper] = {}
-    _priority_mappers: Dict[str, PriorityMapper] = {}
+    _state_mappers: dict[str, StateMapper] = {}
+    _priority_mappers: dict[str, PriorityMapper] = {}
 
     @classmethod
     def get_state_mapper(
-        self, adapter_type: str, custom_mappings: Optional[Dict[str, Any]] = None
+        cls, adapter_type: str, custom_mappings: Optional[dict[str, Any]] = None
     ) -> StateMapper:
         """Get or create state mapper for adapter type.
 
@@ -496,13 +496,13 @@ class MapperRegistry:
 
         """
         cache_key = f"{adapter_type}_{hash(str(custom_mappings))}"
-        if cache_key not in self._state_mappers:
-            self._state_mappers[cache_key] = StateMapper(adapter_type, custom_mappings)
-        return self._state_mappers[cache_key]
+        if cache_key not in cls._state_mappers:
+            cls._state_mappers[cache_key] = StateMapper(adapter_type, custom_mappings)
+        return cls._state_mappers[cache_key]
 
     @classmethod
     def get_priority_mapper(
-        self, adapter_type: str, custom_mappings: Optional[Dict[str, Any]] = None
+        cls, adapter_type: str, custom_mappings: Optional[dict[str, Any]] = None
     ) -> PriorityMapper:
         """Get or create priority mapper for adapter type.
 
@@ -515,11 +515,11 @@ class MapperRegistry:
 
         """
         cache_key = f"{adapter_type}_{hash(str(custom_mappings))}"
-        if cache_key not in self._priority_mappers:
-            self._priority_mappers[cache_key] = PriorityMapper(
+        if cache_key not in cls._priority_mappers:
+            cls._priority_mappers[cache_key] = PriorityMapper(
                 adapter_type, custom_mappings
             )
-        return self._priority_mappers[cache_key]
+        return cls._priority_mappers[cache_key]
 
     @classmethod
     def clear_cache(cls) -> None:

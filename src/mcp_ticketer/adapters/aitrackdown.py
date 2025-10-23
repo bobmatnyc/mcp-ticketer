@@ -1,9 +1,10 @@
 """AI-Trackdown adapter implementation."""
 
+import builtins
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from ..core.adapter import BaseAdapter
 from ..core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
@@ -24,7 +25,7 @@ except ImportError:
 class AITrackdownAdapter(BaseAdapter[Task]):
     """Adapter for AI-Trackdown ticket system."""
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """Initialize AI-Trackdown adapter.
 
         Args:
@@ -58,7 +59,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             return False, "AITrackdown base_path is required in configuration"
         return True, ""
 
-    def _get_state_mapping(self) -> Dict[TicketState, str]:
+    def _get_state_mapping(self) -> dict[TicketState, str]:
         """Map universal states to AI-Trackdown states."""
         return {
             TicketState.OPEN: "open",
@@ -84,7 +85,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         except ValueError:
             return Priority.MEDIUM
 
-    def _task_from_ai_ticket(self, ai_ticket: Dict[str, Any]) -> Task:
+    def _task_from_ai_ticket(self, ai_ticket: dict[str, Any]) -> Task:
         """Convert AI-Trackdown ticket to universal Task."""
         return Task(
             id=ai_ticket.get("id"),
@@ -109,7 +110,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             metadata={"ai_trackdown": ai_ticket},
         )
 
-    def _epic_from_ai_ticket(self, ai_ticket: Dict[str, Any]) -> Epic:
+    def _epic_from_ai_ticket(self, ai_ticket: dict[str, Any]) -> Epic:
         """Convert AI-Trackdown ticket to universal Epic."""
         return Epic(
             id=ai_ticket.get("id"),
@@ -132,7 +133,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             metadata={"ai_trackdown": ai_ticket},
         )
 
-    def _task_to_ai_ticket(self, task: Task) -> Dict[str, Any]:
+    def _task_to_ai_ticket(self, task: Task) -> dict[str, Any]:
         """Convert universal Task to AI-Trackdown ticket."""
         # Handle enum values that may be stored as strings due to use_enum_values=True
         state_value = task.state
@@ -159,7 +160,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             "type": "task",
         }
 
-    def _epic_to_ai_ticket(self, epic: Epic) -> Dict[str, Any]:
+    def _epic_to_ai_ticket(self, epic: Epic) -> dict[str, Any]:
         """Convert universal Epic to AI-Trackdown ticket."""
         # Handle enum values that may be stored as strings due to use_enum_values=True
         state_value = epic.state
@@ -184,7 +185,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             "type": "epic",
         }
 
-    def _read_ticket_file(self, ticket_id: str) -> Optional[Dict[str, Any]]:
+    def _read_ticket_file(self, ticket_id: str) -> Optional[dict[str, Any]]:
         """Read ticket from file system."""
         ticket_file = self.tickets_dir / f"{ticket_id}.json"
         if ticket_file.exists():
@@ -192,7 +193,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
                 return json.load(f)
         return None
 
-    def _write_ticket_file(self, ticket_id: str, data: Dict[str, Any]) -> None:
+    def _write_ticket_file(self, ticket_id: str, data: dict[str, Any]) -> None:
         """Write ticket to file system."""
         ticket_file = self.tickets_dir / f"{ticket_id}.json"
         with open(ticket_file, "w") as f:
@@ -250,7 +251,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         return None
 
     async def update(
-        self, ticket_id: str, updates: Union[Dict[str, Any], Task]
+        self, ticket_id: str, updates: Union[dict[str, Any], Task]
     ) -> Optional[Task]:
         """Update a task."""
         # Read existing ticket
@@ -297,8 +298,8 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         return False
 
     async def list(
-        self, limit: int = 10, offset: int = 0, filters: Optional[Dict[str, Any]] = None
-    ) -> List[Task]:
+        self, limit: int = 10, offset: int = 0, filters: Optional[dict[str, Any]] = None
+    ) -> list[Task]:
         """List tasks with pagination."""
         tasks = []
 
@@ -342,7 +343,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
         return tasks
 
-    async def search(self, query: SearchQuery) -> List[Task]:
+    async def search(self, query: SearchQuery) -> builtins.list[Task]:
         """Search tasks using query parameters."""
         filters = {}
         if query.state:
@@ -410,7 +411,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
     async def get_comments(
         self, ticket_id: str, limit: int = 10, offset: int = 0
-    ) -> List[Comment]:
+    ) -> builtins.list[Comment]:
         """Get comments for a task."""
         comments = []
         comments_dir = self.base_path / "comments"

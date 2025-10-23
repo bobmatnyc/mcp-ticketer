@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -38,7 +38,7 @@ class TicketState(str, Enum):
     CLOSED = "closed"
 
     @classmethod
-    def valid_transitions(cls) -> Dict[str, List[str]]:
+    def valid_transitions(cls) -> dict[str, list[str]]:
         """Define valid state transitions."""
         return {
             cls.OPEN: [cls.IN_PROGRESS, cls.WAITING, cls.BLOCKED, cls.CLOSED],
@@ -66,12 +66,12 @@ class BaseTicket(BaseModel):
     description: Optional[str] = Field(None, description="Detailed description")
     state: TicketState = Field(TicketState.OPEN, description="Current state")
     priority: Priority = Field(Priority.MEDIUM, description="Priority level")
-    tags: List[str] = Field(default_factory=list, description="Tags/labels")
+    tags: list[str] = Field(default_factory=list, description="Tags/labels")
     created_at: Optional[datetime] = Field(None, description="Creation timestamp")
     updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
 
     # Metadata for field mapping to different systems
-    metadata: Dict[str, Any] = Field(
+    metadata: dict[str, Any] = Field(
         default_factory=dict, description="System-specific metadata and field mappings"
     )
 
@@ -82,11 +82,11 @@ class Epic(BaseTicket):
     ticket_type: TicketType = Field(
         default=TicketType.EPIC, frozen=True, description="Always EPIC type"
     )
-    child_issues: List[str] = Field(
+    child_issues: list[str] = Field(
         default_factory=list, description="IDs of child issues"
     )
 
-    def validate_hierarchy(self) -> List[str]:
+    def validate_hierarchy(self) -> list[str]:
         """Validate epic hierarchy rules.
 
         Returns:
@@ -106,7 +106,7 @@ class Task(BaseTicket):
     parent_issue: Optional[str] = Field(None, description="Parent issue ID (for tasks)")
     parent_epic: Optional[str] = Field(None, description="Parent epic ID (for issues)")
     assignee: Optional[str] = Field(None, description="Assigned user")
-    children: List[str] = Field(default_factory=list, description="Child task IDs")
+    children: list[str] = Field(default_factory=list, description="Child task IDs")
 
     # Additional fields common across systems
     estimated_hours: Optional[float] = Field(None, description="Time estimate")
@@ -124,7 +124,7 @@ class Task(BaseTicket):
         """Check if this is a sub-task."""
         return self.ticket_type in (TicketType.TASK, TicketType.SUBTASK)
 
-    def validate_hierarchy(self) -> List[str]:
+    def validate_hierarchy(self) -> list[str]:
         """Validate ticket hierarchy rules.
 
         Returns:
@@ -160,7 +160,7 @@ class Comment(BaseModel):
     author: Optional[str] = Field(None, description="Comment author")
     content: str = Field(..., min_length=1, description="Comment text")
     created_at: Optional[datetime] = Field(None, description="Creation timestamp")
-    metadata: Dict[str, Any] = Field(
+    metadata: dict[str, Any] = Field(
         default_factory=dict, description="System-specific metadata"
     )
 
@@ -171,7 +171,7 @@ class SearchQuery(BaseModel):
     query: Optional[str] = Field(None, description="Text search query")
     state: Optional[TicketState] = Field(None, description="Filter by state")
     priority: Optional[Priority] = Field(None, description="Filter by priority")
-    tags: Optional[List[str]] = Field(None, description="Filter by tags")
+    tags: Optional[list[str]] = Field(None, description="Filter by tags")
     assignee: Optional[str] = Field(None, description="Filter by assignee")
     limit: int = Field(10, gt=0, le=100, description="Maximum results")
     offset: int = Field(0, ge=0, description="Result offset for pagination")

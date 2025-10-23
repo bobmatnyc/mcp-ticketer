@@ -4,10 +4,11 @@ This adapter enables synchronization across multiple ticketing systems
 (Linear, JIRA, GitHub, AITrackdown) with configurable sync strategies.
 """
 
+import builtins
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..core.adapter import BaseAdapter
 from ..core.models import Comment, Epic, SearchQuery, Task, TicketState
@@ -27,7 +28,7 @@ class HybridAdapter(BaseAdapter):
     Maintains mapping between ticket IDs across different systems.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """Initialize hybrid adapter.
 
         Args:
@@ -40,7 +41,7 @@ class HybridAdapter(BaseAdapter):
         """
         super().__init__(config)
 
-        self.adapters: Dict[str, BaseAdapter] = {}
+        self.adapters: dict[str, BaseAdapter] = {}
         self.primary_adapter_name = config.get("primary_adapter")
         self.sync_strategy = config.get("sync_strategy", "primary_source")
 
@@ -70,12 +71,12 @@ class HybridAdapter(BaseAdapter):
         )
         self.id_mapping = self._load_mapping()
 
-    def _get_state_mapping(self) -> Dict[TicketState, str]:
+    def _get_state_mapping(self) -> dict[TicketState, str]:
         """Get state mapping from primary adapter."""
         primary = self.adapters[self.primary_adapter_name]
         return primary._get_state_mapping()
 
-    def _load_mapping(self) -> Dict[str, Dict[str, str]]:
+    def _load_mapping(self) -> dict[str, dict[str, str]]:
         """Load ID mapping from file.
 
         Mapping format:
@@ -207,7 +208,7 @@ class HybridAdapter(BaseAdapter):
         return primary_ticket
 
     def _add_cross_references(
-        self, ticket: Task | Epic, results: List[tuple[str, Task | Epic]]
+        self, ticket: Task | Epic, results: list[tuple[str, Task | Epic]]
     ) -> None:
         """Add cross-references to ticket description.
 
@@ -253,7 +254,7 @@ class HybridAdapter(BaseAdapter):
         return await primary.read(ticket_id)
 
     async def update(
-        self, ticket_id: str, updates: Dict[str, Any]
+        self, ticket_id: str, updates: dict[str, Any]
     ) -> Optional[Task | Epic]:
         """Update ticket across all adapters.
 
@@ -358,8 +359,8 @@ class HybridAdapter(BaseAdapter):
         return success_count > 0
 
     async def list(
-        self, limit: int = 10, offset: int = 0, filters: Optional[Dict[str, Any]] = None
-    ) -> List[Task | Epic]:
+        self, limit: int = 10, offset: int = 0, filters: Optional[dict[str, Any]] = None
+    ) -> list[Task | Epic]:
         """List tickets from primary adapter.
 
         Args:
@@ -374,7 +375,7 @@ class HybridAdapter(BaseAdapter):
         primary = self.adapters[self.primary_adapter_name]
         return await primary.list(limit, offset, filters)
 
-    async def search(self, query: SearchQuery) -> List[Task | Epic]:
+    async def search(self, query: SearchQuery) -> builtins.list[Task | Epic]:
         """Search tickets in primary adapter.
 
         Args:
@@ -488,7 +489,7 @@ class HybridAdapter(BaseAdapter):
 
     async def get_comments(
         self, ticket_id: str, limit: int = 10, offset: int = 0
-    ) -> List[Comment]:
+    ) -> builtins.list[Comment]:
         """Get comments from primary adapter.
 
         Args:
@@ -520,7 +521,7 @@ class HybridAdapter(BaseAdapter):
             except Exception as e:
                 logger.error(f"Error closing adapter: {e}")
 
-    async def sync_status(self) -> Dict[str, Any]:
+    async def sync_status(self) -> dict[str, Any]:
         """Get synchronization status across all adapters.
 
         Returns:

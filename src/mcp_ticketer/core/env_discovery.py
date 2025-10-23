@@ -11,7 +11,7 @@ environment files, including:
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from dotenv import dotenv_values
 
@@ -105,9 +105,9 @@ class DiscoveredAdapter:
     """Information about a discovered adapter configuration."""
 
     adapter_type: str
-    config: Dict[str, Any]
+    config: dict[str, Any]
     confidence: float  # 0.0-1.0 how complete the configuration is
-    missing_fields: List[str] = field(default_factory=list)
+    missing_fields: list[str] = field(default_factory=list)
     found_in: str = ".env"  # Which file it was found in
 
     def is_complete(self) -> bool:
@@ -119,9 +119,9 @@ class DiscoveredAdapter:
 class DiscoveryResult:
     """Result of environment file discovery."""
 
-    adapters: List[DiscoveredAdapter] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
-    env_files_found: List[str] = field(default_factory=list)
+    adapters: list[DiscoveredAdapter] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    env_files_found: list[str] = field(default_factory=list)
 
     def get_primary_adapter(self) -> Optional[DiscoveredAdapter]:
         """Get the adapter with highest confidence and completeness."""
@@ -209,7 +209,7 @@ class EnvDiscovery:
 
         return result
 
-    def _load_env_files(self, result: DiscoveryResult) -> Dict[str, str]:
+    def _load_env_files(self, result: DiscoveryResult) -> dict[str, str]:
         """Load environment variables from files.
 
         Args:
@@ -219,7 +219,7 @@ class EnvDiscovery:
             Merged dictionary of environment variables
 
         """
-        merged_env: Dict[str, str] = {}
+        merged_env: dict[str, str] = {}
 
         # Load files in reverse order (lowest priority first)
         for env_file in reversed(self.ENV_FILE_ORDER):
@@ -239,7 +239,7 @@ class EnvDiscovery:
         return merged_env
 
     def _find_key_value(
-        self, env_vars: Dict[str, str], patterns: List[str]
+        self, env_vars: dict[str, str], patterns: list[str]
     ) -> Optional[str]:
         """Find first matching key value from patterns.
 
@@ -257,7 +257,7 @@ class EnvDiscovery:
         return None
 
     def _detect_linear(
-        self, env_vars: Dict[str, str], found_in: str
+        self, env_vars: dict[str, str], found_in: str
     ) -> Optional[DiscoveredAdapter]:
         """Detect Linear adapter configuration.
 
@@ -274,12 +274,12 @@ class EnvDiscovery:
         if not api_key:
             return None
 
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "api_key": api_key,
             "adapter": AdapterType.LINEAR.value,
         }
 
-        missing_fields: List[str] = []
+        missing_fields: list[str] = []
         confidence = 0.6  # Has API key
 
         # Extract team ID (recommended but not required)
@@ -305,7 +305,7 @@ class EnvDiscovery:
         )
 
     def _detect_github(
-        self, env_vars: Dict[str, str], found_in: str
+        self, env_vars: dict[str, str], found_in: str
     ) -> Optional[DiscoveredAdapter]:
         """Detect GitHub adapter configuration.
 
@@ -322,12 +322,12 @@ class EnvDiscovery:
         if not token:
             return None
 
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "token": token,
             "adapter": AdapterType.GITHUB.value,
         }
 
-        missing_fields: List[str] = []
+        missing_fields: list[str] = []
         confidence = 0.4  # Has token
 
         # Try to extract owner/repo from combined field
@@ -364,7 +364,7 @@ class EnvDiscovery:
         )
 
     def _detect_jira(
-        self, env_vars: Dict[str, str], found_in: str
+        self, env_vars: dict[str, str], found_in: str
     ) -> Optional[DiscoveredAdapter]:
         """Detect JIRA adapter configuration.
 
@@ -381,12 +381,12 @@ class EnvDiscovery:
         if not api_token:
             return None
 
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "api_token": api_token,
             "adapter": AdapterType.JIRA.value,
         }
 
-        missing_fields: List[str] = []
+        missing_fields: list[str] = []
         confidence = 0.3  # Has token
 
         # Extract server (required)
@@ -420,7 +420,7 @@ class EnvDiscovery:
         )
 
     def _detect_aitrackdown(
-        self, env_vars: Dict[str, str], found_in: str
+        self, env_vars: dict[str, str], found_in: str
     ) -> Optional[DiscoveredAdapter]:
         """Detect AITrackdown adapter configuration.
 
@@ -439,7 +439,7 @@ class EnvDiscovery:
         if not base_path and not aitrackdown_dir.exists():
             return None
 
-        config: Dict[str, Any] = {
+        config: dict[str, Any] = {
             "adapter": AdapterType.AITRACKDOWN.value,
         }
 
@@ -459,14 +459,14 @@ class EnvDiscovery:
             found_in=found_in,
         )
 
-    def _validate_security(self) -> List[str]:
+    def _validate_security(self) -> list[str]:
         """Validate security of environment files.
 
         Returns:
             List of security warnings
 
         """
-        warnings: List[str] = []
+        warnings: list[str] = []
 
         # Check if .env files are tracked in git
         gitignore_path = self.project_path / ".gitignore"
@@ -524,7 +524,7 @@ class EnvDiscovery:
             logger.debug(f"Git check failed: {e}")
             return False
 
-    def validate_discovered_config(self, adapter: DiscoveredAdapter) -> List[str]:
+    def validate_discovered_config(self, adapter: DiscoveredAdapter) -> list[str]:
         """Validate a discovered adapter configuration.
 
         Args:
@@ -534,7 +534,7 @@ class EnvDiscovery:
             List of validation warnings
 
         """
-        warnings: List[str] = []
+        warnings: list[str] = []
 
         # Check API key/token length (basic sanity check)
         if adapter.adapter_type == AdapterType.LINEAR.value:

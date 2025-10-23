@@ -101,7 +101,7 @@ class TestQueue:
     def test_queue_initialization(self, temp_dir: Path) -> None:
         """Test queue initialization creates database."""
         db_path = temp_dir / "test.db"
-        queue = Queue(db_path=db_path)
+        Queue(db_path=db_path)
 
         assert db_path.exists()
         # Check database schema
@@ -354,7 +354,7 @@ class TestQueue:
         # Add items with different statuses
         id1 = queue_db.add({"title": "Test 1"}, "aitrackdown", "create")
         id2 = queue_db.add({"title": "Test 2"}, "aitrackdown", "create")
-        id3 = queue_db.add({"title": "Test 3"}, "aitrackdown", "create")
+        queue_db.add({"title": "Test 3"}, "aitrackdown", "create")
 
         queue_db.update_status(id1, QueueStatus.COMPLETED)
         queue_db.update_status(id2, QueueStatus.FAILED)

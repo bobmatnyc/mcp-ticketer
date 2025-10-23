@@ -3,7 +3,7 @@
 import json
 import shutil
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 from rich.console import Console
 from rich.prompt import Confirm
@@ -96,7 +96,7 @@ def migrate_config_command(dry_run: bool = False) -> None:
         console.print(f"[yellow]Old config backed up at: {backup_path}[/yellow]")
 
 
-def _migrate_old_to_new(old_config: Dict[str, Any]) -> TicketerConfig:
+def _migrate_old_to_new(old_config: dict[str, Any]) -> TicketerConfig:
     """Migrate old configuration format to new format.
 
     Old format examples:

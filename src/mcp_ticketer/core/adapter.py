@@ -1,7 +1,8 @@
 """Base adapter abstract class for ticket systems."""
 
+import builtins
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, List, Optional, TypeVar
+from typing import Any, Generic, Optional, TypeVar
 
 from .models import Comment, Epic, SearchQuery, Task, TicketState, TicketType
 
@@ -12,7 +13,7 @@ T = TypeVar("T", Epic, Task)
 class BaseAdapter(ABC, Generic[T]):
     """Abstract base class for all ticket system adapters."""
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """Initialize adapter with configuration.
 
         Args:
@@ -23,7 +24,7 @@ class BaseAdapter(ABC, Generic[T]):
         self._state_mapping = self._get_state_mapping()
 
     @abstractmethod
-    def _get_state_mapping(self) -> Dict[TicketState, str]:
+    def _get_state_mapping(self) -> dict[TicketState, str]:
         """Get mapping from universal states to system-specific states.
 
         Returns:
@@ -69,7 +70,7 @@ class BaseAdapter(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    async def update(self, ticket_id: str, updates: Dict[str, Any]) -> Optional[T]:
+    async def update(self, ticket_id: str, updates: dict[str, Any]) -> Optional[T]:
         """Update a ticket.
 
         Args:
@@ -97,8 +98,8 @@ class BaseAdapter(ABC, Generic[T]):
 
     @abstractmethod
     async def list(
-        self, limit: int = 10, offset: int = 0, filters: Optional[Dict[str, Any]] = None
-    ) -> List[T]:
+        self, limit: int = 10, offset: int = 0, filters: Optional[dict[str, Any]] = None
+    ) -> list[T]:
         """List tickets with pagination and filters.
 
         Args:
@@ -113,7 +114,7 @@ class BaseAdapter(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    async def search(self, query: SearchQuery) -> List[T]:
+    async def search(self, query: SearchQuery) -> builtins.list[T]:
         """Search tickets using advanced query.
 
         Args:
@@ -157,7 +158,7 @@ class BaseAdapter(ABC, Generic[T]):
     @abstractmethod
     async def get_comments(
         self, ticket_id: str, limit: int = 10, offset: int = 0
-    ) -> List[Comment]:
+    ) -> builtins.list[Comment]:
         """Get comments for a ticket.
 
         Args:
@@ -264,7 +265,7 @@ class BaseAdapter(ABC, Generic[T]):
             return result
         return None
 
-    async def list_epics(self, **kwargs) -> List[Epic]:
+    async def list_epics(self, **kwargs) -> builtins.list[Epic]:
         """List all epics.
 
         Args:
@@ -308,7 +309,7 @@ class BaseAdapter(ABC, Generic[T]):
         )
         return await self.create(task)
 
-    async def list_issues_by_epic(self, epic_id: str) -> List[Task]:
+    async def list_issues_by_epic(self, epic_id: str) -> builtins.list[Task]:
         """List all issues in epic.
 
         Args:
@@ -359,7 +360,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         return await self.create(task)
 
-    async def list_tasks_by_issue(self, issue_id: str) -> List[Task]:
+    async def list_tasks_by_issue(self, issue_id: str) -> builtins.list[Task]:
         """List all tasks under an issue.
 
         Args:

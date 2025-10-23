@@ -6,7 +6,7 @@ import logging
 import os
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, TypeVar
+from typing import Any, Callable, Optional, TypeVar
 
 import typer
 from rich.console import Console
@@ -166,7 +166,7 @@ class CommonPatterns:
 
     @staticmethod
     def queue_operation(
-        ticket_data: Dict[str, Any],
+        ticket_data: dict[str, Any],
         operation: str,
         adapter_name: Optional[str] = None,
         show_progress: bool = True,
@@ -197,7 +197,7 @@ class CommonPatterns:
         return queue_id
 
     @staticmethod
-    def display_ticket_table(tickets: List[Task], title: str = "Tickets") -> None:
+    def display_ticket_table(tickets: list[Task], title: str = "Tickets") -> None:
         """Display tickets in a formatted table."""
         if not tickets:
             console.print("[yellow]No tickets found[/yellow]")
@@ -222,7 +222,7 @@ class CommonPatterns:
         console.print(table)
 
     @staticmethod
-    def display_ticket_details(ticket: Task, comments: Optional[List] = None) -> None:
+    def display_ticket_details(ticket: Task, comments: Optional[list] = None) -> None:
         """Display detailed ticket information."""
         console.print(f"\n[bold]Ticket: {ticket.id}[/bold]")
         console.print(f"Title: {ticket.title}")
@@ -367,7 +367,7 @@ class ConfigValidator:
     """Configuration validation utilities."""
 
     @staticmethod
-    def validate_adapter_config(adapter_type: str, config: dict) -> List[str]:
+    def validate_adapter_config(adapter_type: str, config: dict) -> list[str]:
         """Validate adapter configuration and return list of issues."""
         issues = []
 
@@ -483,7 +483,7 @@ def create_standard_ticket_command(operation: str):
         priority: Optional[Priority] = None,
         state: Optional[TicketState] = None,
         assignee: Optional[str] = None,
-        tags: Optional[List[str]] = None,
+        tags: Optional[list[str]] = None,
         adapter: Optional[str] = None,
     ):
         """Template for ticket commands."""
@@ -562,7 +562,7 @@ class TicketCommands:
         title: str,
         description: Optional[str] = None,
         priority: Priority = Priority.MEDIUM,
-        tags: Optional[List[str]] = None,
+        tags: Optional[list[str]] = None,
         assignee: Optional[str] = None,
         adapter: Optional[str] = None,
     ) -> str:
@@ -579,7 +579,7 @@ class TicketCommands:
 
     @staticmethod
     def update_ticket(
-        ticket_id: str, updates: Dict[str, Any], adapter: Optional[str] = None
+        ticket_id: str, updates: dict[str, Any], adapter: Optional[str] = None
     ) -> str:
         """Update a ticket."""
         if not updates:

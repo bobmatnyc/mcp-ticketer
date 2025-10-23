@@ -1,9 +1,10 @@
 """GitHub adapter implementation using REST API v3 and GraphQL API v4."""
 
+import builtins
 import os
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import httpx
 
@@ -135,7 +136,7 @@ class GitHubGraphQLQueries:
 class GitHubAdapter(BaseAdapter[Task]):
     """Adapter for GitHub Issues tracking system."""
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """Initialize GitHub adapter.
 
         Args:
@@ -192,9 +193,9 @@ class GitHubAdapter(BaseAdapter[Task]):
         )
 
         # Cache for labels and milestones
-        self._labels_cache: Optional[List[Dict[str, Any]]] = None
-        self._milestones_cache: Optional[List[Dict[str, Any]]] = None
-        self._rate_limit: Dict[str, Any] = {}
+        self._labels_cache: Optional[list[dict[str, Any]]] = None
+        self._milestones_cache: Optional[list[dict[str, Any]]] = None
+        self._rate_limit: dict[str, Any] = {}
 
     def validate_credentials(self) -> tuple[bool, str]:
         """Validate that required credentials are present.
@@ -220,7 +221,7 @@ class GitHubAdapter(BaseAdapter[Task]):
             )
         return True, ""
 
-    def _get_state_mapping(self) -> Dict[TicketState, str]:
+    def _get_state_mapping(self) -> dict[TicketState, str]:
         """Map universal states to GitHub states."""
         return {
             TicketState.OPEN: GitHubStateMapping.OPEN,
@@ -237,7 +238,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         """Get the label name for extended states."""
         return GitHubStateMapping.STATE_LABELS.get(state)
 
-    def _get_priority_from_labels(self, labels: List[str]) -> Priority:
+    def _get_priority_from_labels(self, labels: list[str]) -> Priority:
         """Extract priority from issue labels."""
         label_names = [label.lower() for label in labels]
 
@@ -272,7 +273,7 @@ class GitHubAdapter(BaseAdapter[Task]):
             else f"P{['0', '1', '2', '3'][list(Priority).index(priority)]}"
         )
 
-    def _extract_state_from_issue(self, issue: Dict[str, Any]) -> TicketState:
+    def _extract_state_from_issue(self, issue: dict[str, Any]) -> TicketState:
         """Extract ticket state from GitHub issue data."""
         # Check if closed
         if issue["state"] == "closed":
@@ -298,7 +299,7 @@ class GitHubAdapter(BaseAdapter[Task]):
 
         return TicketState.OPEN
 
-    def _task_from_github_issue(self, issue: Dict[str, Any]) -> Task:
+    def _task_from_github_issue(self, issue: dict[str, Any]) -> Task:
         """Convert GitHub issue to universal Task."""
         # Extract labels
         labels = []
@@ -415,8 +416,8 @@ class GitHubAdapter(BaseAdapter[Task]):
                 self._labels_cache.append(response.json())
 
     async def _graphql_request(
-        self, query: str, variables: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, query: str, variables: dict[str, Any]
+    ) -> dict[str, Any]:
         """Execute a GraphQL query."""
         response = await self.client.post(
             self.graphql_url, json={"query": query, "variables": variables}
@@ -527,7 +528,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         except httpx.HTTPError:
             return None
 
-    async def update(self, ticket_id: str, updates: Dict[str, Any]) -> Optional[Task]:
+    async def update(self, ticket_id: str, updates: dict[str, Any]) -> Optional[Task]:
         """Update a GitHub issue."""
         # Validate credentials before attempting operation
         is_valid, error_message = self.validate_credentials()
@@ -679,8 +680,8 @@ class GitHubAdapter(BaseAdapter[Task]):
             return False
 
     async def list(
-        self, limit: int = 10, offset: int = 0, filters: Optional[Dict[str, Any]] = None
-    ) -> List[Task]:
+        self, limit: int = 10, offset: int = 0, filters: Optional[dict[str, Any]] = None
+    ) -> list[Task]:
         """List GitHub issues with filters."""
         # Build query parameters
         params = {
@@ -743,7 +744,7 @@ class GitHubAdapter(BaseAdapter[Task]):
 
         return [self._task_from_github_issue(issue) for issue in issues]
 
-    async def search(self, query: SearchQuery) -> List[Task]:
+    async def search(self, query: SearchQuery) -> builtins.list[Task]:
         """Search GitHub issues using advanced search syntax."""
         # Build GitHub search query
         search_parts = [f"repo:{self.owner}/{self.repo}", "is:issue"]
@@ -875,7 +876,7 @@ class GitHubAdapter(BaseAdapter[Task]):
 
     async def get_comments(
         self, ticket_id: str, limit: int = 10, offset: int = 0
-    ) -> List[Comment]:
+    ) -> builtins.list[Comment]:
         """Get comments for a GitHub issue."""
         try:
             issue_number = int(ticket_id)
@@ -919,7 +920,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         except httpx.HTTPError:
             return []
 
-    async def get_rate_limit(self) -> Dict[str, Any]:
+    async def get_rate_limit(self) -> dict[str, Any]:
         """Get current rate limit status."""
         response = await self.client.get("/rate_limit")
         response.raise_for_status()
@@ -1006,7 +1007,7 @@ class GitHubAdapter(BaseAdapter[Task]):
 
     async def list_milestones(
         self, state: str = "open", limit: int = 10, offset: int = 0
-    ) -> List[Epic]:
+    ) -> builtins.list[Epic]:
         """List GitHub milestones as Epics."""
         params = {
             "state": state,
@@ -1071,7 +1072,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         title: Optional[str] = None,
         body: Optional[str] = None,
         draft: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a pull request linked to an issue.
 
         Args:
@@ -1246,7 +1247,7 @@ Fixes #{issue_number}
         self,
         ticket_id: str,
         pr_url: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Link an existing pull request to a ticket.
 
         Args:

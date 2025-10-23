@@ -7,7 +7,7 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from dotenv import load_dotenv
 
@@ -73,8 +73,8 @@ class Worker:
         self.max_concurrent = max_concurrent
 
         # Track rate limits per adapter
-        self.last_request_times: Dict[str, datetime] = {}
-        self.adapter_semaphores: Dict[str, asyncio.Semaphore] = {}
+        self.last_request_times: dict[str, datetime] = {}
+        self.adapter_semaphores: dict[str, asyncio.Semaphore] = {}
 
         # Statistics
         self.stats = {
@@ -153,7 +153,7 @@ class Worker:
 
         logger.info("Worker loop stopped")
 
-    def _get_batch(self) -> List[QueueItem]:
+    def _get_batch(self) -> list[QueueItem]:
         """Get a batch of pending items from the queue.
 
         Returns:
@@ -169,7 +169,7 @@ class Worker:
                 break
         return batch
 
-    async def _process_batch(self, batch: List[QueueItem]):
+    async def _process_batch(self, batch: list[QueueItem]):
         """Process a batch of queue items with concurrency control.
 
         Args:
@@ -194,7 +194,7 @@ class Worker:
         # Wait for all adapter groups to complete
         await asyncio.gather(*tasks, return_exceptions=True)
 
-    async def _process_adapter_group(self, adapter: str, items: List[QueueItem]):
+    async def _process_adapter_group(self, adapter: str, items: list[QueueItem]):
         """Process items for a specific adapter with concurrency control.
 
         Args:
@@ -342,7 +342,7 @@ class Worker:
 
         return AdapterRegistry.get_adapter(item.adapter, adapter_config)
 
-    async def _execute_operation(self, adapter, item: QueueItem) -> Dict[str, Any]:
+    async def _execute_operation(self, adapter, item: QueueItem) -> dict[str, Any]:
         """Execute the queued operation.
 
         Args:
@@ -390,7 +390,7 @@ class Worker:
         else:
             raise ValueError(f"Unknown operation: {operation}")
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get worker status.
 
         Returns:

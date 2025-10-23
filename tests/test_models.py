@@ -64,7 +64,7 @@ class TestTicketState:
         assert len(transitions) == 8  # All states should be in mapping
 
         # Each value should be a list
-        for state, valid_targets in transitions.items():
+        for _state, valid_targets in transitions.items():
             assert isinstance(valid_targets, list)
 
     def test_can_transition_to_valid_states(
