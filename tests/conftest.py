@@ -5,20 +5,21 @@ from __future__ import annotations
 import json
 import sqlite3
 import tempfile
+from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
 
 from mcp_ticketer.core.models import (
-    Task,
-    Epic,
     Comment,
-    TicketState,
+    Epic,
     Priority,
     SearchQuery,
+    Task,
+    TicketState,
 )
 from mcp_ticketer.queue.queue import Queue
 
@@ -197,7 +198,9 @@ def aitrackdown_temp_dir(temp_dir: Path) -> Path:
 
 
 @pytest.fixture
-def sample_ticket_file(aitrackdown_temp_dir: Path, sample_task_data: dict[str, Any]) -> Path:
+def sample_ticket_file(
+    aitrackdown_temp_dir: Path, sample_task_data: dict[str, Any]
+) -> Path:
     """Create a sample ticket file for testing.
 
     Args:

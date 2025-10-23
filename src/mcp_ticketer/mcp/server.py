@@ -3,13 +3,13 @@
 import asyncio
 import json
 import sys
-from typing import Any, Dict, List, Optional
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 from dotenv import load_dotenv
 
-from ..core import Task, TicketState, Priority, AdapterRegistry
-from ..core.models import SearchQuery, Comment
-from ..adapters import AITrackdownAdapter
+from ..core import AdapterRegistry
+from ..core.models import SearchQuery
 from ..queue import Queue, QueueStatus, WorkerManager
 
 # Load environment variables early (prioritize .env.local)
@@ -33,16 +33,18 @@ else:
 class MCPTicketServer:
     """MCP server for ticket operations over stdio."""
 
-    def __init__(self, adapter_type: str = "aitrackdown", config: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self, adapter_type: str = "aitrackdown", config: Optional[Dict[str, Any]] = None
+    ):
         """Initialize MCP server.
 
         Args:
             adapter_type: Type of adapter to use
             config: Adapter configuration
+
         """
         self.adapter = AdapterRegistry.get_adapter(
-            adapter_type,
-            config or {"base_path": ".aitrackdown"}
+            adapter_type, config or {"base_path": ".aitrackdown"}
         )
         self.running = False
 
@@ -54,6 +56,7 @@ class MCPTicketServer:
 
         Returns:
             JSON-RPC response
+
         """
         method = request.get("method")
         params = request.get("params", {})
@@ -92,29 +95,16 @@ class MCPTicketServer:
                 result = await self._handle_tools_call(params)
             else:
                 return self._error_response(
-                    request_id,
-                    -32601,
-                    f"Method not found: {method}"
+                    request_id, -32601, f"Method not found: {method}"
                 )
 
-            return {
-                "jsonrpc": "2.0",
-                "result": result,
-                "id": request_id
-            }
+            return {"jsonrpc": "2.0", "result": result, "id": request_id}
 
         except Exception as e:
-            return self._error_response(
-                request_id,
-                -32603,
-                f"Internal error: {str(e)}"
-            )
+            return self._error_response(request_id, -32603, f"Internal error: {str(e)}")
 
     def _error_response(
-        self,
-        request_id: Any,
-        code: int,
-        message: str
+        self, request_id: Any, code: int, message: str
     ) -> Dict[str, Any]:
         """Create error response.
 
@@ -125,14 +115,12 @@ class MCPTicketServer:
 
         Returns:
             Error response
+
         """
         return {
             "jsonrpc": "2.0",
-            "error": {
-                "code": code,
-                "message": message
-            },
-            "id": request_id
+            "error": {"code": code, "message": message},
+            "id": request_id,
         }
 
     async def _handle_create(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -150,7 +138,7 @@ class MCPTicketServer:
         queue_id = queue.add(
             ticket_data=task_data,
             adapter=self.adapter.__class__.__name__.lower().replace("adapter", ""),
-            operation="create"
+            operation="create",
         )
 
         # Start worker if needed
@@ -162,7 +150,7 @@ class MCPTicketServer:
             return {
                 "queue_id": queue_id,
                 "status": "queued",
-                "message": f"Ticket creation queued with ID: {queue_id}"
+                "message": f"Ticket creation queued with ID: {queue_id}",
             }
 
         # Poll for completion with timeout (default synchronous behavior)
@@ -178,7 +166,7 @@ class MCPTicketServer:
                 return {
                     "queue_id": queue_id,
                     "status": "error",
-                    "error": f"Queue item {queue_id} not found"
+                    "error": f"Queue item {queue_id} not found",
                 }
 
             # If completed, return with ticket ID
@@ -186,7 +174,7 @@ class MCPTicketServer:
                 response = {
                     "queue_id": queue_id,
                     "status": "completed",
-                    "title": params["title"]
+                    "title": params["title"],
                 }
 
                 # Add ticket ID and other result data if available
@@ -197,9 +185,13 @@ class MCPTicketServer:
                     # Try to construct URL if we have enough information
                     if response.get("ticket_id"):
                         # This is adapter-specific, but we can add URL generation later
-                        response["id"] = response["ticket_id"]  # Also include as "id" for compatibility
+                        response["id"] = response[
+                            "ticket_id"
+                        ]  # Also include as "id" for compatibility
 
-                response["message"] = f"Ticket created successfully: {response.get('ticket_id', queue_id)}"
+                response["message"] = (
+                    f"Ticket created successfully: {response.get('ticket_id', queue_id)}"
+                )
                 return response
 
             # If failed, return error
@@ -208,7 +200,7 @@ class MCPTicketServer:
                     "queue_id": queue_id,
                     "status": "failed",
                     "error": item.error_message or "Ticket creation failed",
-                    "title": params["title"]
+                    "title": params["title"],
                 }
 
             # Check timeout
@@ -218,7 +210,7 @@ class MCPTicketServer:
                     "queue_id": queue_id,
                     "status": "timeout",
                     "message": f"Ticket creation timed out after {max_wait_time} seconds. Use ticket_status with queue_id to check status.",
-                    "title": params["title"]
+                    "title": params["title"],
                 }
 
             # Wait before next poll
@@ -239,7 +231,7 @@ class MCPTicketServer:
         queue_id = queue.add(
             ticket_data=updates,
             adapter=self.adapter.__class__.__name__.lower().replace("adapter", ""),
-            operation="update"
+            operation="update",
         )
 
         # Start worker if needed
@@ -259,7 +251,7 @@ class MCPTicketServer:
                 return {
                     "queue_id": queue_id,
                     "status": "error",
-                    "error": f"Queue item {queue_id} not found"
+                    "error": f"Queue item {queue_id} not found",
                 }
 
             # If completed, return with ticket ID
@@ -267,7 +259,7 @@ class MCPTicketServer:
                 response = {
                     "queue_id": queue_id,
                     "status": "completed",
-                    "ticket_id": params["ticket_id"]
+                    "ticket_id": params["ticket_id"],
                 }
 
                 # Add result data if available
@@ -276,7 +268,9 @@ class MCPTicketServer:
                         response["ticket_id"] = item.result["id"]
                     response["success"] = item.result.get("success", True)
 
-                response["message"] = f"Ticket updated successfully: {response['ticket_id']}"
+                response["message"] = (
+                    f"Ticket updated successfully: {response['ticket_id']}"
+                )
                 return response
 
             # If failed, return error
@@ -285,7 +279,7 @@ class MCPTicketServer:
                     "queue_id": queue_id,
                     "status": "failed",
                     "error": item.error_message or "Ticket update failed",
-                    "ticket_id": params["ticket_id"]
+                    "ticket_id": params["ticket_id"],
                 }
 
             # Check timeout
@@ -295,7 +289,7 @@ class MCPTicketServer:
                     "queue_id": queue_id,
                     "status": "timeout",
                     "message": f"Ticket update timed out after {max_wait_time} seconds. Use ticket_status with queue_id to check status.",
-                    "ticket_id": params["ticket_id"]
+                    "ticket_id": params["ticket_id"],
                 }
 
             # Wait before next poll
@@ -308,7 +302,7 @@ class MCPTicketServer:
         queue_id = queue.add(
             ticket_data={"ticket_id": params["ticket_id"]},
             adapter=self.adapter.__class__.__name__.lower().replace("adapter", ""),
-            operation="delete"
+            operation="delete",
         )
 
         # Start worker if needed
@@ -318,7 +312,7 @@ class MCPTicketServer:
         return {
             "queue_id": queue_id,
             "status": "queued",
-            "message": f"Ticket deletion queued with ID: {queue_id}"
+            "message": f"Ticket deletion queued with ID: {queue_id}",
         }
 
     async def _handle_list(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -326,7 +320,7 @@ class MCPTicketServer:
         tickets = await self.adapter.list(
             limit=params.get("limit", 10),
             offset=params.get("offset", 0),
-            filters=params.get("filters")
+            filters=params.get("filters"),
         )
         return [ticket.model_dump() for ticket in tickets]
 
@@ -343,10 +337,10 @@ class MCPTicketServer:
         queue_id = queue.add(
             ticket_data={
                 "ticket_id": params["ticket_id"],
-                "state": params["target_state"]
+                "state": params["target_state"],
             },
             adapter=self.adapter.__class__.__name__.lower().replace("adapter", ""),
-            operation="transition"
+            operation="transition",
         )
 
         # Start worker if needed
@@ -366,7 +360,7 @@ class MCPTicketServer:
                 return {
                     "queue_id": queue_id,
                     "status": "error",
-                    "error": f"Queue item {queue_id} not found"
+                    "error": f"Queue item {queue_id} not found",
                 }
 
             # If completed, return with ticket ID
@@ -375,7 +369,7 @@ class MCPTicketServer:
                     "queue_id": queue_id,
                     "status": "completed",
                     "ticket_id": params["ticket_id"],
-                    "state": params["target_state"]
+                    "state": params["target_state"],
                 }
 
                 # Add result data if available
@@ -384,7 +378,9 @@ class MCPTicketServer:
                         response["ticket_id"] = item.result["id"]
                     response["success"] = item.result.get("success", True)
 
-                response["message"] = f"State transition completed successfully: {response['ticket_id']} → {params['target_state']}"
+                response["message"] = (
+                    f"State transition completed successfully: {response['ticket_id']} → {params['target_state']}"
+                )
                 return response
 
             # If failed, return error
@@ -393,7 +389,7 @@ class MCPTicketServer:
                     "queue_id": queue_id,
                     "status": "failed",
                     "error": item.error_message or "State transition failed",
-                    "ticket_id": params["ticket_id"]
+                    "ticket_id": params["ticket_id"],
                 }
 
             # Check timeout
@@ -403,7 +399,7 @@ class MCPTicketServer:
                     "queue_id": queue_id,
                     "status": "timeout",
                     "message": f"State transition timed out after {max_wait_time} seconds. Use ticket_status with queue_id to check status.",
-                    "ticket_id": params["ticket_id"]
+                    "ticket_id": params["ticket_id"],
                 }
 
             # Wait before next poll
@@ -420,10 +416,10 @@ class MCPTicketServer:
                 ticket_data={
                     "ticket_id": params["ticket_id"],
                     "content": params["content"],
-                    "author": params.get("author")
+                    "author": params.get("author"),
                 },
                 adapter=self.adapter.__class__.__name__.lower().replace("adapter", ""),
-                operation="comment"
+                operation="comment",
             )
 
             # Start worker if needed
@@ -433,7 +429,7 @@ class MCPTicketServer:
             return {
                 "queue_id": queue_id,
                 "status": "queued",
-                "message": f"Comment addition queued with ID: {queue_id}"
+                "message": f"Comment addition queued with ID: {queue_id}",
             }
 
         elif operation == "list":
@@ -441,7 +437,7 @@ class MCPTicketServer:
             comments = await self.adapter.get_comments(
                 params["ticket_id"],
                 limit=params.get("limit", 10),
-                offset=params.get("offset", 0)
+                offset=params.get("offset", 0),
             )
             return [comment.model_dump() for comment in comments]
 
@@ -458,16 +454,14 @@ class MCPTicketServer:
         item = queue.get_item(queue_id)
 
         if not item:
-            return {
-                "error": f"Queue item not found: {queue_id}"
-            }
+            return {"error": f"Queue item not found: {queue_id}"}
 
         response = {
             "queue_id": item.id,
             "status": item.status.value,
             "operation": item.operation,
             "created_at": item.created_at.isoformat(),
-            "retry_count": item.retry_count
+            "retry_count": item.retry_count,
         }
 
         if item.processed_at:
@@ -493,6 +487,7 @@ class MCPTicketServer:
         if "github" in adapter_name:
             # GitHub adapter supports direct PR creation
             from ..adapters.github import GitHubAdapter
+
             if isinstance(self.adapter, GitHubAdapter):
                 try:
                     result = await self.adapter.create_pull_request(
@@ -520,6 +515,7 @@ class MCPTicketServer:
         elif "linear" in adapter_name:
             # Linear adapter needs GitHub config for PR creation
             from ..adapters.linear import LinearAdapter
+
             if isinstance(self.adapter, LinearAdapter):
                 # For Linear, we prepare the branch and metadata but can't create the actual PR
                 # without GitHub integration configured
@@ -581,6 +577,7 @@ class MCPTicketServer:
 
         if "github" in adapter_name:
             from ..adapters.github import GitHubAdapter
+
             if isinstance(self.adapter, GitHubAdapter):
                 try:
                     result = await self.adapter.link_existing_pull_request(
@@ -597,6 +594,7 @@ class MCPTicketServer:
                     }
         elif "linear" in adapter_name:
             from ..adapters.linear import LinearAdapter
+
             if isinstance(self.adapter, LinearAdapter):
                 try:
                     result = await self.adapter.link_to_pull_request(
@@ -627,18 +625,12 @@ class MCPTicketServer:
 
         Returns:
             Server capabilities
+
         """
         return {
             "protocolVersion": "2024-11-05",
-            "serverInfo": {
-                "name": "mcp-ticketer",
-                "version": "0.1.8"
-            },
-            "capabilities": {
-                "tools": {
-                    "listChanged": False
-                }
-            }
+            "serverInfo": {"name": "mcp-ticketer", "version": "0.1.8"},
+            "capabilities": {"tools": {"listChanged": False}},
         }
 
     async def _handle_tools_list(self) -> Dict[str, Any]:
@@ -651,15 +643,35 @@ class MCPTicketServer:
                     "inputSchema": {
                         "type": "object",
                         "properties": {
-                            "ticket_id": {"type": "string", "description": "Ticket ID to link the PR to"},
-                            "base_branch": {"type": "string", "description": "Target branch for the PR", "default": "main"},
-                            "head_branch": {"type": "string", "description": "Source branch name (auto-generated if not provided)"},
-                            "title": {"type": "string", "description": "PR title (uses ticket title if not provided)"},
-                            "body": {"type": "string", "description": "PR description (auto-generated with issue link if not provided)"},
-                            "draft": {"type": "boolean", "description": "Create as draft PR", "default": False},
+                            "ticket_id": {
+                                "type": "string",
+                                "description": "Ticket ID to link the PR to",
+                            },
+                            "base_branch": {
+                                "type": "string",
+                                "description": "Target branch for the PR",
+                                "default": "main",
+                            },
+                            "head_branch": {
+                                "type": "string",
+                                "description": "Source branch name (auto-generated if not provided)",
+                            },
+                            "title": {
+                                "type": "string",
+                                "description": "PR title (uses ticket title if not provided)",
+                            },
+                            "body": {
+                                "type": "string",
+                                "description": "PR description (auto-generated with issue link if not provided)",
+                            },
+                            "draft": {
+                                "type": "boolean",
+                                "description": "Create as draft PR",
+                                "default": False,
+                            },
                         },
-                        "required": ["ticket_id"]
-                    }
+                        "required": ["ticket_id"],
+                    },
                 },
                 {
                     "name": "ticket_link_pr",
@@ -667,11 +679,17 @@ class MCPTicketServer:
                     "inputSchema": {
                         "type": "object",
                         "properties": {
-                            "ticket_id": {"type": "string", "description": "Ticket ID to link the PR to"},
-                            "pr_url": {"type": "string", "description": "GitHub PR URL to link"},
+                            "ticket_id": {
+                                "type": "string",
+                                "description": "Ticket ID to link the PR to",
+                            },
+                            "pr_url": {
+                                "type": "string",
+                                "description": "GitHub PR URL to link",
+                            },
                         },
-                        "required": ["ticket_id", "pr_url"]
-                    }
+                        "required": ["ticket_id", "pr_url"],
+                    },
                 },
                 {
                     "name": "ticket_create",
@@ -680,13 +698,19 @@ class MCPTicketServer:
                         "type": "object",
                         "properties": {
                             "title": {"type": "string", "description": "Ticket title"},
-                            "description": {"type": "string", "description": "Description"},
-                            "priority": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
+                            "description": {
+                                "type": "string",
+                                "description": "Description",
+                            },
+                            "priority": {
+                                "type": "string",
+                                "enum": ["low", "medium", "high", "critical"],
+                            },
                             "tags": {"type": "array", "items": {"type": "string"}},
                             "assignee": {"type": "string"},
                         },
-                        "required": ["title"]
-                    }
+                        "required": ["title"],
+                    },
                 },
                 {
                     "name": "ticket_list",
@@ -697,8 +721,8 @@ class MCPTicketServer:
                             "limit": {"type": "integer", "default": 10},
                             "state": {"type": "string"},
                             "priority": {"type": "string"},
-                        }
-                    }
+                        },
+                    },
                 },
                 {
                     "name": "ticket_update",
@@ -707,10 +731,13 @@ class MCPTicketServer:
                         "type": "object",
                         "properties": {
                             "ticket_id": {"type": "string", "description": "Ticket ID"},
-                            "updates": {"type": "object", "description": "Fields to update"},
+                            "updates": {
+                                "type": "object",
+                                "description": "Fields to update",
+                            },
                         },
-                        "required": ["ticket_id", "updates"]
-                    }
+                        "required": ["ticket_id", "updates"],
+                    },
                 },
                 {
                     "name": "ticket_transition",
@@ -721,8 +748,8 @@ class MCPTicketServer:
                             "ticket_id": {"type": "string"},
                             "target_state": {"type": "string"},
                         },
-                        "required": ["ticket_id", "target_state"]
-                    }
+                        "required": ["ticket_id", "target_state"],
+                    },
                 },
                 {
                     "name": "ticket_search",
@@ -734,8 +761,8 @@ class MCPTicketServer:
                             "state": {"type": "string"},
                             "priority": {"type": "string"},
                             "limit": {"type": "integer", "default": 10},
-                        }
-                    }
+                        },
+                    },
                 },
                 {
                     "name": "ticket_status",
@@ -743,10 +770,13 @@ class MCPTicketServer:
                     "inputSchema": {
                         "type": "object",
                         "properties": {
-                            "queue_id": {"type": "string", "description": "Queue ID returned from create/update/delete operations"},
+                            "queue_id": {
+                                "type": "string",
+                                "description": "Queue ID returned from create/update/delete operations",
+                            },
                         },
-                        "required": ["queue_id"]
-                    }
+                        "required": ["queue_id"],
+                    },
                 },
             ]
         }
@@ -759,6 +789,7 @@ class MCPTicketServer:
 
         Returns:
             MCP formatted response with content array
+
         """
         tool_name = params.get("name")
         arguments = params.get("arguments", {})
@@ -783,13 +814,8 @@ class MCPTicketServer:
                 result = await self._handle_link_pr(arguments)
             else:
                 return {
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": f"Unknown tool: {tool_name}"
-                        }
-                    ],
-                    "isError": True
+                    "content": [{"type": "text", "text": f"Unknown tool: {tool_name}"}],
+                    "isError": True,
                 }
 
             # Format successful response in MCP content format
@@ -804,13 +830,8 @@ class MCPTicketServer:
                 result_text = str(result)
 
             return {
-                "content": [
-                    {
-                        "type": "text",
-                        "text": result_text
-                    }
-                ],
-                "isError": False
+                "content": [{"type": "text", "text": result_text}],
+                "isError": False,
             }
 
         except Exception as e:
@@ -819,10 +840,10 @@ class MCPTicketServer:
                 "content": [
                     {
                         "type": "text",
-                        "text": f"Error calling tool {tool_name}: {str(e)}"
+                        "text": f"Error calling tool {tool_name}: {str(e)}",
                     }
                 ],
-                "isError": True
+                "isError": True,
             }
 
     async def run(self) -> None:
@@ -832,7 +853,9 @@ class MCPTicketServer:
         try:
             reader = asyncio.StreamReader()
             protocol = asyncio.StreamReaderProtocol(reader)
-            await asyncio.get_event_loop().connect_read_pipe(lambda: protocol, sys.stdin)
+            await asyncio.get_event_loop().connect_read_pipe(
+                lambda: protocol, sys.stdin
+            )
         except Exception as e:
             sys.stderr.write(f"Failed to connect to stdin: {str(e)}\n")
             return
@@ -858,9 +881,7 @@ class MCPTicketServer:
 
             except json.JSONDecodeError as e:
                 error_response = self._error_response(
-                    None,
-                    -32700,
-                    f"Parse error: {str(e)}"
+                    None, -32700, f"Parse error: {str(e)}"
                 )
                 sys.stdout.write(json.dumps(error_response) + "\n")
                 sys.stdout.flush()
@@ -919,7 +940,7 @@ async def main():
             pass
 
         try:
-            with open(config_file, "r") as f:
+            with open(config_file) as f:
                 config = json.load(f)
                 adapter_type = config.get("default_adapter", "aitrackdown")
                 # Get adapter-specific config
@@ -928,8 +949,10 @@ async def main():
                 # Fallback to legacy config format
                 if not adapter_config and "config" in config:
                     adapter_config = config["config"]
-                logger.info(f"Loaded MCP configuration from project-local: {config_file}")
-        except (json.JSONDecodeError, IOError) as e:
+                logger.info(
+                    f"Loaded MCP configuration from project-local: {config_file}"
+                )
+        except (OSError, json.JSONDecodeError) as e:
             logger.warning(f"Could not load project config: {e}, using defaults")
             adapter_type = "aitrackdown"
             adapter_config = {"base_path": ".aitrackdown"}

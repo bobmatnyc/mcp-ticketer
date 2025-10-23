@@ -1,21 +1,17 @@
 """CLI command for auto-discovering configuration from .env files."""
 
-import json
 from pathlib import Path
 from typing import Optional
 
 import typer
 from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
-from rich import print as rprint
 
-from ..core.env_discovery import EnvDiscovery, DiscoveredAdapter
+from ..core.env_discovery import DiscoveredAdapter, EnvDiscovery
 from ..core.project_config import (
-    ConfigResolver,
-    TicketerConfig,
     AdapterConfig,
+    ConfigResolver,
     ConfigValidator,
+    TicketerConfig,
 )
 
 console = Console()
@@ -31,6 +27,7 @@ def _mask_sensitive(value: str, key: str) -> str:
 
     Returns:
         Masked or original value
+
     """
     sensitive_keys = ["token", "key", "password", "secret", "api_token"]
 
@@ -52,12 +49,15 @@ def _mask_sensitive(value: str, key: str) -> str:
     return value
 
 
-def _display_discovered_adapter(adapter: DiscoveredAdapter, discovery: EnvDiscovery) -> None:
+def _display_discovered_adapter(
+    adapter: DiscoveredAdapter, discovery: EnvDiscovery
+) -> None:
     """Display information about a discovered adapter.
 
     Args:
         adapter: Discovered adapter to display
         discovery: EnvDiscovery instance for validation
+
     """
     # Header
     completeness = "✅ Complete" if adapter.is_complete() else "⚠️  Incomplete"
@@ -80,7 +80,9 @@ def _display_discovered_adapter(adapter: DiscoveredAdapter, discovery: EnvDiscov
 
     # Missing fields
     if adapter.missing_fields:
-        console.print(f"  [yellow]Missing:[/yellow] {', '.join(adapter.missing_fields)}")
+        console.print(
+            f"  [yellow]Missing:[/yellow] {', '.join(adapter.missing_fields)}"
+        )
 
     # Validation warnings
     warnings = discovery.validate_discovered_config(adapter)
@@ -95,7 +97,7 @@ def show(
         None,
         "--path",
         "-p",
-        help="Project path to scan (defaults to current directory)"
+        help="Project path to scan (defaults to current directory)",
     ),
 ) -> None:
     """Show discovered configuration without saving."""
@@ -119,7 +121,9 @@ def show(
     # Show discovered adapters
     if result.adapters:
         console.print("\n[bold]Detected adapter configurations:[/bold]")
-        for adapter in sorted(result.adapters, key=lambda a: a.confidence, reverse=True):
+        for adapter in sorted(
+            result.adapters, key=lambda a: a.confidence, reverse=True
+        ):
             _display_discovered_adapter(adapter, discovery)
 
         # Show recommended adapter
@@ -131,7 +135,9 @@ def show(
             )
     else:
         console.print("\n[yellow]No adapter configurations detected[/yellow]")
-        console.print("[dim]Make sure your .env file contains adapter credentials[/dim]")
+        console.print(
+            "[dim]Make sure your .env file contains adapter credentials[/dim]"
+        )
 
     # Show warnings
     if result.warnings:
@@ -143,27 +149,19 @@ def show(
 @app.command()
 def save(
     adapter: Optional[str] = typer.Option(
-        None,
-        "--adapter",
-        "-a",
-        help="Which adapter to save (defaults to recommended)"
+        None, "--adapter", "-a", help="Which adapter to save (defaults to recommended)"
     ),
     global_config: bool = typer.Option(
-        False,
-        "--global",
-        "-g",
-        help="Save to global config instead of project config"
+        False, "--global", "-g", help="Save to global config instead of project config"
     ),
     dry_run: bool = typer.Option(
-        False,
-        "--dry-run",
-        help="Show what would be saved without saving"
+        False, "--dry-run", help="Show what would be saved without saving"
     ),
     project_path: Optional[Path] = typer.Option(
         None,
         "--path",
         "-p",
-        help="Project path to scan (defaults to current directory)"
+        help="Project path to scan (defaults to current directory)",
     ),
 ) -> None:
     """Discover configuration and save to config file.
@@ -181,7 +179,9 @@ def save(
 
     if not result.adapters:
         console.print("[red]No adapter configurations detected[/red]")
-        console.print("[dim]Make sure your .env file contains adapter credentials[/dim]")
+        console.print(
+            "[dim]Make sure your .env file contains adapter credentials[/dim]"
+        )
         raise typer.Exit(1)
 
     # Determine which adapter to save
@@ -189,7 +189,9 @@ def save(
         discovered_adapter = result.get_adapter_by_type(adapter)
         if not discovered_adapter:
             console.print(f"[red]No configuration found for adapter: {adapter}[/red]")
-            console.print(f"[dim]Available: {', '.join(a.adapter_type for a in result.adapters)}[/dim]")
+            console.print(
+                f"[dim]Available: {', '.join(a.adapter_type for a in result.adapters)}[/dim]"
+            )
             raise typer.Exit(1)
     else:
         # Use recommended adapter
@@ -207,13 +209,14 @@ def save(
 
     # Validate configuration
     is_valid, error_msg = ConfigValidator.validate(
-        discovered_adapter.adapter_type,
-        discovered_adapter.config
+        discovered_adapter.adapter_type, discovered_adapter.config
     )
 
     if not is_valid:
         console.print(f"\n[red]Configuration validation failed:[/red] {error_msg}")
-        console.print("[dim]Fix the configuration in your .env file and try again[/dim]")
+        console.print(
+            "[dim]Fix the configuration in your .env file and try again[/dim]"
+        )
         raise typer.Exit(1)
 
     if dry_run:
@@ -247,7 +250,9 @@ def save(
             config_location = proj_path / resolver.PROJECT_CONFIG_SUBPATH
 
         console.print(f"\n[green]✅ Configuration saved to:[/green] {config_location}")
-        console.print(f"[green]✅ Default adapter set to:[/green] {discovered_adapter.adapter_type}")
+        console.print(
+            f"[green]✅ Default adapter set to:[/green] {discovered_adapter.adapter_type}"
+        )
 
     except Exception as e:
         console.print(f"\n[red]Failed to save configuration:[/red] {e}")
@@ -260,7 +265,7 @@ def interactive(
         None,
         "--path",
         "-p",
-        help="Project path to scan (defaults to current directory)"
+        help="Project path to scan (defaults to current directory)",
     ),
 ) -> None:
     """Interactive mode for discovering and saving configuration."""
@@ -284,7 +289,9 @@ def interactive(
     # Show discovered adapters
     if not result.adapters:
         console.print("\n[red]No adapter configurations detected[/red]")
-        console.print("[dim]Make sure your .env file contains adapter credentials[/dim]")
+        console.print(
+            "[dim]Make sure your .env file contains adapter credentials[/dim]"
+        )
         raise typer.Exit(1)
 
     console.print("\n[bold]Detected adapter configurations:[/bold]")
@@ -344,7 +351,9 @@ def interactive(
             raise typer.Exit(1)
     else:  # choice == 4
         adapters_to_save = result.adapters
-        default_adapter = primary.adapter_type if primary else result.adapters[0].adapter_type
+        default_adapter = (
+            primary.adapter_type if primary else result.adapters[0].adapter_type
+        )
 
     # Determine save location
     save_global = choice == 2
@@ -364,8 +373,7 @@ def interactive(
     for discovered_adapter in adapters_to_save:
         # Validate
         is_valid, error_msg = ConfigValidator.validate(
-            discovered_adapter.adapter_type,
-            discovered_adapter.config
+            discovered_adapter.adapter_type, discovered_adapter.config
         )
 
         if not is_valid:

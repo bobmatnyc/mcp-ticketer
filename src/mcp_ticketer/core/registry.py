@@ -1,6 +1,7 @@
 """Adapter registry for dynamic adapter management."""
 
-from typing import Dict, Type, Any, Optional
+from typing import Any, Dict, Optional, Type
+
 from .adapter import BaseAdapter
 
 
@@ -17,6 +18,7 @@ class AdapterRegistry:
         Args:
             name: Unique name for the adapter
             adapter_class: Adapter class to register
+
         """
         if not issubclass(adapter_class, BaseAdapter):
             raise TypeError(f"{adapter_class} must be a subclass of BaseAdapter")
@@ -28,16 +30,14 @@ class AdapterRegistry:
 
         Args:
             name: Name of adapter to unregister
+
         """
         cls._adapters.pop(name, None)
         cls._instances.pop(name, None)
 
     @classmethod
     def get_adapter(
-        cls,
-        name: str,
-        config: Optional[Dict[str, Any]] = None,
-        force_new: bool = False
+        cls, name: str, config: Optional[Dict[str, Any]] = None, force_new: bool = False
     ) -> BaseAdapter:
         """Get or create an adapter instance.
 
@@ -53,12 +53,12 @@ class AdapterRegistry:
 
         Raises:
             ValueError: If adapter not registered
+
         """
         if name not in cls._adapters:
             available = ", ".join(cls._adapters.keys())
             raise ValueError(
-                f"Adapter '{name}' not registered. "
-                f"Available adapters: {available}"
+                f"Adapter '{name}' not registered. " f"Available adapters: {available}"
             )
 
         # Return cached instance if exists and not forcing new
@@ -80,6 +80,7 @@ class AdapterRegistry:
 
         Returns:
             Dictionary of adapter names to classes
+
         """
         return cls._adapters.copy()
 
@@ -92,6 +93,7 @@ class AdapterRegistry:
 
         Returns:
             True if registered
+
         """
         return name in cls._adapters
 
@@ -112,10 +114,7 @@ class AdapterRegistry:
         cls._instances.clear()
 
 
-def adapter_factory(
-    adapter_type: str,
-    config: Dict[str, Any]
-) -> BaseAdapter:
+def adapter_factory(adapter_type: str, config: Dict[str, Any]) -> BaseAdapter:
     """Factory function for creating adapters.
 
     Args:
@@ -124,5 +123,6 @@ def adapter_factory(
 
     Returns:
         Configured adapter instance
+
     """
     return AdapterRegistry.get_adapter(adapter_type, config)

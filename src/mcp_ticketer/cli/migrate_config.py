@@ -2,18 +2,16 @@
 
 import json
 import shutil
-from pathlib import Path
-from typing import Dict, Any
 from datetime import datetime
+from typing import Any, Dict
 
 from rich.console import Console
 from rich.prompt import Confirm
 
 from ..core.project_config import (
+    AdapterConfig,
     ConfigResolver,
     TicketerConfig,
-    AdapterConfig,
-    AdapterType
 )
 
 console = Console()
@@ -24,6 +22,7 @@ def migrate_config_command(dry_run: bool = False) -> None:
 
     Args:
         dry_run: If True, show what would be done without making changes
+
     """
     resolver = ConfigResolver()
 
@@ -34,7 +33,7 @@ def migrate_config_command(dry_run: bool = False) -> None:
 
     # Load old config
     try:
-        with open(resolver.GLOBAL_CONFIG_PATH, 'r') as f:
+        with open(resolver.GLOBAL_CONFIG_PATH) as f:
             old_config = json.load(f)
     except Exception as e:
         console.print(f"[red]Failed to load config: {e}[/red]")
@@ -76,8 +75,8 @@ def migrate_config_command(dry_run: bool = False) -> None:
         return
 
     # Backup old config
-    backup_path = resolver.GLOBAL_CONFIG_PATH.with_suffix('.json.bak')
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    backup_path = resolver.GLOBAL_CONFIG_PATH.with_suffix(".json.bak")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_path = resolver.GLOBAL_CONFIG_PATH.parent / f"config.{timestamp}.bak"
 
     try:
@@ -90,7 +89,7 @@ def migrate_config_command(dry_run: bool = False) -> None:
     # Save new config
     try:
         resolver.save_global_config(new_config)
-        console.print(f"[green]✓[/green] Migration complete!")
+        console.print("[green]✓[/green] Migration complete!")
         console.print(f"[dim]New config saved to: {resolver.GLOBAL_CONFIG_PATH}[/dim]")
     except Exception as e:
         console.print(f"[red]Failed to save new config: {e}[/red]")
@@ -132,6 +131,7 @@ def _migrate_old_to_new(old_config: Dict[str, Any]) -> TicketerConfig:
 
     Returns:
         New TicketerConfig object
+
     """
     adapters = {}
     default_adapter = "aitrackdown"
@@ -164,10 +164,7 @@ def _migrate_old_to_new(old_config: Dict[str, Any]) -> TicketerConfig:
         default_adapter = old_config.get("default_adapter", "aitrackdown")
 
     # Create new config
-    new_config = TicketerConfig(
-        default_adapter=default_adapter,
-        adapters=adapters
-    )
+    new_config = TicketerConfig(default_adapter=default_adapter, adapters=adapters)
 
     return new_config
 
@@ -180,6 +177,7 @@ def validate_migrated_config(config: TicketerConfig) -> bool:
 
     Returns:
         True if valid, False otherwise
+
     """
     from ..core.project_config import ConfigValidator
 

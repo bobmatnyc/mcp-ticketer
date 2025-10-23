@@ -1,34 +1,21 @@
 """Queue-related CLI commands."""
 
+from datetime import datetime
+
 import typer
 from rich.console import Console
 from rich.table import Table
-from rich import print as rprint
-from datetime import datetime
 
-from ..queue import Queue, QueueStatus, WorkerManager, Worker
+from ..queue import Queue, QueueStatus, Worker, WorkerManager
 
-app = typer.Typer(
-    name="queue",
-    help="Queue management commands"
-)
+app = typer.Typer(name="queue", help="Queue management commands")
 console = Console()
 
 
 @app.command("list")
 def list_queue(
-    status: QueueStatus = typer.Option(
-        None,
-        "--status",
-        "-s",
-        help="Filter by status"
-    ),
-    limit: int = typer.Option(
-        25,
-        "--limit",
-        "-l",
-        help="Maximum items to show"
-    )
+    status: QueueStatus = typer.Option(None, "--status", "-s", help="Filter by status"),
+    limit: int = typer.Option(25, "--limit", "-l", help="Maximum items to show"),
 ):
     """List queue items."""
     queue = Queue()
@@ -67,7 +54,7 @@ def list_queue(
             item.adapter,
             status_str,
             created_str,
-            str(item.retry_count)
+            str(item.retry_count),
         )
 
     console.print(table)
@@ -82,9 +69,7 @@ def list_queue(
 
 
 @app.command("retry")
-def retry_item(
-    queue_id: str = typer.Argument(..., help="Queue ID to retry")
-):
+def retry_item(queue_id: str = typer.Argument(..., help="Queue ID to retry")):
     """Retry a failed queue item."""
     queue = Queue()
     item = queue.get_item(queue_id)
@@ -94,7 +79,9 @@ def retry_item(
         raise typer.Exit(1)
 
     if item.status != QueueStatus.FAILED:
-        console.print(f"[yellow]Item {queue_id} is not failed (status: {item.status})[/yellow]")
+        console.print(
+            f"[yellow]Item {queue_id} is not failed (status: {item.status})[/yellow]"
+        )
         raise typer.Exit(1)
 
     # Reset to pending
@@ -110,23 +97,12 @@ def retry_item(
 @app.command("clear")
 def clear_queue(
     status: QueueStatus = typer.Option(
-        None,
-        "--status",
-        "-s",
-        help="Clear only items with this status"
+        None, "--status", "-s", help="Clear only items with this status"
     ),
     days: int = typer.Option(
-        7,
-        "--days",
-        "-d",
-        help="Clear items older than this many days"
+        7, "--days", "-d", help="Clear items older than this many days"
     ),
-    confirm: bool = typer.Option(
-        False,
-        "--yes",
-        "-y",
-        help="Skip confirmation"
-    )
+    confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation"),
 ):
     """Clear old queue items."""
     queue = Queue()
@@ -142,14 +118,11 @@ def clear_queue(
             raise typer.Exit(0)
 
     queue.cleanup_old(days=days)
-    console.print(f"[green]✓[/green] Cleared old queue items")
+    console.print("[green]✓[/green] Cleared old queue items")
 
 
 # Worker commands
-worker_app = typer.Typer(
-    name="worker",
-    help="Worker management commands"
-)
+worker_app = typer.Typer(name="worker", help="Worker management commands")
 
 
 @worker_app.command("start")
@@ -209,7 +182,7 @@ def worker_status():
     status = manager.get_status()
 
     if status["running"]:
-        console.print(f"[green]● Worker is running[/green]")
+        console.print("[green]● Worker is running[/green]")
         console.print(f"  PID: {status.get('pid')}")
 
         if "cpu_percent" in status:
@@ -237,18 +210,8 @@ def worker_status():
 
 @worker_app.command("logs")
 def worker_logs(
-    lines: int = typer.Option(
-        50,
-        "--lines",
-        "-n",
-        help="Number of lines to show"
-    ),
-    follow: bool = typer.Option(
-        False,
-        "--follow",
-        "-f",
-        help="Follow log output"
-    )
+    lines: int = typer.Option(50, "--lines", "-n", help="Number of lines to show"),
+    follow: bool = typer.Option(False, "--follow", "-f", help="Follow log output"),
 ):
     """View worker logs."""
     import time
@@ -264,7 +227,7 @@ def worker_logs(
         # Follow mode - like tail -f
         console.print("[dim]Following worker logs (Ctrl+C to stop)...[/dim]\n")
         try:
-            with open(log_file, "r") as f:
+            with open(log_file) as f:
                 # Go to end of file
                 f.seek(0, 2)
                 while True:

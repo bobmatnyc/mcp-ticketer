@@ -2,17 +2,13 @@
 
 import os
 import re
-import asyncio
-from typing import List, Optional, Dict, Any, Union, Tuple
 from datetime import datetime
-from enum import Enum
-import json
+from typing import Any, Dict, List, Optional
 
 import httpx
-from pydantic import BaseModel
 
 from ..core.adapter import BaseAdapter
-from ..core.models import Epic, Task, Comment, SearchQuery, TicketState, Priority
+from ..core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
 from ..core.registry import AdapterRegistry
 
 
@@ -150,13 +146,18 @@ class GitHubAdapter(BaseAdapter[Task]):
                 - api_url: Optional API URL for GitHub Enterprise (defaults to github.com)
                 - use_projects_v2: Enable GitHub Projects v2 integration (default: False)
                 - custom_priority_scheme: Custom priority label mapping
+
         """
         super().__init__(config)
 
         # Get authentication token - support both 'api_key' and 'token' for compatibility
-        self.token = config.get("api_key") or config.get("token") or os.getenv("GITHUB_TOKEN")
+        self.token = (
+            config.get("api_key") or config.get("token") or os.getenv("GITHUB_TOKEN")
+        )
         if not self.token:
-            raise ValueError("GitHub token required (config.api_key, config.token or GITHUB_TOKEN env var)")
+            raise ValueError(
+                "GitHub token required (config.api_key, config.token or GITHUB_TOKEN env var)"
+            )
 
         # Get repository information
         self.owner = config.get("owner") or os.getenv("GITHUB_OWNER")
@@ -167,7 +168,11 @@ class GitHubAdapter(BaseAdapter[Task]):
 
         # API URLs
         self.api_url = config.get("api_url", "https://api.github.com")
-        self.graphql_url = f"{self.api_url}/graphql" if "github.com" in self.api_url else f"{self.api_url}/api/graphql"
+        self.graphql_url = (
+            f"{self.api_url}/graphql"
+            if "github.com" in self.api_url
+            else f"{self.api_url}/api/graphql"
+        )
 
         # Configuration options
         self.use_projects_v2 = config.get("use_projects_v2", False)
@@ -196,13 +201,23 @@ class GitHubAdapter(BaseAdapter[Task]):
 
         Returns:
             (is_valid, error_message) - Tuple of validation result and error message
+
         """
         if not self.token:
-            return False, "GITHUB_TOKEN is required but not found. Set it in .env.local or environment."
+            return (
+                False,
+                "GITHUB_TOKEN is required but not found. Set it in .env.local or environment.",
+            )
         if not self.owner:
-            return False, "GitHub owner is required in configuration. Set GITHUB_OWNER in .env.local or configure with 'mcp-ticketer init --adapter github --github-owner <owner>'"
+            return (
+                False,
+                "GitHub owner is required in configuration. Set GITHUB_OWNER in .env.local or configure with 'mcp-ticketer init --adapter github --github-owner <owner>'",
+            )
         if not self.repo:
-            return False, "GitHub repo is required in configuration. Set GITHUB_REPO in .env.local or configure with 'mcp-ticketer init --adapter github --github-repo <repo>'"
+            return (
+                False,
+                "GitHub repo is required in configuration. Set GITHUB_REPO in .env.local or configure with 'mcp-ticketer init --adapter github --github-repo <repo>'",
+            )
         return True, ""
 
     def _get_state_mapping(self) -> Dict[TicketState, str]:
@@ -251,7 +266,11 @@ class GitHubAdapter(BaseAdapter[Task]):
 
         # Use default labels
         labels = GitHubStateMapping.PRIORITY_LABELS.get(priority, [])
-        return labels[0] if labels else f"P{['0', '1', '2', '3'][list(Priority).index(priority)]}"
+        return (
+            labels[0]
+            if labels
+            else f"P{['0', '1', '2', '3'][list(Priority).index(priority)]}"
+        )
 
     def _extract_state_from_issue(self, issue: Dict[str, Any]) -> TicketState:
         """Extract ticket state from GitHub issue data."""
@@ -263,8 +282,10 @@ class GitHubAdapter(BaseAdapter[Task]):
         labels = []
         if "labels" in issue:
             if isinstance(issue["labels"], list):
-                labels = [label.get("name", "") if isinstance(label, dict) else str(label)
-                         for label in issue["labels"]]
+                labels = [
+                    label.get("name", "") if isinstance(label, dict) else str(label)
+                    for label in issue["labels"]
+                ]
             elif isinstance(issue["labels"], dict) and "nodes" in issue["labels"]:
                 labels = [label["name"] for label in issue["labels"]["nodes"]]
 
@@ -283,8 +304,10 @@ class GitHubAdapter(BaseAdapter[Task]):
         labels = []
         if "labels" in issue:
             if isinstance(issue["labels"], list):
-                labels = [label.get("name", "") if isinstance(label, dict) else str(label)
-                         for label in issue["labels"]]
+                labels = [
+                    label.get("name", "") if isinstance(label, dict) else str(label)
+                    for label in issue["labels"]
+                ]
             elif isinstance(issue["labels"], dict) and "nodes" in issue["labels"]:
                 labels = [label["name"] for label in issue["labels"]["nodes"]]
 
@@ -314,22 +337,34 @@ class GitHubAdapter(BaseAdapter[Task]):
         # Parse dates
         created_at = None
         if issue.get("created_at"):
-            created_at = datetime.fromisoformat(issue["created_at"].replace("Z", "+00:00"))
+            created_at = datetime.fromisoformat(
+                issue["created_at"].replace("Z", "+00:00")
+            )
         elif issue.get("createdAt"):
-            created_at = datetime.fromisoformat(issue["createdAt"].replace("Z", "+00:00"))
+            created_at = datetime.fromisoformat(
+                issue["createdAt"].replace("Z", "+00:00")
+            )
 
         updated_at = None
         if issue.get("updated_at"):
-            updated_at = datetime.fromisoformat(issue["updated_at"].replace("Z", "+00:00"))
+            updated_at = datetime.fromisoformat(
+                issue["updated_at"].replace("Z", "+00:00")
+            )
         elif issue.get("updatedAt"):
-            updated_at = datetime.fromisoformat(issue["updatedAt"].replace("Z", "+00:00"))
+            updated_at = datetime.fromisoformat(
+                issue["updatedAt"].replace("Z", "+00:00")
+            )
 
         # Build metadata
         metadata = {
             "github": {
                 "number": issue.get("number"),
                 "url": issue.get("url") or issue.get("html_url"),
-                "author": issue.get("user", {}).get("login") if "user" in issue else issue.get("author", {}).get("login"),
+                "author": (
+                    issue.get("user", {}).get("login")
+                    if "user" in issue
+                    else issue.get("author", {}).get("login")
+                ),
                 "labels": labels,
             }
         }
@@ -359,7 +394,9 @@ class GitHubAdapter(BaseAdapter[Task]):
             metadata=metadata,
         )
 
-    async def _ensure_label_exists(self, label_name: str, color: str = "0366d6") -> None:
+    async def _ensure_label_exists(
+        self, label_name: str, color: str = "0366d6"
+    ) -> None:
         """Ensure a label exists in the repository."""
         if not self._labels_cache:
             response = await self.client.get(f"/repos/{self.owner}/{self.repo}/labels")
@@ -372,16 +409,17 @@ class GitHubAdapter(BaseAdapter[Task]):
             # Create the label
             response = await self.client.post(
                 f"/repos/{self.owner}/{self.repo}/labels",
-                json={"name": label_name, "color": color}
+                json={"name": label_name, "color": color},
             )
             if response.status_code == 201:
                 self._labels_cache.append(response.json())
 
-    async def _graphql_request(self, query: str, variables: Dict[str, Any]) -> Dict[str, Any]:
+    async def _graphql_request(
+        self, query: str, variables: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Execute a GraphQL query."""
         response = await self.client.post(
-            self.graphql_url,
-            json={"query": query, "variables": variables}
+            self.graphql_url, json={"query": query, "variables": variables}
         )
         response.raise_for_status()
 
@@ -448,8 +486,7 @@ class GitHubAdapter(BaseAdapter[Task]):
 
         # Create the issue
         response = await self.client.post(
-            f"/repos/{self.owner}/{self.repo}/issues",
-            json=issue_data
+            f"/repos/{self.owner}/{self.repo}/issues", json=issue_data
         )
         response.raise_for_status()
 
@@ -459,7 +496,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         if ticket.state in [TicketState.DONE, TicketState.CLOSED]:
             await self.client.patch(
                 f"/repos/{self.owner}/{self.repo}/issues/{created_issue['number']}",
-                json={"state": "closed"}
+                json={"state": "closed"},
             )
             created_issue["state"] = "closed"
 
@@ -530,8 +567,10 @@ class GitHubAdapter(BaseAdapter[Task]):
 
             # Remove old state labels
             labels_to_update = [
-                label for label in current_labels
-                if label.lower() not in [sl.lower() for sl in GitHubStateMapping.STATE_LABELS.values()]
+                label
+                for label in current_labels
+                if label.lower()
+                not in [sl.lower() for sl in GitHubStateMapping.STATE_LABELS.values()]
             ]
 
             # Add new state label if needed
@@ -561,8 +600,10 @@ class GitHubAdapter(BaseAdapter[Task]):
                 all_priority_labels.extend([l.lower() for l in labels])
 
             labels_to_update = [
-                label for label in labels_to_update
-                if label.lower() not in all_priority_labels and not re.match(r'^P[0-3]$', label, re.IGNORECASE)
+                label
+                for label in labels_to_update
+                if label.lower() not in all_priority_labels
+                and not re.match(r"^P[0-3]$", label, re.IGNORECASE)
             ]
 
             # Add new priority label
@@ -584,12 +625,16 @@ class GitHubAdapter(BaseAdapter[Task]):
             # Preserve state and priority labels
             preserved_labels = []
             for label in current_labels:
-                if label.lower() in [sl.lower() for sl in GitHubStateMapping.STATE_LABELS.values()]:
+                if label.lower() in [
+                    sl.lower() for sl in GitHubStateMapping.STATE_LABELS.values()
+                ]:
                     preserved_labels.append(label)
-                elif any(label.lower() in [pl.lower() for pl in labels]
-                        for labels in GitHubStateMapping.PRIORITY_LABELS.values()):
+                elif any(
+                    label.lower() in [pl.lower() for pl in labels]
+                    for labels in GitHubStateMapping.PRIORITY_LABELS.values()
+                ):
                     preserved_labels.append(label)
-                elif re.match(r'^P[0-3]$', label, re.IGNORECASE):
+                elif re.match(r"^P[0-3]$", label, re.IGNORECASE):
                     preserved_labels.append(label)
 
             # Add new tags
@@ -602,7 +647,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         if update_data:
             response = await self.client.patch(
                 f"/repos/{self.owner}/{self.repo}/issues/{issue_number}",
-                json=update_data
+                json=update_data,
             )
             response.raise_for_status()
 
@@ -626,7 +671,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         try:
             response = await self.client.patch(
                 f"/repos/{self.owner}/{self.repo}/issues/{issue_number}",
-                json={"state": "closed", "state_reason": "not_planned"}
+                json={"state": "closed", "state_reason": "not_planned"},
             )
             response.raise_for_status()
             return True
@@ -634,10 +679,7 @@ class GitHubAdapter(BaseAdapter[Task]):
             return False
 
     async def list(
-        self,
-        limit: int = 10,
-        offset: int = 0,
-        filters: Optional[Dict[str, Any]] = None
+        self, limit: int = 10, offset: int = 0, filters: Optional[Dict[str, Any]] = None
     ) -> List[Task]:
         """List GitHub issues with filters."""
         # Build query parameters
@@ -683,8 +725,7 @@ class GitHubAdapter(BaseAdapter[Task]):
                 params["milestone"] = filters["parent_epic"]
 
         response = await self.client.get(
-            f"/repos/{self.owner}/{self.repo}/issues",
-            params=params
+            f"/repos/{self.owner}/{self.repo}/issues", params=params
         )
         response.raise_for_status()
 
@@ -742,8 +783,9 @@ class GitHubAdapter(BaseAdapter[Task]):
         github_query = " ".join(search_parts)
 
         # Use GraphQL for better search capabilities
-        full_query = (GitHubGraphQLQueries.ISSUE_FRAGMENT +
-                     GitHubGraphQLQueries.SEARCH_ISSUES)
+        full_query = (
+            GitHubGraphQLQueries.ISSUE_FRAGMENT + GitHubGraphQLQueries.SEARCH_ISSUES
+        )
 
         variables = {
             "query": github_query,
@@ -788,9 +830,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         return issues
 
     async def transition_state(
-        self,
-        ticket_id: str,
-        target_state: TicketState
+        self, ticket_id: str, target_state: TicketState
     ) -> Optional[Task]:
         """Transition GitHub issue to a new state."""
         # Validate transition
@@ -810,7 +850,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         # Create comment
         response = await self.client.post(
             f"/repos/{self.owner}/{self.repo}/issues/{issue_number}/comments",
-            json={"body": comment.content}
+            json={"body": comment.content},
         )
         response.raise_for_status()
 
@@ -821,7 +861,9 @@ class GitHubAdapter(BaseAdapter[Task]):
             ticket_id=comment.ticket_id,
             author=created_comment["user"]["login"],
             content=created_comment["body"],
-            created_at=datetime.fromisoformat(created_comment["created_at"].replace("Z", "+00:00")),
+            created_at=datetime.fromisoformat(
+                created_comment["created_at"].replace("Z", "+00:00")
+            ),
             metadata={
                 "github": {
                     "id": created_comment["id"],
@@ -832,10 +874,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         )
 
     async def get_comments(
-        self,
-        ticket_id: str,
-        limit: int = 10,
-        offset: int = 0
+        self, ticket_id: str, limit: int = 10, offset: int = 0
     ) -> List[Comment]:
         """Get comments for a GitHub issue."""
         try:
@@ -851,26 +890,30 @@ class GitHubAdapter(BaseAdapter[Task]):
         try:
             response = await self.client.get(
                 f"/repos/{self.owner}/{self.repo}/issues/{issue_number}/comments",
-                params=params
+                params=params,
             )
             response.raise_for_status()
 
             comments = []
             for comment_data in response.json():
-                comments.append(Comment(
-                    id=str(comment_data["id"]),
-                    ticket_id=ticket_id,
-                    author=comment_data["user"]["login"],
-                    content=comment_data["body"],
-                    created_at=datetime.fromisoformat(comment_data["created_at"].replace("Z", "+00:00")),
-                    metadata={
-                        "github": {
-                            "id": comment_data["id"],
-                            "url": comment_data["html_url"],
-                            "author_avatar": comment_data["user"]["avatar_url"],
-                        }
-                    },
-                ))
+                comments.append(
+                    Comment(
+                        id=str(comment_data["id"]),
+                        ticket_id=ticket_id,
+                        author=comment_data["user"]["login"],
+                        content=comment_data["body"],
+                        created_at=datetime.fromisoformat(
+                            comment_data["created_at"].replace("Z", "+00:00")
+                        ),
+                        metadata={
+                            "github": {
+                                "id": comment_data["id"],
+                                "url": comment_data["html_url"],
+                                "author_avatar": comment_data["user"]["avatar_url"],
+                            }
+                        },
+                    )
+                )
 
             return comments
         except httpx.HTTPError:
@@ -891,8 +934,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         }
 
         response = await self.client.post(
-            f"/repos/{self.owner}/{self.repo}/milestones",
-            json=milestone_data
+            f"/repos/{self.owner}/{self.repo}/milestones", json=milestone_data
         )
         response.raise_for_status()
 
@@ -902,9 +944,17 @@ class GitHubAdapter(BaseAdapter[Task]):
             id=str(created_milestone["number"]),
             title=created_milestone["title"],
             description=created_milestone["description"],
-            state=TicketState.OPEN if created_milestone["state"] == "open" else TicketState.CLOSED,
-            created_at=datetime.fromisoformat(created_milestone["created_at"].replace("Z", "+00:00")),
-            updated_at=datetime.fromisoformat(created_milestone["updated_at"].replace("Z", "+00:00")),
+            state=(
+                TicketState.OPEN
+                if created_milestone["state"] == "open"
+                else TicketState.CLOSED
+            ),
+            created_at=datetime.fromisoformat(
+                created_milestone["created_at"].replace("Z", "+00:00")
+            ),
+            updated_at=datetime.fromisoformat(
+                created_milestone["updated_at"].replace("Z", "+00:00")
+            ),
             metadata={
                 "github": {
                     "number": created_milestone["number"],
@@ -931,9 +981,17 @@ class GitHubAdapter(BaseAdapter[Task]):
                 id=str(milestone["number"]),
                 title=milestone["title"],
                 description=milestone["description"],
-                state=TicketState.OPEN if milestone["state"] == "open" else TicketState.CLOSED,
-                created_at=datetime.fromisoformat(milestone["created_at"].replace("Z", "+00:00")),
-                updated_at=datetime.fromisoformat(milestone["updated_at"].replace("Z", "+00:00")),
+                state=(
+                    TicketState.OPEN
+                    if milestone["state"] == "open"
+                    else TicketState.CLOSED
+                ),
+                created_at=datetime.fromisoformat(
+                    milestone["created_at"].replace("Z", "+00:00")
+                ),
+                updated_at=datetime.fromisoformat(
+                    milestone["updated_at"].replace("Z", "+00:00")
+                ),
                 metadata={
                     "github": {
                         "number": milestone["number"],
@@ -947,10 +1005,7 @@ class GitHubAdapter(BaseAdapter[Task]):
             return None
 
     async def list_milestones(
-        self,
-        state: str = "open",
-        limit: int = 10,
-        offset: int = 0
+        self, state: str = "open", limit: int = 10, offset: int = 0
     ) -> List[Epic]:
         """List GitHub milestones as Epics."""
         params = {
@@ -960,29 +1015,38 @@ class GitHubAdapter(BaseAdapter[Task]):
         }
 
         response = await self.client.get(
-            f"/repos/{self.owner}/{self.repo}/milestones",
-            params=params
+            f"/repos/{self.owner}/{self.repo}/milestones", params=params
         )
         response.raise_for_status()
 
         epics = []
         for milestone in response.json():
-            epics.append(Epic(
-                id=str(milestone["number"]),
-                title=milestone["title"],
-                description=milestone["description"],
-                state=TicketState.OPEN if milestone["state"] == "open" else TicketState.CLOSED,
-                created_at=datetime.fromisoformat(milestone["created_at"].replace("Z", "+00:00")),
-                updated_at=datetime.fromisoformat(milestone["updated_at"].replace("Z", "+00:00")),
-                metadata={
-                    "github": {
-                        "number": milestone["number"],
-                        "url": milestone["html_url"],
-                        "open_issues": milestone["open_issues"],
-                        "closed_issues": milestone["closed_issues"],
-                    }
-                },
-            ))
+            epics.append(
+                Epic(
+                    id=str(milestone["number"]),
+                    title=milestone["title"],
+                    description=milestone["description"],
+                    state=(
+                        TicketState.OPEN
+                        if milestone["state"] == "open"
+                        else TicketState.CLOSED
+                    ),
+                    created_at=datetime.fromisoformat(
+                        milestone["created_at"].replace("Z", "+00:00")
+                    ),
+                    updated_at=datetime.fromisoformat(
+                        milestone["updated_at"].replace("Z", "+00:00")
+                    ),
+                    metadata={
+                        "github": {
+                            "number": milestone["number"],
+                            "url": milestone["html_url"],
+                            "open_issues": milestone["open_issues"],
+                            "closed_issues": milestone["closed_issues"],
+                        }
+                    },
+                )
+            )
 
         return epics
 
@@ -994,7 +1058,7 @@ class GitHubAdapter(BaseAdapter[Task]):
 
         response = await self.client.post(
             f"/repos/{self.owner}/{self.repo}/issues/{issue_number}/comments",
-            json={"body": comment}
+            json={"body": comment},
         )
 
         return response.status_code == 201
@@ -1020,6 +1084,7 @@ class GitHubAdapter(BaseAdapter[Task]):
 
         Returns:
             Dictionary with PR details including number, url, and branch
+
         """
         try:
             issue_number = int(ticket_id)
@@ -1105,7 +1170,7 @@ Fixes #{issue_number}
                 json={
                     "ref": f"refs/heads/{head_branch}",
                     "sha": base_sha,
-                }
+                },
             )
 
             if ref_response.status_code != 201:
@@ -1122,8 +1187,7 @@ Fixes #{issue_number}
         }
 
         pr_response = await self.client.post(
-            f"/repos/{self.owner}/{self.repo}/pulls",
-            json=pr_data
+            f"/repos/{self.owner}/{self.repo}/pulls", json=pr_data
         )
 
         if pr_response.status_code == 422:
@@ -1134,7 +1198,7 @@ Fixes #{issue_number}
                     "head": f"{self.owner}:{head_branch}",
                     "base": base_branch,
                     "state": "open",
-                }
+                },
             )
 
             if search_response.status_code == 200:
@@ -1191,6 +1255,7 @@ Fixes #{issue_number}
 
         Returns:
             Dictionary with link status and PR details
+
         """
         try:
             issue_number = int(ticket_id)
@@ -1200,6 +1265,7 @@ Fixes #{issue_number}
         # Parse PR URL to extract owner, repo, and PR number
         # Expected format: https://github.com/owner/repo/pull/123
         import re
+
         pr_pattern = r"github\.com/([^/]+)/([^/]+)/pull/(\d+)"
         match = re.search(pr_pattern, pr_url)
 
@@ -1239,7 +1305,7 @@ Fixes #{issue_number}
             # Update the PR
             update_response = await self.client.patch(
                 f"/repos/{self.owner}/{self.repo}/pulls/{pr_number}",
-                json={"body": updated_body}
+                json={"body": updated_body},
             )
             update_response.raise_for_status()
 

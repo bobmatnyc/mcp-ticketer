@@ -1,19 +1,18 @@
 """Background worker for processing queued ticket operations."""
 
 import asyncio
-import json
 import logging
 import signal
-import sys
-import time
-from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Optional, Dict, Any, List
 import threading
+import time
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 from dotenv import load_dotenv
 
-from .queue import Queue, QueueItem, QueueStatus
 from ..core import AdapterRegistry, Task
+from .queue import Queue, QueueItem, QueueStatus
 
 # Load environment variables from .env.local
 env_path = Path.cwd() / ".env.local"
@@ -28,11 +27,8 @@ LOG_FILE = LOG_DIR / "worker.log"
 
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(LOG_FILE),
-        logging.StreamHandler()
-    ]
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler(LOG_FILE), logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 
@@ -45,7 +41,7 @@ class Worker:
         "linear": 60,
         "jira": 30,
         "github": 60,
-        "aitrackdown": 1000  # Local, no rate limit
+        "aitrackdown": 1000,  # Local, no rate limit
     }
 
     # Retry configuration
@@ -60,7 +56,7 @@ class Worker:
         self,
         queue: Optional[Queue] = None,
         batch_size: int = DEFAULT_BATCH_SIZE,
-        max_concurrent: int = DEFAULT_MAX_CONCURRENT
+        max_concurrent: int = DEFAULT_MAX_CONCURRENT,
     ):
         """Initialize worker.
 
@@ -68,6 +64,7 @@ class Worker:
             queue: Queue instance (creates default if not provided)
             batch_size: Number of items to process in a batch
             max_concurrent: Maximum concurrent operations per adapter
+
         """
         self.queue = queue or Queue()
         self.running = False
@@ -91,7 +88,9 @@ class Worker:
         signal.signal(signal.SIGTERM, self._signal_handler)
         signal.signal(signal.SIGINT, self._signal_handler)
 
-        logger.info(f"Worker initialized with batch_size={batch_size}, max_concurrent={max_concurrent}")
+        logger.info(
+            f"Worker initialized with batch_size={batch_size}, max_concurrent={max_concurrent}"
+        )
 
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals."""
@@ -103,6 +102,7 @@ class Worker:
 
         Args:
             daemon: Run as daemon process
+
         """
         if self.running:
             logger.warning("Worker already running")
@@ -158,6 +158,7 @@ class Worker:
 
         Returns:
             List of queue items to process
+
         """
         batch = []
         for _ in range(self.batch_size):
@@ -173,6 +174,7 @@ class Worker:
 
         Args:
             batch: List of queue items to process
+
         """
         logger.info(f"Processing batch of {len(batch)} items")
 
@@ -198,6 +200,7 @@ class Worker:
         Args:
             adapter: Adapter name
             items: List of items for this adapter
+
         """
         logger.debug(f"Processing {len(items)} items for adapter {adapter}")
 
@@ -223,8 +226,11 @@ class Worker:
 
         Args:
             item: Queue item to process
+
         """
-        logger.info(f"Processing queue item {item.id}: {item.operation} on {item.adapter}")
+        logger.info(
+            f"Processing queue item {item.id}: {item.operation} on {item.adapter}"
+        )
 
         try:
             # Check rate limit
@@ -239,11 +245,7 @@ class Worker:
             result = await self._execute_operation(adapter, item)
 
             # Mark as completed
-            self.queue.update_status(
-                item.id,
-                QueueStatus.COMPLETED,
-                result=result
-            )
+            self.queue.update_status(item.id, QueueStatus.COMPLETED, result=result)
             self.stats["items_processed"] += 1
             logger.info(f"Successfully processed {item.id}")
 
@@ -253,8 +255,10 @@ class Worker:
             # Check retry count
             if item.retry_count < self.MAX_RETRIES:
                 # Retry with exponential backoff
-                retry_delay = self.BASE_RETRY_DELAY * (2 ** item.retry_count)
-                logger.info(f"Retrying {item.id} after {retry_delay}s (attempt {item.retry_count + 1}/{self.MAX_RETRIES})")
+                retry_delay = self.BASE_RETRY_DELAY * (2**item.retry_count)
+                logger.info(
+                    f"Retrying {item.id} after {retry_delay}s (attempt {item.retry_count + 1}/{self.MAX_RETRIES})"
+                )
 
                 # Increment retry count and reset to pending
                 self.queue.increment_retry(item.id)
@@ -264,9 +268,7 @@ class Worker:
             else:
                 # Max retries exceeded, mark as failed
                 self.queue.update_status(
-                    item.id,
-                    QueueStatus.FAILED,
-                    error_message=str(e)
+                    item.id, QueueStatus.FAILED, error_message=str(e)
                 )
                 self.stats["items_failed"] += 1
                 logger.error(f"Max retries exceeded for {item.id}, marking as failed")
@@ -276,6 +278,7 @@ class Worker:
 
         Args:
             adapter: Adapter name
+
         """
         if adapter not in self.RATE_LIMITS:
             return
@@ -302,11 +305,13 @@ class Worker:
 
         Returns:
             Adapter instance
+
         """
         # Load configuration from the project directory where the item was created
-        from ..cli.main import load_config
-        from pathlib import Path
         import os
+        from pathlib import Path
+
+        from ..cli.main import load_config
 
         # Use item's project_dir if available, otherwise use current directory
         project_path = Path(item.project_dir) if item.project_dir else None
@@ -346,6 +351,7 @@ class Worker:
 
         Returns:
             Operation result
+
         """
         operation = item.operation
         data = item.ticket_data
@@ -369,7 +375,11 @@ class Worker:
             ticket_id = data.get("ticket_id")
             state = data.get("state")
             result = await adapter.transition_state(ticket_id, state)
-            return {"id": result.id if result else None, "state": state, "success": bool(result)}
+            return {
+                "id": result.id if result else None,
+                "state": state,
+                "success": bool(result),
+            }
 
         elif operation == "comment":
             ticket_id = data.get("ticket_id")
@@ -385,6 +395,7 @@ class Worker:
 
         Returns:
             Status information
+
         """
         queue_stats = self.queue.get_stats()
 
@@ -393,7 +404,9 @@ class Worker:
         if self.stats["start_time"]:
             elapsed = (datetime.now() - self.stats["start_time"]).total_seconds()
             if elapsed > 0:
-                throughput = self.stats["items_processed"] / elapsed * 60  # items per minute
+                throughput = (
+                    self.stats["items_processed"] / elapsed * 60
+                )  # items per minute
 
         return {
             "running": self.running,
@@ -408,14 +421,15 @@ class Worker:
                 "throughput_per_minute": throughput,
                 "uptime_seconds": (
                     (datetime.now() - self.stats["start_time"]).total_seconds()
-                    if self.stats["start_time"] else 0
+                    if self.stats["start_time"]
+                    else 0
                 ),
             },
             "queue_stats": queue_stats,
             "total_pending": queue_stats.get(QueueStatus.PENDING.value, 0),
             "total_processing": queue_stats.get(QueueStatus.PROCESSING.value, 0),
             "total_completed": queue_stats.get(QueueStatus.COMPLETED.value, 0),
-            "total_failed": queue_stats.get(QueueStatus.FAILED.value, 0)
+            "total_failed": queue_stats.get(QueueStatus.FAILED.value, 0),
         }
 
     @classmethod
@@ -427,10 +441,11 @@ class Worker:
 
         Returns:
             Log content
+
         """
         if not LOG_FILE.exists():
             return "No logs available"
 
-        with open(LOG_FILE, "r") as f:
+        with open(LOG_FILE) as f:
             all_lines = f.readlines()
             return "".join(all_lines[-lines:])

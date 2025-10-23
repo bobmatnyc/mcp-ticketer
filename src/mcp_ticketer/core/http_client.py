@@ -2,19 +2,19 @@
 
 import asyncio
 import logging
-from typing import Dict, Any, Optional, List, Union, Callable
-from datetime import datetime, timedelta
-from enum import Enum
 import time
+from enum import Enum
+from typing import Any, Dict, List, Optional, Union
 
 import httpx
-from httpx import AsyncClient, HTTPStatusError, TimeoutException
+from httpx import AsyncClient, TimeoutException
 
 logger = logging.getLogger(__name__)
 
 
 class HTTPMethod(str, Enum):
     """HTTP methods."""
+
     GET = "GET"
     POST = "POST"
     PUT = "PUT"
@@ -33,7 +33,7 @@ class RetryConfig:
         exponential_base: float = 2.0,
         jitter: bool = True,
         retry_on_status: Optional[List[int]] = None,
-        retry_on_exceptions: Optional[List[type]] = None
+        retry_on_exceptions: Optional[List[type]] = None,
     ):
         self.max_retries = max_retries
         self.initial_delay = initial_delay
@@ -41,7 +41,11 @@ class RetryConfig:
         self.exponential_base = exponential_base
         self.jitter = jitter
         self.retry_on_status = retry_on_status or [429, 502, 503, 504]
-        self.retry_on_exceptions = retry_on_exceptions or [TimeoutException, httpx.ConnectTimeout, httpx.ReadTimeout]
+        self.retry_on_exceptions = retry_on_exceptions or [
+            TimeoutException,
+            httpx.ConnectTimeout,
+            httpx.ReadTimeout,
+        ]
 
 
 class RateLimiter:
@@ -53,6 +57,7 @@ class RateLimiter:
         Args:
             max_requests: Maximum number of requests allowed
             time_window: Time window in seconds
+
         """
         self.max_requests = max_requests
         self.time_window = time_window
@@ -69,7 +74,7 @@ class RateLimiter:
             time_passed = now - self.last_update
             self.tokens = min(
                 self.max_requests,
-                self.tokens + (time_passed / self.time_window) * self.max_requests
+                self.tokens + (time_passed / self.time_window) * self.max_requests,
             )
             self.last_update = now
 
@@ -95,7 +100,7 @@ class BaseHTTPClient:
         retry_config: Optional[RetryConfig] = None,
         rate_limiter: Optional[RateLimiter] = None,
         verify_ssl: bool = True,
-        follow_redirects: bool = True
+        follow_redirects: bool = True,
     ):
         """Initialize HTTP client.
 
@@ -108,6 +113,7 @@ class BaseHTTPClient:
             rate_limiter: Rate limiter instance
             verify_ssl: Whether to verify SSL certificates
             follow_redirects: Whether to follow redirects
+
         """
         self.base_url = base_url.rstrip("/")
         self.default_headers = headers or {}
@@ -137,11 +143,13 @@ class BaseHTTPClient:
                 auth=self.auth,
                 timeout=self.timeout,
                 verify=self.verify_ssl,
-                follow_redirects=self.follow_redirects
+                follow_redirects=self.follow_redirects,
             )
         return self._client
 
-    async def _calculate_delay(self, attempt: int, response: Optional[httpx.Response] = None) -> float:
+    async def _calculate_delay(
+        self, attempt: int, response: Optional[httpx.Response] = None
+    ) -> float:
         """Calculate delay for retry attempt."""
         if response and response.status_code == 429:
             # Use Retry-After header if available
@@ -162,7 +170,8 @@ class BaseHTTPClient:
         # Add jitter to prevent thundering herd
         if self.retry_config.jitter:
             import random
-            delay *= (0.5 + random.random() * 0.5)
+
+            delay *= 0.5 + random.random() * 0.5
 
         return delay
 
@@ -170,7 +179,7 @@ class BaseHTTPClient:
         self,
         exception: Exception,
         response: Optional[httpx.Response] = None,
-        attempt: int = 1
+        attempt: int = 1,
     ) -> bool:
         """Determine if request should be retried."""
         if attempt >= self.retry_config.max_retries:
@@ -197,7 +206,7 @@ class BaseHTTPClient:
         headers: Optional[Dict[str, str]] = None,
         timeout: Optional[float] = None,
         retry_count: int = 0,
-        **kwargs
+        **kwargs,
     ) -> httpx.Response:
         """Make HTTP request with retry and rate limiting.
 
@@ -218,6 +227,7 @@ class BaseHTTPClient:
         Raises:
             HTTPStatusError: On HTTP errors
             TimeoutException: On timeout
+
         """
         # Rate limiting
         if self.rate_limiter:
@@ -243,7 +253,7 @@ class BaseHTTPClient:
                 params=params,
                 headers=request_headers,
                 timeout=timeout or self.timeout,
-                **kwargs
+                **kwargs,
             )
 
             # Update stats
@@ -258,7 +268,7 @@ class BaseHTTPClient:
             self.stats["errors"] += 1
 
             # Check if we should retry
-            response = getattr(e, 'response', None)
+            response = getattr(e, "response", None)
             if self._should_retry(e, response, retry_count + 1):
                 delay = await self._calculate_delay(retry_count + 1, response)
 
@@ -269,7 +279,15 @@ class BaseHTTPClient:
 
                 await asyncio.sleep(delay)
                 return await self.request(
-                    method, endpoint, data, json, params, headers, timeout, retry_count + 1, **kwargs
+                    method,
+                    endpoint,
+                    data,
+                    json,
+                    params,
+                    headers,
+                    timeout,
+                    retry_count + 1,
+                    **kwargs,
                 )
 
             # No more retries, re-raise the exception
@@ -364,6 +382,7 @@ class GitHubHTTPClient(BaseHTTPClient):
         Args:
             token: GitHub API token
             api_url: GitHub API URL
+
         """
         headers = {
             "Authorization": f"Bearer {token}",
@@ -379,9 +398,8 @@ class GitHubHTTPClient(BaseHTTPClient):
             headers=headers,
             rate_limiter=rate_limiter,
             retry_config=RetryConfig(
-                max_retries=3,
-                retry_on_status=[429, 502, 503, 504, 522, 524]
-            )
+                max_retries=3, retry_on_status=[429, 502, 503, 504, 522, 524]
+            ),
         )
 
 
@@ -394,7 +412,7 @@ class JiraHTTPClient(BaseHTTPClient):
         api_token: str,
         server_url: str,
         is_cloud: bool = True,
-        verify_ssl: bool = True
+        verify_ssl: bool = True,
     ):
         """Initialize JIRA HTTP client.
 
@@ -404,13 +422,13 @@ class JiraHTTPClient(BaseHTTPClient):
             server_url: JIRA server URL
             is_cloud: Whether this is JIRA Cloud
             verify_ssl: Whether to verify SSL certificates
-        """
-        api_base = f"{server_url}/rest/api/3" if is_cloud else f"{server_url}/rest/api/2"
 
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-        }
+        """
+        api_base = (
+            f"{server_url}/rest/api/3" if is_cloud else f"{server_url}/rest/api/2"
+        )
+
+        headers = {"Accept": "application/json", "Content-Type": "application/json"}
 
         auth = httpx.BasicAuth(email, api_token)
 
@@ -424,7 +442,6 @@ class JiraHTTPClient(BaseHTTPClient):
             rate_limiter=rate_limiter,
             verify_ssl=verify_ssl,
             retry_config=RetryConfig(
-                max_retries=3,
-                retry_on_status=[429, 502, 503, 504]
-            )
+                max_retries=3, retry_on_status=[429, 502, 503, 504]
+            ),
         )

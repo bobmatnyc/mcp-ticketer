@@ -4,11 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
 
-import pytest
-
-from mcp_ticketer.queue.queue import Queue, QueueStatus, QueueItem
+from mcp_ticketer.queue.queue import Queue, QueueItem, QueueStatus
 
 
 class TestQueueStatus:

@@ -1,17 +1,17 @@
 """Worker manager with file-based locking for single instance."""
 
+import fcntl
+import logging
 import os
-import psutil
 import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Optional, Dict, Any
-import fcntl
-import logging
+from typing import Any, Dict, Optional
+
+import psutil
 
 from .queue import Queue
-from .worker import Worker
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,7 @@ class WorkerManager:
 
         Returns:
             True if lock acquired, False otherwise
+
         """
         try:
             # Create lock file if it doesn't exist
@@ -46,13 +47,13 @@ class WorkerManager:
             self.lock_fd.flush()
 
             return True
-        except IOError:
+        except OSError:
             # Lock already held
             return False
 
     def _release_lock(self):
         """Release worker lock."""
-        if hasattr(self, 'lock_fd'):
+        if hasattr(self, "lock_fd"):
             fcntl.lockf(self.lock_fd, fcntl.LOCK_UN)
             self.lock_fd.close()
 
@@ -65,6 +66,7 @@ class WorkerManager:
 
         Returns:
             True if worker started or already running, False otherwise
+
         """
         # Check if worker is already running
         if self.is_running():
@@ -84,6 +86,7 @@ class WorkerManager:
 
         Returns:
             True if started successfully, False otherwise
+
         """
         # Check if already running
         if self.is_running():
@@ -97,18 +100,14 @@ class WorkerManager:
 
         try:
             # Start worker in subprocess
-            cmd = [
-                sys.executable,
-                "-m",
-                "mcp_ticketer.queue.run_worker"
-            ]
+            cmd = [sys.executable, "-m", "mcp_ticketer.queue.run_worker"]
 
             # Start as background process
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-                start_new_session=True
+                start_new_session=True,
             )
 
             # Save PID
@@ -116,6 +115,7 @@ class WorkerManager:
 
             # Give the process a moment to start
             import time
+
             time.sleep(0.5)
 
             # Verify process is running
@@ -137,6 +137,7 @@ class WorkerManager:
 
         Returns:
             True if stopped successfully, False otherwise
+
         """
         pid = self._get_pid()
         if not pid:
@@ -177,6 +178,7 @@ class WorkerManager:
 
         Returns:
             True if restarted successfully, False otherwise
+
         """
         logger.info("Restarting worker...")
         self.stop()
@@ -188,6 +190,7 @@ class WorkerManager:
 
         Returns:
             True if running, False otherwise
+
         """
         pid = self._get_pid()
         if not pid:
@@ -209,25 +212,25 @@ class WorkerManager:
 
         Returns:
             Status information
+
         """
         is_running = self.is_running()
         pid = self._get_pid() if is_running else None
 
-        status = {
-            "running": is_running,
-            "pid": pid
-        }
+        status = {"running": is_running, "pid": pid}
 
         # Add process info if running
         if is_running and pid:
             try:
                 process = psutil.Process(pid)
-                status.update({
-                    "cpu_percent": process.cpu_percent(),
-                    "memory_mb": process.memory_info().rss / 1024 / 1024,
-                    "create_time": process.create_time(),
-                    "status": process.status()
-                })
+                status.update(
+                    {
+                        "cpu_percent": process.cpu_percent(),
+                        "memory_mb": process.memory_info().rss / 1024 / 1024,
+                        "create_time": process.create_time(),
+                        "status": process.status(),
+                    }
+                )
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 pass
 
@@ -242,6 +245,7 @@ class WorkerManager:
 
         Returns:
             Process ID or None if not found
+
         """
         if not self.pid_file.exists():
             return None
@@ -249,7 +253,7 @@ class WorkerManager:
         try:
             pid_text = self.pid_file.read_text().strip()
             return int(pid_text)
-        except (ValueError, IOError):
+        except (OSError, ValueError):
             return None
 
     def _cleanup(self):

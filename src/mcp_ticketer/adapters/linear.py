@@ -1,23 +1,31 @@
 """Linear adapter implementation using native GraphQL API with full feature support."""
 
-import os
 import asyncio
-from typing import List, Optional, Dict, Any, Union
-from datetime import datetime, date
+import os
+from datetime import date, datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional, Union
 
-from gql import gql, Client
-from gql.transport.httpx import HTTPXAsyncTransport
+from gql import Client, gql
 from gql.transport.exceptions import TransportQueryError
-import httpx
+from gql.transport.httpx import HTTPXAsyncTransport
 
 from ..core.adapter import BaseAdapter
-from ..core.models import Epic, Task, Comment, SearchQuery, TicketState, Priority, TicketType
+from ..core.models import (
+    Comment,
+    Epic,
+    Priority,
+    SearchQuery,
+    Task,
+    TicketState,
+    TicketType,
+)
 from ..core.registry import AdapterRegistry
 
 
 class LinearStateType(str, Enum):
     """Linear workflow state types."""
+
     BACKLOG = "backlog"
     UNSTARTED = "unstarted"
     STARTED = "started"
@@ -38,9 +46,9 @@ class LinearPriorityMapping:
     FROM_LINEAR = {
         0: Priority.CRITICAL,  # Urgent
         1: Priority.CRITICAL,  # High
-        2: Priority.HIGH,      # Medium
-        3: Priority.MEDIUM,    # Low
-        4: Priority.LOW,       # No priority
+        2: Priority.HIGH,  # Medium
+        3: Priority.MEDIUM,  # Low
+        4: Priority.LOW,  # No priority
     }
 
 
@@ -242,28 +250,28 @@ ISSUE_FULL_FRAGMENT = """
 
 # Combine all fragments
 ALL_FRAGMENTS = (
-    USER_FRAGMENT +
-    WORKFLOW_STATE_FRAGMENT +
-    TEAM_FRAGMENT +
-    CYCLE_FRAGMENT +
-    PROJECT_FRAGMENT +
-    LABEL_FRAGMENT +
-    ATTACHMENT_FRAGMENT +
-    COMMENT_FRAGMENT +
-    ISSUE_COMPACT_FRAGMENT +
-    ISSUE_FULL_FRAGMENT
+    USER_FRAGMENT
+    + WORKFLOW_STATE_FRAGMENT
+    + TEAM_FRAGMENT
+    + CYCLE_FRAGMENT
+    + PROJECT_FRAGMENT
+    + LABEL_FRAGMENT
+    + ATTACHMENT_FRAGMENT
+    + COMMENT_FRAGMENT
+    + ISSUE_COMPACT_FRAGMENT
+    + ISSUE_FULL_FRAGMENT
 )
 
 # Fragments needed for issue list/search (without comments)
 ISSUE_LIST_FRAGMENTS = (
-    USER_FRAGMENT +
-    WORKFLOW_STATE_FRAGMENT +
-    TEAM_FRAGMENT +
-    CYCLE_FRAGMENT +
-    PROJECT_FRAGMENT +
-    LABEL_FRAGMENT +
-    ATTACHMENT_FRAGMENT +
-    ISSUE_COMPACT_FRAGMENT
+    USER_FRAGMENT
+    + WORKFLOW_STATE_FRAGMENT
+    + TEAM_FRAGMENT
+    + CYCLE_FRAGMENT
+    + PROJECT_FRAGMENT
+    + LABEL_FRAGMENT
+    + ATTACHMENT_FRAGMENT
+    + ISSUE_COMPACT_FRAGMENT
 )
 
 
@@ -282,13 +290,16 @@ class LinearAdapter(BaseAdapter[Task]):
                 - api_url: Optional Linear API URL
 
         Note: Either team_key or team_id is required. If both are provided, team_id takes precedence.
+
         """
         super().__init__(config)
 
         # Get API key from config or environment
         self.api_key = config.get("api_key") or os.getenv("LINEAR_API_KEY")
         if not self.api_key:
-            raise ValueError("Linear API key required (config.api_key or LINEAR_API_KEY env var)")
+            raise ValueError(
+                "Linear API key required (config.api_key or LINEAR_API_KEY env var)"
+            )
 
         self.workspace = config.get("workspace")  # Optional, for documentation
 
@@ -323,6 +334,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             Client: Fresh GraphQL client instance
+
         """
         transport = HTTPXAsyncTransport(
             url=self.api_url,
@@ -372,7 +384,8 @@ class LinearAdapter(BaseAdapter[Task]):
         # If team_id (UUID) is provided, use it directly (preferred)
         if self.team_id_config:
             # Validate that this team ID exists
-            query = gql("""
+            query = gql(
+                """
                 query GetTeamById($id: String!) {
                     team(id: $id) {
                         id
@@ -380,11 +393,14 @@ class LinearAdapter(BaseAdapter[Task]):
                         key
                     }
                 }
-            """)
+            """
+            )
 
             client = self._create_client()
             async with client as session:
-                result = await session.execute(query, variable_values={"id": self.team_id_config})
+                result = await session.execute(
+                    query, variable_values={"id": self.team_id_config}
+                )
 
             if not result.get("team"):
                 raise ValueError(f"Team with ID '{self.team_id_config}' not found")
@@ -392,7 +408,8 @@ class LinearAdapter(BaseAdapter[Task]):
             return result["team"]["id"]
 
         # Otherwise, fetch team ID by key
-        query = gql("""
+        query = gql(
+            """
             query GetTeamByKey($key: String!) {
                 teams(filter: { key: { eq: $key } }) {
                     nodes {
@@ -402,20 +419,26 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         client = self._create_client()
         async with client as session:
-            result = await session.execute(query, variable_values={"key": self.team_key})
+            result = await session.execute(
+                query, variable_values={"key": self.team_key}
+            )
 
         if not result["teams"]["nodes"]:
             raise ValueError(f"Team with key '{self.team_key}' not found")
 
         return result["teams"]["nodes"][0]["id"]
 
-    async def _fetch_workflow_states_data(self, team_id: str) -> Dict[str, Dict[str, Any]]:
+    async def _fetch_workflow_states_data(
+        self, team_id: str
+    ) -> Dict[str, Dict[str, Any]]:
         """Fetch workflow states data."""
-        query = gql("""
+        query = gql(
+            """
             query WorkflowStates($teamId: ID!) {
                 workflowStates(filter: { team: { id: { eq: $teamId } } }) {
                     nodes {
@@ -427,7 +450,8 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         client = self._create_client()
         async with client as session:
@@ -445,7 +469,8 @@ class LinearAdapter(BaseAdapter[Task]):
 
     async def _fetch_labels_data(self, team_id: str) -> Dict[str, str]:
         """Fetch labels data."""
-        query = gql("""
+        query = gql(
+            """
             query GetLabels($teamId: ID!) {
                 issueLabels(filter: { team: { id: { eq: $teamId } } }) {
                     nodes {
@@ -454,7 +479,8 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         client = self._create_client()
         async with client as session:
@@ -487,7 +513,8 @@ class LinearAdapter(BaseAdapter[Task]):
 
         # Try to find existing label (may have been added since initialization)
         team_id = self._team_id
-        search_query = gql("""
+        search_query = gql(
+            """
             query GetLabel($name: String!, $teamId: ID!) {
                 issueLabels(filter: { name: { eq: $name }, team: { id: { eq: $teamId } } }) {
                     nodes {
@@ -496,13 +523,13 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         client = self._create_client()
         async with client as session:
             result = await session.execute(
-                search_query,
-                variable_values={"name": name, "teamId": team_id}
+                search_query, variable_values={"name": name, "teamId": team_id}
             )
 
         if result["issueLabels"]["nodes"]:
@@ -511,7 +538,8 @@ class LinearAdapter(BaseAdapter[Task]):
             return label_id
 
         # Create new label
-        create_query = gql("""
+        create_query = gql(
+            """
             mutation CreateLabel($input: IssueLabelCreateInput!) {
                 issueLabelCreate(input: $input) {
                     issueLabel {
@@ -520,7 +548,8 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         label_input = {
             "name": name,
@@ -532,8 +561,7 @@ class LinearAdapter(BaseAdapter[Task]):
         client = self._create_client()
         async with client as session:
             result = await session.execute(
-                create_query,
-                variable_values={"input": label_input}
+                create_query, variable_values={"input": label_input}
             )
 
         label_id = result["issueLabelCreate"]["issueLabel"]["id"]
@@ -548,7 +576,8 @@ class LinearAdapter(BaseAdapter[Task]):
         if email in self._users:
             return self._users[email]
 
-        query = gql("""
+        query = gql(
+            """
             query GetUser($email: String!) {
                 users(filter: { email: { eq: $email } }) {
                     nodes {
@@ -557,7 +586,8 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         client = self._create_client()
         async with client as session:
@@ -575,11 +605,18 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             (is_valid, error_message) - Tuple of validation result and error message
+
         """
         if not self.api_key:
-            return False, "LINEAR_API_KEY is required but not found. Set it in .env.local or environment."
+            return (
+                False,
+                "LINEAR_API_KEY is required but not found. Set it in .env.local or environment.",
+            )
         if not self.team_key and not self.team_id_config:
-            return False, "Either Linear team_key or team_id is required in configuration. Set it in .mcp-ticketer/config.json"
+            return (
+                False,
+                "Either Linear team_key or team_id is required in configuration. Set it in .mcp-ticketer/config.json",
+            )
         return True, ""
 
     def _get_state_mapping(self) -> Dict[TicketState, str]:
@@ -605,7 +642,9 @@ class LinearAdapter(BaseAdapter[Task]):
             state = TicketState(state)
         return self._state_mapping.get(state, LinearStateType.BACKLOG)
 
-    def _map_linear_state(self, state_data: Dict[str, Any], labels: List[str]) -> TicketState:
+    def _map_linear_state(
+        self, state_data: Dict[str, Any], labels: List[str]
+    ) -> TicketState:
         """Map Linear state and labels to universal state."""
         state_type = state_data.get("type", "").lower()
 
@@ -639,7 +678,9 @@ class LinearAdapter(BaseAdapter[Task]):
 
         # Map priority
         linear_priority = issue.get("priority", 4)
-        priority = LinearPriorityMapping.FROM_LINEAR.get(linear_priority, Priority.MEDIUM)
+        priority = LinearPriorityMapping.FROM_LINEAR.get(
+            linear_priority, Priority.MEDIUM
+        )
 
         # Map state
         state = self._map_linear_state(issue.get("state", {}), tags)
@@ -654,10 +695,20 @@ class LinearAdapter(BaseAdapter[Task]):
                 "state_name": issue.get("state", {}).get("name"),
                 "team_id": issue.get("team", {}).get("id"),
                 "team_name": issue.get("team", {}).get("name"),
-                "cycle_id": issue.get("cycle", {}).get("id") if issue.get("cycle") else None,
-                "cycle_name": issue.get("cycle", {}).get("name") if issue.get("cycle") else None,
-                "project_id": issue.get("project", {}).get("id") if issue.get("project") else None,
-                "project_name": issue.get("project", {}).get("name") if issue.get("project") else None,
+                "cycle_id": (
+                    issue.get("cycle", {}).get("id") if issue.get("cycle") else None
+                ),
+                "cycle_name": (
+                    issue.get("cycle", {}).get("name") if issue.get("cycle") else None
+                ),
+                "project_id": (
+                    issue.get("project", {}).get("id") if issue.get("project") else None
+                ),
+                "project_name": (
+                    issue.get("project", {}).get("name")
+                    if issue.get("project")
+                    else None
+                ),
                 "priority_label": issue.get("priorityLabel"),
                 "estimate": issue.get("estimate"),
                 "due_date": issue.get("dueDate"),
@@ -715,13 +766,23 @@ class LinearAdapter(BaseAdapter[Task]):
             ticket_type=ticket_type,
             parent_issue=parent_issue_id,
             parent_epic=parent_epic_id,
-            assignee=issue.get("assignee", {}).get("email") if issue.get("assignee") else None,
+            assignee=(
+                issue.get("assignee", {}).get("email")
+                if issue.get("assignee")
+                else None
+            ),
             children=child_ids,
             estimated_hours=issue.get("estimate"),
-            created_at=datetime.fromisoformat(issue["createdAt"].replace("Z", "+00:00"))
-            if issue.get("createdAt") else None,
-            updated_at=datetime.fromisoformat(issue["updatedAt"].replace("Z", "+00:00"))
-            if issue.get("updatedAt") else None,
+            created_at=(
+                datetime.fromisoformat(issue["createdAt"].replace("Z", "+00:00"))
+                if issue.get("createdAt")
+                else None
+            ),
+            updated_at=(
+                datetime.fromisoformat(issue["updatedAt"].replace("Z", "+00:00"))
+                if issue.get("updatedAt")
+                else None
+            ),
             metadata=metadata,
         )
 
@@ -764,10 +825,16 @@ class LinearAdapter(BaseAdapter[Task]):
             state=state,
             ticket_type=TicketType.EPIC,
             tags=[f"team:{team}" for team in teams],
-            created_at=datetime.fromisoformat(project["createdAt"].replace("Z", "+00:00"))
-            if project.get("createdAt") else None,
-            updated_at=datetime.fromisoformat(project["updatedAt"].replace("Z", "+00:00"))
-            if project.get("updatedAt") else None,
+            created_at=(
+                datetime.fromisoformat(project["createdAt"].replace("Z", "+00:00"))
+                if project.get("createdAt")
+                else None
+            ),
+            updated_at=(
+                datetime.fromisoformat(project["updatedAt"].replace("Z", "+00:00"))
+                if project.get("updatedAt")
+                else None
+            ),
             metadata=metadata,
         )
 
@@ -803,19 +870,33 @@ class LinearAdapter(BaseAdapter[Task]):
 
         # Set priority
         if ticket.priority:
-            issue_input["priority"] = LinearPriorityMapping.TO_LINEAR.get(ticket.priority, 3)
+            issue_input["priority"] = LinearPriorityMapping.TO_LINEAR.get(
+                ticket.priority, 3
+            )
 
         # Handle labels/tags
         if ticket.tags:
             label_ids = []
             for tag in ticket.tags:
                 # Add special state labels if needed
-                if ticket.state == TicketState.BLOCKED and "blocked" not in [t.lower() for t in ticket.tags]:
-                    label_ids.append(await self._get_or_create_label("blocked", "#FF0000"))
-                elif ticket.state == TicketState.WAITING and "waiting" not in [t.lower() for t in ticket.tags]:
-                    label_ids.append(await self._get_or_create_label("waiting", "#FFA500"))
-                elif ticket.state == TicketState.READY and "ready" not in [t.lower() for t in ticket.tags]:
-                    label_ids.append(await self._get_or_create_label("ready", "#00FF00"))
+                if ticket.state == TicketState.BLOCKED and "blocked" not in [
+                    t.lower() for t in ticket.tags
+                ]:
+                    label_ids.append(
+                        await self._get_or_create_label("blocked", "#FF0000")
+                    )
+                elif ticket.state == TicketState.WAITING and "waiting" not in [
+                    t.lower() for t in ticket.tags
+                ]:
+                    label_ids.append(
+                        await self._get_or_create_label("waiting", "#FFA500")
+                    )
+                elif ticket.state == TicketState.READY and "ready" not in [
+                    t.lower() for t in ticket.tags
+                ]:
+                    label_ids.append(
+                        await self._get_or_create_label("ready", "#00FF00")
+                    )
 
                 label_id = await self._get_or_create_label(tag)
                 label_ids.append(label_id)
@@ -835,18 +916,19 @@ class LinearAdapter(BaseAdapter[Task]):
         # Handle parent issue
         if ticket.parent_issue:
             # Get parent issue's Linear ID
-            parent_query = gql("""
+            parent_query = gql(
+                """
                 query GetIssue($identifier: String!) {
                     issue(id: $identifier) {
                         id
                     }
                 }
-            """)
+            """
+            )
             client = self._create_client()
             async with client as session:
                 parent_result = await session.execute(
-                    parent_query,
-                    variable_values={"identifier": ticket.parent_issue}
+                    parent_query, variable_values={"identifier": ticket.parent_issue}
                 )
             if parent_result.get("issue"):
                 issue_input["parentId"] = parent_result["issue"]["id"]
@@ -864,7 +946,9 @@ class LinearAdapter(BaseAdapter[Task]):
                 issue_input["cycleId"] = linear_meta["cycle_id"]
 
         # Create issue mutation with full fields
-        create_query = gql(ALL_FRAGMENTS + """
+        create_query = gql(
+            ALL_FRAGMENTS
+            + """
             mutation CreateIssue($input: IssueCreateInput!) {
                 issueCreate(input: $input) {
                     success
@@ -873,13 +957,13 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         client = self._create_client()
         async with client as session:
             result = await session.execute(
-                create_query,
-                variable_values={"input": issue_input}
+                create_query, variable_values={"input": issue_input}
             )
 
         if not result["issueCreate"]["success"]:
@@ -895,20 +979,22 @@ class LinearAdapter(BaseAdapter[Task]):
         if not is_valid:
             raise ValueError(error_message)
 
-        query = gql(ALL_FRAGMENTS + """
+        query = gql(
+            ALL_FRAGMENTS
+            + """
             query GetIssue($identifier: String!) {
                 issue(id: $identifier) {
                     ...IssueFullFields
                 }
             }
-        """)
+        """
+        )
 
         try:
             client = self._create_client()
             async with client as session:
                 result = await session.execute(
-                    query,
-                    variable_values={"identifier": ticket_id}
+                    query, variable_values={"identifier": ticket_id}
                 )
 
             if result.get("issue"):
@@ -927,19 +1013,20 @@ class LinearAdapter(BaseAdapter[Task]):
             raise ValueError(error_message)
 
         # First get the Linear internal ID
-        query = gql("""
+        query = gql(
+            """
             query GetIssueId($identifier: String!) {
                 issue(id: $identifier) {
                     id
                 }
             }
-        """)
+        """
+        )
 
         client = self._create_client()
         async with client as session:
             result = await session.execute(
-                query,
-                variable_values={"identifier": ticket_id}
+                query, variable_values={"identifier": ticket_id}
             )
 
         if not result.get("issue"):
@@ -1001,7 +1088,9 @@ class LinearAdapter(BaseAdapter[Task]):
                 update_input["projectId"] = linear_meta["project_id"]
 
         # Update mutation
-        update_query = gql(ALL_FRAGMENTS + """
+        update_query = gql(
+            ALL_FRAGMENTS
+            + """
             mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
                 issueUpdate(id: $id, input: $input) {
                     success
@@ -1010,13 +1099,13 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         client = self._create_client()
         async with client as session:
             result = await session.execute(
-                update_query,
-                variable_values={"id": linear_id, "input": update_input}
+                update_query, variable_values={"id": linear_id, "input": update_input}
             )
 
         if result["issueUpdate"]["success"]:
@@ -1032,19 +1121,20 @@ class LinearAdapter(BaseAdapter[Task]):
             raise ValueError(error_message)
 
         # Get Linear ID
-        query = gql("""
+        query = gql(
+            """
             query GetIssueId($identifier: String!) {
                 issue(id: $identifier) {
                     id
                 }
             }
-        """)
+        """
+        )
 
         client = self._create_client()
         async with client as session:
             result = await session.execute(
-                query,
-                variable_values={"identifier": ticket_id}
+                query, variable_values={"identifier": ticket_id}
             )
 
         if not result.get("issue"):
@@ -1053,28 +1143,26 @@ class LinearAdapter(BaseAdapter[Task]):
         linear_id = result["issue"]["id"]
 
         # Archive mutation
-        archive_query = gql("""
+        archive_query = gql(
+            """
             mutation ArchiveIssue($id: String!) {
                 issueArchive(id: $id) {
                     success
                 }
             }
-        """)
+        """
+        )
 
         client = self._create_client()
         async with client as session:
             result = await session.execute(
-                archive_query,
-                variable_values={"id": linear_id}
+                archive_query, variable_values={"id": linear_id}
             )
 
         return result.get("issueArchive", {}).get("success", False)
 
     async def list(
-        self,
-        limit: int = 10,
-        offset: int = 0,
-        filters: Optional[Dict[str, Any]] = None
+        self, limit: int = 10, offset: int = 0, filters: Optional[Dict[str, Any]] = None
     ) -> List[Task]:
         """List Linear issues with comprehensive filtering."""
         team_id = await self._ensure_team_id()
@@ -1137,10 +1225,16 @@ class LinearAdapter(BaseAdapter[Task]):
                 issue_filter["dueDate"] = {"lte": filters["due_before"]}
 
         # Exclude archived issues by default
-        if not filters or "includeArchived" not in filters or not filters["includeArchived"]:
+        if (
+            not filters
+            or "includeArchived" not in filters
+            or not filters["includeArchived"]
+        ):
             issue_filter["archivedAt"] = {"null": True}
 
-        query = gql(ISSUE_LIST_FRAGMENTS + """
+        query = gql(
+            ISSUE_LIST_FRAGMENTS
+            + """
             query ListIssues($filter: IssueFilter, $first: Int!) {
                 issues(
                     filter: $filter
@@ -1156,7 +1250,8 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         client = self._create_client()
         async with client as session:
@@ -1167,7 +1262,7 @@ class LinearAdapter(BaseAdapter[Task]):
                     "first": limit,
                     # Note: Linear uses cursor-based pagination, not offset
                     # For simplicity, we ignore offset here
-                }
+                },
             )
 
         tasks = []
@@ -1219,7 +1314,9 @@ class LinearAdapter(BaseAdapter[Task]):
         # Exclude archived
         issue_filter["archivedAt"] = {"null": True}
 
-        search_query = gql(ISSUE_LIST_FRAGMENTS + """
+        search_query = gql(
+            ISSUE_LIST_FRAGMENTS
+            + """
             query SearchIssues($filter: IssueFilter, $first: Int!) {
                 issues(
                     filter: $filter
@@ -1231,7 +1328,8 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         client = self._create_client()
         async with client as session:
@@ -1241,7 +1339,7 @@ class LinearAdapter(BaseAdapter[Task]):
                     "filter": issue_filter,
                     "first": query.limit,
                     # Note: Linear uses cursor-based pagination, not offset
-                }
+                },
             )
 
         tasks = []
@@ -1251,9 +1349,7 @@ class LinearAdapter(BaseAdapter[Task]):
         return tasks
 
     async def transition_state(
-        self,
-        ticket_id: str,
-        target_state: TicketState
+        self, ticket_id: str, target_state: TicketState
     ) -> Optional[Task]:
         """Transition Linear issue to new state with workflow validation."""
         # Validate transition
@@ -1266,19 +1362,20 @@ class LinearAdapter(BaseAdapter[Task]):
     async def add_comment(self, comment: Comment) -> Comment:
         """Add comment to a Linear issue."""
         # Get Linear issue ID
-        query = gql("""
+        query = gql(
+            """
             query GetIssueId($identifier: String!) {
                 issue(id: $identifier) {
                     id
                 }
             }
-        """)
+        """
+        )
 
         client = self._create_client()
         async with client as session:
             result = await session.execute(
-                query,
-                variable_values={"identifier": comment.ticket_id}
+                query, variable_values={"identifier": comment.ticket_id}
             )
 
         if not result.get("issue"):
@@ -1287,7 +1384,10 @@ class LinearAdapter(BaseAdapter[Task]):
         linear_id = result["issue"]["id"]
 
         # Create comment mutation (only include needed fragments)
-        create_comment_query = gql(USER_FRAGMENT + COMMENT_FRAGMENT + """
+        create_comment_query = gql(
+            USER_FRAGMENT
+            + COMMENT_FRAGMENT
+            + """
             mutation CreateComment($input: CommentCreateInput!) {
                 commentCreate(input: $input) {
                     success
@@ -1296,7 +1396,8 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         comment_input = {
             "issueId": linear_id,
@@ -1310,8 +1411,7 @@ class LinearAdapter(BaseAdapter[Task]):
         client = self._create_client()
         async with client as session:
             result = await session.execute(
-                create_comment_query,
-                variable_values={"input": comment_input}
+                create_comment_query, variable_values={"input": comment_input}
             )
 
         if not result["commentCreate"]["success"]:
@@ -1322,25 +1422,35 @@ class LinearAdapter(BaseAdapter[Task]):
         return Comment(
             id=created_comment["id"],
             ticket_id=comment.ticket_id,
-            author=created_comment["user"]["email"] if created_comment.get("user") else None,
+            author=(
+                created_comment["user"]["email"]
+                if created_comment.get("user")
+                else None
+            ),
             content=created_comment["body"],
-            created_at=datetime.fromisoformat(created_comment["createdAt"].replace("Z", "+00:00")),
+            created_at=datetime.fromisoformat(
+                created_comment["createdAt"].replace("Z", "+00:00")
+            ),
             metadata={
                 "linear": {
                     "id": created_comment["id"],
-                    "parent_id": created_comment.get("parent", {}).get("id") if created_comment.get("parent") else None,
+                    "parent_id": (
+                        created_comment.get("parent", {}).get("id")
+                        if created_comment.get("parent")
+                        else None
+                    ),
                 }
             },
         )
 
     async def get_comments(
-        self,
-        ticket_id: str,
-        limit: int = 10,
-        offset: int = 0
+        self, ticket_id: str, limit: int = 10, offset: int = 0
     ) -> List[Comment]:
         """Get comments for a Linear issue with pagination."""
-        query = gql(USER_FRAGMENT + COMMENT_FRAGMENT + """
+        query = gql(
+            USER_FRAGMENT
+            + COMMENT_FRAGMENT
+            + """
             query GetIssueComments($identifier: String!, $first: Int!) {
                 issue(id: $identifier) {
                     comments(first: $first, orderBy: createdAt) {
@@ -1350,7 +1460,8 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         try:
             client = self._create_client()
@@ -1361,7 +1472,7 @@ class LinearAdapter(BaseAdapter[Task]):
                         "identifier": ticket_id,
                         "first": limit,
                         # Note: Linear uses cursor-based pagination
-                    }
+                    },
                 )
 
             if not result.get("issue"):
@@ -1369,19 +1480,31 @@ class LinearAdapter(BaseAdapter[Task]):
 
             comments = []
             for comment_data in result["issue"]["comments"]["nodes"]:
-                comments.append(Comment(
-                    id=comment_data["id"],
-                    ticket_id=ticket_id,
-                    author=comment_data["user"]["email"] if comment_data.get("user") else None,
-                    content=comment_data["body"],
-                    created_at=datetime.fromisoformat(comment_data["createdAt"].replace("Z", "+00:00")),
-                    metadata={
-                        "linear": {
-                            "id": comment_data["id"],
-                            "parent_id": comment_data.get("parent", {}).get("id") if comment_data.get("parent") else None,
-                        }
-                    },
-                ))
+                comments.append(
+                    Comment(
+                        id=comment_data["id"],
+                        ticket_id=ticket_id,
+                        author=(
+                            comment_data["user"]["email"]
+                            if comment_data.get("user")
+                            else None
+                        ),
+                        content=comment_data["body"],
+                        created_at=datetime.fromisoformat(
+                            comment_data["createdAt"].replace("Z", "+00:00")
+                        ),
+                        metadata={
+                            "linear": {
+                                "id": comment_data["id"],
+                                "parent_id": (
+                                    comment_data.get("parent", {}).get("id")
+                                    if comment_data.get("parent")
+                                    else None
+                                ),
+                            }
+                        },
+                    )
+                )
 
             return comments
         except TransportQueryError:
@@ -1391,7 +1514,8 @@ class LinearAdapter(BaseAdapter[Task]):
         """Create a Linear project."""
         team_id = await self._ensure_team_id()
 
-        create_query = gql("""
+        create_query = gql(
+            """
             mutation CreateProject($input: ProjectCreateInput!) {
                 projectCreate(input: $input) {
                     success
@@ -1401,7 +1525,8 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         project_input = {
             "name": name,
@@ -1413,8 +1538,7 @@ class LinearAdapter(BaseAdapter[Task]):
         client = self._create_client()
         async with client as session:
             result = await session.execute(
-                create_query,
-                variable_values={"input": project_input}
+                create_query, variable_values={"input": project_input}
             )
 
         if not result["projectCreate"]["success"]:
@@ -1430,7 +1554,8 @@ class LinearAdapter(BaseAdapter[Task]):
         if active_only:
             cycle_filter["isActive"] = {"eq": True}
 
-        query = gql("""
+        query = gql(
+            """
             query GetCycles($filter: CycleFilter) {
                 cycles(filter: $filter, orderBy: createdAt) {
                     nodes {
@@ -1450,43 +1575,49 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         client = self._create_client()
         async with client as session:
             result = await session.execute(
-                query,
-                variable_values={"filter": cycle_filter}
+                query, variable_values={"filter": cycle_filter}
             )
 
         return result["cycles"]["nodes"]
 
     async def add_to_cycle(self, ticket_id: str, cycle_id: str) -> bool:
         """Add an issue to a cycle."""
-        return await self.update(
-            ticket_id,
-            {"metadata": {"linear": {"cycle_id": cycle_id}}}
-        ) is not None
+        return (
+            await self.update(
+                ticket_id, {"metadata": {"linear": {"cycle_id": cycle_id}}}
+            )
+            is not None
+        )
 
     async def set_due_date(self, ticket_id: str, due_date: Union[str, date]) -> bool:
         """Set due date for an issue."""
         if isinstance(due_date, date):
             due_date = due_date.isoformat()
 
-        return await self.update(
-            ticket_id,
-            {"metadata": {"linear": {"due_date": due_date}}}
-        ) is not None
+        return (
+            await self.update(
+                ticket_id, {"metadata": {"linear": {"due_date": due_date}}}
+            )
+            is not None
+        )
 
     async def add_reaction(self, comment_id: str, emoji: str) -> bool:
         """Add reaction to a comment."""
-        create_query = gql("""
+        create_query = gql(
+            """
             mutation CreateReaction($input: ReactionCreateInput!) {
                 reactionCreate(input: $input) {
                     success
                 }
             }
-        """)
+        """
+        )
 
         client = self._create_client()
         async with client as session:
@@ -1497,7 +1628,7 @@ class LinearAdapter(BaseAdapter[Task]):
                         "commentId": comment_id,
                         "emoji": emoji,
                     }
-                }
+                },
             )
 
         return result.get("reactionCreate", {}).get("success", False)
@@ -1517,9 +1648,11 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             Dictionary with link status and details
+
         """
         # Parse PR URL to extract details
         import re
+
         pr_pattern = r"github\.com/([^/]+)/([^/]+)/pull/(\d+)"
         match = re.search(pr_pattern, pr_url)
 
@@ -1531,7 +1664,8 @@ class LinearAdapter(BaseAdapter[Task]):
             pr_number = int(extracted_pr_number)
 
         # Create an attachment to link the PR
-        create_query = gql("""
+        create_query = gql(
+            """
             mutation CreateAttachment($input: AttachmentCreateInput!) {
                 attachmentCreate(input: $input) {
                     attachment {
@@ -1544,7 +1678,8 @@ class LinearAdapter(BaseAdapter[Task]):
                     success
                 }
             }
-        """)
+        """
+        )
 
         # Get the issue ID from the identifier
         issue = await self.read(ticket_id)
@@ -1563,15 +1698,14 @@ class LinearAdapter(BaseAdapter[Task]):
                     "number": pr_number,
                     "owner": owner,
                     "repo": repo,
-                }
+                },
             },
         }
 
         client = self._create_client()
         async with client as session:
             result = await session.execute(
-                create_query,
-                variable_values={"input": attachment_input}
+                create_query, variable_values={"input": attachment_input}
             )
 
         if result.get("attachmentCreate", {}).get("success"):
@@ -1623,6 +1757,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             Dictionary with PR creation status
+
         """
         # Get the issue details
         issue = await self.read(ticket_id)
@@ -1646,7 +1781,8 @@ class LinearAdapter(BaseAdapter[Task]):
             head_branch = f"{ticket_id.lower()}-{safe_title}"
 
         # Update the issue with the branch name
-        update_query = gql("""
+        update_query = gql(
+            """
             mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
                 issueUpdate(id: $id, input: $input) {
                     issue {
@@ -1657,7 +1793,8 @@ class LinearAdapter(BaseAdapter[Task]):
                     success
                 }
             }
-        """)
+        """
+        )
 
         linear_id = issue.metadata.get("linear", {}).get("id")
         if not linear_id:
@@ -1671,10 +1808,7 @@ class LinearAdapter(BaseAdapter[Task]):
         async with client as session:
             result = await session.execute(
                 update_query,
-                variable_values={
-                    "id": linear_id,
-                    "input": {"branchName": head_branch}
-                }
+                variable_values={"id": linear_id, "input": {"branchName": head_branch}},
             )
 
         if result.get("issueUpdate", {}).get("success"):
@@ -1705,21 +1839,22 @@ class LinearAdapter(BaseAdapter[Task]):
 
     async def _search_by_identifier(self, identifier: str) -> Optional[Dict[str, Any]]:
         """Search for an issue by its identifier."""
-        search_query = gql("""
+        search_query = gql(
+            """
             query SearchIssue($identifier: String!) {
                 issue(id: $identifier) {
                     id
                     identifier
                 }
             }
-        """)
+        """
+        )
 
         try:
             client = self._create_client()
             async with client as session:
                 result = await session.execute(
-                    search_query,
-                    variable_values={"identifier": identifier}
+                    search_query, variable_values={"identifier": identifier}
                 )
             return result.get("issue")
         except:
@@ -1728,10 +1863,7 @@ class LinearAdapter(BaseAdapter[Task]):
     # Epic/Issue/Task Hierarchy Methods (Linear: Project = Epic, Issue = Issue, Sub-issue = Task)
 
     async def create_epic(
-        self,
-        title: str,
-        description: Optional[str] = None,
-        **kwargs
+        self, title: str, description: Optional[str] = None, **kwargs
     ) -> Optional[Epic]:
         """Create epic (Linear Project).
 
@@ -1742,10 +1874,13 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             Created epic or None if failed
+
         """
         team_id = await self._ensure_team_id()
 
-        create_query = gql(PROJECT_FRAGMENT + """
+        create_query = gql(
+            PROJECT_FRAGMENT
+            + """
             mutation CreateProject($input: ProjectCreateInput!) {
                 projectCreate(input: $input) {
                     success
@@ -1754,7 +1889,8 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         project_input = {
             "name": title,
@@ -1772,8 +1908,7 @@ class LinearAdapter(BaseAdapter[Task]):
         client = self._create_client()
         async with client as session:
             result = await session.execute(
-                create_query,
-                variable_values={"input": project_input}
+                create_query, variable_values={"input": project_input}
             )
 
         if not result["projectCreate"]["success"]:
@@ -1790,22 +1925,23 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             Epic if found, None otherwise
+
         """
-        query = gql(PROJECT_FRAGMENT + """
+        query = gql(
+            PROJECT_FRAGMENT
+            + """
             query GetProject($id: String!) {
                 project(id: $id) {
                     ...ProjectFields
                 }
             }
-        """)
+        """
+        )
 
         try:
             client = self._create_client()
             async with client as session:
-                result = await session.execute(
-                    query,
-                    variable_values={"id": epic_id}
-                )
+                result = await session.execute(query, variable_values={"id": epic_id})
 
             if result.get("project"):
                 return self._epic_from_linear_project(result["project"])
@@ -1822,6 +1958,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             List of epics
+
         """
         team_id = await self._ensure_team_id()
 
@@ -1840,7 +1977,9 @@ class LinearAdapter(BaseAdapter[Task]):
             linear_state = state_mapping.get(kwargs["state"], "planned")
             project_filter["state"] = {"eq": linear_state}
 
-        query = gql(PROJECT_FRAGMENT + """
+        query = gql(
+            PROJECT_FRAGMENT
+            + """
             query ListProjects($filter: ProjectFilter, $first: Int!) {
                 projects(filter: $filter, first: $first, orderBy: updatedAt) {
                     nodes {
@@ -1848,7 +1987,8 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         client = self._create_client()
         async with client as session:
@@ -1856,8 +1996,8 @@ class LinearAdapter(BaseAdapter[Task]):
                 query,
                 variable_values={
                     "filter": project_filter,
-                    "first": kwargs.get("limit", 50)
-                }
+                    "first": kwargs.get("limit", 50),
+                },
             )
 
         epics = []
@@ -1871,7 +2011,7 @@ class LinearAdapter(BaseAdapter[Task]):
         title: str,
         description: Optional[str] = None,
         epic_id: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> Optional[Task]:
         """Create issue and optionally associate with project (epic).
 
@@ -1883,6 +2023,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             Created issue or None if failed
+
         """
         # Use existing create method but ensure it's created as an ISSUE type
         task = Task(
@@ -1890,7 +2031,7 @@ class LinearAdapter(BaseAdapter[Task]):
             description=description,
             ticket_type=TicketType.ISSUE,
             parent_epic=epic_id,
-            **{k: v for k, v in kwargs.items() if k in Task.__fields__}
+            **{k: v for k, v in kwargs.items() if k in Task.__fields__},
         )
 
         # The existing create method handles project association via parent_epic field
@@ -1904,8 +2045,11 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             List of issues belonging to project
+
         """
-        query = gql(ISSUE_LIST_FRAGMENTS + """
+        query = gql(
+            ISSUE_LIST_FRAGMENTS
+            + """
             query GetProjectIssues($projectId: String!, $first: Int!) {
                 project(id: $projectId) {
                     issues(first: $first) {
@@ -1915,14 +2059,14 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         try:
             client = self._create_client()
             async with client as session:
                 result = await session.execute(
-                    query,
-                    variable_values={"projectId": epic_id, "first": 100}
+                    query, variable_values={"projectId": epic_id, "first": 100}
                 )
 
             if not result.get("project"):
@@ -1940,11 +2084,7 @@ class LinearAdapter(BaseAdapter[Task]):
             return []
 
     async def create_task(
-        self,
-        title: str,
-        parent_id: str,
-        description: Optional[str] = None,
-        **kwargs
+        self, title: str, parent_id: str, description: Optional[str] = None, **kwargs
     ) -> Optional[Task]:
         """Create task as sub-issue of parent.
 
@@ -1959,24 +2099,26 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Raises:
             ValueError: If parent_id is not provided
+
         """
         if not parent_id:
             raise ValueError("Tasks must have a parent_id (issue identifier)")
 
         # Get parent issue's Linear ID
-        parent_query = gql("""
+        parent_query = gql(
+            """
             query GetIssueId($identifier: String!) {
                 issue(id: $identifier) {
                     id
                 }
             }
-        """)
+        """
+        )
 
         client = self._create_client()
         async with client as session:
             parent_result = await session.execute(
-                parent_query,
-                variable_values={"identifier": parent_id}
+                parent_query, variable_values={"identifier": parent_id}
             )
 
         if not parent_result.get("issue"):
@@ -1990,7 +2132,7 @@ class LinearAdapter(BaseAdapter[Task]):
             description=description,
             ticket_type=TicketType.TASK,
             parent_issue=parent_id,
-            **{k: v for k, v in kwargs.items() if k in Task.__fields__}
+            **{k: v for k, v in kwargs.items() if k in Task.__fields__},
         )
 
         # Validate hierarchy
@@ -2024,10 +2166,14 @@ class LinearAdapter(BaseAdapter[Task]):
 
         # Set priority
         if task.priority:
-            issue_input["priority"] = LinearPriorityMapping.TO_LINEAR.get(task.priority, 3)
+            issue_input["priority"] = LinearPriorityMapping.TO_LINEAR.get(
+                task.priority, 3
+            )
 
         # Create sub-issue mutation
-        create_query = gql(ALL_FRAGMENTS + """
+        create_query = gql(
+            ALL_FRAGMENTS
+            + """
             mutation CreateSubIssue($input: IssueCreateInput!) {
                 issueCreate(input: $input) {
                     success
@@ -2036,13 +2182,13 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         client = self._create_client()
         async with client as session:
             result = await session.execute(
-                create_query,
-                variable_values={"input": issue_input}
+                create_query, variable_values={"input": issue_input}
             )
 
         if not result["issueCreate"]["success"]:
@@ -2059,8 +2205,11 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             List of tasks belonging to issue
+
         """
-        query = gql(ISSUE_LIST_FRAGMENTS + """
+        query = gql(
+            ISSUE_LIST_FRAGMENTS
+            + """
             query GetIssueSubtasks($identifier: String!) {
                 issue(id: $identifier) {
                     children {
@@ -2070,14 +2219,14 @@ class LinearAdapter(BaseAdapter[Task]):
                     }
                 }
             }
-        """)
+        """
+        )
 
         try:
             client = self._create_client()
             async with client as session:
                 result = await session.execute(
-                    query,
-                    variable_values={"identifier": issue_id}
+                    query, variable_values={"identifier": issue_id}
                 )
 
             if not result.get("issue"):

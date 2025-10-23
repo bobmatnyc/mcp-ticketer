@@ -1,17 +1,17 @@
 """JIRA adapter implementation using REST API v3."""
 
-import os
 import asyncio
-from typing import List, Optional, Dict, Any, Union, Tuple
+import logging
+import os
 from datetime import datetime
 from enum import Enum
-import logging
+from typing import Any, Dict, List, Optional, Union
 
 import httpx
 from httpx import AsyncClient, HTTPStatusError, TimeoutException
 
 from ..core.adapter import BaseAdapter
-from ..core.models import Epic, Task, Comment, SearchQuery, TicketState, Priority
+from ..core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
 from ..core.registry import AdapterRegistry
 
 logger = logging.getLogger(__name__)
@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 class JiraIssueType(str, Enum):
     """Common JIRA issue types."""
+
     EPIC = "Epic"
     STORY = "Story"
     TASK = "Task"
@@ -30,6 +31,7 @@ class JiraIssueType(str, Enum):
 
 class JiraPriority(str, Enum):
     """Standard JIRA priority levels."""
+
     HIGHEST = "Highest"
     HIGH = "High"
     MEDIUM = "Medium"
@@ -53,6 +55,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                 - verify_ssl: Whether to verify SSL certificates (default: True)
                 - timeout: Request timeout in seconds (default: 30)
                 - max_retries: Maximum retry attempts (default: 3)
+
         """
         super().__init__(config)
 
@@ -60,7 +63,9 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         self.server = config.get("server") or os.getenv("JIRA_SERVER", "")
         self.email = config.get("email") or os.getenv("JIRA_EMAIL", "")
         self.api_token = config.get("api_token") or os.getenv("JIRA_API_TOKEN", "")
-        self.project_key = config.get("project_key") or os.getenv("JIRA_PROJECT_KEY", "")
+        self.project_key = config.get("project_key") or os.getenv(
+            "JIRA_PROJECT_KEY", ""
+        )
         self.is_cloud = config.get("cloud", True)
         self.verify_ssl = config.get("verify_ssl", True)
         self.timeout = config.get("timeout", 30)
@@ -74,13 +79,17 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         self.server = self.server.rstrip("/")
 
         # API base URL
-        self.api_base = f"{self.server}/rest/api/3" if self.is_cloud else f"{self.server}/rest/api/2"
+        self.api_base = (
+            f"{self.server}/rest/api/3"
+            if self.is_cloud
+            else f"{self.server}/rest/api/2"
+        )
 
         # HTTP client setup
         self.auth = httpx.BasicAuth(self.email, self.api_token)
         self.headers = {
             "Accept": "application/json",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         # Cache for workflow states and transitions
@@ -94,13 +103,23 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
         Returns:
             (is_valid, error_message) - Tuple of validation result and error message
+
         """
         if not self.server:
-            return False, "JIRA_SERVER is required but not found. Set it in .env.local or environment."
+            return (
+                False,
+                "JIRA_SERVER is required but not found. Set it in .env.local or environment.",
+            )
         if not self.email:
-            return False, "JIRA_EMAIL is required but not found. Set it in .env.local or environment."
+            return (
+                False,
+                "JIRA_EMAIL is required but not found. Set it in .env.local or environment.",
+            )
         if not self.api_token:
-            return False, "JIRA_API_TOKEN is required but not found. Set it in .env.local or environment."
+            return (
+                False,
+                "JIRA_API_TOKEN is required but not found. Set it in .env.local or environment.",
+            )
         return True, ""
 
     def _get_state_mapping(self) -> Dict[TicketState, str]:
@@ -122,7 +141,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             auth=self.auth,
             headers=self.headers,
             timeout=self.timeout,
-            verify=self.verify_ssl
+            verify=self.verify_ssl,
         )
 
     async def _make_request(
@@ -131,7 +150,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         endpoint: str,
         data: Optional[Dict[str, Any]] = None,
         params: Optional[Dict[str, Any]] = None,
-        retry_count: int = 0
+        retry_count: int = 0,
     ) -> Dict[str, Any]:
         """Make HTTP request to JIRA API with retry logic.
 
@@ -148,16 +167,14 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         Raises:
             HTTPStatusError: On API errors
             TimeoutException: On timeout
+
         """
         url = f"{self.api_base}/{endpoint.lstrip('/')}"
 
         async with await self._get_client() as client:
             try:
                 response = await client.request(
-                    method=method,
-                    url=url,
-                    json=data,
-                    params=params
+                    method=method, url=url, json=data, params=params
                 )
                 response.raise_for_status()
 
@@ -169,7 +186,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
             except TimeoutException as e:
                 if retry_count < self.max_retries:
-                    await asyncio.sleep(2 ** retry_count)  # Exponential backoff
+                    await asyncio.sleep(2**retry_count)  # Exponential backoff
                     return await self._make_request(
                         method, endpoint, data, params, retry_count + 1
                     )
@@ -185,7 +202,9 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                     )
 
                 # Log error details
-                logger.error(f"JIRA API error: {e.response.status_code} - {e.response.text}")
+                logger.error(
+                    f"JIRA API error: {e.response.status_code} - {e.response.text}"
+                )
                 raise e
 
     async def _get_priorities(self) -> List[Dict[str, Any]]:
@@ -194,7 +213,9 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             self._priority_cache = await self._make_request("GET", "priority")
         return self._priority_cache
 
-    async def _get_issue_types(self, project_key: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def _get_issue_types(
+        self, project_key: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """Get available issue types for a project."""
         key = project_key or self.project_key
         if key not in self._issue_types_cache:
@@ -260,38 +281,21 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         This creates a simple document with paragraphs for each line.
         """
         if not text:
-            return {
-                "type": "doc",
-                "version": 1,
-                "content": []
-            }
+            return {"type": "doc", "version": 1, "content": []}
 
         # Split text into lines and create paragraphs
-        lines = text.split('\n')
+        lines = text.split("\n")
         content = []
 
         for line in lines:
             if line.strip():  # Non-empty line
-                content.append({
-                    "type": "paragraph",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": line
-                        }
-                    ]
-                })
+                content.append(
+                    {"type": "paragraph", "content": [{"type": "text", "text": line}]}
+                )
             else:  # Empty line becomes empty paragraph
-                content.append({
-                    "type": "paragraph",
-                    "content": []
-                })
+                content.append({"type": "paragraph", "content": []})
 
-        return {
-            "type": "doc",
-            "version": 1,
-            "content": content
-        }
+        return {"type": "doc", "version": 1, "content": content}
 
     def _map_priority_to_jira(self, priority: Priority) -> str:
         """Map universal priority to JIRA priority."""
@@ -303,7 +307,9 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         }
         return mapping.get(priority, JiraPriority.MEDIUM)
 
-    def _map_priority_from_jira(self, jira_priority: Optional[Dict[str, Any]]) -> Priority:
+    def _map_priority_from_jira(
+        self, jira_priority: Optional[Dict[str, Any]]
+    ) -> Priority:
         """Map JIRA priority to universal priority."""
         if not jira_priority:
             return Priority.MEDIUM
@@ -375,12 +381,16 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                 label.get("name", "") if isinstance(label, dict) else str(label)
                 for label in fields.get("labels", [])
             ],
-            "created_at": datetime.fromisoformat(
-                fields.get("created", "").replace("Z", "+00:00")
-            ) if fields.get("created") else None,
-            "updated_at": datetime.fromisoformat(
-                fields.get("updated", "").replace("Z", "+00:00")
-            ) if fields.get("updated") else None,
+            "created_at": (
+                datetime.fromisoformat(fields.get("created", "").replace("Z", "+00:00"))
+                if fields.get("created")
+                else None
+            ),
+            "updated_at": (
+                datetime.fromisoformat(fields.get("updated", "").replace("Z", "+00:00"))
+                if fields.get("updated")
+                else None
+            ),
             "metadata": {
                 "jira": {
                     "id": issue.get("id"),
@@ -393,7 +403,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                     "fix_versions": fields.get("fixVersions", []),
                     "resolution": fields.get("resolution"),
                 }
-            }
+            },
         }
 
         if is_epic:
@@ -401,9 +411,8 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             return Epic(
                 **base_data,
                 child_issues=[
-                    subtask.get("key")
-                    for subtask in fields.get("subtasks", [])
-                ]
+                    subtask.get("key") for subtask in fields.get("subtasks", [])
+                ],
             )
         else:
             # Create Task
@@ -414,24 +423,34 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                 **base_data,
                 parent_issue=parent.get("key") if parent else None,
                 parent_epic=epic_link if epic_link else None,
-                assignee=fields.get("assignee", {}).get("displayName")
-                if fields.get("assignee") else None,
-                estimated_hours=fields.get("timetracking", {}).get(
-                    "originalEstimateSeconds", 0
-                ) / 3600 if fields.get("timetracking") else None,
-                actual_hours=fields.get("timetracking", {}).get(
-                    "timeSpentSeconds", 0
-                ) / 3600 if fields.get("timetracking") else None,
+                assignee=(
+                    fields.get("assignee", {}).get("displayName")
+                    if fields.get("assignee")
+                    else None
+                ),
+                estimated_hours=(
+                    fields.get("timetracking", {}).get("originalEstimateSeconds", 0)
+                    / 3600
+                    if fields.get("timetracking")
+                    else None
+                ),
+                actual_hours=(
+                    fields.get("timetracking", {}).get("timeSpentSeconds", 0) / 3600
+                    if fields.get("timetracking")
+                    else None
+                ),
             )
 
     def _ticket_to_issue_fields(
-        self,
-        ticket: Union[Epic, Task],
-        issue_type: Optional[str] = None
+        self, ticket: Union[Epic, Task], issue_type: Optional[str] = None
     ) -> Dict[str, Any]:
         """Convert universal ticket to JIRA issue fields."""
         # Convert description to ADF format for JIRA Cloud
-        description = self._convert_to_adf(ticket.description or "") if self.is_cloud else (ticket.description or "")
+        description = (
+            self._convert_to_adf(ticket.description or "")
+            if self.is_cloud
+            else (ticket.description or "")
+        )
 
         fields = {
             "summary": ticket.title,
@@ -480,11 +499,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         fields = self._ticket_to_issue_fields(ticket)
 
         # Create issue
-        data = await self._make_request(
-            "POST",
-            "issue",
-            data={"fields": fields}
-        )
+        data = await self._make_request("POST", "issue", data={"fields": fields})
 
         # Set the ID and fetch full issue data
         ticket.id = data.get("key")
@@ -502,9 +517,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
         try:
             issue = await self._make_request(
-                "GET",
-                f"issue/{ticket_id}",
-                params={"expand": "renderedFields"}
+                "GET", f"issue/{ticket_id}", params={"expand": "renderedFields"}
             )
             return self._issue_to_ticket(issue)
         except HTTPStatusError as e:
@@ -513,9 +526,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             raise
 
     async def update(
-        self,
-        ticket_id: str,
-        updates: Dict[str, Any]
+        self, ticket_id: str, updates: Dict[str, Any]
     ) -> Optional[Union[Epic, Task]]:
         """Update a JIRA issue."""
         # Validate credentials before attempting operation
@@ -536,7 +547,9 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         if "description" in updates:
             fields["description"] = updates["description"]
         if "priority" in updates:
-            fields["priority"] = {"name": self._map_priority_to_jira(updates["priority"])}
+            fields["priority"] = {
+                "name": self._map_priority_to_jira(updates["priority"])
+            }
         if "tags" in updates:
             fields["labels"] = updates["tags"]
         if "assignee" in updates:
@@ -545,9 +558,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         # Apply update
         if fields:
             await self._make_request(
-                "PUT",
-                f"issue/{ticket_id}",
-                data={"fields": fields}
+                "PUT", f"issue/{ticket_id}", data={"fields": fields}
             )
 
         # Handle state transitions separately
@@ -573,10 +584,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             raise
 
     async def list(
-        self,
-        limit: int = 10,
-        offset: int = 0,
-        filters: Optional[Dict[str, Any]] = None
+        self, limit: int = 10, offset: int = 0, filters: Optional[Dict[str, Any]] = None
     ) -> List[Union[Epic, Task]]:
         """List JIRA issues with pagination."""
         # Build JQL query
@@ -608,8 +616,8 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                 "startAt": offset,
                 "maxResults": limit,
                 "fields": ["*all"],
-                "expand": ["renderedFields"]
-            }
+                "expand": ["renderedFields"],
+            },
         )
 
         # Convert issues
@@ -658,8 +666,8 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                 "startAt": query.offset,
                 "maxResults": query.limit,
                 "fields": ["*all"],
-                "expand": ["renderedFields"]
-            }
+                "expand": ["renderedFields"],
+            },
         )
 
         # Convert and return results
@@ -667,9 +675,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         return [self._issue_to_ticket(issue) for issue in issues]
 
     async def transition_state(
-        self,
-        ticket_id: str,
-        target_state: TicketState
+        self, ticket_id: str, target_state: TicketState
     ) -> Optional[Union[Epic, Task]]:
         """Transition JIRA issue to a new state."""
         # Get available transitions
@@ -688,10 +694,17 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         if not transition:
             # Try to find by status category
             for trans in transitions:
-                category = trans.get("to", {}).get("statusCategory", {}).get("key", "").lower()
-                if (target_state == TicketState.DONE and category == "done") or \
-                   (target_state == TicketState.IN_PROGRESS and category == "indeterminate") or \
-                   (target_state == TicketState.OPEN and category == "new"):
+                category = (
+                    trans.get("to", {}).get("statusCategory", {}).get("key", "").lower()
+                )
+                if (
+                    (target_state == TicketState.DONE and category == "done")
+                    or (
+                        target_state == TicketState.IN_PROGRESS
+                        and category == "indeterminate"
+                    )
+                    or (target_state == TicketState.OPEN and category == "new")
+                ):
                     transition = trans
                     break
 
@@ -706,7 +719,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         await self._make_request(
             "POST",
             f"issue/{ticket_id}/transitions",
-            data={"transition": {"id": transition["id"]}}
+            data={"transition": {"id": transition["id"]}},
         )
 
         # Return updated issue
@@ -715,51 +728,39 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
     async def add_comment(self, comment: Comment) -> Comment:
         """Add a comment to a JIRA issue."""
         # Prepare comment data
-        data = {
-            "body": comment.content
-        }
+        data = {"body": comment.content}
 
         # Add comment
         result = await self._make_request(
-            "POST",
-            f"issue/{comment.ticket_id}/comment",
-            data=data
+            "POST", f"issue/{comment.ticket_id}/comment", data=data
         )
 
         # Update comment with JIRA data
         comment.id = result.get("id")
-        comment.created_at = datetime.fromisoformat(
-            result.get("created", "").replace("Z", "+00:00")
-        ) if result.get("created") else datetime.now()
+        comment.created_at = (
+            datetime.fromisoformat(result.get("created", "").replace("Z", "+00:00"))
+            if result.get("created")
+            else datetime.now()
+        )
         comment.author = result.get("author", {}).get("displayName", comment.author)
         comment.metadata["jira"] = result
 
         return comment
 
     async def get_comments(
-        self,
-        ticket_id: str,
-        limit: int = 10,
-        offset: int = 0
+        self, ticket_id: str, limit: int = 10, offset: int = 0
     ) -> List[Comment]:
         """Get comments for a JIRA issue."""
         # Fetch issue with comments
-        params = {
-            "expand": "comments",
-            "fields": "comment"
-        }
+        params = {"expand": "comments", "fields": "comment"}
 
-        issue = await self._make_request(
-            "GET",
-            f"issue/{ticket_id}",
-            params=params
-        )
+        issue = await self._make_request("GET", f"issue/{ticket_id}", params=params)
 
         # Extract comments
         comments_data = issue.get("fields", {}).get("comment", {}).get("comments", [])
 
         # Apply pagination
-        paginated = comments_data[offset:offset + limit]
+        paginated = comments_data[offset : offset + limit]
 
         # Convert to Comment objects
         comments = []
@@ -769,16 +770,22 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                 ticket_id=ticket_id,
                 author=comment_data.get("author", {}).get("displayName", "Unknown"),
                 content=comment_data.get("body", ""),
-                created_at=datetime.fromisoformat(
-                    comment_data.get("created", "").replace("Z", "+00:00")
-                ) if comment_data.get("created") else None,
-                metadata={"jira": comment_data}
+                created_at=(
+                    datetime.fromisoformat(
+                        comment_data.get("created", "").replace("Z", "+00:00")
+                    )
+                    if comment_data.get("created")
+                    else None
+                ),
+                metadata={"jira": comment_data},
             )
             comments.append(comment)
 
         return comments
 
-    async def get_project_info(self, project_key: Optional[str] = None) -> Dict[str, Any]:
+    async def get_project_info(
+        self, project_key: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Get JIRA project information including workflows and fields."""
         key = project_key or self.project_key
         if not key:
@@ -807,6 +814,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
         Returns:
             List of matching tickets
+
         """
         data = await self._make_request(
             "POST",
@@ -816,7 +824,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                 "startAt": 0,
                 "maxResults": limit,
                 "fields": ["*all"],
-            }
+            },
         )
 
         issues = data.get("issues", [])
@@ -830,13 +838,14 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
         Returns:
             List of sprint information
+
         """
         if not board_id:
             # Try to find a board for the project
             boards_data = await self._make_request(
                 "GET",
-                f"/rest/agile/1.0/board",
-                params={"projectKeyOrId": self.project_key}
+                "/rest/agile/1.0/board",
+                params={"projectKeyOrId": self.project_key},
             )
             boards = boards_data.get("values", [])
             if not boards:
@@ -847,7 +856,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         sprints_data = await self._make_request(
             "GET",
             f"/rest/agile/1.0/board/{board_id}/sprint",
-            params={"state": "active,future"}
+            params={"state": "active,future"},
         )
 
         return sprints_data.get("values", [])

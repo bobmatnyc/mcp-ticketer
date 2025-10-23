@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 from typing import Any, Optional
-from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from mcp_ticketer.core.adapter import BaseAdapter
-from mcp_ticketer.core.models import Task, Epic, Comment, SearchQuery, TicketState
+from mcp_ticketer.core.models import Comment, SearchQuery, Task, TicketState
 
 
 class MockAdapter(BaseAdapter[Task]):
@@ -110,7 +109,9 @@ class MockAdapter(BaseAdapter[Task]):
     async def add_comment(self, comment: Comment) -> Comment:
         """Add comment."""
         if not comment.id:
-            comment.id = f"COMMENT-{len(self.comments_db.get(comment.ticket_id, [])) + 1}"
+            comment.id = (
+                f"COMMENT-{len(self.comments_db.get(comment.ticket_id, [])) + 1}"
+            )
 
         if comment.ticket_id not in self.comments_db:
             self.comments_db[comment.ticket_id] = []
@@ -142,7 +143,9 @@ def mock_adapter(mock_adapter_config: dict[str, Any]) -> MockAdapter:
 class TestBaseAdapterInit:
     """Tests for BaseAdapter initialization."""
 
-    def test_adapter_init_with_config(self, mock_adapter_config: dict[str, Any]) -> None:
+    def test_adapter_init_with_config(
+        self, mock_adapter_config: dict[str, Any]
+    ) -> None:
         """Test adapter initialization with configuration."""
         adapter = MockAdapter(mock_adapter_config)
         assert adapter.config == mock_adapter_config
@@ -206,7 +209,9 @@ class TestValidateTransition:
 
         # OPEN -> TESTED is invalid (must go through IN_PROGRESS -> READY -> TESTED)
         assert created.id is not None
-        is_valid = await mock_adapter.validate_transition(created.id, TicketState.TESTED)
+        is_valid = await mock_adapter.validate_transition(
+            created.id, TicketState.TESTED
+        )
         assert is_valid is False
 
     @pytest.mark.asyncio

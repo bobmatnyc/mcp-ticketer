@@ -1,8 +1,9 @@
 """Base adapter abstract class for ticket systems."""
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Dict, Any, TypeVar, Generic, Union
-from .models import Epic, Task, Comment, SearchQuery, TicketState, TicketType
+from typing import Any, Dict, Generic, List, Optional, TypeVar
+
+from .models import Comment, Epic, SearchQuery, Task, TicketState, TicketType
 
 # Generic type for tickets
 T = TypeVar("T", Epic, Task)
@@ -16,6 +17,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         Args:
             config: Adapter-specific configuration dictionary
+
         """
         self.config = config
         self._state_mapping = self._get_state_mapping()
@@ -26,6 +28,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             Dictionary mapping TicketState to system-specific state strings
+
         """
         pass
 
@@ -35,6 +38,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             (is_valid, error_message) - Tuple of validation result and error message
+
         """
         pass
 
@@ -47,6 +51,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             Created ticket with ID populated
+
         """
         pass
 
@@ -59,6 +64,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             Ticket if found, None otherwise
+
         """
         pass
 
@@ -72,6 +78,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             Updated ticket if successful, None otherwise
+
         """
         pass
 
@@ -84,15 +91,13 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             True if deleted, False otherwise
+
         """
         pass
 
     @abstractmethod
     async def list(
-        self,
-        limit: int = 10,
-        offset: int = 0,
-        filters: Optional[Dict[str, Any]] = None
+        self, limit: int = 10, offset: int = 0, filters: Optional[Dict[str, Any]] = None
     ) -> List[T]:
         """List tickets with pagination and filters.
 
@@ -103,6 +108,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             List of tickets matching criteria
+
         """
         pass
 
@@ -115,14 +121,13 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             List of tickets matching search criteria
+
         """
         pass
 
     @abstractmethod
     async def transition_state(
-        self,
-        ticket_id: str,
-        target_state: TicketState
+        self, ticket_id: str, target_state: TicketState
     ) -> Optional[T]:
         """Transition ticket to a new state.
 
@@ -132,6 +137,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             Updated ticket if transition successful, None otherwise
+
         """
         pass
 
@@ -144,15 +150,13 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             Created comment with ID populated
+
         """
         pass
 
     @abstractmethod
     async def get_comments(
-        self,
-        ticket_id: str,
-        limit: int = 10,
-        offset: int = 0
+        self, ticket_id: str, limit: int = 10, offset: int = 0
     ) -> List[Comment]:
         """Get comments for a ticket.
 
@@ -163,6 +167,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             List of comments for the ticket
+
         """
         pass
 
@@ -174,6 +179,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             System-specific state string
+
         """
         return self._state_mapping.get(state, state.value)
 
@@ -185,14 +191,13 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             Universal ticket state
+
         """
         reverse_mapping = {v: k for k, v in self._state_mapping.items()}
         return reverse_mapping.get(system_state, TicketState.OPEN)
 
     async def validate_transition(
-        self,
-        ticket_id: str,
-        target_state: TicketState
+        self, ticket_id: str, target_state: TicketState
     ) -> bool:
         """Validate if state transition is allowed.
 
@@ -202,6 +207,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             True if transition is valid
+
         """
         ticket = await self.read(ticket_id)
         if not ticket:
@@ -218,10 +224,7 @@ class BaseAdapter(ABC, Generic[T]):
     # Epic/Issue/Task Hierarchy Methods
 
     async def create_epic(
-        self,
-        title: str,
-        description: Optional[str] = None,
-        **kwargs
+        self, title: str, description: Optional[str] = None, **kwargs
     ) -> Optional[Epic]:
         """Create epic (top-level grouping).
 
@@ -232,12 +235,13 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             Created epic or None if failed
+
         """
         epic = Epic(
             title=title,
             description=description,
             ticket_type=TicketType.EPIC,
-            **{k: v for k, v in kwargs.items() if k in Epic.__fields__}
+            **{k: v for k, v in kwargs.items() if k in Epic.__fields__},
         )
         result = await self.create(epic)
         if isinstance(result, Epic):
@@ -252,6 +256,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             Epic if found, None otherwise
+
         """
         # Default implementation - subclasses should override for platform-specific logic
         result = await self.read(epic_id)
@@ -267,6 +272,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             List of epics
+
         """
         # Default implementation - subclasses should override
         filters = kwargs.copy()
@@ -279,7 +285,7 @@ class BaseAdapter(ABC, Generic[T]):
         title: str,
         description: Optional[str] = None,
         epic_id: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> Optional[Task]:
         """Create issue, optionally linked to epic.
 
@@ -291,13 +297,14 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             Created issue or None if failed
+
         """
         task = Task(
             title=title,
             description=description,
             ticket_type=TicketType.ISSUE,
             parent_epic=epic_id,
-            **{k: v for k, v in kwargs.items() if k in Task.__fields__}
+            **{k: v for k, v in kwargs.items() if k in Task.__fields__},
         )
         return await self.create(task)
 
@@ -309,6 +316,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             List of issues belonging to epic
+
         """
         # Default implementation - subclasses should override for efficiency
         filters = {"parent_epic": epic_id, "ticket_type": TicketType.ISSUE}
@@ -316,11 +324,7 @@ class BaseAdapter(ABC, Generic[T]):
         return [r for r in results if isinstance(r, Task) and r.is_issue()]
 
     async def create_task(
-        self,
-        title: str,
-        parent_id: str,
-        description: Optional[str] = None,
-        **kwargs
+        self, title: str, parent_id: str, description: Optional[str] = None, **kwargs
     ) -> Optional[Task]:
         """Create task as sub-ticket of parent issue.
 
@@ -335,6 +339,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         Raises:
             ValueError: If parent_id is not provided
+
         """
         if not parent_id:
             raise ValueError("Tasks must have a parent_id (issue)")
@@ -344,7 +349,7 @@ class BaseAdapter(ABC, Generic[T]):
             description=description,
             ticket_type=TicketType.TASK,
             parent_issue=parent_id,
-            **{k: v for k, v in kwargs.items() if k in Task.__fields__}
+            **{k: v for k, v in kwargs.items() if k in Task.__fields__},
         )
 
         # Validate hierarchy before creating
@@ -362,6 +367,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             List of tasks belonging to issue
+
         """
         # Default implementation - subclasses should override for efficiency
         filters = {"parent_issue": issue_id, "ticket_type": TicketType.TASK}

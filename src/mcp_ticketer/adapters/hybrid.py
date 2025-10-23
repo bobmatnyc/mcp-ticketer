@@ -4,15 +4,13 @@ This adapter enables synchronization across multiple ticketing systems
 (Linear, JIRA, GitHub, AITrackdown) with configurable sync strategies.
 """
 
-import asyncio
-import logging
-from typing import List, Optional, Dict, Any
-from datetime import datetime
-from pathlib import Path
 import json
+import logging
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from ..core.adapter import BaseAdapter
-from ..core.models import Task, Epic, Comment, SearchQuery, TicketState, Priority
+from ..core.models import Comment, Epic, SearchQuery, Task, TicketState
 from ..core.registry import AdapterRegistry
 
 logger = logging.getLogger(__name__)
@@ -38,6 +36,7 @@ class HybridAdapter(BaseAdapter):
                 - primary_adapter: Name of primary adapter
                 - sync_strategy: Sync strategy (primary_source, bidirectional, mirror)
                 - mapping_file: Path to ID mapping file (optional)
+
         """
         super().__init__(config)
 
@@ -50,7 +49,9 @@ class HybridAdapter(BaseAdapter):
         for name, adapter_config in adapter_configs.items():
             try:
                 adapter_type = adapter_config.get("adapter")
-                self.adapters[name] = AdapterRegistry.get_adapter(adapter_type, adapter_config)
+                self.adapters[name] = AdapterRegistry.get_adapter(
+                    adapter_type, adapter_config
+                )
                 logger.info(f"Initialized adapter: {name} ({adapter_type})")
             except Exception as e:
                 logger.error(f"Failed to initialize adapter {name}: {e}")
@@ -59,10 +60,14 @@ class HybridAdapter(BaseAdapter):
             raise ValueError("No adapters successfully initialized")
 
         if self.primary_adapter_name not in self.adapters:
-            raise ValueError(f"Primary adapter {self.primary_adapter_name} not found in adapters")
+            raise ValueError(
+                f"Primary adapter {self.primary_adapter_name} not found in adapters"
+            )
 
         # Load or initialize ID mapping
-        self.mapping_file = Path(config.get("mapping_file", ".mcp-ticketer/hybrid_mapping.json"))
+        self.mapping_file = Path(
+            config.get("mapping_file", ".mcp-ticketer/hybrid_mapping.json")
+        )
         self.id_mapping = self._load_mapping()
 
     def _get_state_mapping(self) -> Dict[TicketState, str]:
@@ -84,10 +89,11 @@ class HybridAdapter(BaseAdapter):
 
         Returns:
             Dictionary mapping universal ticket IDs to adapter-specific IDs
+
         """
         if self.mapping_file.exists():
             try:
-                with open(self.mapping_file, 'r') as f:
+                with open(self.mapping_file) as f:
                     return json.load(f)
             except Exception as e:
                 logger.error(f"Failed to load mapping file: {e}")
@@ -98,18 +104,21 @@ class HybridAdapter(BaseAdapter):
         """Save ID mapping to file."""
         try:
             self.mapping_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.mapping_file, 'w') as f:
+            with open(self.mapping_file, "w") as f:
                 json.dump(self.id_mapping, f, indent=2)
         except Exception as e:
             logger.error(f"Failed to save mapping file: {e}")
 
-    def _store_ticket_mapping(self, universal_id: str, adapter_name: str, adapter_ticket_id: str) -> None:
+    def _store_ticket_mapping(
+        self, universal_id: str, adapter_name: str, adapter_ticket_id: str
+    ) -> None:
         """Store mapping between universal ID and adapter-specific ID.
 
         Args:
             universal_id: Universal ticket identifier
             adapter_name: Name of adapter
             adapter_ticket_id: Adapter-specific ticket ID
+
         """
         if universal_id not in self.id_mapping:
             self.id_mapping[universal_id] = {}
@@ -117,7 +126,9 @@ class HybridAdapter(BaseAdapter):
         self.id_mapping[universal_id][adapter_name] = adapter_ticket_id
         self._save_mapping()
 
-    def _get_adapter_ticket_id(self, universal_id: str, adapter_name: str) -> Optional[str]:
+    def _get_adapter_ticket_id(
+        self, universal_id: str, adapter_name: str
+    ) -> Optional[str]:
         """Get adapter-specific ticket ID from universal ID.
 
         Args:
@@ -126,6 +137,7 @@ class HybridAdapter(BaseAdapter):
 
         Returns:
             Adapter-specific ticket ID or None
+
         """
         return self.id_mapping.get(universal_id, {}).get(adapter_name)
 
@@ -134,8 +146,10 @@ class HybridAdapter(BaseAdapter):
 
         Returns:
             UUID-like universal ticket identifier
+
         """
         import uuid
+
         return f"hybrid-{uuid.uuid4().hex[:12]}"
 
     async def create(self, ticket: Task | Epic) -> Task | Epic:
@@ -146,6 +160,7 @@ class HybridAdapter(BaseAdapter):
 
         Returns:
             Created ticket with universal ID
+
         """
         universal_id = self._generate_universal_id()
         results = []
@@ -154,11 +169,17 @@ class HybridAdapter(BaseAdapter):
         primary = self.adapters[self.primary_adapter_name]
         try:
             primary_ticket = await primary.create(ticket)
-            self._store_ticket_mapping(universal_id, self.primary_adapter_name, primary_ticket.id)
+            self._store_ticket_mapping(
+                universal_id, self.primary_adapter_name, primary_ticket.id
+            )
             results.append((self.primary_adapter_name, primary_ticket))
-            logger.info(f"Created ticket in primary adapter {self.primary_adapter_name}: {primary_ticket.id}")
+            logger.info(
+                f"Created ticket in primary adapter {self.primary_adapter_name}: {primary_ticket.id}"
+            )
         except Exception as e:
-            logger.error(f"Failed to create ticket in primary adapter {self.primary_adapter_name}: {e}")
+            logger.error(
+                f"Failed to create ticket in primary adapter {self.primary_adapter_name}: {e}"
+            )
             raise
 
         # Create in secondary adapters
@@ -185,12 +206,15 @@ class HybridAdapter(BaseAdapter):
 
         return primary_ticket
 
-    def _add_cross_references(self, ticket: Task | Epic, results: List[tuple[str, Task | Epic]]) -> None:
+    def _add_cross_references(
+        self, ticket: Task | Epic, results: List[tuple[str, Task | Epic]]
+    ) -> None:
         """Add cross-references to ticket description.
 
         Args:
             ticket: Ticket to update
             results: List of (adapter_name, ticket) tuples
+
         """
         cross_refs = "\n\n---\n**Cross-Platform References:**\n"
         for adapter_name, adapter_ticket in results:
@@ -209,13 +233,18 @@ class HybridAdapter(BaseAdapter):
 
         Returns:
             Ticket if found, None otherwise
+
         """
         # Check if this is a universal ID
         if ticket_id.startswith("hybrid-"):
             # Get primary adapter ticket ID
-            primary_id = self._get_adapter_ticket_id(ticket_id, self.primary_adapter_name)
+            primary_id = self._get_adapter_ticket_id(
+                ticket_id, self.primary_adapter_name
+            )
             if not primary_id:
-                logger.warning(f"No primary ticket ID found for universal ID: {ticket_id}")
+                logger.warning(
+                    f"No primary ticket ID found for universal ID: {ticket_id}"
+                )
                 return None
             ticket_id = primary_id
 
@@ -223,7 +252,9 @@ class HybridAdapter(BaseAdapter):
         primary = self.adapters[self.primary_adapter_name]
         return await primary.read(ticket_id)
 
-    async def update(self, ticket_id: str, updates: Dict[str, Any]) -> Optional[Task | Epic]:
+    async def update(
+        self, ticket_id: str, updates: Dict[str, Any]
+    ) -> Optional[Task | Epic]:
         """Update ticket across all adapters.
 
         Args:
@@ -232,6 +263,7 @@ class HybridAdapter(BaseAdapter):
 
         Returns:
             Updated ticket from primary adapter
+
         """
         universal_id = ticket_id
         if not ticket_id.startswith("hybrid-"):
@@ -254,7 +286,9 @@ class HybridAdapter(BaseAdapter):
             try:
                 updated_ticket = await adapter.update(adapter_ticket_id, updates)
                 results.append((adapter_name, updated_ticket))
-                logger.info(f"Updated ticket in adapter {adapter_name}: {adapter_ticket_id}")
+                logger.info(
+                    f"Updated ticket in adapter {adapter_name}: {adapter_ticket_id}"
+                )
             except Exception as e:
                 logger.error(f"Failed to update ticket in adapter {adapter_name}: {e}")
 
@@ -273,6 +307,7 @@ class HybridAdapter(BaseAdapter):
 
         Returns:
             Universal ID if found, None otherwise
+
         """
         for universal_id, mapping in self.id_mapping.items():
             if adapter_ticket_id in mapping.values():
@@ -287,6 +322,7 @@ class HybridAdapter(BaseAdapter):
 
         Returns:
             True if deleted from at least one adapter
+
         """
         universal_id = ticket_id
         if not ticket_id.startswith("hybrid-"):
@@ -306,9 +342,13 @@ class HybridAdapter(BaseAdapter):
             try:
                 if await adapter.delete(adapter_ticket_id):
                     success_count += 1
-                    logger.info(f"Deleted ticket from adapter {adapter_name}: {adapter_ticket_id}")
+                    logger.info(
+                        f"Deleted ticket from adapter {adapter_name}: {adapter_ticket_id}"
+                    )
             except Exception as e:
-                logger.error(f"Failed to delete ticket from adapter {adapter_name}: {e}")
+                logger.error(
+                    f"Failed to delete ticket from adapter {adapter_name}: {e}"
+                )
 
         # Remove from mapping
         if universal_id in self.id_mapping:
@@ -318,10 +358,7 @@ class HybridAdapter(BaseAdapter):
         return success_count > 0
 
     async def list(
-        self,
-        limit: int = 10,
-        offset: int = 0,
-        filters: Optional[Dict[str, Any]] = None
+        self, limit: int = 10, offset: int = 0, filters: Optional[Dict[str, Any]] = None
     ) -> List[Task | Epic]:
         """List tickets from primary adapter.
 
@@ -332,6 +369,7 @@ class HybridAdapter(BaseAdapter):
 
         Returns:
             List of tickets from primary adapter
+
         """
         primary = self.adapters[self.primary_adapter_name]
         return await primary.list(limit, offset, filters)
@@ -344,14 +382,13 @@ class HybridAdapter(BaseAdapter):
 
         Returns:
             List of tickets matching search criteria
+
         """
         primary = self.adapters[self.primary_adapter_name]
         return await primary.search(query)
 
     async def transition_state(
-        self,
-        ticket_id: str,
-        target_state: TicketState
+        self, ticket_id: str, target_state: TicketState
     ) -> Optional[Task | Epic]:
         """Transition ticket state across all adapters.
 
@@ -361,6 +398,7 @@ class HybridAdapter(BaseAdapter):
 
         Returns:
             Updated ticket from primary adapter
+
         """
         universal_id = ticket_id
         if not ticket_id.startswith("hybrid-"):
@@ -378,11 +416,17 @@ class HybridAdapter(BaseAdapter):
                 continue
 
             try:
-                updated_ticket = await adapter.transition_state(adapter_ticket_id, target_state)
+                updated_ticket = await adapter.transition_state(
+                    adapter_ticket_id, target_state
+                )
                 results.append((adapter_name, updated_ticket))
-                logger.info(f"Transitioned ticket in adapter {adapter_name}: {adapter_ticket_id}")
+                logger.info(
+                    f"Transitioned ticket in adapter {adapter_name}: {adapter_ticket_id}"
+                )
             except Exception as e:
-                logger.error(f"Failed to transition ticket in adapter {adapter_name}: {e}")
+                logger.error(
+                    f"Failed to transition ticket in adapter {adapter_name}: {e}"
+                )
 
         # Return result from primary adapter
         for adapter_name, ticket in results:
@@ -399,6 +443,7 @@ class HybridAdapter(BaseAdapter):
 
         Returns:
             Created comment from primary adapter
+
         """
         universal_id = comment.ticket_id
         if not comment.ticket_id.startswith("hybrid-"):
@@ -420,11 +465,13 @@ class HybridAdapter(BaseAdapter):
                 adapter_comment = Comment(
                     ticket_id=adapter_ticket_id,
                     content=comment.content,
-                    author=comment.author
+                    author=comment.author,
                 )
                 created_comment = await adapter.add_comment(adapter_comment)
                 results.append((adapter_name, created_comment))
-                logger.info(f"Added comment to adapter {adapter_name}: {adapter_ticket_id}")
+                logger.info(
+                    f"Added comment to adapter {adapter_name}: {adapter_ticket_id}"
+                )
             except Exception as e:
                 logger.error(f"Failed to add comment to adapter {adapter_name}: {e}")
 
@@ -440,10 +487,7 @@ class HybridAdapter(BaseAdapter):
         raise RuntimeError("Failed to add comment to any adapter")
 
     async def get_comments(
-        self,
-        ticket_id: str,
-        limit: int = 10,
-        offset: int = 0
+        self, ticket_id: str, limit: int = 10, offset: int = 0
     ) -> List[Comment]:
         """Get comments from primary adapter.
 
@@ -454,10 +498,13 @@ class HybridAdapter(BaseAdapter):
 
         Returns:
             List of comments from primary adapter
+
         """
         if ticket_id.startswith("hybrid-"):
             # Get primary adapter ticket ID
-            primary_id = self._get_adapter_ticket_id(ticket_id, self.primary_adapter_name)
+            primary_id = self._get_adapter_ticket_id(
+                ticket_id, self.primary_adapter_name
+            )
             if not primary_id:
                 return []
             ticket_id = primary_id
@@ -478,12 +525,13 @@ class HybridAdapter(BaseAdapter):
 
         Returns:
             Dictionary with sync status information
+
         """
         status = {
             "primary_adapter": self.primary_adapter_name,
             "sync_strategy": self.sync_strategy,
             "total_mapped_tickets": len(self.id_mapping),
-            "adapters": {}
+            "adapters": {},
         }
 
         for adapter_name, adapter in self.adapters.items():
@@ -494,12 +542,9 @@ class HybridAdapter(BaseAdapter):
 
                 status["adapters"][adapter_name] = {
                     "ticket_count": ticket_count,
-                    "status": "connected"
+                    "status": "connected",
                 }
             except Exception as e:
-                status["adapters"][adapter_name] = {
-                    "status": "error",
-                    "error": str(e)
-                }
+                status["adapters"][adapter_name] = {"status": "error", "error": str(e)}
 
         return status

@@ -8,14 +8,14 @@ environment files, including:
 - Security validation
 """
 
-import os
 import logging
-from pathlib import Path
-from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 from dotenv import dotenv_values
 
-from .project_config import AdapterType, AdapterConfig
+from .project_config import AdapterType
 
 logger = logging.getLogger(__name__)
 
@@ -130,9 +130,7 @@ class DiscoveryResult:
 
         # Sort by: complete configs first, then by confidence
         sorted_adapters = sorted(
-            self.adapters,
-            key=lambda a: (a.is_complete(), a.confidence),
-            reverse=True
+            self.adapters, key=lambda a: (a.is_complete(), a.confidence), reverse=True
         )
         return sorted_adapters[0]
 
@@ -160,6 +158,7 @@ class EnvDiscovery:
 
         Args:
             project_path: Path to project root (defaults to cwd)
+
         """
         self.project_path = project_path or Path.cwd()
 
@@ -168,6 +167,7 @@ class EnvDiscovery:
 
         Returns:
             DiscoveryResult with found adapters and warnings
+
         """
         result = DiscoveryResult()
 
@@ -179,19 +179,27 @@ class EnvDiscovery:
             return result
 
         # Detect adapters
-        linear_adapter = self._detect_linear(env_vars, result.env_files_found[0] if result.env_files_found else ".env")
+        linear_adapter = self._detect_linear(
+            env_vars, result.env_files_found[0] if result.env_files_found else ".env"
+        )
         if linear_adapter:
             result.adapters.append(linear_adapter)
 
-        github_adapter = self._detect_github(env_vars, result.env_files_found[0] if result.env_files_found else ".env")
+        github_adapter = self._detect_github(
+            env_vars, result.env_files_found[0] if result.env_files_found else ".env"
+        )
         if github_adapter:
             result.adapters.append(github_adapter)
 
-        jira_adapter = self._detect_jira(env_vars, result.env_files_found[0] if result.env_files_found else ".env")
+        jira_adapter = self._detect_jira(
+            env_vars, result.env_files_found[0] if result.env_files_found else ".env"
+        )
         if jira_adapter:
             result.adapters.append(jira_adapter)
 
-        aitrackdown_adapter = self._detect_aitrackdown(env_vars, result.env_files_found[0] if result.env_files_found else ".env")
+        aitrackdown_adapter = self._detect_aitrackdown(
+            env_vars, result.env_files_found[0] if result.env_files_found else ".env"
+        )
         if aitrackdown_adapter:
             result.adapters.append(aitrackdown_adapter)
 
@@ -209,6 +217,7 @@ class EnvDiscovery:
 
         Returns:
             Merged dictionary of environment variables
+
         """
         merged_env: Dict[str, str] = {}
 
@@ -229,7 +238,9 @@ class EnvDiscovery:
 
         return merged_env
 
-    def _find_key_value(self, env_vars: Dict[str, str], patterns: List[str]) -> Optional[str]:
+    def _find_key_value(
+        self, env_vars: Dict[str, str], patterns: List[str]
+    ) -> Optional[str]:
         """Find first matching key value from patterns.
 
         Args:
@@ -238,13 +249,16 @@ class EnvDiscovery:
 
         Returns:
             Value if found, None otherwise
+
         """
         for pattern in patterns:
             if pattern in env_vars and env_vars[pattern]:
                 return env_vars[pattern]
         return None
 
-    def _detect_linear(self, env_vars: Dict[str, str], found_in: str) -> Optional[DiscoveredAdapter]:
+    def _detect_linear(
+        self, env_vars: Dict[str, str], found_in: str
+    ) -> Optional[DiscoveredAdapter]:
         """Detect Linear adapter configuration.
 
         Args:
@@ -253,6 +267,7 @@ class EnvDiscovery:
 
         Returns:
             DiscoveredAdapter if Linear config detected, None otherwise
+
         """
         api_key = self._find_key_value(env_vars, LINEAR_KEY_PATTERNS)
 
@@ -289,7 +304,9 @@ class EnvDiscovery:
             found_in=found_in,
         )
 
-    def _detect_github(self, env_vars: Dict[str, str], found_in: str) -> Optional[DiscoveredAdapter]:
+    def _detect_github(
+        self, env_vars: Dict[str, str], found_in: str
+    ) -> Optional[DiscoveredAdapter]:
         """Detect GitHub adapter configuration.
 
         Args:
@@ -298,6 +315,7 @@ class EnvDiscovery:
 
         Returns:
             DiscoveredAdapter if GitHub config detected, None otherwise
+
         """
         token = self._find_key_value(env_vars, GITHUB_TOKEN_PATTERNS)
 
@@ -345,7 +363,9 @@ class EnvDiscovery:
             found_in=found_in,
         )
 
-    def _detect_jira(self, env_vars: Dict[str, str], found_in: str) -> Optional[DiscoveredAdapter]:
+    def _detect_jira(
+        self, env_vars: Dict[str, str], found_in: str
+    ) -> Optional[DiscoveredAdapter]:
         """Detect JIRA adapter configuration.
 
         Args:
@@ -354,6 +374,7 @@ class EnvDiscovery:
 
         Returns:
             DiscoveredAdapter if JIRA config detected, None otherwise
+
         """
         api_token = self._find_key_value(env_vars, JIRA_TOKEN_PATTERNS)
 
@@ -398,7 +419,9 @@ class EnvDiscovery:
             found_in=found_in,
         )
 
-    def _detect_aitrackdown(self, env_vars: Dict[str, str], found_in: str) -> Optional[DiscoveredAdapter]:
+    def _detect_aitrackdown(
+        self, env_vars: Dict[str, str], found_in: str
+    ) -> Optional[DiscoveredAdapter]:
         """Detect AITrackdown adapter configuration.
 
         Args:
@@ -407,6 +430,7 @@ class EnvDiscovery:
 
         Returns:
             DiscoveredAdapter if AITrackdown config detected, None otherwise
+
         """
         base_path = self._find_key_value(env_vars, AITRACKDOWN_PATH_PATTERNS)
 
@@ -440,6 +464,7 @@ class EnvDiscovery:
 
         Returns:
             List of security warnings
+
         """
         warnings: List[str] = []
 
@@ -460,7 +485,7 @@ class EnvDiscovery:
         # Check if .gitignore exists and has .env patterns
         if gitignore_path.exists():
             try:
-                with open(gitignore_path, 'r') as f:
+                with open(gitignore_path) as f:
                     gitignore_content = f.read()
                     if ".env" not in gitignore_content:
                         warnings.append(
@@ -479,6 +504,7 @@ class EnvDiscovery:
 
         Returns:
             True if file is tracked in git, False otherwise
+
         """
         import subprocess
 
@@ -506,6 +532,7 @@ class EnvDiscovery:
 
         Returns:
             List of validation warnings
+
         """
         warnings: List[str] = []
 
@@ -522,12 +549,16 @@ class EnvDiscovery:
 
             # Validate token prefix
             if token and not token.startswith(("ghp_", "gho_", "ghu_", "ghs_", "ghr_")):
-                warnings.append("⚠️  GitHub token doesn't match expected format (should start with ghp_, gho_, etc.)")
+                warnings.append(
+                    "⚠️  GitHub token doesn't match expected format (should start with ghp_, gho_, etc.)"
+                )
 
         elif adapter.adapter_type == AdapterType.JIRA.value:
             server = adapter.config.get("server", "")
             if server and not server.startswith(("http://", "https://")):
-                warnings.append("⚠️  JIRA server URL should start with http:// or https://")
+                warnings.append(
+                    "⚠️  JIRA server URL should start with http:// or https://"
+                )
 
             email = adapter.config.get("email", "")
             if email and "@" not in email:
@@ -550,6 +581,7 @@ def discover_config(project_path: Optional[Path] = None) -> DiscoveryResult:
 
     Returns:
         DiscoveryResult with found adapters and warnings
+
     """
     discovery = EnvDiscovery(project_path)
     return discovery.discover()

@@ -1,25 +1,22 @@
 """Interactive configuration wizard for MCP Ticketer."""
 
 import os
-import sys
-from typing import Optional, Dict, Any
-from pathlib import Path
+from typing import Optional
 
 import typer
 from rich.console import Console
-from rich.prompt import Prompt, Confirm
 from rich.panel import Panel
+from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
 from ..core.project_config import (
-    ConfigResolver,
-    TicketerConfig,
     AdapterConfig,
-    ProjectConfig,
-    HybridConfig,
     AdapterType,
+    ConfigResolver,
+    ConfigValidator,
+    HybridConfig,
     SyncStrategy,
-    ConfigValidator
+    TicketerConfig,
 )
 
 console = Console()
@@ -27,22 +24,20 @@ console = Console()
 
 def configure_wizard() -> None:
     """Run interactive configuration wizard."""
-    console.print(Panel.fit(
-        "[bold cyan]MCP-Ticketer Configuration Wizard[/bold cyan]\n"
-        "Configure your ticketing system integration",
-        border_style="cyan"
-    ))
+    console.print(
+        Panel.fit(
+            "[bold cyan]MCP-Ticketer Configuration Wizard[/bold cyan]\n"
+            "Configure your ticketing system integration",
+            border_style="cyan",
+        )
+    )
 
     # Step 1: Choose integration mode
     console.print("\n[bold]Step 1: Integration Mode[/bold]")
     console.print("1. Single Adapter (recommended for most projects)")
     console.print("2. Hybrid Mode (sync across multiple platforms)")
 
-    mode = Prompt.ask(
-        "Select mode",
-        choices=["1", "2"],
-        default="1"
-    )
+    mode = Prompt.ask("Select mode", choices=["1", "2"], default="1")
 
     if mode == "1":
         config = _configure_single_adapter()
@@ -54,18 +49,16 @@ def configure_wizard() -> None:
     console.print("1. Global (all projects): ~/.mcp-ticketer/config.json")
     console.print("2. Project-specific: .mcp-ticketer/config.json in project root")
 
-    scope = Prompt.ask(
-        "Save configuration as",
-        choices=["1", "2"],
-        default="2"
-    )
+    scope = Prompt.ask("Save configuration as", choices=["1", "2"], default="2")
 
     resolver = ConfigResolver()
 
     if scope == "1":
         # Save global
         resolver.save_global_config(config)
-        console.print(f"\n[green]✓[/green] Configuration saved globally to {resolver.GLOBAL_CONFIG_PATH}")
+        console.print(
+            f"\n[green]✓[/green] Configuration saved globally to {resolver.GLOBAL_CONFIG_PATH}"
+        )
     else:
         # Save project-specific
         resolver.save_project_config(config)
@@ -74,9 +67,11 @@ def configure_wizard() -> None:
 
     # Show usage instructions
     console.print("\n[bold]Usage:[/bold]")
-    console.print("  CLI: [cyan]mcp-ticketer create \"Task title\"[/cyan]")
+    console.print('  CLI: [cyan]mcp-ticketer create "Task title"[/cyan]')
     console.print("  MCP: Configure Claude Desktop to use this adapter")
-    console.print("\nRun [cyan]mcp-ticketer configure --show[/cyan] to view your configuration")
+    console.print(
+        "\nRun [cyan]mcp-ticketer configure --show[/cyan] to view your configuration"
+    )
 
 
 def _configure_single_adapter() -> TicketerConfig:
@@ -88,9 +83,7 @@ def _configure_single_adapter() -> TicketerConfig:
     console.print("4. Internal/AITrackdown (File-based, no API)")
 
     adapter_choice = Prompt.ask(
-        "Select system",
-        choices=["1", "2", "3", "4"],
-        default="1"
+        "Select system", choices=["1", "2", "3", "4"], default="1"
     )
 
     adapter_type_map = {
@@ -115,7 +108,7 @@ def _configure_single_adapter() -> TicketerConfig:
     # Create config
     config = TicketerConfig(
         default_adapter=adapter_type.value,
-        adapters={adapter_type.value: adapter_config}
+        adapters={adapter_type.value: adapter_config},
     )
 
     return config
@@ -128,34 +121,22 @@ def _configure_linear() -> AdapterConfig:
     # API Key
     api_key = os.getenv("LINEAR_API_KEY") or ""
     if api_key:
-        console.print(f"[dim]Found LINEAR_API_KEY in environment[/dim]")
+        console.print("[dim]Found LINEAR_API_KEY in environment[/dim]")
         use_env = Confirm.ask("Use this API key?", default=True)
         if not use_env:
             api_key = ""
 
     if not api_key:
-        api_key = Prompt.ask(
-            "Linear API Key",
-            password=True
-        )
+        api_key = Prompt.ask("Linear API Key", password=True)
 
     # Team ID
-    team_id = Prompt.ask(
-        "Team ID (optional, e.g., team-abc)",
-        default=""
-    )
+    team_id = Prompt.ask("Team ID (optional, e.g., team-abc)", default="")
 
     # Team Key
-    team_key = Prompt.ask(
-        "Team Key (optional, e.g., ENG)",
-        default=""
-    )
+    team_key = Prompt.ask("Team Key (optional, e.g., ENG)", default="")
 
     # Project ID
-    project_id = Prompt.ask(
-        "Project ID (optional)",
-        default=""
-    )
+    project_id = Prompt.ask("Project ID (optional)", default="")
 
     config_dict = {
         "adapter": AdapterType.LINEAR.value,
@@ -185,9 +166,7 @@ def _configure_jira() -> AdapterConfig:
     # Server URL
     server = os.getenv("JIRA_SERVER") or ""
     if not server:
-        server = Prompt.ask(
-            "JIRA Server URL (e.g., https://company.atlassian.net)"
-        )
+        server = Prompt.ask("JIRA Server URL (e.g., https://company.atlassian.net)")
 
     # Email
     email = os.getenv("JIRA_EMAIL") or ""
@@ -197,21 +176,17 @@ def _configure_jira() -> AdapterConfig:
     # API Token
     api_token = os.getenv("JIRA_API_TOKEN") or ""
     if not api_token:
-        console.print("[dim]Generate token at: https://id.atlassian.com/manage/api-tokens[/dim]")
-        api_token = Prompt.ask(
-            "JIRA API Token",
-            password=True
+        console.print(
+            "[dim]Generate token at: https://id.atlassian.com/manage/api-tokens[/dim]"
         )
+        api_token = Prompt.ask("JIRA API Token", password=True)
 
     # Project Key
-    project_key = Prompt.ask(
-        "Default Project Key (optional, e.g., PROJ)",
-        default=""
-    )
+    project_key = Prompt.ask("Default Project Key (optional, e.g., PROJ)", default="")
 
     config_dict = {
         "adapter": AdapterType.JIRA.value,
-        "server": server.rstrip('/'),
+        "server": server.rstrip("/"),
         "email": email,
         "api_token": api_token,
     }
@@ -235,18 +210,19 @@ def _configure_github() -> AdapterConfig:
     # Token
     token = os.getenv("GITHUB_TOKEN") or ""
     if token:
-        console.print(f"[dim]Found GITHUB_TOKEN in environment[/dim]")
+        console.print("[dim]Found GITHUB_TOKEN in environment[/dim]")
         use_env = Confirm.ask("Use this token?", default=True)
         if not use_env:
             token = ""
 
     if not token:
-        console.print("[dim]Create token at: https://github.com/settings/tokens/new[/dim]")
-        console.print("[dim]Required scopes: repo (or public_repo for public repos)[/dim]")
-        token = Prompt.ask(
-            "GitHub Personal Access Token",
-            password=True
+        console.print(
+            "[dim]Create token at: https://github.com/settings/tokens/new[/dim]"
         )
+        console.print(
+            "[dim]Required scopes: repo (or public_repo for public repos)[/dim]"
+        )
+        token = Prompt.ask("GitHub Personal Access Token", password=True)
 
     # Repository Owner
     owner = os.getenv("GITHUB_OWNER") or ""
@@ -279,10 +255,7 @@ def _configure_aitrackdown() -> AdapterConfig:
     """Configure AITrackdown adapter."""
     console.print("\n[bold]Configure AITrackdown (File-based):[/bold]")
 
-    base_path = Prompt.ask(
-        "Base path for ticket storage",
-        default=".aitrackdown"
-    )
+    base_path = Prompt.ask("Base path for ticket storage", default=".aitrackdown")
 
     config_dict = {
         "adapter": AdapterType.AITRACKDOWN.value,
@@ -305,8 +278,7 @@ def _configure_hybrid_mode() -> TicketerConfig:
     console.print("4. AITrackdown")
 
     selections = Prompt.ask(
-        "Select adapters (e.g., 1,3 for Linear and GitHub)",
-        default="1,3"
+        "Select adapters (e.g., 1,3 for Linear and GitHub)", default="1,3"
     )
 
     adapter_choices = [s.strip() for s in selections.split(",")]
@@ -318,7 +290,9 @@ def _configure_hybrid_mode() -> TicketerConfig:
         "4": AdapterType.AITRACKDOWN,
     }
 
-    selected_adapters = [adapter_type_map[c] for c in adapter_choices if c in adapter_type_map]
+    selected_adapters = [
+        adapter_type_map[c] for c in adapter_choices if c in adapter_type_map
+    ]
 
     if len(selected_adapters) < 2:
         console.print("[red]Hybrid mode requires at least 2 adapters[/red]")
@@ -345,11 +319,13 @@ def _configure_hybrid_mode() -> TicketerConfig:
     for idx, adapter_type in enumerate(selected_adapters, 1):
         console.print(f"{idx}. {adapter_type.value}")
 
-    primary_idx = int(Prompt.ask(
-        "Primary adapter",
-        choices=[str(i) for i in range(1, len(selected_adapters) + 1)],
-        default="1"
-    ))
+    primary_idx = int(
+        Prompt.ask(
+            "Primary adapter",
+            choices=[str(i) for i in range(1, len(selected_adapters) + 1)],
+            default="1",
+        )
+    )
 
     primary_adapter = selected_adapters[primary_idx - 1].value
 
@@ -359,11 +335,7 @@ def _configure_hybrid_mode() -> TicketerConfig:
     console.print("2. Bidirectional (two-way sync)")
     console.print("3. Mirror (clone tickets across all)")
 
-    strategy_choice = Prompt.ask(
-        "Sync strategy",
-        choices=["1", "2", "3"],
-        default="1"
-    )
+    strategy_choice = Prompt.ask("Sync strategy", choices=["1", "2", "3"], default="1")
 
     strategy_map = {
         "1": SyncStrategy.PRIMARY_SOURCE,
@@ -378,14 +350,12 @@ def _configure_hybrid_mode() -> TicketerConfig:
         enabled=True,
         adapters=[a.value for a in selected_adapters],
         primary_adapter=primary_adapter,
-        sync_strategy=sync_strategy
+        sync_strategy=sync_strategy,
     )
 
     # Create full config
     config = TicketerConfig(
-        default_adapter=primary_adapter,
-        adapters=adapters,
-        hybrid_mode=hybrid_config
+        default_adapter=primary_adapter, adapters=adapters, hybrid_mode=hybrid_config
     )
 
     return config
@@ -440,9 +410,15 @@ def show_current_config() -> None:
 
             if project_config.hybrid_mode and project_config.hybrid_mode.enabled:
                 console.print("\n[bold]Hybrid Mode:[/bold] Enabled")
-                console.print(f"  Adapters: {', '.join(project_config.hybrid_mode.adapters)}")
-                console.print(f"  Primary: {project_config.hybrid_mode.primary_adapter}")
-                console.print(f"  Strategy: {project_config.hybrid_mode.sync_strategy.value}")
+                console.print(
+                    f"  Adapters: {', '.join(project_config.hybrid_mode.adapters)}"
+                )
+                console.print(
+                    f"  Primary: {project_config.hybrid_mode.primary_adapter}"
+                )
+                console.print(
+                    f"  Strategy: {project_config.hybrid_mode.sync_strategy.value}"
+                )
     else:
         console.print("[yellow]No project-specific configuration found[/yellow]")
 
@@ -469,7 +445,7 @@ def set_adapter_config(
     project_id: Optional[str] = None,
     team_id: Optional[str] = None,
     global_scope: bool = False,
-    **kwargs
+    **kwargs,
 ) -> None:
     """Set specific adapter configuration values.
 
@@ -480,6 +456,7 @@ def set_adapter_config(
         team_id: Team ID (Linear)
         global_scope: Save to global config instead of project
         **kwargs: Additional adapter-specific options
+
     """
     resolver = ConfigResolver()
 
@@ -511,8 +488,7 @@ def set_adapter_config(
         # Get or create adapter config
         if target_adapter not in config.adapters:
             config.adapters[target_adapter] = AdapterConfig(
-                adapter=target_adapter,
-                **updates
+                adapter=target_adapter, **updates
             )
         else:
             # Update existing

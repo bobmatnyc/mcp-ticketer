@@ -1,15 +1,12 @@
 """Tests for environment file auto-discovery."""
 
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch, mock_open
-import tempfile
-import os
+from unittest.mock import Mock, patch
 
 from mcp_ticketer.core.env_discovery import (
-    EnvDiscovery,
     DiscoveredAdapter,
     DiscoveryResult,
+    EnvDiscovery,
     discover_config,
 )
 from mcp_ticketer.core.project_config import AdapterType
@@ -327,7 +324,9 @@ JIRA_TOKEN=token123
         assert jira.config["server"] == "https://company.atlassian.net"
 
     @patch("subprocess.run")
-    def test_security_warning_tracked_in_git(self, mock_run: Mock, tmp_path: Path) -> None:
+    def test_security_warning_tracked_in_git(
+        self, mock_run: Mock, tmp_path: Path
+    ) -> None:
         """Test security warning when .env is tracked in git."""
         # Create .env file
         env_file = tmp_path / ".env"
@@ -344,7 +343,9 @@ JIRA_TOKEN=token123
         assert any(".env is tracked in git" in w for w in result.warnings)
 
     @patch("subprocess.run")
-    def test_no_security_warning_not_tracked(self, mock_run: Mock, tmp_path: Path) -> None:
+    def test_no_security_warning_not_tracked(
+        self, mock_run: Mock, tmp_path: Path
+    ) -> None:
         """Test no security warning when .env is not tracked."""
         # Create .env file
         env_file = tmp_path / ".env"
@@ -363,7 +364,9 @@ JIRA_TOKEN=token123
     def test_discover_config_convenience_function(self, tmp_path: Path) -> None:
         """Test the convenience function for discovery."""
         # Create .env file
-        env_content = "LINEAR_API_KEY=lin_api_test123456789012345678\nLINEAR_TEAM_ID=team-abc"
+        env_content = (
+            "LINEAR_API_KEY=lin_api_test123456789012345678\nLINEAR_TEAM_ID=team-abc"
+        )
         env_file = tmp_path / ".env"
         env_file.write_text(env_content)
 

@@ -2,12 +2,14 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Priority(str, Enum):
     """Universal priority levels."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -16,14 +18,16 @@ class Priority(str, Enum):
 
 class TicketType(str, Enum):
     """Ticket type hierarchy."""
-    EPIC = "epic"        # Strategic level (Projects in Linear, Milestones in GitHub)
-    ISSUE = "issue"      # Work item level (standard issues/tasks)
-    TASK = "task"        # Sub-task level (sub-issues, checkboxes)
+
+    EPIC = "epic"  # Strategic level (Projects in Linear, Milestones in GitHub)
+    ISSUE = "issue"  # Work item level (standard issues/tasks)
+    TASK = "task"  # Sub-task level (sub-issues, checkboxes)
     SUBTASK = "subtask"  # Alias for task (for clarity)
 
 
 class TicketState(str, Enum):
     """Universal ticket states with state machine abstraction."""
+
     OPEN = "open"
     IN_PROGRESS = "in_progress"
     READY = "ready"
@@ -54,6 +58,7 @@ class TicketState(str, Enum):
 
 class BaseTicket(BaseModel):
     """Base model for all ticket types."""
+
     model_config = ConfigDict(use_enum_values=True)
 
     id: Optional[str] = Field(None, description="Unique identifier")
@@ -67,17 +72,18 @@ class BaseTicket(BaseModel):
 
     # Metadata for field mapping to different systems
     metadata: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="System-specific metadata and field mappings"
+        default_factory=dict, description="System-specific metadata and field mappings"
     )
 
 
 class Epic(BaseTicket):
     """Epic - highest level container for work (Projects in Linear, Milestones in GitHub)."""
-    ticket_type: TicketType = Field(default=TicketType.EPIC, frozen=True, description="Always EPIC type")
+
+    ticket_type: TicketType = Field(
+        default=TicketType.EPIC, frozen=True, description="Always EPIC type"
+    )
     child_issues: List[str] = Field(
-        default_factory=list,
-        description="IDs of child issues"
+        default_factory=list, description="IDs of child issues"
     )
 
     def validate_hierarchy(self) -> List[str]:
@@ -85,6 +91,7 @@ class Epic(BaseTicket):
 
         Returns:
             List of validation errors (empty if valid)
+
         """
         # Epics don't have parents in our hierarchy
         return []
@@ -92,7 +99,10 @@ class Epic(BaseTicket):
 
 class Task(BaseTicket):
     """Task - individual work item (can be ISSUE or TASK type)."""
-    ticket_type: TicketType = Field(default=TicketType.ISSUE, description="Ticket type in hierarchy")
+
+    ticket_type: TicketType = Field(
+        default=TicketType.ISSUE, description="Ticket type in hierarchy"
+    )
     parent_issue: Optional[str] = Field(None, description="Parent issue ID (for tasks)")
     parent_epic: Optional[str] = Field(None, description="Parent epic ID (for issues)")
     assignee: Optional[str] = Field(None, description="Assigned user")
@@ -119,6 +129,7 @@ class Task(BaseTicket):
 
         Returns:
             List of validation errors (empty if valid)
+
         """
         errors = []
 
@@ -132,13 +143,16 @@ class Task(BaseTicket):
 
         # Tasks should not have both parent_issue and parent_epic
         if self.is_task() and self.parent_epic:
-            errors.append("Tasks should only have parent_issue, not parent_epic (epic comes from parent issue)")
+            errors.append(
+                "Tasks should only have parent_issue, not parent_epic (epic comes from parent issue)"
+            )
 
         return errors
 
 
 class Comment(BaseModel):
     """Comment on a ticket."""
+
     model_config = ConfigDict(use_enum_values=True)
 
     id: Optional[str] = Field(None, description="Comment ID")
@@ -147,13 +161,13 @@ class Comment(BaseModel):
     content: str = Field(..., min_length=1, description="Comment text")
     created_at: Optional[datetime] = Field(None, description="Creation timestamp")
     metadata: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="System-specific metadata"
+        default_factory=dict, description="System-specific metadata"
     )
 
 
 class SearchQuery(BaseModel):
     """Search query parameters."""
+
     query: Optional[str] = Field(None, description="Text search query")
     state: Optional[TicketState] = Field(None, description="Filter by state")
     priority: Optional[Priority] = Field(None, description="Filter by priority")

@@ -1,7 +1,7 @@
 """Core models and abstractions for MCP Ticketer."""
 
-from .models import Epic, Task, Comment, TicketState, Priority, TicketType
 from .adapter import BaseAdapter
+from .models import Comment, Epic, Priority, Task, TicketState, TicketType
 from .registry import AdapterRegistry
 
 __all__ = [

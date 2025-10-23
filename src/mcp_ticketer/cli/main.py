@@ -3,25 +3,23 @@
 import asyncio
 import json
 import os
-from pathlib import Path
-from typing import Optional, List
 from enum import Enum
+from pathlib import Path
+from typing import List, Optional
 
 import typer
+from dotenv import load_dotenv
 from rich.console import Console
 from rich.table import Table
-from rich import print as rprint
-from dotenv import load_dotenv
 
-from ..core import Task, TicketState, Priority, AdapterRegistry
-from ..core.models import SearchQuery
-from ..adapters import AITrackdownAdapter
-from ..queue import Queue, QueueStatus, WorkerManager
-from .queue_commands import app as queue_app
 from ..__version__ import __version__
-from .configure import configure_wizard, show_current_config, set_adapter_config
-from .migrate_config import migrate_config_command
+from ..core import AdapterRegistry, Priority, TicketState
+from ..core.models import SearchQuery
+from ..queue import Queue, QueueStatus, WorkerManager
+from .configure import configure_wizard, set_adapter_config, show_current_config
 from .discover import app as discover_app
+from .migrate_config import migrate_config_command
+from .queue_commands import app as queue_app
 
 # Load environment variables from .env files
 # Priority: .env.local (highest) > .env (base)
@@ -58,12 +56,10 @@ def main_callback(
         "-v",
         callback=version_callback,
         is_eager=True,
-        help="Show version and exit"
+        help="Show version and exit",
     ),
 ):
-    """
-    MCP Ticketer - Universal ticket management interface.
-    """
+    """MCP Ticketer - Universal ticket management interface."""
     pass
 
 
@@ -73,6 +69,7 @@ CONFIG_FILE = Path.cwd() / ".mcp-ticketer" / "config.json"
 
 class AdapterType(str, Enum):
     """Available adapter types."""
+
     AITRACKDOWN = "aitrackdown"
     LINEAR = "linear"
     JIRA = "jira"
@@ -96,8 +93,10 @@ def load_config(project_dir: Optional[Path] = None) -> dict:
     Returns:
         Configuration dictionary with adapter and config keys.
         Defaults to aitrackdown if no local config exists.
+
     """
     import logging
+
     logger = logging.getLogger(__name__)
 
     # Use provided project_dir or current working directory
@@ -122,13 +121,17 @@ def load_config(project_dir: Optional[Path] = None) -> dict:
             pass
 
         try:
-            with open(project_config, "r") as f:
+            with open(project_config) as f:
                 config = json.load(f)
-                logger.info(f"Loaded configuration from project-local: {project_config}")
+                logger.info(
+                    f"Loaded configuration from project-local: {project_config}"
+                )
                 return config
-        except (json.JSONDecodeError, IOError) as e:
+        except (OSError, json.JSONDecodeError) as e:
             logger.warning(f"Could not load project config: {e}, using defaults")
-            console.print(f"[yellow]Warning: Could not load project config: {e}[/yellow]")
+            console.print(
+                f"[yellow]Warning: Could not load project config: {e}[/yellow]"
+            )
 
     # Default to aitrackdown with local base path
     logger.info("No project-local config found, defaulting to aitrackdown adapter")
@@ -142,6 +145,7 @@ def save_config(config: dict) -> None:
     to prevent configuration leakage across projects.
     """
     import logging
+
     logger = logging.getLogger(__name__)
 
     project_config = Path.cwd() / ".mcp-ticketer" / "config.json"
@@ -159,6 +163,7 @@ def merge_config(updates: dict) -> dict:
 
     Returns:
         Updated configuration
+
     """
     config = load_config()
 
@@ -178,12 +183,15 @@ def merge_config(updates: dict) -> dict:
     return config
 
 
-def get_adapter(override_adapter: Optional[str] = None, override_config: Optional[dict] = None):
+def get_adapter(
+    override_adapter: Optional[str] = None, override_config: Optional[dict] = None
+):
     """Get configured adapter instance.
 
     Args:
         override_adapter: Override the default adapter type
         override_config: Override configuration for the adapter
+
     """
     config = load_config()
 
@@ -209,6 +217,7 @@ def get_adapter(override_adapter: Optional[str] = None, override_config: Optiona
 
     # Add environment variables for authentication
     import os
+
     if adapter_type == "linear":
         if not adapter_config.get("api_key"):
             adapter_config["api_key"] = os.getenv("LINEAR_API_KEY")
@@ -230,64 +239,48 @@ def init(
         None,
         "--adapter",
         "-a",
-        help="Adapter type to use (auto-detected from .env if not specified)"
+        help="Adapter type to use (auto-detected from .env if not specified)",
     ),
     project_path: Optional[str] = typer.Option(
-        None,
-        "--path",
-        help="Project path (default: current directory)"
+        None, "--path", help="Project path (default: current directory)"
     ),
     global_config: bool = typer.Option(
         False,
         "--global",
         "-g",
-        help="Save to global config instead of project-specific"
+        help="Save to global config instead of project-specific",
     ),
     base_path: Optional[str] = typer.Option(
         None,
         "--base-path",
         "-p",
-        help="Base path for ticket storage (AITrackdown only)"
+        help="Base path for ticket storage (AITrackdown only)",
     ),
     api_key: Optional[str] = typer.Option(
-        None,
-        "--api-key",
-        help="API key for Linear or API token for JIRA"
+        None, "--api-key", help="API key for Linear or API token for JIRA"
     ),
     team_id: Optional[str] = typer.Option(
-        None,
-        "--team-id",
-        help="Linear team ID (required for Linear adapter)"
+        None, "--team-id", help="Linear team ID (required for Linear adapter)"
     ),
     jira_server: Optional[str] = typer.Option(
         None,
         "--jira-server",
-        help="JIRA server URL (e.g., https://company.atlassian.net)"
+        help="JIRA server URL (e.g., https://company.atlassian.net)",
     ),
     jira_email: Optional[str] = typer.Option(
-        None,
-        "--jira-email",
-        help="JIRA user email for authentication"
+        None, "--jira-email", help="JIRA user email for authentication"
     ),
     jira_project: Optional[str] = typer.Option(
-        None,
-        "--jira-project",
-        help="Default JIRA project key"
+        None, "--jira-project", help="Default JIRA project key"
     ),
     github_owner: Optional[str] = typer.Option(
-        None,
-        "--github-owner",
-        help="GitHub repository owner"
+        None, "--github-owner", help="GitHub repository owner"
     ),
     github_repo: Optional[str] = typer.Option(
-        None,
-        "--github-repo",
-        help="GitHub repository name"
+        None, "--github-repo", help="GitHub repository name"
     ),
     github_token: Optional[str] = typer.Option(
-        None,
-        "--github-token",
-        help="GitHub Personal Access Token"
+        None, "--github-token", help="GitHub Personal Access Token"
     ),
 ) -> None:
     """Initialize mcp-ticketer for the current project.
@@ -307,10 +300,12 @@ def init(
 
         # Save globally (not recommended)
         mcp-ticketer init --global
+
     """
     from pathlib import Path
-    from ..core.project_config import ConfigResolver
+
     from ..core.env_discovery import discover_config
+    from ..core.project_config import ConfigResolver
 
     # Determine project path
     proj_path = Path(project_path) if project_path else Path.cwd()
@@ -322,7 +317,7 @@ def init(
         if config_path.exists():
             if not typer.confirm(
                 f"Configuration already exists at {config_path}. Overwrite?",
-                default=False
+                default=False,
             ):
                 console.print("[yellow]Initialization cancelled.[/yellow]")
                 raise typer.Exit(0)
@@ -332,30 +327,37 @@ def init(
     adapter_type = adapter
 
     if not adapter_type:
-        console.print("[cyan]🔍 Auto-discovering configuration from .env files...[/cyan]")
+        console.print(
+            "[cyan]🔍 Auto-discovering configuration from .env files...[/cyan]"
+        )
         discovered = discover_config(proj_path)
 
         if discovered and discovered.adapters:
             primary = discovered.get_primary_adapter()
             if primary:
                 adapter_type = primary.adapter_type
-                console.print(f"[green]✓ Detected {adapter_type} adapter from environment files[/green]")
+                console.print(
+                    f"[green]✓ Detected {adapter_type} adapter from environment files[/green]"
+                )
 
                 # Show what was discovered
-                console.print(f"\n[dim]Configuration found in: {primary.found_in}[/dim]")
+                console.print(
+                    f"\n[dim]Configuration found in: {primary.found_in}[/dim]"
+                )
                 console.print(f"[dim]Confidence: {primary.confidence:.0%}[/dim]")
             else:
                 adapter_type = "aitrackdown"  # Fallback
-                console.print("[yellow]⚠ No credentials found, defaulting to aitrackdown[/yellow]")
+                console.print(
+                    "[yellow]⚠ No credentials found, defaulting to aitrackdown[/yellow]"
+                )
         else:
             adapter_type = "aitrackdown"  # Fallback
-            console.print("[yellow]⚠ No .env files found, defaulting to aitrackdown[/yellow]")
+            console.print(
+                "[yellow]⚠ No .env files found, defaulting to aitrackdown[/yellow]"
+            )
 
     # 2. Create configuration based on adapter type
-    config = {
-        "default_adapter": adapter_type,
-        "adapters": {}
-    }
+    config = {"default_adapter": adapter_type, "adapters": {}}
 
     # 3. If discovered and matches adapter_type, use discovered config
     if discovered and adapter_type != "aitrackdown":
@@ -382,7 +384,9 @@ def init(
                 linear_config["api_key"] = linear_api_key
             elif not discovered:
                 console.print("[yellow]Warning:[/yellow] No Linear API key provided.")
-                console.print("Set LINEAR_API_KEY environment variable or use --api-key option")
+                console.print(
+                    "Set LINEAR_API_KEY environment variable or use --api-key option"
+                )
 
             if linear_config:
                 config["adapters"]["linear"] = linear_config
@@ -397,7 +401,9 @@ def init(
 
             if not server:
                 console.print("[red]Error:[/red] JIRA server URL is required")
-                console.print("Use --jira-server or set JIRA_SERVER environment variable")
+                console.print(
+                    "Use --jira-server or set JIRA_SERVER environment variable"
+                )
                 raise typer.Exit(1)
 
             if not email:
@@ -407,15 +413,15 @@ def init(
 
             if not token:
                 console.print("[red]Error:[/red] JIRA API token is required")
-                console.print("Use --api-key or set JIRA_API_TOKEN environment variable")
-                console.print("[dim]Generate token at: https://id.atlassian.com/manage/api-tokens[/dim]")
+                console.print(
+                    "Use --api-key or set JIRA_API_TOKEN environment variable"
+                )
+                console.print(
+                    "[dim]Generate token at: https://id.atlassian.com/manage/api-tokens[/dim]"
+                )
                 raise typer.Exit(1)
 
-            jira_config = {
-                "server": server,
-                "email": email,
-                "api_token": token
-            }
+            jira_config = {"server": server, "email": email, "api_token": token}
 
             if project:
                 jira_config["project_key"] = project
@@ -431,25 +437,37 @@ def init(
 
             if not owner:
                 console.print("[red]Error:[/red] GitHub repository owner is required")
-                console.print("Use --github-owner or set GITHUB_OWNER environment variable")
+                console.print(
+                    "Use --github-owner or set GITHUB_OWNER environment variable"
+                )
                 raise typer.Exit(1)
 
             if not repo:
                 console.print("[red]Error:[/red] GitHub repository name is required")
-                console.print("Use --github-repo or set GITHUB_REPO environment variable")
+                console.print(
+                    "Use --github-repo or set GITHUB_REPO environment variable"
+                )
                 raise typer.Exit(1)
 
             if not token:
-                console.print("[red]Error:[/red] GitHub Personal Access Token is required")
-                console.print("Use --github-token or set GITHUB_TOKEN environment variable")
-                console.print("[dim]Create token at: https://github.com/settings/tokens/new[/dim]")
-                console.print("[dim]Required scopes: repo (for private repos) or public_repo (for public repos)[/dim]")
+                console.print(
+                    "[red]Error:[/red] GitHub Personal Access Token is required"
+                )
+                console.print(
+                    "Use --github-token or set GITHUB_TOKEN environment variable"
+                )
+                console.print(
+                    "[dim]Create token at: https://github.com/settings/tokens/new[/dim]"
+                )
+                console.print(
+                    "[dim]Required scopes: repo (for private repos) or public_repo (for public repos)[/dim]"
+                )
                 raise typer.Exit(1)
 
             config["adapters"]["github"] = {
                 "owner": owner,
                 "repo": repo,
-                "token": token
+                "token": token,
             }
 
     # 5. Save to appropriate location
@@ -459,7 +477,7 @@ def init(
         config_file_path = resolver.GLOBAL_CONFIG_PATH
         config_file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(config_file_path, 'w') as f:
+        with open(config_file_path, "w") as f:
             json.dump(config, f, indent=2)
 
         console.print(f"[green]✓ Initialized with {adapter_type} adapter[/green]")
@@ -469,7 +487,7 @@ def init(
         config_file_path = proj_path / ".mcp-ticketer" / "config.json"
         config_file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(config_file_path, 'w') as f:
+        with open(config_file_path, "w") as f:
             json.dump(config, f, indent=2)
 
         console.print(f"[green]✓ Initialized with {adapter_type} adapter[/green]")
@@ -480,12 +498,12 @@ def init(
         if gitignore_path.exists():
             gitignore_content = gitignore_path.read_text()
             if ".mcp-ticketer" not in gitignore_content:
-                with open(gitignore_path, 'a') as f:
+                with open(gitignore_path, "a") as f:
                     f.write("\n# MCP Ticketer\n.mcp-ticketer/\n")
                 console.print("[dim]✓ Added .mcp-ticketer/ to .gitignore[/dim]")
         else:
             # Create .gitignore if it doesn't exist
-            with open(gitignore_path, 'w') as f:
+            with open(gitignore_path, "w") as f:
                 f.write("# MCP Ticketer\n.mcp-ticketer/\n")
             console.print("[dim]✓ Created .gitignore with .mcp-ticketer/[/dim]")
 
@@ -496,64 +514,48 @@ def install(
         None,
         "--adapter",
         "-a",
-        help="Adapter type to use (auto-detected from .env if not specified)"
+        help="Adapter type to use (auto-detected from .env if not specified)",
     ),
     project_path: Optional[str] = typer.Option(
-        None,
-        "--path",
-        help="Project path (default: current directory)"
+        None, "--path", help="Project path (default: current directory)"
     ),
     global_config: bool = typer.Option(
         False,
         "--global",
         "-g",
-        help="Save to global config instead of project-specific"
+        help="Save to global config instead of project-specific",
     ),
     base_path: Optional[str] = typer.Option(
         None,
         "--base-path",
         "-p",
-        help="Base path for ticket storage (AITrackdown only)"
+        help="Base path for ticket storage (AITrackdown only)",
     ),
     api_key: Optional[str] = typer.Option(
-        None,
-        "--api-key",
-        help="API key for Linear or API token for JIRA"
+        None, "--api-key", help="API key for Linear or API token for JIRA"
     ),
     team_id: Optional[str] = typer.Option(
-        None,
-        "--team-id",
-        help="Linear team ID (required for Linear adapter)"
+        None, "--team-id", help="Linear team ID (required for Linear adapter)"
     ),
     jira_server: Optional[str] = typer.Option(
         None,
         "--jira-server",
-        help="JIRA server URL (e.g., https://company.atlassian.net)"
+        help="JIRA server URL (e.g., https://company.atlassian.net)",
     ),
     jira_email: Optional[str] = typer.Option(
-        None,
-        "--jira-email",
-        help="JIRA user email for authentication"
+        None, "--jira-email", help="JIRA user email for authentication"
     ),
     jira_project: Optional[str] = typer.Option(
-        None,
-        "--jira-project",
-        help="Default JIRA project key"
+        None, "--jira-project", help="Default JIRA project key"
     ),
     github_owner: Optional[str] = typer.Option(
-        None,
-        "--github-owner",
-        help="GitHub repository owner"
+        None, "--github-owner", help="GitHub repository owner"
     ),
     github_repo: Optional[str] = typer.Option(
-        None,
-        "--github-repo",
-        help="GitHub repository name"
+        None, "--github-repo", help="GitHub repository name"
     ),
     github_token: Optional[str] = typer.Option(
-        None,
-        "--github-token",
-        help="GitHub Personal Access Token"
+        None, "--github-token", help="GitHub Personal Access Token"
     ),
 ) -> None:
     """Initialize mcp-ticketer for the current project (alias for init).
@@ -574,6 +576,7 @@ def install(
 
         # Save globally (not recommended)
         mcp-ticketer install --global
+
     """
     # Call init with all parameters
     init(
@@ -595,45 +598,20 @@ def install(
 @app.command("set")
 def set_config(
     adapter: Optional[AdapterType] = typer.Option(
-        None,
-        "--adapter",
-        "-a",
-        help="Set default adapter"
+        None, "--adapter", "-a", help="Set default adapter"
     ),
     team_key: Optional[str] = typer.Option(
-        None,
-        "--team-key",
-        help="Linear team key (e.g., BTA)"
+        None, "--team-key", help="Linear team key (e.g., BTA)"
     ),
-    team_id: Optional[str] = typer.Option(
-        None,
-        "--team-id",
-        help="Linear team ID"
-    ),
+    team_id: Optional[str] = typer.Option(None, "--team-id", help="Linear team ID"),
     owner: Optional[str] = typer.Option(
-        None,
-        "--owner",
-        help="GitHub repository owner"
+        None, "--owner", help="GitHub repository owner"
     ),
-    repo: Optional[str] = typer.Option(
-        None,
-        "--repo",
-        help="GitHub repository name"
-    ),
-    server: Optional[str] = typer.Option(
-        None,
-        "--server",
-        help="JIRA server URL"
-    ),
-    project: Optional[str] = typer.Option(
-        None,
-        "--project",
-        help="JIRA project key"
-    ),
+    repo: Optional[str] = typer.Option(None, "--repo", help="GitHub repository name"),
+    server: Optional[str] = typer.Option(None, "--server", help="JIRA server URL"),
+    project: Optional[str] = typer.Option(None, "--project", help="JIRA project key"),
     base_path: Optional[str] = typer.Option(
-        None,
-        "--base-path",
-        help="AITrackdown base path"
+        None, "--base-path", help="AITrackdown base path"
     ),
 ) -> None:
     """Set default adapter and adapter-specific configuration.
@@ -644,7 +622,9 @@ def set_config(
         # Show current configuration
         config = load_config()
         console.print("[bold]Current Configuration:[/bold]")
-        console.print(f"Default adapter: [cyan]{config.get('default_adapter', 'aitrackdown')}[/cyan]")
+        console.print(
+            f"Default adapter: [cyan]{config.get('default_adapter', 'aitrackdown')}[/cyan]"
+        )
 
         adapters_config = config.get("adapters", {})
         if adapters_config:
@@ -653,7 +633,11 @@ def set_config(
                 console.print(f"\n[cyan]{adapter_name}:[/cyan]")
                 for key, value in adapter_config.items():
                     # Don't display sensitive values like tokens
-                    if "token" in key.lower() or "key" in key.lower() and "team" not in key.lower():
+                    if (
+                        "token" in key.lower()
+                        or "key" in key.lower()
+                        and "team" not in key.lower()
+                    ):
                         value = "***" if value else "not set"
                     console.print(f"  {key}: {value}")
         return
@@ -676,7 +660,7 @@ def set_config(
         if team_id:
             linear_config["team_id"] = team_id
         adapter_configs["linear"] = linear_config
-        console.print(f"[green]✓[/green] Linear settings updated")
+        console.print("[green]✓[/green] Linear settings updated")
 
     # GitHub configuration
     if owner or repo:
@@ -686,7 +670,7 @@ def set_config(
         if repo:
             github_config["repo"] = repo
         adapter_configs["github"] = github_config
-        console.print(f"[green]✓[/green] GitHub settings updated")
+        console.print("[green]✓[/green] GitHub settings updated")
 
     # JIRA configuration
     if server or project:
@@ -696,12 +680,12 @@ def set_config(
         if project:
             jira_config["project_key"] = project
         adapter_configs["jira"] = jira_config
-        console.print(f"[green]✓[/green] JIRA settings updated")
+        console.print("[green]✓[/green] JIRA settings updated")
 
     # AITrackdown configuration
     if base_path:
         adapter_configs["aitrackdown"] = {"base_path": base_path}
-        console.print(f"[green]✓[/green] AITrackdown settings updated")
+        console.print("[green]✓[/green] AITrackdown settings updated")
 
     if adapter_configs:
         updates["adapters"] = adapter_configs
@@ -715,36 +699,22 @@ def set_config(
 
 @app.command("configure")
 def configure_command(
-    show: bool = typer.Option(
-        False,
-        "--show",
-        help="Show current configuration"
-    ),
+    show: bool = typer.Option(False, "--show", help="Show current configuration"),
     adapter: Optional[str] = typer.Option(
-        None,
-        "--adapter",
-        help="Set default adapter type"
+        None, "--adapter", help="Set default adapter type"
     ),
-    api_key: Optional[str] = typer.Option(
-        None,
-        "--api-key",
-        help="Set API key/token"
-    ),
+    api_key: Optional[str] = typer.Option(None, "--api-key", help="Set API key/token"),
     project_id: Optional[str] = typer.Option(
-        None,
-        "--project-id",
-        help="Set project ID"
+        None, "--project-id", help="Set project ID"
     ),
     team_id: Optional[str] = typer.Option(
-        None,
-        "--team-id",
-        help="Set team ID (Linear)"
+        None, "--team-id", help="Set team ID (Linear)"
     ),
     global_scope: bool = typer.Option(
         False,
         "--global",
         "-g",
-        help="Save to global config instead of project-specific"
+        help="Save to global config instead of project-specific",
     ),
 ) -> None:
     """Configure MCP Ticketer integration.
@@ -765,7 +735,7 @@ def configure_command(
             api_key=api_key,
             project_id=project_id,
             team_id=team_id,
-            global_scope=global_scope
+            global_scope=global_scope,
         )
         return
 
@@ -776,9 +746,7 @@ def configure_command(
 @app.command("migrate-config")
 def migrate_config(
     dry_run: bool = typer.Option(
-        False,
-        "--dry-run",
-        help="Show what would be done without making changes"
+        False, "--dry-run", help="Show what would be done without making changes"
     ),
 ) -> None:
     """Migrate configuration from old format to new format.
@@ -812,50 +780,42 @@ def status_command():
     # Show worker status
     worker_status = manager.get_status()
     if worker_status["running"]:
-        console.print(f"\n[green]● Worker is running[/green] (PID: {worker_status.get('pid')})")
+        console.print(
+            f"\n[green]● Worker is running[/green] (PID: {worker_status.get('pid')})"
+        )
     else:
         console.print("\n[red]○ Worker is not running[/red]")
         if pending > 0:
-            console.print("[yellow]Note: There are pending items. Start worker with 'mcp-ticketer worker start'[/yellow]")
+            console.print(
+                "[yellow]Note: There are pending items. Start worker with 'mcp-ticketer worker start'[/yellow]"
+            )
 
 
 @app.command()
 def create(
     title: str = typer.Argument(..., help="Ticket title"),
     description: Optional[str] = typer.Option(
-        None,
-        "--description",
-        "-d",
-        help="Ticket description"
+        None, "--description", "-d", help="Ticket description"
     ),
     priority: Priority = typer.Option(
-        Priority.MEDIUM,
-        "--priority",
-        "-p",
-        help="Priority level"
+        Priority.MEDIUM, "--priority", "-p", help="Priority level"
     ),
     tags: Optional[List[str]] = typer.Option(
-        None,
-        "--tag",
-        "-t",
-        help="Tags (can be specified multiple times)"
+        None, "--tag", "-t", help="Tags (can be specified multiple times)"
     ),
     assignee: Optional[str] = typer.Option(
-        None,
-        "--assignee",
-        "-a",
-        help="Assignee username"
+        None, "--assignee", "-a", help="Assignee username"
     ),
     adapter: Optional[AdapterType] = typer.Option(
-        None,
-        "--adapter",
-        help="Override default adapter"
+        None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
     """Create a new ticket."""
     # Get the adapter name
     config = load_config()
-    adapter_name = adapter.value if adapter else config.get("default_adapter", "aitrackdown")
+    adapter_name = (
+        adapter.value if adapter else config.get("default_adapter", "aitrackdown")
+    )
 
     # Create task data
     task_data = {
@@ -869,9 +829,7 @@ def create(
     # Add to queue
     queue = Queue()
     queue_id = queue.add(
-        ticket_data=task_data,
-        adapter=adapter_name,
-        operation="create"
+        ticket_data=task_data, adapter=adapter_name, operation="create"
     )
 
     console.print(f"[green]✓[/green] Queued ticket creation: {queue_id}")
@@ -888,32 +846,22 @@ def create(
 @app.command("list")
 def list_tickets(
     state: Optional[TicketState] = typer.Option(
-        None,
-        "--state",
-        "-s",
-        help="Filter by state"
+        None, "--state", "-s", help="Filter by state"
     ),
     priority: Optional[Priority] = typer.Option(
-        None,
-        "--priority",
-        "-p",
-        help="Filter by priority"
+        None, "--priority", "-p", help="Filter by priority"
     ),
-    limit: int = typer.Option(
-        10,
-        "--limit",
-        "-l",
-        help="Maximum number of tickets"
-    ),
+    limit: int = typer.Option(10, "--limit", "-l", help="Maximum number of tickets"),
     adapter: Optional[AdapterType] = typer.Option(
-        None,
-        "--adapter",
-        help="Override default adapter"
+        None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
     """List tickets with optional filters."""
+
     async def _list():
-        adapter_instance = get_adapter(override_adapter=adapter.value if adapter else None)
+        adapter_instance = get_adapter(
+            override_adapter=adapter.value if adapter else None
+        )
         filters = {}
         if state:
             filters["state"] = state
@@ -950,21 +898,17 @@ def list_tickets(
 @app.command()
 def show(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
-    comments: bool = typer.Option(
-        False,
-        "--comments",
-        "-c",
-        help="Show comments"
-    ),
+    comments: bool = typer.Option(False, "--comments", "-c", help="Show comments"),
     adapter: Optional[AdapterType] = typer.Option(
-        None,
-        "--adapter",
-        help="Override default adapter"
+        None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
     """Show detailed ticket information."""
+
     async def _show():
-        adapter_instance = get_adapter(override_adapter=adapter.value if adapter else None)
+        adapter_instance = get_adapter(
+            override_adapter=adapter.value if adapter else None
+        )
         ticket = await adapter_instance.read(ticket_id)
         ticket_comments = None
         if comments and ticket:
@@ -984,7 +928,7 @@ def show(
     console.print(f"Priority: [yellow]{ticket.priority}[/yellow]")
 
     if ticket.description:
-        console.print(f"\n[dim]Description:[/dim]")
+        console.print("\n[dim]Description:[/dim]")
         console.print(ticket.description)
 
     if ticket.tags:
@@ -1006,27 +950,16 @@ def update(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
     title: Optional[str] = typer.Option(None, "--title", help="New title"),
     description: Optional[str] = typer.Option(
-        None,
-        "--description",
-        "-d",
-        help="New description"
+        None, "--description", "-d", help="New description"
     ),
     priority: Optional[Priority] = typer.Option(
-        None,
-        "--priority",
-        "-p",
-        help="New priority"
+        None, "--priority", "-p", help="New priority"
     ),
     assignee: Optional[str] = typer.Option(
-        None,
-        "--assignee",
-        "-a",
-        help="New assignee"
+        None, "--assignee", "-a", help="New assignee"
     ),
     adapter: Optional[AdapterType] = typer.Option(
-        None,
-        "--adapter",
-        help="Override default adapter"
+        None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
     """Update ticket fields."""
@@ -1036,7 +969,9 @@ def update(
     if description:
         updates["description"] = description
     if priority:
-        updates["priority"] = priority.value if isinstance(priority, Priority) else priority
+        updates["priority"] = (
+            priority.value if isinstance(priority, Priority) else priority
+        )
     if assignee:
         updates["assignee"] = assignee
 
@@ -1046,18 +981,16 @@ def update(
 
     # Get the adapter name
     config = load_config()
-    adapter_name = adapter.value if adapter else config.get("default_adapter", "aitrackdown")
+    adapter_name = (
+        adapter.value if adapter else config.get("default_adapter", "aitrackdown")
+    )
 
     # Add ticket_id to updates
     updates["ticket_id"] = ticket_id
 
     # Add to queue
     queue = Queue()
-    queue_id = queue.add(
-        ticket_data=updates,
-        adapter=adapter_name,
-        operation="update"
-    )
+    queue_id = queue.add(ticket_data=updates, adapter=adapter_name, operation="update")
 
     console.print(f"[green]✓[/green] Queued ticket update: {queue_id}")
     for key, value in updates.items():
@@ -1074,31 +1007,59 @@ def update(
 @app.command()
 def transition(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
-    state: TicketState = typer.Argument(..., help="Target state"),
+    state_positional: Optional[TicketState] = typer.Argument(
+        None, help="Target state (positional - deprecated, use --state instead)"
+    ),
+    state: Optional[TicketState] = typer.Option(
+        None, "--state", "-s", help="Target state (recommended)"
+    ),
     adapter: Optional[AdapterType] = typer.Option(
-        None,
-        "--adapter",
-        help="Override default adapter"
+        None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
-    """Change ticket state with validation."""
+    """Change ticket state with validation.
+
+    Examples:
+        # Recommended syntax with flag:
+        mcp-ticketer transition BTA-215 --state done
+        mcp-ticketer transition BTA-215 -s in_progress
+
+        # Legacy positional syntax (still supported):
+        mcp-ticketer transition BTA-215 done
+    """
+    # Determine which state to use (prefer flag over positional)
+    target_state = state if state is not None else state_positional
+
+    if target_state is None:
+        console.print("[red]Error: State is required[/red]")
+        console.print(
+            "Use either:\n"
+            "  - Flag syntax (recommended): mcp-ticketer transition TICKET-ID --state STATE\n"
+            "  - Positional syntax: mcp-ticketer transition TICKET-ID STATE"
+        )
+        raise typer.Exit(1)
+
     # Get the adapter name
     config = load_config()
-    adapter_name = adapter.value if adapter else config.get("default_adapter", "aitrackdown")
+    adapter_name = (
+        adapter.value if adapter else config.get("default_adapter", "aitrackdown")
+    )
 
     # Add to queue
     queue = Queue()
     queue_id = queue.add(
         ticket_data={
             "ticket_id": ticket_id,
-            "state": state.value if hasattr(state, 'value') else state
+            "state": (
+                target_state.value if hasattr(target_state, "value") else target_state
+            ),
         },
         adapter=adapter_name,
-        operation="transition"
+        operation="transition",
     )
 
     console.print(f"[green]✓[/green] Queued state transition: {queue_id}")
-    console.print(f"  Ticket: {ticket_id} → {state}")
+    console.print(f"  Ticket: {ticket_id} → {target_state}")
     console.print("[dim]Use 'mcp-ticketer status {queue_id}' to check progress[/dim]")
 
     # Start worker if needed
@@ -1115,14 +1076,15 @@ def search(
     assignee: Optional[str] = typer.Option(None, "--assignee", "-a"),
     limit: int = typer.Option(10, "--limit", "-l"),
     adapter: Optional[AdapterType] = typer.Option(
-        None,
-        "--adapter",
-        help="Override default adapter"
+        None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
     """Search tickets with advanced query."""
+
     async def _search():
-        adapter_instance = get_adapter(override_adapter=adapter.value if adapter else None)
+        adapter_instance = get_adapter(
+            override_adapter=adapter.value if adapter else None
+        )
         search_query = SearchQuery(
             query=query,
             state=state,
@@ -1157,9 +1119,7 @@ app.add_typer(discover_app, name="discover")
 
 
 @app.command()
-def check(
-    queue_id: str = typer.Argument(..., help="Queue ID to check")
-):
+def check(queue_id: str = typer.Argument(..., help="Queue ID to check")):
     """Check status of a queued operation."""
     queue = Queue()
     item = queue.get_item(queue_id)
@@ -1192,7 +1152,7 @@ def check(
     if item.error_message:
         console.print(f"\n[red]Error:[/red] {item.error_message}")
     elif item.result:
-        console.print(f"\n[green]Result:[/green]")
+        console.print("\n[green]Result:[/green]")
         for key, value in item.result.items():
             console.print(f"  {key}: {value}")
 
@@ -1203,15 +1163,10 @@ def check(
 @app.command()
 def serve(
     adapter: Optional[AdapterType] = typer.Option(
-        None,
-        "--adapter",
-        "-a",
-        help="Override default adapter type"
+        None, "--adapter", "-a", help="Override default adapter type"
     ),
     base_path: Optional[str] = typer.Option(
-        None,
-        "--base-path",
-        help="Base path for AITrackdown adapter"
+        None, "--base-path", help="Base path for AITrackdown adapter"
     ),
 ):
     """Start MCP server for JSON-RPC communication over stdio.
@@ -1233,7 +1188,9 @@ def serve(
     config = load_config()
 
     # Determine adapter type
-    adapter_type = adapter.value if adapter else config.get("default_adapter", "aitrackdown")
+    adapter_type = (
+        adapter.value if adapter else config.get("default_adapter", "aitrackdown")
+    )
 
     # Get adapter configuration
     adapters_config = config.get("adapters", {})
@@ -1250,11 +1207,14 @@ def serve(
     # MCP server uses stdio for JSON-RPC, so we can't print to stdout
     # Only print to stderr to avoid interfering with the protocol
     import sys
+
     if sys.stderr.isatty():
         # Only print if stderr is a terminal (not redirected)
         console.file = sys.stderr
         console.print(f"[green]Starting MCP server[/green] with {adapter_type} adapter")
-        console.print("[dim]Server running on stdio. Send JSON-RPC requests via stdin.[/dim]")
+        console.print(
+            "[dim]Server running on stdio. Send JSON-RPC requests via stdin.[/dim]"
+        )
 
     # Create and run server
     try:
@@ -1264,7 +1224,7 @@ def serve(
         # Also send this to stderr
         if sys.stderr.isatty():
             console.print("\n[yellow]Server stopped by user[/yellow]")
-        if 'server' in locals():
+        if "server" in locals():
             asyncio.run(server.stop())
     except Exception as e:
         # Log error to stderr
@@ -1278,13 +1238,10 @@ def mcp(
         False,
         "--global",
         "-g",
-        help="Configure Claude Desktop instead of project-level"
+        help="Configure Claude Desktop instead of project-level",
     ),
     force: bool = typer.Option(
-        False,
-        "--force",
-        "-f",
-        help="Overwrite existing configuration"
+        False, "--force", "-f", help="Overwrite existing configuration"
     ),
 ):
     """Configure Claude Code to use mcp-ticketer MCP server.

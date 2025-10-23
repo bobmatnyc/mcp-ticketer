@@ -8,19 +8,20 @@ This module provides a comprehensive configuration system that supports:
 - Hybrid mode for multi-platform synchronization
 """
 
-import os
 import json
 import logging
-from typing import Dict, Any, Optional, List
-from pathlib import Path
-from dataclasses import dataclass, field, asdict
+import os
+from dataclasses import asdict, dataclass, field
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class AdapterType(str, Enum):
     """Supported adapter types."""
+
     AITRACKDOWN = "aitrackdown"
     LINEAR = "linear"
     JIRA = "jira"
@@ -29,14 +30,16 @@ class AdapterType(str, Enum):
 
 class SyncStrategy(str, Enum):
     """Hybrid mode synchronization strategies."""
+
     PRIMARY_SOURCE = "primary_source"  # One adapter is source of truth
-    BIDIRECTIONAL = "bidirectional"    # Two-way sync between adapters
-    MIRROR = "mirror"                  # Clone tickets across all adapters
+    BIDIRECTIONAL = "bidirectional"  # Two-way sync between adapters
+    MIRROR = "mirror"  # Clone tickets across all adapters
 
 
 @dataclass
 class AdapterConfig:
     """Base configuration for a single adapter instance."""
+
     adapter: str
     enabled: bool = True
 
@@ -77,13 +80,25 @@ class AdapterConfig:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'AdapterConfig':
+    def from_dict(cls, data: Dict[str, Any]) -> "AdapterConfig":
         """Create from dictionary."""
         # Extract known fields
         known_fields = {
-            'adapter', 'enabled', 'api_key', 'token', 'team_id', 'team_key',
-            'workspace', 'server', 'email', 'api_token', 'project_key',
-            'owner', 'repo', 'base_path', 'project_id'
+            "adapter",
+            "enabled",
+            "api_key",
+            "token",
+            "team_id",
+            "team_key",
+            "workspace",
+            "server",
+            "email",
+            "api_token",
+            "project_key",
+            "owner",
+            "repo",
+            "base_path",
+            "project_id",
         }
 
         kwargs = {}
@@ -92,20 +107,21 @@ class AdapterConfig:
         for key, value in data.items():
             if key in known_fields:
                 kwargs[key] = value
-            elif key != 'additional_config':
+            elif key != "additional_config":
                 additional[key] = value
 
         # Merge explicit additional_config
-        if 'additional_config' in data:
-            additional.update(data['additional_config'])
+        if "additional_config" in data:
+            additional.update(data["additional_config"])
 
-        kwargs['additional_config'] = additional
+        kwargs["additional_config"] = additional
         return cls(**kwargs)
 
 
 @dataclass
 class ProjectConfig:
     """Configuration for a specific project."""
+
     adapter: str
     api_key: Optional[str] = None
     project_id: Optional[str] = None
@@ -117,7 +133,7 @@ class ProjectConfig:
         return {k: v for k, v in asdict(self).items() if v is not None}
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'ProjectConfig':
+    def from_dict(cls, data: Dict[str, Any]) -> "ProjectConfig":
         """Create from dictionary."""
         return cls(**{k: v for k, v in data.items() if k in cls.__annotations__})
 
@@ -125,6 +141,7 @@ class ProjectConfig:
 @dataclass
 class HybridConfig:
     """Configuration for hybrid mode (multi-adapter sync)."""
+
     enabled: bool = False
     adapters: List[str] = field(default_factory=list)
     primary_adapter: Optional[str] = None
@@ -133,21 +150,22 @@ class HybridConfig:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         result = asdict(self)
-        result['sync_strategy'] = self.sync_strategy.value
+        result["sync_strategy"] = self.sync_strategy.value
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'HybridConfig':
+    def from_dict(cls, data: Dict[str, Any]) -> "HybridConfig":
         """Create from dictionary."""
         data = data.copy()
-        if 'sync_strategy' in data:
-            data['sync_strategy'] = SyncStrategy(data['sync_strategy'])
+        if "sync_strategy" in data:
+            data["sync_strategy"] = SyncStrategy(data["sync_strategy"])
         return cls(**data)
 
 
 @dataclass
 class TicketerConfig:
     """Complete ticketer configuration with hierarchical resolution."""
+
     default_adapter: str = "aitrackdown"
     project_configs: Dict[str, ProjectConfig] = field(default_factory=dict)
     adapters: Dict[str, AdapterConfig] = field(default_factory=dict)
@@ -158,18 +176,16 @@ class TicketerConfig:
         return {
             "default_adapter": self.default_adapter,
             "project_configs": {
-                path: config.to_dict()
-                for path, config in self.project_configs.items()
+                path: config.to_dict() for path, config in self.project_configs.items()
             },
             "adapters": {
-                name: config.to_dict()
-                for name, config in self.adapters.items()
+                name: config.to_dict() for name, config in self.adapters.items()
             },
-            "hybrid_mode": self.hybrid_mode.to_dict() if self.hybrid_mode else None
+            "hybrid_mode": self.hybrid_mode.to_dict() if self.hybrid_mode else None,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'TicketerConfig':
+    def from_dict(cls, data: Dict[str, Any]) -> "TicketerConfig":
         """Create from dictionary."""
         # Parse project configs
         project_configs = {}
@@ -192,7 +208,7 @@ class TicketerConfig:
             default_adapter=data.get("default_adapter", "aitrackdown"),
             project_configs=project_configs,
             adapters=adapters,
-            hybrid_mode=hybrid_mode
+            hybrid_mode=hybrid_mode,
         )
 
 
@@ -205,6 +221,7 @@ class ConfigValidator:
 
         Returns:
             Tuple of (is_valid, error_message)
+
         """
         required = ["api_key"]
         for field in required:
@@ -213,7 +230,10 @@ class ConfigValidator:
 
         # Require either team_key or team_id (team_id is preferred)
         if not config.get("team_key") and not config.get("team_id"):
-            return False, "Linear config requires either team_key (short key like 'BTA') or team_id (UUID)"
+            return (
+                False,
+                "Linear config requires either team_key (short key like 'BTA') or team_id (UUID)",
+            )
 
         return True, None
 
@@ -223,6 +243,7 @@ class ConfigValidator:
 
         Returns:
             Tuple of (is_valid, error_message)
+
         """
         # token or api_key (aliases)
         has_token = config.get("token") or config.get("api_key")
@@ -251,6 +272,7 @@ class ConfigValidator:
 
         Returns:
             Tuple of (is_valid, error_message)
+
         """
         required = ["server", "email", "api_token"]
         for field in required:
@@ -265,18 +287,23 @@ class ConfigValidator:
         return True, None
 
     @staticmethod
-    def validate_aitrackdown_config(config: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+    def validate_aitrackdown_config(
+        config: Dict[str, Any],
+    ) -> tuple[bool, Optional[str]]:
         """Validate AITrackdown adapter configuration.
 
         Returns:
             Tuple of (is_valid, error_message)
+
         """
         # AITrackdown has minimal requirements
         # base_path is optional (defaults to .aitrackdown)
         return True, None
 
     @classmethod
-    def validate(cls, adapter_type: str, config: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+    def validate(
+        cls, adapter_type: str, config: Dict[str, Any]
+    ) -> tuple[bool, Optional[str]]:
         """Validate configuration for any adapter type.
 
         Args:
@@ -285,6 +312,7 @@ class ConfigValidator:
 
         Returns:
             Tuple of (is_valid, error_message)
+
         """
         validators = {
             AdapterType.LINEAR.value: cls.validate_linear_config,
@@ -318,17 +346,20 @@ class ConfigResolver:
     # Project config location (relative to project root) - PROJECT-LOCAL ONLY
     PROJECT_CONFIG_SUBPATH = ".mcp-ticketer" / Path("config.json")
 
-    def __init__(self, project_path: Optional[Path] = None, enable_env_discovery: bool = True):
+    def __init__(
+        self, project_path: Optional[Path] = None, enable_env_discovery: bool = True
+    ):
         """Initialize config resolver.
 
         Args:
             project_path: Path to project root (defaults to cwd)
             enable_env_discovery: Enable auto-discovery from .env files (default: True)
+
         """
         self.project_path = project_path or Path.cwd()
         self.enable_env_discovery = enable_env_discovery
         self._project_config: Optional[TicketerConfig] = None
-        self._discovered_config: Optional['DiscoveryResult'] = None
+        self._discovered_config: Optional[DiscoveryResult] = None
 
     def load_global_config(self) -> TicketerConfig:
         """Load default configuration (global config loading removed for security).
@@ -338,6 +369,7 @@ class ConfigResolver:
 
         Returns:
             Default TicketerConfig with aitrackdown adapter
+
         """
         logger.info("Global config loading disabled for security, using defaults")
         # Return default config with aitrackdown adapter
@@ -346,7 +378,9 @@ class ConfigResolver:
             default_config.default_adapter = "aitrackdown"
         return default_config
 
-    def load_project_config(self, project_path: Optional[Path] = None) -> Optional[TicketerConfig]:
+    def load_project_config(
+        self, project_path: Optional[Path] = None
+    ) -> Optional[TicketerConfig]:
         """Load project-specific configuration.
 
         Args:
@@ -354,13 +388,14 @@ class ConfigResolver:
 
         Returns:
             Project config if exists, None otherwise
+
         """
         proj_path = project_path or self.project_path
         config_path = proj_path / self.PROJECT_CONFIG_SUBPATH
 
         if config_path.exists():
             try:
-                with open(config_path, 'r') as f:
+                with open(config_path) as f:
                     data = json.load(f)
                 return TicketerConfig.from_dict(data)
             except Exception as e:
@@ -376,6 +411,7 @@ class ConfigResolver:
 
         Args:
             config: Configuration to save
+
         """
         logger.warning(
             "save_global_config is deprecated and now saves to project-local config. "
@@ -384,26 +420,30 @@ class ConfigResolver:
         # Save to project config instead
         self.save_project_config(config)
 
-    def save_project_config(self, config: TicketerConfig, project_path: Optional[Path] = None) -> None:
+    def save_project_config(
+        self, config: TicketerConfig, project_path: Optional[Path] = None
+    ) -> None:
         """Save project-specific configuration.
 
         Args:
             config: Configuration to save
             project_path: Path to project root (defaults to self.project_path)
+
         """
         proj_path = project_path or self.project_path
         config_path = proj_path / self.PROJECT_CONFIG_SUBPATH
 
         config_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(config_path, 'w') as f:
+        with open(config_path, "w") as f:
             json.dump(config.to_dict(), f, indent=2)
         logger.info(f"Saved project config to {config_path}")
 
-    def get_discovered_config(self) -> Optional['DiscoveryResult']:
+    def get_discovered_config(self) -> Optional["DiscoveryResult"]:
         """Get auto-discovered configuration from .env files.
 
         Returns:
             DiscoveryResult if env discovery is enabled, None otherwise
+
         """
         if not self.enable_env_discovery:
             return None
@@ -411,6 +451,7 @@ class ConfigResolver:
         if self._discovered_config is None:
             # Import here to avoid circular dependency
             from .env_discovery import discover_config
+
             self._discovered_config = discover_config(self.project_path)
 
         return self._discovered_config
@@ -418,7 +459,7 @@ class ConfigResolver:
     def resolve_adapter_config(
         self,
         adapter_name: Optional[str] = None,
-        cli_overrides: Optional[Dict[str, Any]] = None
+        cli_overrides: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Resolve adapter configuration with hierarchical precedence.
 
@@ -435,6 +476,7 @@ class ConfigResolver:
 
         Returns:
             Resolved configuration dictionary
+
         """
         # Load configs
         global_config = self.load_global_config()
@@ -473,7 +515,8 @@ class ConfigResolver:
                 if discovered_adapter:
                     # Merge discovered config
                     discovered_dict = {
-                        k: v for k, v in discovered_adapter.config.items()
+                        k: v
+                        for k, v in discovered_adapter.config.items()
                         if k != "adapter"  # Don't override adapter type
                     }
                     resolved_config.update(discovered_dict)
@@ -486,12 +529,16 @@ class ConfigResolver:
             # Check if this project has specific adapter config
             project_path_str = str(self.project_path)
             if project_path_str in project_config.project_configs:
-                proj_adapter_config = project_config.project_configs[project_path_str].to_dict()
+                proj_adapter_config = project_config.project_configs[
+                    project_path_str
+                ].to_dict()
                 resolved_config.update(proj_adapter_config)
 
             # Also check if project has adapter-level overrides
             if target_adapter in project_config.adapters:
-                proj_global_adapter_config = project_config.adapters[target_adapter].to_dict()
+                proj_global_adapter_config = project_config.adapters[
+                    target_adapter
+                ].to_dict()
                 resolved_config.update(proj_global_adapter_config)
 
         # 4. Apply environment variable overrides (os.getenv - HIGHER PRIORITY)
@@ -512,6 +559,7 @@ class ConfigResolver:
 
         Returns:
             Dictionary of overrides from environment
+
         """
         overrides = {}
 
@@ -562,9 +610,13 @@ class ConfigResolver:
 
         # Hybrid mode
         if os.getenv("MCP_TICKETER_HYBRID_MODE"):
-            overrides["hybrid_mode_enabled"] = os.getenv("MCP_TICKETER_HYBRID_MODE").lower() == "true"
+            overrides["hybrid_mode_enabled"] = (
+                os.getenv("MCP_TICKETER_HYBRID_MODE").lower() == "true"
+            )
         if os.getenv("MCP_TICKETER_HYBRID_ADAPTERS"):
-            overrides["hybrid_adapters"] = os.getenv("MCP_TICKETER_HYBRID_ADAPTERS").split(",")
+            overrides["hybrid_adapters"] = os.getenv(
+                "MCP_TICKETER_HYBRID_ADAPTERS"
+            ).split(",")
 
         return overrides
 
@@ -573,18 +625,22 @@ class ConfigResolver:
 
         Returns:
             HybridConfig if hybrid mode is enabled, None otherwise
+
         """
         # Check environment first
         if os.getenv("MCP_TICKETER_HYBRID_MODE", "").lower() == "true":
             adapters = os.getenv("MCP_TICKETER_HYBRID_ADAPTERS", "").split(",")
             return HybridConfig(
-                enabled=True,
-                adapters=[a.strip() for a in adapters if a.strip()]
+                enabled=True, adapters=[a.strip() for a in adapters if a.strip()]
             )
 
         # Check project config
         project_config = self.load_project_config()
-        if project_config and project_config.hybrid_mode and project_config.hybrid_mode.enabled:
+        if (
+            project_config
+            and project_config.hybrid_mode
+            and project_config.hybrid_mode.enabled
+        ):
             return project_config.hybrid_mode
 
         # Check global config
@@ -607,6 +663,7 @@ def get_config_resolver(project_path: Optional[Path] = None) -> ConfigResolver:
 
     Returns:
         ConfigResolver instance
+
     """
     global _default_resolver
     if _default_resolver is None or project_path is not None:

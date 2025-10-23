@@ -4,22 +4,20 @@ import asyncio
 import json
 import logging
 import os
-from typing import Optional, Dict, Any, Callable, TypeVar, List
-from pathlib import Path
 from functools import wraps
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 import typer
 from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
 
-from ..core import Task, TicketState, Priority, AdapterRegistry
-from ..core.config import get_config, get_adapter_config
-from ..queue import Queue, WorkerManager, QueueStatus
+from ..core import AdapterRegistry, Priority, Task, TicketState
+from ..queue import Queue, QueueStatus, WorkerManager
 
 # Type variable for async functions
-T = TypeVar('T')
+T = TypeVar("T")
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -46,6 +44,7 @@ class CommonPatterns:
         Returns:
             Configuration dictionary with adapter and config keys.
             Defaults to aitrackdown if no local config exists.
+
         """
         # ONLY check project-specific config in current working directory
         project_config = Path.cwd() / ".mcp-ticketer" / "config.json"
@@ -66,20 +65,21 @@ class CommonPatterns:
                 pass
 
             try:
-                with open(project_config, "r") as f:
+                with open(project_config) as f:
                     config = json.load(f)
-                    logger.info(f"Loaded configuration from project-local: {project_config}")
+                    logger.info(
+                        f"Loaded configuration from project-local: {project_config}"
+                    )
                     return config
-            except (json.JSONDecodeError, IOError) as e:
+            except (OSError, json.JSONDecodeError) as e:
                 logger.warning(f"Could not load project config: {e}, using defaults")
-                console.print(f"[yellow]Warning: Could not load project config: {e}[/yellow]")
+                console.print(
+                    f"[yellow]Warning: Could not load project config: {e}[/yellow]"
+                )
 
         # Default to aitrackdown with local base path
         logger.info("No project-local config found, defaulting to aitrackdown adapter")
-        return {
-            "adapter": "aitrackdown",
-            "config": {"base_path": ".aitrackdown"}
-        }
+        return {"adapter": "aitrackdown", "config": {"base_path": ".aitrackdown"}}
 
     @staticmethod
     def save_config(config: dict) -> None:
@@ -115,7 +115,9 @@ class CommonPatterns:
         return config
 
     @staticmethod
-    def get_adapter(override_adapter: Optional[str] = None, override_config: Optional[dict] = None):
+    def get_adapter(
+        override_adapter: Optional[str] = None, override_config: Optional[dict] = None
+    ):
         """Get configured adapter instance with environment variable support."""
         config = CommonPatterns.load_config()
 
@@ -167,7 +169,7 @@ class CommonPatterns:
         ticket_data: Dict[str, Any],
         operation: str,
         adapter_name: Optional[str] = None,
-        show_progress: bool = True
+        show_progress: bool = True,
     ) -> str:
         """Queue an operation and optionally start the worker."""
         if not adapter_name:
@@ -177,14 +179,14 @@ class CommonPatterns:
         # Add to queue
         queue = Queue()
         queue_id = queue.add(
-            ticket_data=ticket_data,
-            adapter=adapter_name,
-            operation=operation
+            ticket_data=ticket_data, adapter=adapter_name, operation=operation
         )
 
         if show_progress:
             console.print(f"[green]✓[/green] Queued {operation}: {queue_id}")
-            console.print("[dim]Use 'mcp-ticketer check {queue_id}' to check progress[/dim]")
+            console.print(
+                "[dim]Use 'mcp-ticketer check {queue_id}' to check progress[/dim]"
+            )
 
         # Start worker if needed
         manager = WorkerManager()
@@ -228,7 +230,7 @@ class CommonPatterns:
         console.print(f"Priority: [yellow]{ticket.priority}[/yellow]")
 
         if ticket.description:
-            console.print(f"\n[dim]Description:[/dim]")
+            console.print("\n[dim]Description:[/dim]")
             console.print(ticket.description)
 
         if ticket.tags:
@@ -264,32 +266,41 @@ class CommonPatterns:
         # Show worker status
         worker_status = manager.get_status()
         if worker_status["running"]:
-            console.print(f"\n[green]● Worker is running[/green] (PID: {worker_status.get('pid')})")
+            console.print(
+                f"\n[green]● Worker is running[/green] (PID: {worker_status.get('pid')})"
+            )
         else:
             console.print("\n[red]○ Worker is not running[/red]")
             if pending > 0:
-                console.print("[yellow]Note: There are pending items. Start worker with 'mcp-ticketer queue start'[/yellow]")
+                console.print(
+                    "[yellow]Note: There are pending items. Start worker with 'mcp-ticketer queue start'[/yellow]"
+                )
 
 
 def async_command(f: Callable[..., T]) -> Callable[..., T]:
     """Decorator to handle async CLI commands."""
+
     @wraps(f)
     def wrapper(*args, **kwargs):
         return asyncio.run(f(*args, **kwargs))
+
     return wrapper
 
 
 def with_adapter(f: Callable) -> Callable:
     """Decorator to inject adapter instance into CLI commands."""
+
     @wraps(f)
     def wrapper(adapter: Optional[str] = None, *args, **kwargs):
         adapter_instance = CommonPatterns.get_adapter(override_adapter=adapter)
         return f(adapter_instance, *args, **kwargs)
+
     return wrapper
 
 
 def with_progress(message: str = "Processing..."):
     """Decorator to show progress spinner for long-running operations."""
+
     def decorator(f: Callable) -> Callable:
         @wraps(f)
         def wrapper(*args, **kwargs):
@@ -300,12 +311,15 @@ def with_progress(message: str = "Processing..."):
             ) as progress:
                 progress.add_task(description=message, total=None)
                 return f(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
 def validate_required_fields(**field_map):
     """Decorator to validate required fields are provided."""
+
     def decorator(f: Callable) -> Callable:
         @wraps(f)
         def wrapper(*args, **kwargs):
@@ -315,16 +329,21 @@ def validate_required_fields(**field_map):
                     missing_fields.append(display_name)
 
             if missing_fields:
-                console.print(f"[red]Error:[/red] Missing required fields: {', '.join(missing_fields)}")
+                console.print(
+                    f"[red]Error:[/red] Missing required fields: {', '.join(missing_fields)}"
+                )
                 raise typer.Exit(1)
 
             return f(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
 def handle_adapter_errors(f: Callable) -> Callable:
     """Decorator to handle common adapter errors gracefully."""
+
     @wraps(f)
     def wrapper(*args, **kwargs):
         try:
@@ -340,6 +359,7 @@ def handle_adapter_errors(f: Callable) -> Callable:
         except Exception as e:
             console.print(f"[red]Unexpected Error:[/red] {e}")
             raise typer.Exit(1)
+
     return wrapper
 
 
@@ -376,7 +396,9 @@ class ConfigValidator:
                 if not config.get(field):
                     env_var = ConfigValidator._get_env_var(adapter_type, field)
                     if env_var and not os.getenv(env_var):
-                        issues.append(f"Missing {display_name} (config.{field} or {env_var})")
+                        issues.append(
+                            f"Missing {display_name} (config.{field} or {env_var})"
+                        )
 
         return issues
 
@@ -384,8 +406,16 @@ class ConfigValidator:
     def _get_env_var(adapter_type: str, field: str) -> Optional[str]:
         """Get corresponding environment variable name for a config field."""
         env_mapping = {
-            "github": {"token": "GITHUB_TOKEN", "owner": "GITHUB_OWNER", "repo": "GITHUB_REPO"},
-            "jira": {"api_token": "JIRA_API_TOKEN", "email": "JIRA_EMAIL", "server": "JIRA_SERVER"},
+            "github": {
+                "token": "GITHUB_TOKEN",
+                "owner": "GITHUB_OWNER",
+                "repo": "GITHUB_REPO",
+            },
+            "jira": {
+                "api_token": "JIRA_API_TOKEN",
+                "email": "JIRA_EMAIL",
+                "server": "JIRA_SERVER",
+            },
             "linear": {"api_key": "LINEAR_API_KEY"},
         }
         return env_mapping.get(adapter_type, {}).get(field)
@@ -432,7 +462,9 @@ class CommandBuilder:
         default_adapter = config.get("default_adapter", "aitrackdown")
         adapter_config = config.get("adapters", {}).get(default_adapter, {})
 
-        issues = ConfigValidator.validate_adapter_config(default_adapter, adapter_config)
+        issues = ConfigValidator.validate_adapter_config(
+            default_adapter, adapter_config
+        )
         if issues:
             console.print("[red]Configuration Issues:[/red]")
             for issue in issues:
@@ -443,6 +475,7 @@ class CommandBuilder:
 
 def create_standard_ticket_command(operation: str):
     """Create a standard ticket operation command."""
+
     def command_template(
         ticket_id: Optional[str] = None,
         title: Optional[str] = None,
@@ -463,9 +496,11 @@ def create_standard_ticket_command(operation: str):
         if description:
             ticket_data["description"] = description
         if priority:
-            ticket_data["priority"] = priority.value if hasattr(priority, 'value') else priority
+            ticket_data["priority"] = (
+                priority.value if hasattr(priority, "value") else priority
+            )
         if state:
-            ticket_data["state"] = state.value if hasattr(state, 'value') else state
+            ticket_data["state"] = state.value if hasattr(state, "value") else state
         if assignee:
             ticket_data["assignee"] = assignee
         if tags:
@@ -492,7 +527,7 @@ class TicketCommands:
         adapter_instance,
         state: Optional[TicketState] = None,
         priority: Optional[Priority] = None,
-        limit: int = 10
+        limit: int = 10,
     ):
         """List tickets with filters."""
         filters = {}
@@ -508,9 +543,7 @@ class TicketCommands:
     @async_command
     @handle_adapter_errors
     async def show_ticket(
-        adapter_instance,
-        ticket_id: str,
-        show_comments: bool = False
+        adapter_instance, ticket_id: str, show_comments: bool = False
     ):
         """Show ticket details."""
         ticket = await adapter_instance.read(ticket_id)
@@ -531,7 +564,7 @@ class TicketCommands:
         priority: Priority = Priority.MEDIUM,
         tags: Optional[List[str]] = None,
         assignee: Optional[str] = None,
-        adapter: Optional[str] = None
+        adapter: Optional[str] = None,
     ) -> str:
         """Create a new ticket."""
         ticket_data = {
@@ -546,9 +579,7 @@ class TicketCommands:
 
     @staticmethod
     def update_ticket(
-        ticket_id: str,
-        updates: Dict[str, Any],
-        adapter: Optional[str] = None
+        ticket_id: str, updates: Dict[str, Any], adapter: Optional[str] = None
     ) -> str:
         """Update a ticket."""
         if not updates:
@@ -560,14 +591,12 @@ class TicketCommands:
 
     @staticmethod
     def transition_ticket(
-        ticket_id: str,
-        state: TicketState,
-        adapter: Optional[str] = None
+        ticket_id: str, state: TicketState, adapter: Optional[str] = None
     ) -> str:
         """Transition ticket state."""
         ticket_data = {
             "ticket_id": ticket_id,
-            "state": state.value if hasattr(state, 'value') else state
+            "state": state.value if hasattr(state, "value") else state,
         }
 
         return CommonPatterns.queue_operation(ticket_data, "transition", adapter)

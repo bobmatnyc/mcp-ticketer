@@ -1,18 +1,19 @@
 """SQLite-based queue system for async ticket operations."""
 
-import sqlite3
 import json
+import sqlite3
 import threading
+import uuid
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Dict, Any, List
-from dataclasses import dataclass, asdict
-import uuid
+from typing import Any, Dict, List, Optional
 
 
 class QueueStatus(str, Enum):
     """Queue item status values."""
+
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
@@ -22,6 +23,7 @@ class QueueStatus(str, Enum):
 @dataclass
 class QueueItem:
     """Represents a queued operation."""
+
     id: str
     ticket_data: Dict[str, Any]
     adapter: str
@@ -37,9 +39,9 @@ class QueueItem:
     def to_dict(self) -> dict:
         """Convert to dictionary for storage."""
         data = asdict(self)
-        data['created_at'] = self.created_at.isoformat()
+        data["created_at"] = self.created_at.isoformat()
         if self.processed_at:
-            data['processed_at'] = self.processed_at.isoformat()
+            data["processed_at"] = self.processed_at.isoformat()
         return data
 
     @classmethod
@@ -56,7 +58,7 @@ class QueueItem:
             error_message=row[7],
             retry_count=row[8],
             result=json.loads(row[9]) if row[9] else None,
-            project_dir=row[10] if len(row) > 10 else None
+            project_dir=row[10] if len(row) > 10 else None,
         )
 
 
@@ -68,6 +70,7 @@ class Queue:
 
         Args:
             db_path: Path to SQLite database. Defaults to ~/.mcp-ticketer/queue.db
+
         """
         if db_path is None:
             db_dir = Path.home() / ".mcp-ticketer"
@@ -81,7 +84,8 @@ class Queue:
     def _init_database(self):
         """Initialize database schema."""
         with sqlite3.connect(self.db_path) as conn:
-            conn.execute('''
+            conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS queue (
                     id TEXT PRIMARY KEY,
                     ticket_data TEXT NOT NULL,
@@ -95,35 +99,44 @@ class Queue:
                     result TEXT,
                     CHECK (status IN ('pending', 'processing', 'completed', 'failed'))
                 )
-            ''')
+            """
+            )
 
             # Create indices for efficient queries
-            conn.execute('''
+            conn.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_queue_status
                 ON queue(status)
-            ''')
-            conn.execute('''
+            """
+            )
+            conn.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_queue_created
                 ON queue(created_at)
-            ''')
-            conn.execute('''
+            """
+            )
+            conn.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_queue_adapter
                 ON queue(adapter)
-            ''')
+            """
+            )
 
             # Migration: Add project_dir column if it doesn't exist
             cursor = conn.execute("PRAGMA table_info(queue)")
             columns = [row[1] for row in cursor.fetchall()]
-            if 'project_dir' not in columns:
-                conn.execute('ALTER TABLE queue ADD COLUMN project_dir TEXT')
+            if "project_dir" not in columns:
+                conn.execute("ALTER TABLE queue ADD COLUMN project_dir TEXT")
 
             conn.commit()
 
-    def add(self,
-            ticket_data: Dict[str, Any],
-            adapter: str,
-            operation: str,
-            project_dir: Optional[str] = None) -> str:
+    def add(
+        self,
+        ticket_data: Dict[str, Any],
+        adapter: str,
+        operation: str,
+        project_dir: Optional[str] = None,
+    ) -> str:
         """Add item to queue.
 
         Args:
@@ -134,6 +147,7 @@ class Queue:
 
         Returns:
             Queue ID for tracking
+
         """
         queue_id = f"Q-{uuid.uuid4().hex[:8].upper()}"
 
@@ -143,21 +157,24 @@ class Queue:
 
         with self._lock:
             with sqlite3.connect(self.db_path) as conn:
-                conn.execute('''
+                conn.execute(
+                    """
                     INSERT INTO queue (
                         id, ticket_data, adapter, operation,
                         status, created_at, retry_count, project_dir
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    queue_id,
-                    json.dumps(ticket_data),
-                    adapter,
-                    operation,
-                    QueueStatus.PENDING.value,
-                    datetime.now().isoformat(),
-                    0,
-                    project_dir
-                ))
+                """,
+                    (
+                        queue_id,
+                        json.dumps(ticket_data),
+                        adapter,
+                        operation,
+                        QueueStatus.PENDING.value,
+                        datetime.now().isoformat(),
+                        0,
+                        project_dir,
+                    ),
+                )
                 conn.commit()
 
         return queue_id
@@ -167,25 +184,32 @@ class Queue:
 
         Returns:
             Next pending QueueItem or None if queue is empty
+
         """
         with self._lock:
             with sqlite3.connect(self.db_path) as conn:
                 # Get next pending item ordered by creation time
-                cursor = conn.execute('''
+                cursor = conn.execute(
+                    """
                     SELECT * FROM queue
                     WHERE status = ?
                     ORDER BY created_at
                     LIMIT 1
-                ''', (QueueStatus.PENDING.value,))
+                """,
+                    (QueueStatus.PENDING.value,),
+                )
 
                 row = cursor.fetchone()
                 if row:
                     # Mark as processing
-                    conn.execute('''
+                    conn.execute(
+                        """
                         UPDATE queue
                         SET status = ?
                         WHERE id = ?
-                    ''', (QueueStatus.PROCESSING.value, row[0]))
+                    """,
+                        (QueueStatus.PROCESSING.value, row[0]),
+                    )
                     conn.commit()
 
                     # Create QueueItem from row and update status
@@ -195,11 +219,13 @@ class Queue:
 
         return None
 
-    def update_status(self,
-                     queue_id: str,
-                     status: QueueStatus,
-                     error_message: Optional[str] = None,
-                     result: Optional[Dict[str, Any]] = None):
+    def update_status(
+        self,
+        queue_id: str,
+        status: QueueStatus,
+        error_message: Optional[str] = None,
+        result: Optional[Dict[str, Any]] = None,
+    ):
         """Update queue item status.
 
         Args:
@@ -207,25 +233,31 @@ class Queue:
             status: New status
             error_message: Error message if failed
             result: Result data if completed
+
         """
         with self._lock:
             with sqlite3.connect(self.db_path) as conn:
-                processed_at = datetime.now().isoformat() if status in [
-                    QueueStatus.COMPLETED, QueueStatus.FAILED
-                ] else None
+                processed_at = (
+                    datetime.now().isoformat()
+                    if status in [QueueStatus.COMPLETED, QueueStatus.FAILED]
+                    else None
+                )
 
-                conn.execute('''
+                conn.execute(
+                    """
                     UPDATE queue
                     SET status = ?, processed_at = ?,
                         error_message = ?, result = ?
                     WHERE id = ?
-                ''', (
-                    status.value,
-                    processed_at,
-                    error_message,
-                    json.dumps(result) if result else None,
-                    queue_id
-                ))
+                """,
+                    (
+                        status.value,
+                        processed_at,
+                        error_message,
+                        json.dumps(result) if result else None,
+                        queue_id,
+                    ),
+                )
                 conn.commit()
 
     def increment_retry(self, queue_id: str) -> int:
@@ -236,16 +268,20 @@ class Queue:
 
         Returns:
             New retry count
+
         """
         with self._lock:
             with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.execute('''
+                cursor = conn.execute(
+                    """
                     UPDATE queue
                     SET retry_count = retry_count + 1,
                         status = ?
                     WHERE id = ?
                     RETURNING retry_count
-                ''', (QueueStatus.PENDING.value, queue_id))
+                """,
+                    (QueueStatus.PENDING.value, queue_id),
+                )
 
                 result = cursor.fetchone()
                 conn.commit()
@@ -259,18 +295,22 @@ class Queue:
 
         Returns:
             QueueItem or None if not found
+
         """
         with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute('''
+            cursor = conn.execute(
+                """
                 SELECT * FROM queue WHERE id = ?
-            ''', (queue_id,))
+            """,
+                (queue_id,),
+            )
 
             row = cursor.fetchone()
             return QueueItem.from_row(row) if row else None
 
-    def list_items(self,
-                   status: Optional[QueueStatus] = None,
-                   limit: int = 50) -> List[QueueItem]:
+    def list_items(
+        self, status: Optional[QueueStatus] = None, limit: int = 50
+    ) -> List[QueueItem]:
         """List queue items.
 
         Args:
@@ -279,21 +319,28 @@ class Queue:
 
         Returns:
             List of QueueItems
+
         """
         with sqlite3.connect(self.db_path) as conn:
             if status:
-                cursor = conn.execute('''
+                cursor = conn.execute(
+                    """
                     SELECT * FROM queue
                     WHERE status = ?
                     ORDER BY created_at DESC
                     LIMIT ?
-                ''', (status.value, limit))
+                """,
+                    (status.value, limit),
+                )
             else:
-                cursor = conn.execute('''
+                cursor = conn.execute(
+                    """
                     SELECT * FROM queue
                     ORDER BY created_at DESC
                     LIMIT ?
-                ''', (limit,))
+                """,
+                    (limit,),
+                )
 
             return [QueueItem.from_row(row) for row in cursor.fetchall()]
 
@@ -302,12 +349,16 @@ class Queue:
 
         Returns:
             Number of pending items
+
         """
         with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute('''
+            cursor = conn.execute(
+                """
                 SELECT COUNT(*) FROM queue
                 WHERE status = ?
-            ''', (QueueStatus.PENDING.value,))
+            """,
+                (QueueStatus.PENDING.value,),
+            )
 
             return cursor.fetchone()[0]
 
@@ -316,20 +367,24 @@ class Queue:
 
         Args:
             days: Delete items older than this many days
+
         """
         cutoff_date = (datetime.now() - timedelta(days=days)).isoformat()
 
         with self._lock:
             with sqlite3.connect(self.db_path) as conn:
-                conn.execute('''
+                conn.execute(
+                    """
                     DELETE FROM queue
                     WHERE status IN (?, ?)
                     AND processed_at < ?
-                ''', (
-                    QueueStatus.COMPLETED.value,
-                    QueueStatus.FAILED.value,
-                    cutoff_date
-                ))
+                """,
+                    (
+                        QueueStatus.COMPLETED.value,
+                        QueueStatus.FAILED.value,
+                        cutoff_date,
+                    ),
+                )
                 conn.commit()
 
     def reset_stuck_items(self, timeout_minutes: int = 30):
@@ -337,22 +392,26 @@ class Queue:
 
         Args:
             timeout_minutes: Consider items stuck after this many minutes
+
         """
         cutoff_time = (datetime.now() - timedelta(minutes=timeout_minutes)).isoformat()
 
         with self._lock:
             with sqlite3.connect(self.db_path) as conn:
-                conn.execute('''
+                conn.execute(
+                    """
                     UPDATE queue
                     SET status = ?, error_message = ?
                     WHERE status = ?
                     AND created_at < ?
-                ''', (
-                    QueueStatus.PENDING.value,
-                    "Reset from stuck processing state",
-                    QueueStatus.PROCESSING.value,
-                    cutoff_time
-                ))
+                """,
+                    (
+                        QueueStatus.PENDING.value,
+                        "Reset from stuck processing state",
+                        QueueStatus.PROCESSING.value,
+                        cutoff_time,
+                    ),
+                )
                 conn.commit()
 
     def get_stats(self) -> Dict[str, int]:
@@ -360,13 +419,16 @@ class Queue:
 
         Returns:
             Dictionary with counts by status
+
         """
         with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute('''
+            cursor = conn.execute(
+                """
                 SELECT status, COUNT(*)
                 FROM queue
                 GROUP BY status
-            ''')
+            """
+            )
 
             stats = {status.value: 0 for status in QueueStatus}
             for status, count in cursor.fetchall():

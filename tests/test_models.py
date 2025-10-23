@@ -9,12 +9,12 @@ import pytest
 from pydantic import ValidationError
 
 from mcp_ticketer.core.models import (
-    Task,
-    Epic,
     Comment,
-    SearchQuery,
-    TicketState,
+    Epic,
     Priority,
+    SearchQuery,
+    Task,
+    TicketState,
 )
 
 

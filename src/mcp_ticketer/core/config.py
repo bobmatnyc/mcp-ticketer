@@ -1,20 +1,22 @@
 """Centralized configuration management with caching and validation."""
 
-import os
 import json
 import logging
-from typing import Dict, Any, Optional, List, Union
-from pathlib import Path
-from functools import lru_cache
-import yaml
-from pydantic import BaseModel, Field, validator, root_validator
+import os
 from enum import Enum
+from functools import lru_cache
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
+
+import yaml
+from pydantic import BaseModel, Field, root_validator, validator
 
 logger = logging.getLogger(__name__)
 
 
 class AdapterType(str, Enum):
     """Supported adapter types."""
+
     GITHUB = "github"
     JIRA = "jira"
     LINEAR = "linear"
@@ -23,6 +25,7 @@ class AdapterType(str, Enum):
 
 class BaseAdapterConfig(BaseModel):
     """Base configuration for all adapters."""
+
     type: AdapterType
     name: Optional[str] = None
     enabled: bool = True
@@ -33,99 +36,104 @@ class BaseAdapterConfig(BaseModel):
 
 class GitHubConfig(BaseAdapterConfig):
     """GitHub adapter configuration."""
+
     type: AdapterType = AdapterType.GITHUB
-    token: Optional[str] = Field(None, env='GITHUB_TOKEN')
-    owner: Optional[str] = Field(None, env='GITHUB_OWNER')
-    repo: Optional[str] = Field(None, env='GITHUB_REPO')
+    token: Optional[str] = Field(None, env="GITHUB_TOKEN")
+    owner: Optional[str] = Field(None, env="GITHUB_OWNER")
+    repo: Optional[str] = Field(None, env="GITHUB_REPO")
     api_url: str = "https://api.github.com"
     use_projects_v2: bool = False
     custom_priority_scheme: Optional[Dict[str, List[str]]] = None
 
-    @validator('token', pre=True, always=True)
+    @validator("token", pre=True, always=True)
     def validate_token(cls, v):
         if not v:
-            v = os.getenv('GITHUB_TOKEN')
+            v = os.getenv("GITHUB_TOKEN")
         if not v:
-            raise ValueError('GitHub token is required')
+            raise ValueError("GitHub token is required")
         return v
 
-    @validator('owner', pre=True, always=True)
+    @validator("owner", pre=True, always=True)
     def validate_owner(cls, v):
         if not v:
-            v = os.getenv('GITHUB_OWNER')
+            v = os.getenv("GITHUB_OWNER")
         if not v:
-            raise ValueError('GitHub owner is required')
+            raise ValueError("GitHub owner is required")
         return v
 
-    @validator('repo', pre=True, always=True)
+    @validator("repo", pre=True, always=True)
     def validate_repo(cls, v):
         if not v:
-            v = os.getenv('GITHUB_REPO')
+            v = os.getenv("GITHUB_REPO")
         if not v:
-            raise ValueError('GitHub repo is required')
+            raise ValueError("GitHub repo is required")
         return v
 
 
 class JiraConfig(BaseAdapterConfig):
     """JIRA adapter configuration."""
+
     type: AdapterType = AdapterType.JIRA
-    server: Optional[str] = Field(None, env='JIRA_SERVER')
-    email: Optional[str] = Field(None, env='JIRA_EMAIL')
-    api_token: Optional[str] = Field(None, env='JIRA_API_TOKEN')
-    project_key: Optional[str] = Field(None, env='JIRA_PROJECT_KEY')
+    server: Optional[str] = Field(None, env="JIRA_SERVER")
+    email: Optional[str] = Field(None, env="JIRA_EMAIL")
+    api_token: Optional[str] = Field(None, env="JIRA_API_TOKEN")
+    project_key: Optional[str] = Field(None, env="JIRA_PROJECT_KEY")
     cloud: bool = True
     verify_ssl: bool = True
 
-    @validator('server', pre=True, always=True)
+    @validator("server", pre=True, always=True)
     def validate_server(cls, v):
         if not v:
-            v = os.getenv('JIRA_SERVER')
+            v = os.getenv("JIRA_SERVER")
         if not v:
-            raise ValueError('JIRA server URL is required')
-        return v.rstrip('/')
+            raise ValueError("JIRA server URL is required")
+        return v.rstrip("/")
 
-    @validator('email', pre=True, always=True)
+    @validator("email", pre=True, always=True)
     def validate_email(cls, v):
         if not v:
-            v = os.getenv('JIRA_EMAIL')
+            v = os.getenv("JIRA_EMAIL")
         if not v:
-            raise ValueError('JIRA email is required')
+            raise ValueError("JIRA email is required")
         return v
 
-    @validator('api_token', pre=True, always=True)
+    @validator("api_token", pre=True, always=True)
     def validate_api_token(cls, v):
         if not v:
-            v = os.getenv('JIRA_API_TOKEN')
+            v = os.getenv("JIRA_API_TOKEN")
         if not v:
-            raise ValueError('JIRA API token is required')
+            raise ValueError("JIRA API token is required")
         return v
 
 
 class LinearConfig(BaseAdapterConfig):
     """Linear adapter configuration."""
+
     type: AdapterType = AdapterType.LINEAR
-    api_key: Optional[str] = Field(None, env='LINEAR_API_KEY')
+    api_key: Optional[str] = Field(None, env="LINEAR_API_KEY")
     workspace: Optional[str] = None
     team_key: str
     api_url: str = "https://api.linear.app/graphql"
 
-    @validator('api_key', pre=True, always=True)
+    @validator("api_key", pre=True, always=True)
     def validate_api_key(cls, v):
         if not v:
-            v = os.getenv('LINEAR_API_KEY')
+            v = os.getenv("LINEAR_API_KEY")
         if not v:
-            raise ValueError('Linear API key is required')
+            raise ValueError("Linear API key is required")
         return v
 
 
 class AITrackdownConfig(BaseAdapterConfig):
     """AITrackdown adapter configuration."""
+
     type: AdapterType = AdapterType.AITRACKDOWN
     # AITrackdown uses local storage, minimal config needed
 
 
 class QueueConfig(BaseModel):
     """Queue configuration."""
+
     provider: str = "sqlite"
     connection_string: Optional[str] = None
     batch_size: int = 10
@@ -136,6 +144,7 @@ class QueueConfig(BaseModel):
 
 class LoggingConfig(BaseModel):
     """Logging configuration."""
+
     level: str = "INFO"
     format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     file: Optional[str] = None
@@ -145,7 +154,10 @@ class LoggingConfig(BaseModel):
 
 class AppConfig(BaseModel):
     """Main application configuration."""
-    adapters: Dict[str, Union[GitHubConfig, JiraConfig, LinearConfig, AITrackdownConfig]] = {}
+
+    adapters: Dict[
+        str, Union[GitHubConfig, JiraConfig, LinearConfig, AITrackdownConfig]
+    ] = {}
     queue: QueueConfig = QueueConfig()
     logging: LoggingConfig = LoggingConfig()
     cache_ttl: int = 300  # Cache TTL in seconds
@@ -154,16 +166,18 @@ class AppConfig(BaseModel):
     @root_validator(skip_on_failure=True)
     def validate_adapters(cls, values):
         """Validate adapter configurations."""
-        adapters = values.get('adapters', {})
+        adapters = values.get("adapters", {})
 
         if not adapters:
             logger.warning("No adapters configured")
             return values
 
         # Validate default adapter
-        default_adapter = values.get('default_adapter')
+        default_adapter = values.get("default_adapter")
         if default_adapter and default_adapter not in adapters:
-            raise ValueError(f"Default adapter '{default_adapter}' not found in adapters")
+            raise ValueError(
+                f"Default adapter '{default_adapter}' not found in adapters"
+            )
 
         return values
 
@@ -173,17 +187,19 @@ class AppConfig(BaseModel):
 
     def get_enabled_adapters(self) -> Dict[str, BaseAdapterConfig]:
         """Get all enabled adapters."""
-        return {name: config for name, config in self.adapters.items() if config.enabled}
+        return {
+            name: config for name, config in self.adapters.items() if config.enabled
+        }
 
 
 class ConfigurationManager:
     """Centralized configuration management with caching and validation."""
 
-    _instance: Optional['ConfigurationManager'] = None
+    _instance: Optional["ConfigurationManager"] = None
     _config: Optional[AppConfig] = None
     _config_file_paths: List[Path] = []
 
-    def __new__(cls) -> 'ConfigurationManager':
+    def __new__(cls) -> "ConfigurationManager":
         """Singleton pattern for global config access."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -191,7 +207,7 @@ class ConfigurationManager:
 
     def __init__(self):
         """Initialize configuration manager."""
-        if not hasattr(self, '_initialized'):
+        if not hasattr(self, "_initialized"):
             self._initialized = True
             self._config_cache: Dict[str, Any] = {}
             self._find_config_files()
@@ -206,10 +222,10 @@ class ConfigurationManager:
         # ONLY search in current project directory, never external locations
         possible_paths = [
             Path.cwd() / ".mcp-ticketer" / "config.json",  # Primary JSON config
-            Path.cwd() / "mcp-ticketer.yaml",              # Alternative YAML
-            Path.cwd() / "mcp-ticketer.yml",               # Alternative YML
-            Path.cwd() / "config.yaml",                    # Generic YAML
-            Path.cwd() / "config.yml",                     # Generic YML
+            Path.cwd() / "mcp-ticketer.yaml",  # Alternative YAML
+            Path.cwd() / "mcp-ticketer.yml",  # Alternative YML
+            Path.cwd() / "config.yaml",  # Generic YAML
+            Path.cwd() / "config.yml",  # Generic YML
         ]
 
         # Validate all paths are within project (security check)
@@ -243,6 +259,7 @@ class ConfigurationManager:
 
         Returns:
             Validated application configuration
+
         """
         if self._config is not None and config_file is None:
             return self._config
@@ -275,7 +292,9 @@ class ConfigurationManager:
                 elif adapter_type == "aitrackdown":
                     parsed_adapters[name] = AITrackdownConfig(**adapter_config)
                 else:
-                    logger.warning(f"Unknown adapter type: {adapter_type} for adapter: {name}")
+                    logger.warning(
+                        f"Unknown adapter type: {adapter_type} for adapter: {name}"
+                    )
 
             config_data["adapters"] = parsed_adapters
 
@@ -286,10 +305,10 @@ class ConfigurationManager:
     def _load_config_file(self, config_path: Path) -> Dict[str, Any]:
         """Load configuration from YAML or JSON file."""
         try:
-            with open(config_path, 'r', encoding='utf-8') as file:
-                if config_path.suffix.lower() in ['.yaml', '.yml']:
+            with open(config_path, encoding="utf-8") as file:
+                if config_path.suffix.lower() in [".yaml", ".yml"]:
                     return yaml.safe_load(file) or {}
-                elif config_path.suffix.lower() == '.json':
+                elif config_path.suffix.lower() == ".json":
                     return json.load(file)
                 else:
                     # Try YAML first, then JSON
@@ -328,7 +347,9 @@ class ConfigurationManager:
         config = self.get_config()
         return config.logging
 
-    def reload_config(self, config_file: Optional[Union[str, Path]] = None) -> AppConfig:
+    def reload_config(
+        self, config_file: Optional[Union[str, Path]] = None
+    ) -> AppConfig:
         """Reload configuration from file."""
         # Clear cache
         self.load_config.cache_clear()
@@ -349,7 +370,7 @@ class ConfigurationManager:
 
         # Parse nested keys like "queue.batch_size"
         config = self.get_config()
-        parts = key.split('.')
+        parts = key.split(".")
         value = config.dict()
 
         for part in parts:
@@ -370,13 +391,13 @@ class ConfigurationManager:
                     "token": "${GITHUB_TOKEN}",
                     "owner": "your-org",
                     "repo": "your-repo",
-                    "enabled": True
+                    "enabled": True,
                 },
                 "linear-dev": {
                     "type": "linear",
                     "api_key": "${LINEAR_API_KEY}",
                     "team_key": "DEV",
-                    "enabled": True
+                    "enabled": True,
                 },
                 "jira-support": {
                     "type": "jira",
@@ -384,23 +405,16 @@ class ConfigurationManager:
                     "email": "${JIRA_EMAIL}",
                     "api_token": "${JIRA_API_TOKEN}",
                     "project_key": "SUPPORT",
-                    "enabled": False
-                }
+                    "enabled": False,
+                },
             },
-            "queue": {
-                "provider": "sqlite",
-                "batch_size": 10,
-                "max_concurrent": 5
-            },
-            "logging": {
-                "level": "INFO",
-                "file": "mcp-ticketer.log"
-            },
-            "default_adapter": "github-main"
+            "queue": {"provider": "sqlite", "batch_size": 10, "max_concurrent": 5},
+            "logging": {"level": "INFO", "file": "mcp-ticketer.log"},
+            "default_adapter": "github-main",
         }
 
         output_path = Path(output_path)
-        with open(output_path, 'w', encoding='utf-8') as file:
+        with open(output_path, "w", encoding="utf-8") as file:
             yaml.dump(sample_config, file, default_flow_style=False, indent=2)
 
         logger.info(f"Sample configuration created at: {output_path}")

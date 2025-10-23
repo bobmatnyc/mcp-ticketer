@@ -1,17 +1,19 @@
 """AI-Trackdown adapter implementation."""
 
 import json
-from pathlib import Path
-from typing import List, Optional, Dict, Any, Union
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 from ..core.adapter import BaseAdapter
-from ..core.models import Epic, Task, Comment, SearchQuery, TicketState, Priority
+from ..core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
 from ..core.registry import AdapterRegistry
 
 # Import ai-trackdown-pytools when available
 try:
-    from ai_trackdown_pytools import AITrackdown, Ticket as AITicket
+    from ai_trackdown_pytools import AITrackdown
+    from ai_trackdown_pytools import Ticket as AITicket
+
     HAS_AITRACKDOWN = True
 except ImportError:
     HAS_AITRACKDOWN = False
@@ -27,6 +29,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
         Args:
             config: Configuration with 'base_path' for tickets directory
+
         """
         super().__init__(config)
         self.base_path = Path(config.get("base_path", ".aitrackdown"))
@@ -47,6 +50,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
         Returns:
             (is_valid, error_message) - Always returns (True, "") for AITrackdown
+
         """
         # AITrackdown is file-based and doesn't require API credentials
         # Just verify the base_path is accessible
@@ -92,10 +96,16 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             parent_issue=ai_ticket.get("parent_issue"),
             parent_epic=ai_ticket.get("parent_epic"),
             assignee=ai_ticket.get("assignee"),
-            created_at=datetime.fromisoformat(ai_ticket["created_at"])
-            if "created_at" in ai_ticket else None,
-            updated_at=datetime.fromisoformat(ai_ticket["updated_at"])
-            if "updated_at" in ai_ticket else None,
+            created_at=(
+                datetime.fromisoformat(ai_ticket["created_at"])
+                if "created_at" in ai_ticket
+                else None
+            ),
+            updated_at=(
+                datetime.fromisoformat(ai_ticket["updated_at"])
+                if "updated_at" in ai_ticket
+                else None
+            ),
             metadata={"ai_trackdown": ai_ticket},
         )
 
@@ -109,10 +119,16 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             priority=self._priority_from_ai(ai_ticket.get("priority", "medium")),
             tags=ai_ticket.get("tags", []),
             child_issues=ai_ticket.get("child_issues", []),
-            created_at=datetime.fromisoformat(ai_ticket["created_at"])
-            if "created_at" in ai_ticket and ai_ticket["created_at"] else None,
-            updated_at=datetime.fromisoformat(ai_ticket["updated_at"])
-            if "updated_at" in ai_ticket and ai_ticket["updated_at"] else None,
+            created_at=(
+                datetime.fromisoformat(ai_ticket["created_at"])
+                if "created_at" in ai_ticket and ai_ticket["created_at"]
+                else None
+            ),
+            updated_at=(
+                datetime.fromisoformat(ai_ticket["updated_at"])
+                if "updated_at" in ai_ticket and ai_ticket["updated_at"]
+                else None
+            ),
             metadata={"ai_trackdown": ai_ticket},
         )
 
@@ -124,7 +140,9 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             state_value = self._get_state_mapping()[task.state]
         elif isinstance(task.state, str):
             # Already a string, map to AI-Trackdown format if needed
-            state_value = task.state.replace('_', '-')  # Convert snake_case to kebab-case
+            state_value = task.state.replace(
+                "_", "-"
+            )  # Convert snake_case to kebab-case
 
         return {
             "id": task.id,
@@ -149,7 +167,9 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             state_value = self._get_state_mapping()[epic.state]
         elif isinstance(epic.state, str):
             # Already a string, map to AI-Trackdown format if needed
-            state_value = epic.state.replace('_', '-')  # Convert snake_case to kebab-case
+            state_value = epic.state.replace(
+                "_", "-"
+            )  # Convert snake_case to kebab-case
 
         return {
             "id": epic.id,
@@ -168,7 +188,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Read ticket from file system."""
         ticket_file = self.tickets_dir / f"{ticket_id}.json"
         if ticket_file.exists():
-            with open(ticket_file, "r") as f:
+            with open(ticket_file) as f:
                 return json.load(f)
         return None
 
@@ -230,9 +250,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         return None
 
     async def update(
-        self,
-        ticket_id: str,
-        updates: Union[Dict[str, Any], Task]
+        self, ticket_id: str, updates: Union[Dict[str, Any], Task]
     ) -> Optional[Task]:
         """Update a task."""
         # Read existing ticket
@@ -244,7 +262,11 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         if isinstance(updates, Task):
             # If updates is a Task object, copy all fields except frozen ones
             for field in updates.__fields__:
-                if field not in ['ticket_type'] and hasattr(updates, field) and getattr(updates, field) is not None:
+                if (
+                    field not in ["ticket_type"]
+                    and hasattr(updates, field)
+                    and getattr(updates, field) is not None
+                ):
                     setattr(existing, field, getattr(updates, field))
         else:
             # If updates is a dictionary
@@ -275,10 +297,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         return False
 
     async def list(
-        self,
-        limit: int = 10,
-        offset: int = 0,
-        filters: Optional[Dict[str, Any]] = None
+        self, limit: int = 10, offset: int = 0, filters: Optional[Dict[str, Any]] = None
     ) -> List[Task]:
         """List tasks with pagination."""
         tasks = []
@@ -295,7 +314,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             # Direct file operation - read all files, filter, then paginate
             ticket_files = sorted(self.tickets_dir.glob("*.json"))
             for ticket_file in ticket_files:
-                with open(ticket_file, "r") as f:
+                with open(ticket_file) as f:
                     ai_ticket = json.load(f)
                     task = self._task_from_ai_ticket(ai_ticket)
 
@@ -319,7 +338,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
                     tasks.append(task)
 
             # Apply pagination after filtering
-            tasks = tasks[offset:offset + limit]
+            tasks = tasks[offset : offset + limit]
 
         return tasks
 
@@ -340,8 +359,10 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             # Text search in title and description
             if query.query:
                 search_text = query.query.lower()
-                if (search_text not in (task.title or "").lower() and
-                    search_text not in (task.description or "").lower()):
+                if (
+                    search_text not in (task.title or "").lower()
+                    and search_text not in (task.description or "").lower()
+                ):
                     continue
 
             # Tag filtering
@@ -356,12 +377,10 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             results.append(task)
 
         # Apply pagination
-        return results[query.offset:query.offset + query.limit]
+        return results[query.offset : query.offset + query.limit]
 
     async def transition_state(
-        self,
-        ticket_id: str,
-        target_state: TicketState
+        self, ticket_id: str, target_state: TicketState
     ) -> Optional[Task]:
         """Transition task to new state."""
         # Validate transition
@@ -390,10 +409,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         return comment
 
     async def get_comments(
-        self,
-        ticket_id: str,
-        limit: int = 10,
-        offset: int = 0
+        self, ticket_id: str, limit: int = 10, offset: int = 0
     ) -> List[Comment]:
         """Get comments for a task."""
         comments = []
@@ -401,8 +417,8 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
         if comments_dir.exists():
             comment_files = sorted(comments_dir.glob("*.json"))
-            for comment_file in comment_files[offset:offset + limit]:
-                with open(comment_file, "r") as f:
+            for comment_file in comment_files[offset : offset + limit]:
+                with open(comment_file) as f:
                     data = json.load(f)
                     if data.get("ticket_id") == ticket_id:
                         comments.append(Comment(**data))

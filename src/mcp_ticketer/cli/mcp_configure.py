@@ -20,9 +20,11 @@ def find_mcp_ticketer_binary() -> str:
 
     Raises:
         FileNotFoundError: If binary not found
+
     """
     # Check if running from development environment
     import mcp_ticketer
+
     package_path = Path(mcp_ticketer.__file__).parent.parent.parent
 
     # Check for virtual environment bin
@@ -34,7 +36,13 @@ def find_mcp_ticketer_binary() -> str:
         # System installation
         Path.home() / ".local" / "bin" / "mcp-ticketer",
         # pipx installation
-        Path.home() / ".local" / "pipx" / "venvs" / "mcp-ticketer" / "bin" / "mcp-ticketer",
+        Path.home()
+        / ".local"
+        / "pipx"
+        / "venvs"
+        / "mcp-ticketer"
+        / "bin"
+        / "mcp-ticketer",
     ]
 
     # Check PATH
@@ -62,6 +70,7 @@ def load_project_config() -> dict:
     Raises:
         FileNotFoundError: If config not found
         ValueError: If config is invalid
+
     """
     # Check for project-specific config first
     project_config_path = Path.cwd() / ".mcp-ticketer" / "config.json"
@@ -77,7 +86,7 @@ def load_project_config() -> dict:
                 "Run 'mcp-ticketer init' to create configuration."
             )
 
-    with open(project_config_path, "r") as f:
+    with open(project_config_path) as f:
         config = json.load(f)
 
     # Validate config
@@ -95,15 +104,28 @@ def find_claude_mcp_config(global_config: bool = False) -> Path:
 
     Returns:
         Path to MCP configuration file
+
     """
     if global_config:
         # Claude Desktop configuration
         if sys.platform == "darwin":  # macOS
-            config_path = Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
+            config_path = (
+                Path.home()
+                / "Library"
+                / "Application Support"
+                / "Claude"
+                / "claude_desktop_config.json"
+            )
         elif sys.platform == "win32":  # Windows
-            config_path = Path(os.environ.get("APPDATA", "")) / "Claude" / "claude_desktop_config.json"
+            config_path = (
+                Path(os.environ.get("APPDATA", ""))
+                / "Claude"
+                / "claude_desktop_config.json"
+            )
         else:  # Linux
-            config_path = Path.home() / ".config" / "Claude" / "claude_desktop_config.json"
+            config_path = (
+                Path.home() / ".config" / "Claude" / "claude_desktop_config.json"
+            )
     else:
         # Project-level configuration
         config_path = Path.cwd() / ".mcp" / "config.json"
@@ -119,9 +141,10 @@ def load_claude_mcp_config(config_path: Path) -> dict:
 
     Returns:
         MCP configuration dict
+
     """
     if config_path.exists():
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             return json.load(f)
 
     # Return empty structure
@@ -134,6 +157,7 @@ def save_claude_mcp_config(config_path: Path, config: dict) -> None:
     Args:
         config_path: Path to MCP config file
         config: Configuration to save
+
     """
     # Ensure directory exists
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -144,9 +168,7 @@ def save_claude_mcp_config(config_path: Path, config: dict) -> None:
 
 
 def create_mcp_server_config(
-    binary_path: str,
-    project_config: dict,
-    cwd: Optional[str] = None
+    binary_path: str, project_config: dict, cwd: Optional[str] = None
 ) -> dict:
     """Create MCP server configuration for mcp-ticketer.
 
@@ -157,6 +179,7 @@ def create_mcp_server_config(
 
     Returns:
         MCP server configuration dict
+
     """
     config = {
         "command": binary_path,
@@ -201,6 +224,7 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
     Raises:
         FileNotFoundError: If binary or project config not found
         ValueError: If configuration is invalid
+
     """
     # Step 1: Find mcp-ticketer binary
     console.print("[cyan]🔍 Finding mcp-ticketer binary...[/cyan]")
@@ -243,9 +267,7 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
     # Step 6: Create mcp-ticketer server config
     cwd = str(Path.cwd()) if not global_config else None
     server_config = create_mcp_server_config(
-        binary_path=binary_path,
-        project_config=project_config,
-        cwd=cwd
+        binary_path=binary_path, project_config=project_config, cwd=cwd
     )
 
     # Step 7: Update MCP configuration
@@ -257,18 +279,20 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
     # Step 8: Save configuration
     try:
         save_claude_mcp_config(mcp_config_path, mcp_config)
-        console.print(f"\n[green]✓ Successfully configured mcp-ticketer[/green]")
+        console.print("\n[green]✓ Successfully configured mcp-ticketer[/green]")
         console.print(f"[dim]Configuration saved to: {mcp_config_path}[/dim]")
 
         # Print configuration details
         console.print("\n[bold]Configuration Details:[/bold]")
-        console.print(f"  Server name: mcp-ticketer")
+        console.print("  Server name: mcp-ticketer")
         console.print(f"  Adapter: {adapter}")
         console.print(f"  Binary: {binary_path}")
         if cwd:
             console.print(f"  Working directory: {cwd}")
         if "env" in server_config:
-            console.print(f"  Environment variables: {list(server_config['env'].keys())}")
+            console.print(
+                f"  Environment variables: {list(server_config['env'].keys())}"
+            )
 
         # Next steps
         console.print("\n[bold cyan]Next Steps:[/bold cyan]")

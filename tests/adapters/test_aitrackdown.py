@@ -9,7 +9,14 @@ from typing import Any
 import pytest
 
 from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
-from mcp_ticketer.core.models import Task, Epic, Comment, SearchQuery, TicketState, Priority
+from mcp_ticketer.core.models import (
+    Comment,
+    Epic,
+    Priority,
+    SearchQuery,
+    Task,
+    TicketState,
+)
 
 
 @pytest.fixture
@@ -49,7 +56,9 @@ class TestAITrackdownAdapterInit:
         assert adapter.tickets_dir.exists()
         assert adapter.tickets_dir == adapter.base_path / "tickets"
 
-    def test_adapter_state_mapping(self, aitrackdown_adapter: AITrackdownAdapter) -> None:
+    def test_adapter_state_mapping(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
         """Test adapter state mapping is configured correctly."""
         mapping = aitrackdown_adapter._get_state_mapping()
 
@@ -65,7 +74,9 @@ class TestAITrackdownAdapterCreate:
     """Tests for creating tickets."""
 
     @pytest.mark.asyncio
-    async def test_create_task_minimal(self, aitrackdown_adapter: AITrackdownAdapter) -> None:
+    async def test_create_task_minimal(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
         """Test creating a task with minimal fields."""
         task = Task(title="Test Task")
         created = await aitrackdown_adapter.create(task)
@@ -81,7 +92,9 @@ class TestAITrackdownAdapterCreate:
         assert ticket_file.exists()
 
     @pytest.mark.asyncio
-    async def test_create_task_full(self, aitrackdown_adapter: AITrackdownAdapter) -> None:
+    async def test_create_task_full(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
         """Test creating a task with all fields."""
         task = Task(
             title="Full Task",
@@ -247,7 +260,7 @@ class TestAITrackdownAdapterUpdate:
 
         # Read from file directly
         ticket_file = aitrackdown_adapter.tickets_dir / f"{created.id}.json"
-        with open(ticket_file, "r") as f:
+        with open(ticket_file) as f:
             data = json.load(f)
 
         assert data["description"] == "New description"
@@ -313,14 +326,20 @@ class TestAITrackdownAdapterList:
 
         # Verify files were created
         ticket_files = list(adapter.tickets_dir.glob("*.json"))
-        assert len(ticket_files) == 3, f"Expected 3 files, found {len(ticket_files)}: {[f.name for f in ticket_files]}"
+        assert (
+            len(ticket_files) == 3
+        ), f"Expected 3 files, found {len(ticket_files)}: {[f.name for f in ticket_files]}"
 
         # List them
         tickets = await adapter.list(limit=10)
-        assert len(tickets) == 3, f"Expected 3 tickets, got {len(tickets)}: {[t.title for t in tickets]}"
+        assert (
+            len(tickets) == 3
+        ), f"Expected 3 tickets, got {len(tickets)}: {[t.title for t in tickets]}"
 
     @pytest.mark.asyncio
-    async def test_list_with_limit(self, aitrackdown_adapter: AITrackdownAdapter) -> None:
+    async def test_list_with_limit(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
         """Test listing with limit."""
         # Create tickets
         for i in range(10):
@@ -331,7 +350,9 @@ class TestAITrackdownAdapterList:
         assert len(tickets) == 5
 
     @pytest.mark.asyncio
-    async def test_list_with_offset(self, aitrackdown_adapter: AITrackdownAdapter) -> None:
+    async def test_list_with_offset(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
         """Test listing with offset."""
         # Create tickets
         for i in range(10):
@@ -362,7 +383,9 @@ class TestAITrackdownAdapterSearch:
     """Tests for searching tickets."""
 
     @pytest.mark.asyncio
-    async def test_search_by_text(self, aitrackdown_adapter: AITrackdownAdapter) -> None:
+    async def test_search_by_text(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
         """Test searching tickets by text query."""
         # Create tickets
         await aitrackdown_adapter.create(Task(title="Bug in login system"))
@@ -375,7 +398,9 @@ class TestAITrackdownAdapterSearch:
         assert len(results) == 2
 
     @pytest.mark.asyncio
-    async def test_search_by_state(self, aitrackdown_adapter: AITrackdownAdapter) -> None:
+    async def test_search_by_state(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
         """Test searching by state."""
         # Create tickets
         await aitrackdown_adapter.create(Task(title="Open", state=TicketState.OPEN))
@@ -403,7 +428,9 @@ class TestAITrackdownAdapterSearch:
         assert results[0].priority == Priority.HIGH
 
     @pytest.mark.asyncio
-    async def test_search_with_limit(self, aitrackdown_adapter: AITrackdownAdapter) -> None:
+    async def test_search_with_limit(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
         """Test search with limit."""
         # Create many tickets
         for i in range(10):
@@ -419,7 +446,9 @@ class TestAITrackdownAdapterStateTransition:
     """Tests for state transitions."""
 
     @pytest.mark.asyncio
-    async def test_transition_valid(self, aitrackdown_adapter: AITrackdownAdapter) -> None:
+    async def test_transition_valid(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
         """Test valid state transition."""
         # Create task in OPEN state
         task = Task(title="Test", state=TicketState.OPEN)

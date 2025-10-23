@@ -5,7 +5,7 @@ import hashlib
 import json
 import time
 from functools import wraps
-from typing import Any, Optional, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, Optional
 
 
 class CacheEntry:
@@ -17,6 +17,7 @@ class CacheEntry:
         Args:
             value: Cached value
             ttl: Time to live in seconds
+
         """
         self.value = value
         self.expires_at = time.time() + ttl if ttl > 0 else float("inf")
@@ -34,6 +35,7 @@ class MemoryCache:
 
         Args:
             default_ttl: Default TTL in seconds (5 minutes)
+
         """
         self._cache: Dict[str, CacheEntry] = {}
         self._default_ttl = default_ttl
@@ -47,6 +49,7 @@ class MemoryCache:
 
         Returns:
             Cached value or None if not found/expired
+
         """
         async with self._lock:
             entry = self._cache.get(key)
@@ -57,18 +60,14 @@ class MemoryCache:
                 del self._cache[key]
             return None
 
-    async def set(
-        self,
-        key: str,
-        value: Any,
-        ttl: Optional[float] = None
-    ) -> None:
+    async def set(self, key: str, value: Any, ttl: Optional[float] = None) -> None:
         """Set value in cache.
 
         Args:
             key: Cache key
             value: Value to cache
             ttl: Optional TTL override
+
         """
         async with self._lock:
             ttl = ttl if ttl is not None else self._default_ttl
@@ -82,6 +81,7 @@ class MemoryCache:
 
         Returns:
             True if key was deleted
+
         """
         async with self._lock:
             if key in self._cache:
@@ -99,11 +99,11 @@ class MemoryCache:
 
         Returns:
             Number of entries removed
+
         """
         async with self._lock:
             expired_keys = [
-                key for key, entry in self._cache.items()
-                if entry.is_expired()
+                key for key, entry in self._cache.items() if entry.is_expired()
             ]
             for key in expired_keys:
                 del self._cache[key]
@@ -123,12 +123,10 @@ class MemoryCache:
 
         Returns:
             Hash-based cache key
+
         """
         # Create string representation of arguments
-        key_data = {
-            "args": args,
-            "kwargs": sorted(kwargs.items())
-        }
+        key_data = {"args": args, "kwargs": sorted(kwargs.items())}
         key_str = json.dumps(key_data, sort_keys=True, default=str)
 
         # Generate hash
@@ -138,7 +136,7 @@ class MemoryCache:
 def cache_decorator(
     ttl: Optional[float] = None,
     key_prefix: str = "",
-    cache_instance: Optional[MemoryCache] = None
+    cache_instance: Optional[MemoryCache] = None,
 ) -> Callable:
     """Decorator for caching async function results.
 
@@ -149,6 +147,7 @@ def cache_decorator(
 
     Returns:
         Decorated function
+
     """
     # Use shared cache instance or create new
     cache = cache_instance or MemoryCache()
