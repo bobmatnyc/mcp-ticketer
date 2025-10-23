@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "mcp-ticketer": {
+      "command": "/Users/masa/Projects/mcp-ticketer/.venv/bin/mcp-ticketer",
+      "args": ["serve"],
+      "cwd": "/Users/masa/Projects/mcp-ticketer",
+      "env": {
+        "PYTHONPATH": "/Users/masa/Projects/mcp-ticketer/src"
+      }
+    }
+  }
+}
