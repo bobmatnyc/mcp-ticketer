@@ -1,6 +1,6 @@
 """Version information for mcp-ticketer package."""
 
-__version__ = "0.1.21"
+__version__ = "0.1.22"
 __version_info__ = tuple(int(part) for part in __version__.split("."))
 
 # Package metadata
@@ -26,6 +26,7 @@ __features__ = {
     "queue_system": True,
 }
 
+
 def get_version():
     """Return the full version string with build metadata if available."""
     version = __version__
@@ -34,6 +35,7 @@ def get_version():
     if __commit__:
         version += f".{__commit__[:7]}"
     return version
+
 
 def get_user_agent():
     """Return a user agent string for API requests."""
