@@ -233,7 +233,7 @@ def configure_codex_mcp(force: bool = False) -> None:
         console.print("  Server name: mcp-ticketer")
         console.print(f"  Adapter: {adapter}")
         console.print(f"  Binary: {binary_path}")
-        console.print(f"  Scope: global (Codex only supports global config)")
+        console.print("  Scope: global (Codex only supports global config)")
         console.print(f"  Working directory: {cwd}")
         if "env" in server_config:
             console.print(

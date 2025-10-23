@@ -1269,6 +1269,7 @@ def mcp_claude(
 
         # Force overwrite existing configuration
         mcp-ticketer mcp claude --force
+
     """
     from ..cli.mcp_configure import configure_claude_mcp
 
@@ -1308,6 +1309,7 @@ def mcp_gemini(
 
         # Force overwrite existing configuration
         mcp-ticketer mcp gemini --force
+
     """
     from ..cli.gemini_configure import configure_gemini_mcp
 
@@ -1346,6 +1348,7 @@ def mcp_codex(
 
         # Force overwrite existing configuration
         mcp-ticketer mcp codex --force
+
     """
     from ..cli.codex_configure import configure_codex_mcp
 
@@ -1377,6 +1380,7 @@ def mcp_auggie(
 
         # Force overwrite existing configuration
         mcp-ticketer mcp auggie --force
+
     """
     from ..cli.auggie_configure import configure_auggie_mcp
 

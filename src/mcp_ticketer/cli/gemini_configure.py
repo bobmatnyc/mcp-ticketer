@@ -1,7 +1,6 @@
 """Gemini CLI configuration for mcp-ticketer integration."""
 
 import json
-import sys
 from pathlib import Path
 from typing import Literal, Optional
 

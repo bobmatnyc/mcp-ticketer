@@ -8,11 +8,7 @@ from typing import Any
 from rich.console import Console
 from rich.prompt import Confirm
 
-from ..core.project_config import (
-    AdapterConfig,
-    ConfigResolver,
-    TicketerConfig,
-)
+from ..core.project_config import AdapterConfig, ConfigResolver, TicketerConfig
 
 console = Console()
 

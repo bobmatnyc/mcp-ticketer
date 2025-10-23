@@ -1860,7 +1860,7 @@ class LinearAdapter(BaseAdapter[Task]):
                     search_query, variable_values={"identifier": identifier}
                 )
             return result.get("issue")
-        except:
+        except Exception:
             return None
 
     # Epic/Issue/Task Hierarchy Methods (Linear: Project = Epic, Issue = Issue, Sub-issue = Task)
