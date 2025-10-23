@@ -247,47 +247,144 @@ make search QUERY="login bug"
 
 ---
 
-## Step 5: Use MCP Server (1 minute)
+## Step 5: Choose Your AI Client (1 minute)
 
-### Start MCP Server
+### Which AI Client Should You Use?
+
+MCP Ticketer supports **4 major AI clients**. Choose based on your needs:
+
+| Client | Best For | Config Type | Setup Time |
+|--------|----------|-------------|------------|
+| **Claude Code** | Multi-project workflows | Project-level | < 1 min |
+| **Gemini CLI** | Security-conscious teams | Project-level | < 1 min |
+| **Codex CLI** | Single-project users | Global-only | < 2 min |
+| **Auggie** | Simplicity seekers | Global-only | < 1 min |
+
+**Decision Tree:**
+```
+Do you work on multiple projects?
+├─ Yes → Use Claude Code or Gemini CLI (project-level)
+└─ No  → Use Codex CLI or Auggie (global)
+
+Do you need advanced security features?
+├─ Yes → Use Gemini CLI (trust settings)
+└─ No  → Use Claude Code (simpler setup)
+
+Do you prefer TOML config?
+├─ Yes → Use Codex CLI
+└─ No  → Use any other client (JSON)
+```
+
+---
+
+### Option A: Claude Code (Recommended)
+
+**Best for**: Project-specific workflows, stable integration
 
 ```bash
-# Start server (listens on stdio)
-mcp-ticketer-server
+# Configure MCP integration (THE ONLY WAY)
+mcp-ticketer mcp claude
 
-# Or using Make
-make dev
+# Configuration created at: .claude/mcp.json
+# Or for global: ~/Library/Application Support/Claude/claude_desktop_config.json
 ```
 
-### Configure in Claude Desktop
-
-Add to `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "ticketer": {
-      "command": "mcp-ticketer-server",
-      "args": [],
-      "env": {
-        "MCP_TICKETER_ADAPTER": "aitrackdown"
-      }
-    }
-  }
-}
-```
-
-**macOS/Linux Location**: `~/.config/claude/claude_desktop_config.json`
-**Windows Location**: `%APPDATA%\Claude\claude_desktop_config.json`
-
-### Use in Claude Code
-
-MCP Ticketer is automatically available in Claude Code via MCP integration. Just ask Claude to:
-
+**Use in Claude Code:**
 - "Create a ticket for fixing the login bug"
 - "List all open tickets with high priority"
 - "Search for tickets related to authentication"
 - "Update ticket TICK-123 to in_progress state"
+
+---
+
+### Option B: Gemini CLI
+
+**Best for**: Security features, Google AI users
+
+```bash
+# Configure for project-level (recommended)
+mcp-ticketer mcp gemini --scope project
+
+# Or configure globally
+mcp-ticketer mcp gemini --scope user
+
+# Configuration created at:
+# Project: .gemini/settings.json
+# Global: ~/.gemini/settings.json
+```
+
+**Use in Gemini CLI:**
+```bash
+# Run gemini in project directory
+gemini
+
+# Tools automatically available
+# Try: "Show me all open tickets"
+```
+
+---
+
+### Option C: Codex CLI
+
+**Best for**: Single-project users, TOML preferences
+
+```bash
+# Configure Codex (global-only)
+mcp-ticketer mcp codex
+
+# Configuration created at: ~/.codex/config.toml
+
+# ⚠️ IMPORTANT: Restart Codex CLI (required)
+```
+
+**Use in Codex CLI:**
+```bash
+# Run codex from any directory
+codex
+
+# Tools globally available
+# Try: "Search tickets for login issues"
+```
+
+---
+
+### Option D: Auggie
+
+**Best for**: Simple setup, lightweight usage
+
+```bash
+# Configure Auggie (global-only)
+mcp-ticketer mcp auggie
+
+# Configuration created at: ~/.augment/settings.json
+
+# May need to restart Auggie
+```
+
+**Use in Auggie:**
+```bash
+# Open Auggie
+auggie
+
+# Tools globally available
+# Try: "Create a high-priority ticket"
+```
+
+---
+
+### Manual MCP Server Setup (Advanced)
+
+If you prefer manual configuration or troubleshooting:
+
+```bash
+# Start server manually (listens on stdio)
+mcp-ticketer serve
+
+# Test server
+# Press Ctrl+C to stop
+```
+
+**See [AI Client Integration Guide](docs/AI_CLIENT_INTEGRATION.md) for detailed configuration.**
 
 ---
 
@@ -482,16 +579,18 @@ export MCP_TICKETER_LOG_LEVEL=DEBUG
 ## Success Checklist
 
 - [ ] Python 3.9+ installed
-- [ ] mcp-ticketer installed
+- [ ] mcp-ticketer installed (`pip install mcp-ticketer`)
 - [ ] Adapter initialized (aitrackdown, linear, jira, or github)
 - [ ] First ticket created successfully
 - [ ] Tickets can be listed and searched
-- [ ] MCP server starts without errors (optional)
-- [ ] Configuration saved in `~/.mcp-ticketer/config.json`
+- [ ] AI client configured (Claude Code, Gemini CLI, Codex CLI, or Auggie) - optional
+- [ ] MCP integration tested (optional)
+- [ ] Configuration saved in `.mcp-ticketer/config.json`
 
 **Congratulations! You're now ready to use MCP Ticketer.**
 
 For advanced usage, see:
+- **docs/AI_CLIENT_INTEGRATION.md** - Comprehensive AI client integration guide
 - **CLAUDE.md** - Comprehensive AI agent instructions
 - **docs/USER_GUIDE.md** - Complete user guide
 - **docs/DEVELOPER_GUIDE.md** - Developer documentation

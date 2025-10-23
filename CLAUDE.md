@@ -1,9 +1,9 @@
 # CLAUDE.md - MCP Ticketer AI Agent Instructions
 
-**Version**: 0.1.11
-**Last Updated**: 2025-10-22
+**Version**: 0.1.24
+**Last Updated**: 2025-10-24
 **Project**: MCP Ticketer - Universal Ticket Management Interface for AI Agents
-**Optimized For**: Claude Code, Claude MPM, and AI Agent Collaboration
+**Optimized For**: Claude Code, Gemini CLI, Codex CLI, Auggie, and AI Agent Collaboration
 
 ---
 
@@ -800,9 +800,45 @@ mcp-ticketer --help       # Show CLI help
 
 ---
 
-## ⚪ OPTIONAL: AI Agent Integration
+## ⚪ OPTIONAL: AI Client Integration
 
-### Claude Code Integration
+### Overview: Multiple AI Client Support
+
+**MCP Ticketer supports 4 major AI clients with MCP integration:**
+
+| Client | Project-Level | Config Format | Config Location | Command |
+|--------|---------------|---------------|-----------------|---------|
+| **Claude Code** | ✅ Yes | JSON | `.claude/mcp.json` | `mcp-ticketer mcp claude` |
+| **Gemini CLI** | ✅ Yes | JSON | `.gemini/settings.json` | `mcp-ticketer mcp gemini` |
+| **Codex CLI** | ❌ No (Global only) | TOML | `~/.codex/config.toml` | `mcp-ticketer mcp codex` |
+| **Auggie** | ❌ No (Global only) | JSON | `~/.augment/settings.json` | `mcp-ticketer mcp auggie` |
+
+**Quick Setup:**
+```bash
+# Claude Code (project-level, recommended)
+mcp-ticketer mcp claude
+
+# Gemini CLI (project-level)
+mcp-ticketer mcp gemini --scope project
+
+# Codex CLI (global-only, restart required)
+mcp-ticketer mcp codex
+
+# Auggie (global-only)
+mcp-ticketer mcp auggie
+```
+
+**When to use which client:**
+- **Claude Code**: Best for project-specific workflows, native MCP support
+- **Gemini CLI**: Google's AI client, supports project-level configuration
+- **Codex CLI**: Global configuration only, requires restart after config changes
+- **Auggie**: Simple global setup, suitable for single-project users
+
+**See Also:** [AI Client Integration Guide](docs/AI_CLIENT_INTEGRATION.md) for comprehensive setup instructions.
+
+---
+
+### Claude Code Integration (Recommended)
 
 **MCP Ticketer is optimized for Claude Code workflows:**
 
@@ -811,13 +847,31 @@ mcp-ticketer --help       # Show CLI help
 make install-dev
 make init-aitrackdown
 
-# 2. Enable MCP server for Claude Desktop
-# Add to Claude Desktop config:
+# 2. Configure MCP integration (THE ONLY WAY)
+mcp-ticketer mcp claude
+
+# Alternative: Configure for Claude Desktop (global)
+mcp-ticketer mcp claude --global
+
+# 3. Configuration created at:
+# Project-level: .claude/mcp.json
+# Global: ~/Library/Application Support/Claude/claude_desktop_config.json (macOS)
+#         %APPDATA%/Claude/claude_desktop_config.json (Windows)
+#         ~/.config/Claude/claude_desktop_config.json (Linux)
+
+# 4. Use via Claude Code
+# Claude can now create, read, update tickets directly
+# Example: "Create a high-priority task for fixing the login bug"
+```
+
+**Example Configuration (.claude/mcp.json):**
+```json
 {
   "mcpServers": {
-    "ticketer": {
-      "command": "mcp-ticketer-server",
-      "args": [],
+    "mcp-ticketer": {
+      "command": "/path/to/mcp-ticketer",
+      "args": ["serve"],
+      "cwd": "/Users/masa/Projects/mcp-ticketer",
       "env": {
         "MCP_TICKETER_ADAPTER": "aitrackdown",
         "MCP_TICKETER_BASE_PATH": "/Users/masa/Projects/mcp-ticketer/.aitrackdown"
@@ -825,11 +879,180 @@ make init-aitrackdown
     }
   }
 }
-
-# 3. Use via Claude Code
-# Claude can now create, read, update tickets directly
-# Example: "Create a high-priority task for fixing the login bug"
 ```
+
+---
+
+### Gemini CLI Integration
+
+**Google's Gemini CLI with project-level MCP support:**
+
+```bash
+# 1. Initialize mcp-ticketer
+make install-dev
+make init-aitrackdown
+
+# 2. Configure for Gemini CLI (THE ONLY WAY)
+mcp-ticketer mcp gemini --scope project
+
+# Alternative: Global configuration
+mcp-ticketer mcp gemini --scope user
+
+# 3. Configuration created at:
+# Project-level: .gemini/settings.json (added to .gitignore automatically)
+# User-level: ~/.gemini/settings.json
+
+# 4. Use with Gemini CLI
+# Run gemini command in project directory
+# MCP tools automatically available
+```
+
+**Example Configuration (.gemini/settings.json):**
+```json
+{
+  "mcpServers": {
+    "mcp-ticketer": {
+      "command": "/path/to/mcp-ticketer",
+      "args": ["serve"],
+      "env": {
+        "PYTHONPATH": "/path/to/project/src",
+        "MCP_TICKETER_ADAPTER": "aitrackdown",
+        "MCP_TICKETER_BASE_PATH": "/path/to/project/.aitrackdown"
+      },
+      "timeout": 15000,
+      "trust": false
+    }
+  }
+}
+```
+
+**Features:**
+- ✅ Project-level configuration support
+- ✅ JSON configuration format (familiar)
+- ✅ Automatic .gitignore management
+- ✅ 15-second timeout for MCP operations
+- ✅ Security: untrusted by default
+
+---
+
+### Codex CLI Integration
+
+**⚠️ IMPORTANT: Codex CLI only supports GLOBAL configuration**
+
+```bash
+# 1. Initialize mcp-ticketer
+make install-dev
+make init-aitrackdown
+
+# 2. Configure for Codex CLI (THE ONLY WAY)
+mcp-ticketer mcp codex
+
+# 3. Configuration created at:
+# Global only: ~/.codex/config.toml
+
+# 4. RESTART Codex CLI (REQUIRED)
+# Codex does not hot-reload configuration
+
+# 5. Use with Codex CLI
+# Run codex command in any directory
+# MCP tools will be available globally
+```
+
+**Example Configuration (~/.codex/config.toml):**
+```toml
+[mcp_servers.mcp-ticketer]
+command = "/path/to/mcp-ticketer"
+args = ["serve"]
+
+[mcp_servers.mcp-ticketer.env]
+PYTHONPATH = "/path/to/project/src"
+MCP_TICKETER_ADAPTER = "aitrackdown"
+MCP_TICKETER_BASE_PATH = "/path/to/project/.aitrackdown"
+```
+
+**Limitations:**
+- ❌ No project-level configuration support
+- ❌ Global configuration affects all projects
+- ⚠️ Requires restart after configuration changes
+- ⚠️ TOML format (different from other clients)
+
+**Use when:**
+- You primarily work on one project
+- You need global MCP access across all directories
+- You prefer TOML configuration
+
+---
+
+### Auggie Integration
+
+**⚠️ IMPORTANT: Auggie only supports GLOBAL configuration**
+
+```bash
+# 1. Initialize mcp-ticketer
+make install-dev
+make init-aitrackdown
+
+# 2. Configure for Auggie (THE ONLY WAY)
+mcp-ticketer mcp auggie
+
+# 3. Configuration created at:
+# Global only: ~/.augment/settings.json
+
+# 4. Restart Auggie CLI
+# Auggie should pick up the new configuration
+
+# 5. Use with Auggie CLI
+# Run auggie command in any directory
+# MCP tools will be available globally
+```
+
+**Example Configuration (~/.augment/settings.json):**
+```json
+{
+  "mcpServers": {
+    "mcp-ticketer": {
+      "command": "/path/to/mcp-ticketer",
+      "args": ["serve"],
+      "env": {
+        "MCP_TICKETER_ADAPTER": "aitrackdown",
+        "MCP_TICKETER_BASE_PATH": "/Users/user/.mcp-ticketer/.aitrackdown"
+      }
+    }
+  }
+}
+```
+
+**Limitations:**
+- ❌ No project-level configuration support
+- ❌ Global configuration affects all projects
+- ⚠️ Uses global paths for adapter storage
+
+**Use when:**
+- You work on a single project primarily
+- You want simple, global MCP access
+- You prefer JSON configuration
+
+---
+
+### Comparison: Which Client Should You Use?
+
+| Feature | Claude Code | Gemini CLI | Codex CLI | Auggie |
+|---------|-------------|------------|-----------|--------|
+| **Project-level config** | ✅ Yes | ✅ Yes | ❌ No | ❌ No |
+| **Global config** | ✅ Yes | ✅ Yes | ✅ Only option | ✅ Only option |
+| **Config format** | JSON | JSON | TOML | JSON |
+| **Hot reload** | ✅ Yes | ✅ Yes | ❌ Requires restart | ⚠️ May require restart |
+| **Security options** | ⚠️ Basic | ✅ Trust setting | ⚠️ Basic | ⚠️ Basic |
+| **Working directory** | ✅ Supported | ✅ Supported | ⚠️ Global only | ⚠️ Global only |
+| **Auto .gitignore** | ⚠️ Manual | ✅ Automatic | N/A | N/A |
+| **Maturity** | ✅ Stable | ✅ Stable | ⚠️ Beta | ⚠️ Emerging |
+
+**Recommendation:**
+- **Best choice**: Claude Code (native integration, project-level support)
+- **Alternative**: Gemini CLI (excellent project-level support, security features)
+- **Single project**: Codex CLI or Auggie (simple global setup)
+
+---
 
 ### Agent Collaboration Patterns
 

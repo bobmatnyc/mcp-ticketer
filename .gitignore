@@ -235,3 +235,6 @@ temp/
 tmp/
 venv.bak/
 virtualenv/
+
+# Gemini CLI
+.gemini/

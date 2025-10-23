@@ -806,7 +806,9 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             "custom_fields": custom_fields,
         }
 
-    async def execute_jql(self, jql: str, limit: int = 50) -> builtins.list[Union[Epic, Task]]:
+    async def execute_jql(
+        self, jql: str, limit: int = 50
+    ) -> builtins.list[Union[Epic, Task]]:
         """Execute a raw JQL query.
 
         Args:
@@ -831,7 +833,9 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         issues = data.get("issues", [])
         return [self._issue_to_ticket(issue) for issue in issues]
 
-    async def get_sprints(self, board_id: Optional[int] = None) -> builtins.list[dict[str, Any]]:
+    async def get_sprints(
+        self, board_id: Optional[int] = None
+    ) -> builtins.list[dict[str, Any]]:
         """Get active sprints for a board (requires JIRA Software).
 
         Args:

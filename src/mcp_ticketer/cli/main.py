@@ -1118,6 +1118,13 @@ app.add_typer(queue_app, name="queue")
 # Add discover command to main app
 app.add_typer(discover_app, name="discover")
 
+# Create MCP configuration command group
+mcp_app = typer.Typer(
+    name="mcp",
+    help="Configure MCP integration for AI clients (Claude, Gemini, Codex, Auggie)",
+    add_completion=False,
+)
+
 
 @app.command()
 def check(queue_id: str = typer.Argument(..., help="Queue ID to check")):
@@ -1233,8 +1240,8 @@ def serve(
         sys.exit(1)
 
 
-@app.command()
-def mcp(
+@mcp_app.command(name="claude")
+def mcp_claude(
     global_config: bool = typer.Option(
         False,
         "--global",
@@ -1252,6 +1259,16 @@ def mcp(
 
     By default, configures project-level (.mcp/config.json).
     Use --global to configure Claude Desktop instead.
+
+    Examples:
+        # Configure for current project (default)
+        mcp-ticketer mcp claude
+
+        # Configure Claude Desktop globally
+        mcp-ticketer mcp claude --global
+
+        # Force overwrite existing configuration
+        mcp-ticketer mcp claude --force
     """
     from ..cli.mcp_configure import configure_claude_mcp
 
@@ -1260,6 +1277,118 @@ def mcp(
     except Exception as e:
         console.print(f"[red]✗ Configuration failed:[/red] {e}")
         raise typer.Exit(1)
+
+
+@mcp_app.command(name="gemini")
+def mcp_gemini(
+    scope: str = typer.Option(
+        "project",
+        "--scope",
+        "-s",
+        help="Configuration scope: 'project' (default) or 'user'",
+    ),
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Overwrite existing configuration"
+    ),
+):
+    """Configure Gemini CLI to use mcp-ticketer MCP server.
+
+    Reads configuration from .mcp-ticketer/config.json and creates
+    Gemini CLI settings file with mcp-ticketer configuration.
+
+    By default, configures project-level (.gemini/settings.json).
+    Use --scope user to configure user-level (~/.gemini/settings.json).
+
+    Examples:
+        # Configure for current project (default)
+        mcp-ticketer mcp gemini
+
+        # Configure at user level
+        mcp-ticketer mcp gemini --scope user
+
+        # Force overwrite existing configuration
+        mcp-ticketer mcp gemini --force
+    """
+    from ..cli.gemini_configure import configure_gemini_mcp
+
+    # Validate scope parameter
+    if scope not in ["project", "user"]:
+        console.print(
+            f"[red]✗ Invalid scope:[/red] '{scope}'. Must be 'project' or 'user'"
+        )
+        raise typer.Exit(1)
+
+    try:
+        configure_gemini_mcp(scope=scope, force=force)  # type: ignore
+    except Exception as e:
+        console.print(f"[red]✗ Configuration failed:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@mcp_app.command(name="codex")
+def mcp_codex(
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Overwrite existing configuration"
+    ),
+):
+    """Configure Codex CLI to use mcp-ticketer MCP server.
+
+    Reads configuration from .mcp-ticketer/config.json and creates
+    Codex CLI config.toml with mcp-ticketer configuration.
+
+    IMPORTANT: Codex CLI ONLY supports global configuration at ~/.codex/config.toml.
+    There is no project-level configuration support. After configuration,
+    you must restart Codex CLI for changes to take effect.
+
+    Examples:
+        # Configure Codex CLI globally
+        mcp-ticketer mcp codex
+
+        # Force overwrite existing configuration
+        mcp-ticketer mcp codex --force
+    """
+    from ..cli.codex_configure import configure_codex_mcp
+
+    try:
+        configure_codex_mcp(force=force)
+    except Exception as e:
+        console.print(f"[red]✗ Configuration failed:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@mcp_app.command(name="auggie")
+def mcp_auggie(
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Overwrite existing configuration"
+    ),
+):
+    """Configure Auggie CLI to use mcp-ticketer MCP server.
+
+    Reads configuration from .mcp-ticketer/config.json and creates
+    Auggie CLI settings.json with mcp-ticketer configuration.
+
+    IMPORTANT: Auggie CLI ONLY supports global configuration at ~/.augment/settings.json.
+    There is no project-level configuration support. After configuration,
+    you must restart Auggie CLI for changes to take effect.
+
+    Examples:
+        # Configure Auggie CLI globally
+        mcp-ticketer mcp auggie
+
+        # Force overwrite existing configuration
+        mcp-ticketer mcp auggie --force
+    """
+    from ..cli.auggie_configure import configure_auggie_mcp
+
+    try:
+        configure_auggie_mcp(force=force)
+    except Exception as e:
+        console.print(f"[red]✗ Configuration failed:[/red] {e}")
+        raise typer.Exit(1)
+
+
+# Add MCP command group to main app (must be after all subcommands are defined)
+app.add_typer(mcp_app, name="mcp")
 
 
 def main():

@@ -48,6 +48,39 @@ pip install -e .
 - Python 3.9+
 - Virtual environment (recommended)
 
+## 🤖 Supported AI Clients
+
+MCP Ticketer integrates with multiple AI clients via the Model Context Protocol (MCP):
+
+| AI Client | Support | Config Type | Project-Level | Setup Command |
+|-----------|---------|-------------|---------------|---------------|
+| **Claude Code** | ✅ Native | JSON | ✅ Yes | `mcp-ticketer mcp claude` |
+| **Gemini CLI** | ✅ Full | JSON | ✅ Yes | `mcp-ticketer mcp gemini` |
+| **Codex CLI** | ✅ Full | TOML | ❌ Global only | `mcp-ticketer mcp codex` |
+| **Auggie** | ✅ Full | JSON | ❌ Global only | `mcp-ticketer mcp auggie` |
+
+### Quick MCP Setup
+
+```bash
+# Claude Code (recommended for project-specific workflows)
+mcp-ticketer init --adapter aitrackdown  # First, initialize an adapter
+mcp-ticketer mcp claude                   # Then configure MCP
+
+# Gemini CLI (Google's AI client)
+mcp-ticketer init --adapter aitrackdown
+mcp-ticketer mcp gemini --scope project
+
+# Codex CLI (global configuration, requires restart)
+mcp-ticketer init --adapter aitrackdown
+mcp-ticketer mcp codex
+
+# Auggie (simple global setup)
+mcp-ticketer init --adapter aitrackdown
+mcp-ticketer mcp auggie
+```
+
+**See [AI Client Integration Guide](docs/AI_CLIENT_INTEGRATION.md) for detailed setup instructions.**
+
 ## 🚀 Quick Start
 
 ### 1. Initialize Configuration
@@ -98,27 +131,42 @@ mcp-ticketer search "login bug" --state open
 
 ## 🤖 MCP Server Integration
 
-Run the MCP server for AI tool integration:
+MCP Ticketer provides seamless integration with AI clients through automatic configuration:
 
 ```bash
-mcp-ticketer-server
+# Run MCP server manually (for testing)
+mcp-ticketer serve
+
+# Or configure your AI client automatically (recommended)
+mcp-ticketer mcp claude  # For Claude Code
+mcp-ticketer mcp gemini  # For Gemini CLI
+mcp-ticketer mcp codex   # For Codex CLI
+mcp-ticketer mcp auggie  # For Auggie
 ```
 
-Configure your AI tool to use the MCP server:
+**Configuration is automatic** - the commands above will:
+1. Detect your mcp-ticketer installation
+2. Read your adapter configuration
+3. Generate the appropriate MCP server config
+4. Save it to the correct location for your AI client
+
+**Manual Configuration Example** (Claude Code):
 
 ```json
 {
   "mcpServers": {
-    "ticketer": {
-      "command": "mcp-ticketer-server",
-      "args": [],
+    "mcp-ticketer": {
+      "command": "/path/to/mcp-ticketer",
+      "args": ["serve"],
       "env": {
-        "MCP_TICKETER_ADAPTER": "jira"
+        "MCP_TICKETER_ADAPTER": "aitrackdown"
       }
     }
   }
 }
 ```
+
+**See [AI Client Integration Guide](docs/AI_CLIENT_INTEGRATION.md) for client-specific details.**
 
 ## 📚 Documentation
 

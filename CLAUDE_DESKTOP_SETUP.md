@@ -37,7 +37,7 @@ The configuration file at `~/.mcp-ticketer/config.json` controls which adapter i
 
 Test the MCP server:
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | /Users/masa/.local/bin/mcp-ticketer mcp
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | /Users/masa/.local/bin/mcp-ticketer serve
 ```
 
 You should see a JSON response with the server information.
@@ -46,7 +46,7 @@ You should see a JSON response with the server information.
 
 For development, use the `mcp_server.sh` script in the project directory:
 ```bash
-./mcp_server.sh mcp
+./mcp_server.sh serve
 ```
 
 This script:

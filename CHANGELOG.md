@@ -15,6 +15,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Analytics dashboard
 - Webhook notification support
 
+## [0.1.24] - 2025-10-24
+
+### Added
+- **Multi-Client MCP Support**: Added support for 4 AI clients
+  - Claude Code integration with project and global config (`mcp-ticketer mcp claude`)
+  - Gemini CLI integration with project/user scope (`mcp-ticketer mcp gemini`)
+  - Codex CLI integration with global TOML config (`mcp-ticketer mcp codex`)
+  - Auggie CLI integration with global JSON config (`mcp-ticketer mcp auggie`)
+- **Nested Command Structure**: New `mcp` command group with 4 client-specific subcommands
+- **Configuration Modules**: Three new CLI configuration modules
+  - `auggie_configure.py` - Auggie CLI configuration handler
+  - `codex_configure.py` - Codex CLI TOML configuration handler
+  - `gemini_configure.py` - Gemini CLI JSON configuration handler
+- **TOML Support**: Added `tomli` and `tomli-w` dependencies for Codex CLI TOML config
+- **Comprehensive Documentation**:
+  - AI Client Integration Guide (docs/AI_CLIENT_INTEGRATION.md, 937 lines)
+  - Codex Integration Guide (CODEX_INTEGRATION.md, 312 lines)
+  - Updated CLAUDE.md with 800+ lines of multi-client documentation
+  - Updated README.md with AI client comparison table
+  - Updated QUICK_START.md with client selection decision tree
+
+### Changed
+- **Command Structure**: Renamed MCP commands to nested structure under `mcp` parent command
+  - `mcp-ticketer mcp` → `mcp-ticketer mcp claude`
+  - `mcp-ticketer gemini` → `mcp-ticketer mcp gemini`
+  - `mcp-ticketer codex` → `mcp-ticketer mcp codex`
+  - `mcp-ticketer auggie` → `mcp-ticketer mcp auggie`
+- **Documentation Version**: Updated CLAUDE.md from 0.1.11 to 0.1.24
+- **Type Hints**: Modernized type hints in JIRA and Linear adapters
+- **gitignore**: Added `.gemini/` directory exclusion
+
+### Fixed
+- Removed obsolete MCP server startup error documentation
+- Improved configuration file handling for multiple AI clients
+- Enhanced MCP server path detection and validation
+
 ## [0.1.10] - 2025-09-29
 
 ### Fixed

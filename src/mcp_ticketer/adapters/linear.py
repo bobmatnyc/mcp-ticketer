@@ -1547,7 +1547,9 @@ class LinearAdapter(BaseAdapter[Task]):
 
         return result["projectCreate"]["project"]["id"]
 
-    async def get_cycles(self, active_only: bool = True) -> builtins.list[dict[str, Any]]:
+    async def get_cycles(
+        self, active_only: bool = True
+    ) -> builtins.list[dict[str, Any]]:
         """Get Linear cycles (sprints) for the team."""
         team_id = await self._ensure_team_id()
 
