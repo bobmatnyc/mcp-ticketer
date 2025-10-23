@@ -15,6 +15,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Analytics dashboard
 - Webhook notification support
 
+## [0.1.26] - 2025-10-23
+
+### Changed
+- Maintenance release with build and packaging improvements
+- Updated development dependencies and build process
+
 ## [0.1.25] - 2025-10-23
 
 ### Fixed
