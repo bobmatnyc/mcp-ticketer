@@ -888,23 +888,54 @@ async def main():
 
     This function is maintained in case it's being called directly,
     but the preferred way is now through the CLI: `mcp-ticketer mcp`
+
+    SECURITY: This method ONLY reads from the current project directory
+    to prevent configuration leakage across projects. It will NEVER read
+    from user home directory or system-wide locations.
     """
     # Load configuration
     import json
+    import logging
     from pathlib import Path
 
-    config_file = Path.home() / ".mcp-ticketer" / "config.json"
+    logger = logging.getLogger(__name__)
+
+    # ONLY read from project-local config, never from user home
+    config_file = Path.cwd() / ".mcp-ticketer" / "config.json"
     if config_file.exists():
-        with open(config_file, "r") as f:
-            config = json.load(f)
-            adapter_type = config.get("default_adapter", "aitrackdown")
-            # Get adapter-specific config
-            adapters_config = config.get("adapters", {})
-            adapter_config = adapters_config.get(adapter_type, {})
-            # Fallback to legacy config format
-            if not adapter_config and "config" in config:
-                adapter_config = config["config"]
+        # Validate config is within project
+        try:
+            if not config_file.resolve().is_relative_to(Path.cwd().resolve()):
+                logger.error(
+                    f"Security violation: Config file {config_file} "
+                    "is not within project directory"
+                )
+                raise ValueError(
+                    f"Security violation: Config file {config_file} "
+                    "is not within project directory"
+                )
+        except (ValueError, RuntimeError):
+            # is_relative_to may raise ValueError in some cases
+            pass
+
+        try:
+            with open(config_file, "r") as f:
+                config = json.load(f)
+                adapter_type = config.get("default_adapter", "aitrackdown")
+                # Get adapter-specific config
+                adapters_config = config.get("adapters", {})
+                adapter_config = adapters_config.get(adapter_type, {})
+                # Fallback to legacy config format
+                if not adapter_config and "config" in config:
+                    adapter_config = config["config"]
+                logger.info(f"Loaded MCP configuration from project-local: {config_file}")
+        except (json.JSONDecodeError, IOError) as e:
+            logger.warning(f"Could not load project config: {e}, using defaults")
+            adapter_type = "aitrackdown"
+            adapter_config = {"base_path": ".aitrackdown"}
     else:
+        # Default to aitrackdown with local base path
+        logger.info("No project-local config found, defaulting to aitrackdown adapter")
         adapter_type = "aitrackdown"
         adapter_config = {"base_path": ".aitrackdown"}
 

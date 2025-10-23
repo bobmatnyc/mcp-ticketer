@@ -303,18 +303,19 @@ class ConfigValidator:
 class ConfigResolver:
     """Resolve configuration from multiple sources with hierarchical precedence.
 
+    SECURITY: This class ONLY reads from project-local configurations
+    to prevent configuration leakage across projects. It will NEVER read
+    from user home directory or system-wide locations.
+
     Resolution order (highest to lowest priority):
     1. CLI overrides
     2. Environment variables
     3. Project-specific config (.mcp-ticketer/config.json)
     4. Auto-discovered .env files
-    5. Global config (~/.mcp-ticketer/config.json)
+    5. Default to aitrackdown adapter
     """
 
-    # Global config location
-    GLOBAL_CONFIG_PATH = Path.home() / ".mcp-ticketer" / "config.json"
-
-    # Project config location (relative to project root)
+    # Project config location (relative to project root) - PROJECT-LOCAL ONLY
     PROJECT_CONFIG_SUBPATH = ".mcp-ticketer" / Path("config.json")
 
     def __init__(self, project_path: Optional[Path] = None, enable_env_discovery: bool = True):
@@ -326,22 +327,24 @@ class ConfigResolver:
         """
         self.project_path = project_path or Path.cwd()
         self.enable_env_discovery = enable_env_discovery
-        self._global_config: Optional[TicketerConfig] = None
         self._project_config: Optional[TicketerConfig] = None
         self._discovered_config: Optional['DiscoveryResult'] = None
 
     def load_global_config(self) -> TicketerConfig:
-        """Load global configuration from ~/.mcp-ticketer/config.json."""
-        if self.GLOBAL_CONFIG_PATH.exists():
-            try:
-                with open(self.GLOBAL_CONFIG_PATH, 'r') as f:
-                    data = json.load(f)
-                return TicketerConfig.from_dict(data)
-            except Exception as e:
-                logger.error(f"Failed to load global config: {e}")
+        """Load default configuration (global config loading removed for security).
 
-        # Return default config
-        return TicketerConfig()
+        DEPRECATED: Global config loading has been removed for security reasons.
+        This method now only returns default configuration.
+
+        Returns:
+            Default TicketerConfig with aitrackdown adapter
+        """
+        logger.info("Global config loading disabled for security, using defaults")
+        # Return default config with aitrackdown adapter
+        default_config = TicketerConfig()
+        if not default_config.default_adapter:
+            default_config.default_adapter = "aitrackdown"
+        return default_config
 
     def load_project_config(self, project_path: Optional[Path] = None) -> Optional[TicketerConfig]:
         """Load project-specific configuration.
@@ -366,15 +369,20 @@ class ConfigResolver:
         return None
 
     def save_global_config(self, config: TicketerConfig) -> None:
-        """Save global configuration.
+        """Save configuration to project-local location (global config disabled).
+
+        DEPRECATED: Global config saving has been removed for security reasons.
+        This method now saves to project-local config instead.
 
         Args:
             config: Configuration to save
         """
-        self.GLOBAL_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.GLOBAL_CONFIG_PATH, 'w') as f:
-            json.dump(config.to_dict(), f, indent=2)
-        logger.info(f"Saved global config to {self.GLOBAL_CONFIG_PATH}")
+        logger.warning(
+            "save_global_config is deprecated and now saves to project-local config. "
+            "Use save_project_config instead."
+        )
+        # Save to project config instead
+        self.save_project_config(config)
 
     def save_project_config(self, config: TicketerConfig, project_path: Optional[Path] = None) -> None:
         """Save project-specific configuration.

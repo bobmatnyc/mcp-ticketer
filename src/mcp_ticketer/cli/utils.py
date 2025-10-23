@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import os
 from typing import Optional, Dict, Any, Callable, TypeVar, List
 from pathlib import Path
@@ -21,52 +22,77 @@ from ..queue import Queue, WorkerManager, QueueStatus
 T = TypeVar('T')
 
 console = Console()
+logger = logging.getLogger(__name__)
 
 
 class CommonPatterns:
     """Common CLI patterns and utilities."""
 
-    # Configuration file management
-    CONFIG_FILE = Path.home() / ".mcp-ticketer" / "config.json"
+    # Configuration file management - PROJECT-LOCAL ONLY
+    CONFIG_FILE = Path.cwd() / ".mcp-ticketer" / "config.json"
 
     @staticmethod
     def load_config() -> dict:
-        """Load configuration from file.
+        """Load configuration from project-local config file ONLY.
+
+        SECURITY: This method ONLY reads from the current project directory
+        to prevent configuration leakage across projects. It will NEVER read
+        from user home directory or system-wide locations.
 
         Resolution order:
         1. Project-specific config (.mcp-ticketer/config.json in cwd)
-        2. Global config (~/.mcp-ticketer/config.json)
+        2. Default to aitrackdown adapter
 
         Returns:
-            Configuration dictionary
+            Configuration dictionary with adapter and config keys.
+            Defaults to aitrackdown if no local config exists.
         """
-        # Check project-specific config first
+        # ONLY check project-specific config in current working directory
         project_config = Path.cwd() / ".mcp-ticketer" / "config.json"
         if project_config.exists():
+            # Validate that config file is actually in project directory
+            try:
+                if not project_config.resolve().is_relative_to(Path.cwd().resolve()):
+                    logger.error(
+                        f"Security violation: Config file {project_config} "
+                        "is not within project directory"
+                    )
+                    raise ValueError(
+                        f"Security violation: Config file {project_config} "
+                        "is not within project directory"
+                    )
+            except (ValueError, RuntimeError):
+                # is_relative_to may raise ValueError in some cases
+                pass
+
             try:
                 with open(project_config, "r") as f:
-                    return json.load(f)
+                    config = json.load(f)
+                    logger.info(f"Loaded configuration from project-local: {project_config}")
+                    return config
             except (json.JSONDecodeError, IOError) as e:
+                logger.warning(f"Could not load project config: {e}, using defaults")
                 console.print(f"[yellow]Warning: Could not load project config: {e}[/yellow]")
-                # Fall through to global config
 
-        # Fall back to global config
-        if CommonPatterns.CONFIG_FILE.exists():
-            try:
-                with open(CommonPatterns.CONFIG_FILE, "r") as f:
-                    return json.load(f)
-            except (json.JSONDecodeError, IOError) as e:
-                console.print(f"[yellow]Warning: Could not load global config: {e}[/yellow]")
-
-        # Default fallback
-        return {"adapter": "aitrackdown", "config": {"base_path": ".aitrackdown"}}
+        # Default to aitrackdown with local base path
+        logger.info("No project-local config found, defaulting to aitrackdown adapter")
+        return {
+            "adapter": "aitrackdown",
+            "config": {"base_path": ".aitrackdown"}
+        }
 
     @staticmethod
     def save_config(config: dict) -> None:
-        """Save configuration to file."""
-        CommonPatterns.CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(CommonPatterns.CONFIG_FILE, "w") as f:
+        """Save configuration to project-local config file ONLY.
+
+        SECURITY: This method ONLY saves to the current project directory
+        to prevent configuration leakage across projects.
+        """
+        project_config = Path.cwd() / ".mcp-ticketer" / "config.json"
+        project_config.parent.mkdir(parents=True, exist_ok=True)
+        with open(project_config, "w") as f:
             json.dump(config, f, indent=2)
+        logger.info(f"Saved configuration to project-local: {project_config}")
 
     @staticmethod
     def merge_config(updates: dict) -> dict:

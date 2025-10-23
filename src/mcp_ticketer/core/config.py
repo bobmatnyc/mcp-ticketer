@@ -151,7 +151,7 @@ class AppConfig(BaseModel):
     cache_ttl: int = 300  # Cache TTL in seconds
     default_adapter: Optional[str] = None
 
-    @root_validator
+    @root_validator(skip_on_failure=True)
     def validate_adapters(cls, values):
         """Validate adapter configurations."""
         adapters = values.get('adapters', {})
@@ -197,20 +197,42 @@ class ConfigurationManager:
             self._find_config_files()
 
     def _find_config_files(self) -> None:
-        """Find configuration files in standard locations."""
+        """Find configuration files in project-local directory ONLY.
+
+        SECURITY: This method ONLY searches in the current project directory
+        to prevent configuration leakage across projects. It will NEVER read
+        from user home directory or system-wide locations.
+        """
+        # ONLY search in current project directory, never external locations
         possible_paths = [
-            Path.cwd() / "mcp-ticketer.yaml",
-            Path.cwd() / "mcp-ticketer.yml",
-            Path.cwd() / "config.yaml",
-            Path.cwd() / "config.yml",
-            Path.home() / ".mcp-ticketer.yaml",
-            Path.home() / ".mcp-ticketer.yml",
-            Path("/etc/mcp-ticketer/config.yaml"),
-            Path("/etc/mcp-ticketer/config.yml"),
+            Path.cwd() / ".mcp-ticketer" / "config.json",  # Primary JSON config
+            Path.cwd() / "mcp-ticketer.yaml",              # Alternative YAML
+            Path.cwd() / "mcp-ticketer.yml",               # Alternative YML
+            Path.cwd() / "config.yaml",                    # Generic YAML
+            Path.cwd() / "config.yml",                     # Generic YML
         ]
 
-        self._config_file_paths = [path for path in possible_paths if path.exists()]
-        logger.debug(f"Found config files: {self._config_file_paths}")
+        # Validate all paths are within project (security check)
+        validated_paths = []
+        for path in possible_paths:
+            if path.exists():
+                try:
+                    if path.resolve().is_relative_to(Path.cwd().resolve()):
+                        validated_paths.append(path)
+                    else:
+                        logger.warning(
+                            f"Security: Ignoring config file outside project: {path}"
+                        )
+                except (ValueError, RuntimeError):
+                    # is_relative_to may raise ValueError in some cases
+                    # Skip this file if we can't validate it
+                    logger.warning(f"Could not validate config file path: {path}")
+
+        self._config_file_paths = validated_paths
+        if self._config_file_paths:
+            logger.debug(f"Found project-local config files: {self._config_file_paths}")
+        else:
+            logger.debug("No project-local config files found, will use defaults")
 
     @lru_cache(maxsize=1)
     def load_config(self, config_file: Optional[Union[str, Path]] = None) -> AppConfig:
