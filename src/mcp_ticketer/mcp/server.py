@@ -12,6 +12,9 @@ from ..core import AdapterRegistry
 from ..core.models import SearchQuery
 from ..queue import Queue, QueueStatus, WorkerManager
 
+# Import adapters module to trigger registration
+import mcp_ticketer.adapters  # noqa: F401
+
 # Load environment variables early (prioritize .env.local)
 # Check for .env.local first (takes precedence)
 env_local_file = Path.cwd() / ".env.local"

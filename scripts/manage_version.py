@@ -19,7 +19,7 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any, Optional, TypedDict
 
 
 class BuildMetadata(TypedDict):
@@ -37,7 +37,7 @@ class BuildMetadata(TypedDict):
 class VersionManager:
     """Manages semantic versioning and build tracking for mcp-ticketer."""
 
-    def __init__(self, project_root: Path | None = None) -> None:
+    def __init__(self, project_root: Optional[Path] = None) -> None:
         """Initialize version manager.
 
         Args:

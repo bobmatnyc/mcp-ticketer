@@ -15,6 +15,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Analytics dashboard
 - Webhook notification support
 
+## [0.1.25] - 2025-10-23
+
+### Fixed
+- **Critical MCP Server Fix**: Fixed adapter registration issue where Linear and other adapters were not available in MCP server
+  - Added missing import of adapters module in MCP server initialization
+  - Resolves "Adapter 'linear' not registered" errors when using MCP clients (Auggie, Claude, etc.)
+  - All adapters (aitrackdown, linear, jira, github) now properly registered on server startup
+- **Auggie Integration**: Fixed MCP connection failures with Auggie CLI due to missing adapter registration
+
 ## [0.1.24] - 2025-10-24
 
 ### Added
