@@ -8,12 +8,72 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 - WebSocket support for real-time updates
-- Advanced search with full-text capabilities
-- Bulk operations for mass ticket management
 - Custom ticket templates
 - Team collaboration features
 - Analytics dashboard
 - Webhook notification support
+
+## [0.1.27] - 2025-10-23
+
+### Added
+- **Complete MCP Tool Coverage**: 18 comprehensive MCP tools for full workflow management
+  - Hierarchy management: `epic_create`, `epic_list`, `epic_issues`, `issue_create`, `issue_tasks`, `task_create`, `hierarchy_tree`
+  - Bulk operations: `ticket_bulk_create`, `ticket_bulk_update`
+  - Advanced search: `ticket_search_hierarchy` with parent/child context
+  - Standard operations: `ticket_create`, `ticket_list`, `ticket_read`, `ticket_update`, `ticket_transition`, `ticket_search`
+  - Integration: `ticket_create_pr`, `ticket_status`
+- **Epic/Project → Issue → Task Hierarchy**: Complete 3-level hierarchy with validation
+  - Epics as top-level projects/milestones
+  - Issues as work items under epics
+  - Tasks as sub-items under issues with required parent_id
+  - Hierarchy tree visualization with depth control
+- **Ultra-Reliable Async System**: Production-grade reliability improvements
+  - Real-time health monitoring with immediate issue detection
+  - Auto-repair mechanisms for common failure scenarios
+  - Ticket ID persistence and recovery system
+  - Race condition prevention with atomic operations
+  - Queue health checks with worker heartbeat monitoring
+- **Comprehensive State Management**: All workflow states with validation
+  - Complete workflow: OPEN → IN_PROGRESS → READY → TESTED → DONE → CLOSED
+  - Blocked/Waiting states available at any transition point
+  - Bulk state transitions for multiple tickets
+  - State history tracking (adapter-dependent)
+- **Enhanced Comment System**: Full collaboration support
+  - Add/list comments with author tracking
+  - Comment threading and pagination
+  - Integration with all ticket types
+- **Advanced Search with Hierarchy**: Context-aware search functionality
+  - Search with parent/child relationship context
+  - Include/exclude hierarchy information in results
+  - Filter by epic, issue, or task relationships
+- **Comprehensive E2E Test Suite**: Production-ready testing
+  - Complete workflow tests from epic creation to closure
+  - Hierarchy validation and relationship testing
+  - All state transition coverage
+  - Concurrent operation and race condition testing
+  - Health monitoring and auto-repair verification
+
+### Enhanced
+- **Queue System Reliability**: Bulletproof async processing
+  - Worker auto-restart on failures
+  - Stuck item detection and reset (5-minute timeout)
+  - Health-based auto-repair with immediate user feedback
+  - Atomic queue operations preventing data corruption
+- **MCP Server Integration**: Enhanced AI agent compatibility
+  - All 18 tools properly exposed to MCP clients
+  - Comprehensive input validation and error handling
+  - Queue health integration for immediate failure detection
+- **CLI Health Monitoring**: Immediate system status feedback
+  - `mcp-ticketer health` command with auto-repair option
+  - Verbose health metrics and detailed diagnostics
+  - Pre-flight health checks before operations
+  - Auto-repair integration in create commands
+
+### Fixed
+- **Worker Process Registration**: Fixed adapter registration in worker subprocesses
+- **CLI Adapter Registration**: Fixed adapter availability in CLI commands
+- **Boolean Parameter Handling**: Fixed MCP tool schema boolean defaults
+- **Queue Processing Reliability**: Enhanced error handling and retry logic
 
 ## [0.1.26] - 2025-10-23
 
