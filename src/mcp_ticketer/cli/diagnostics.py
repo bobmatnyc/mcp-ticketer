@@ -15,22 +15,58 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-try:
-    from ..core.config import get_config
-except ImportError:
-    # Fallback for missing dependencies
-    def get_config():
-        raise ImportError("Configuration system not available")
+def safe_import_config():
+    """Safely import configuration with fallback."""
+    try:
+        from ..core.config import get_config
+        return get_config
+    except ImportError:
+        # Create a minimal config fallback
+        class MockConfig:
+            def get_enabled_adapters(self):
+                return {}
 
-try:
-    from ..core.registry import AdapterRegistry
-except ImportError:
-    AdapterRegistry = None
+            @property
+            def default_adapter(self):
+                return "aitrackdown"
 
-try:
-    from ..queue.manager import QueueManager
-except ImportError:
-    QueueManager = None
+        def get_config():
+            return MockConfig()
+
+        return get_config
+
+def safe_import_registry():
+    """Safely import adapter registry with fallback."""
+    try:
+        from ..core.registry import AdapterRegistry
+        return AdapterRegistry
+    except ImportError:
+        class MockRegistry:
+            @staticmethod
+            def get_adapter(adapter_type):
+                raise ImportError(f"Adapter {adapter_type} not available")
+
+        return MockRegistry
+
+def safe_import_queue_manager():
+    """Safely import queue manager with fallback."""
+    try:
+        from ..queue.manager import QueueManager
+        return QueueManager
+    except ImportError:
+        class MockQueueManager:
+            def get_worker_status(self):
+                return {"running": False, "pid": None}
+
+            def get_queue_stats(self):
+                return {"total": 0, "failed": 0}
+
+        return MockQueueManager
+
+# Initialize with safe imports
+get_config = safe_import_config()
+AdapterRegistry = safe_import_registry()
+QueueManager = safe_import_queue_manager()
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -40,21 +76,36 @@ class SystemDiagnostics:
     """Comprehensive system diagnostics and health reporting."""
 
     def __init__(self):
-        try:
-            self.config = get_config()
-        except Exception as e:
-            self.config = None
-            console.print(f"⚠️  Could not load configuration: {e}")
-
-        try:
-            self.queue_manager = QueueManager() if QueueManager else None
-        except Exception as e:
-            self.queue_manager = None
-            console.print(f"⚠️  Could not initialize queue manager: {e}")
-
+        # Initialize lists first
         self.issues = []
         self.warnings = []
         self.successes = []
+
+        try:
+            self.config = get_config()
+            # Check if this is a mock config
+            if hasattr(self.config, '__class__') and 'Mock' in self.config.__class__.__name__:
+                self.config_available = False
+                self.warnings.append("Configuration system using fallback mode")
+            else:
+                self.config_available = True
+        except Exception as e:
+            self.config = None
+            self.config_available = False
+            console.print(f"⚠️  Could not load configuration: {e}")
+
+        try:
+            self.queue_manager = QueueManager()
+            # Check if this is a mock queue manager
+            if hasattr(self.queue_manager, '__class__') and 'Mock' in self.queue_manager.__class__.__name__:
+                self.queue_available = False
+                self.warnings.append("Queue system using fallback mode")
+            else:
+                self.queue_available = True
+        except Exception as e:
+            self.queue_manager = None
+            self.queue_available = False
+            console.print(f"⚠️  Could not initialize queue manager: {e}")
 
     async def run_full_diagnosis(self) -> Dict[str, Any]:
         """Run complete system diagnosis and return detailed report."""
@@ -110,6 +161,33 @@ class SystemDiagnostics:
             config_status["status"] = "critical"
             self.issues.append(issue)
             console.print(f"❌ {issue}")
+            return config_status
+
+        if not self.config_available:
+            warning = "Configuration system in fallback mode - limited functionality"
+            config_status["issues"].append(warning)
+            config_status["status"] = "degraded"
+            self.warnings.append(warning)
+            console.print(f"⚠️  {warning}")
+
+            # Try to detect adapters from environment variables
+            import os
+            env_adapters = []
+            if os.getenv("LINEAR_API_KEY"):
+                env_adapters.append("linear")
+            if os.getenv("GITHUB_TOKEN"):
+                env_adapters.append("github")
+            if os.getenv("JIRA_SERVER"):
+                env_adapters.append("jira")
+
+            config_status["adapters_configured"] = len(env_adapters)
+            config_status["default_adapter"] = "aitrackdown"
+
+            if env_adapters:
+                console.print(f"ℹ️  Detected {len(env_adapters)} adapter(s) from environment: {', '.join(env_adapters)}")
+            else:
+                console.print("ℹ️  No adapter environment variables detected, using aitrackdown")
+
             return config_status
 
         try:
@@ -238,6 +316,15 @@ class SystemDiagnostics:
         }
 
         try:
+            if not self.queue_available:
+                warning = "Queue system in fallback mode - limited functionality"
+                self.warnings.append(warning)
+                console.print(f"⚠️  {warning}")
+                queue_status["worker_running"] = False
+                queue_status["worker_pid"] = None
+                queue_status["health_score"] = 50  # Degraded but not critical
+                return queue_status
+
             # Check worker status
             worker_status = self.queue_manager.get_worker_status()
             queue_status["worker_running"] = worker_status.get("running", False)

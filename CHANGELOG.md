@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.1.30] - 2025-10-24
+
+### Fixed
+- **Diagnostics System**: Improved fallback mode handling for missing dependencies
+  - Fixed initialization order for warnings/issues lists
+  - Enhanced mock object detection for configuration and queue systems
+  - Better graceful degradation when PyYAML or other dependencies are missing
+  - Improved environment variable detection in fallback mode
+  - More informative status reporting for degraded components
+
+### Enhanced
+- **Error Handling**: More robust handling of import failures and missing dependencies
+- **User Experience**: Clearer distinction between critical failures and degraded functionality
+- **Fallback Diagnostics**: Better information gathering even when full system is unavailable
+
 ## [0.1.29] - 2025-10-24
 
 ### Added
