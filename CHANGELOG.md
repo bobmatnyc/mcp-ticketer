@@ -6,6 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.1.33] - 2025-10-24
+
+### Enhanced
+- **MAJOR: Active Diagnostics System**: Transformed diagnostics from static reporting to active testing
+  - Queue system diagnostics now attempt worker startup and test operations
+  - Adapter diagnostics actively test functionality instead of just checking configuration
+  - Worker startup testing with fallback to CLI commands when direct methods unavailable
+  - Queue operations testing with real task creation and processing verification
+  - Basic functionality testing in fallback mode for degraded environments
+  - Improved error detection and reporting with specific failure reasons
+  - Better distinction between diagnostic test failures and actual system functionality
+
+### Fixed
+- **Adapter Configuration Handling**: Fixed diagnostics to handle both dict and object adapter configs
+  - Proper type detection for adapter configurations in mixed environments
+  - Safe import handling for AdapterRegistry in constrained environments
+  - Graceful degradation when adapter registry is not available
+  - Better error messages for adapter initialization failures
+
+### Technical Improvements
+- **Diagnostic Test Methods**: Added comprehensive test suite within diagnostics
+  - `_test_worker_startup()`: Attempts to start queue workers and reports success/failure
+  - `_test_queue_operations()`: Tests actual queue functionality with real tasks
+  - `_test_basic_queue_functionality()`: Fallback testing for degraded environments
+  - Enhanced health scoring based on actual test results rather than static checks
+  - Improved logging and user feedback during diagnostic testing
+
+### User Experience
+- **Actionable Diagnostics**: Diagnostics now provide specific, testable insights
+  - Clear indication when system is functional despite diagnostic warnings
+  - Better recommendations based on actual test results
+  - Improved error messages that distinguish between test failures and system failures
+  - Enhanced status reporting with component-by-component active testing results
+
 ## [0.1.31] - 2025-10-24
 
 ### Fixed

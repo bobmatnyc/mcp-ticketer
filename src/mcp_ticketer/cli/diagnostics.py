@@ -18,22 +18,50 @@ from rich.text import Text
 def safe_import_config():
     """Safely import configuration with fallback."""
     try:
-        from ..core.config import get_config
-        return get_config
+        from ..core.config import get_config as real_get_config
+
+        # Test if the real config system works
+        try:
+            config = real_get_config()
+            # If we get here, the real config system is working
+            return real_get_config
+        except Exception:
+            # Real config system failed, use fallback
+            pass
+
     except ImportError:
-        # Create a minimal config fallback
-        class MockConfig:
-            def get_enabled_adapters(self):
-                return {}
+        pass
 
-            @property
-            def default_adapter(self):
-                return "aitrackdown"
+    # Create a minimal config fallback
+    class MockConfig:
+        def get_enabled_adapters(self):
+            # Try to detect adapters from environment even in fallback
+            import os
+            adapters = {}
 
-        def get_config():
-            return MockConfig()
+            # Check for environment variables
+            if os.getenv("LINEAR_API_KEY"):
+                adapters["linear"] = {"type": "linear", "enabled": True}
+            if os.getenv("GITHUB_TOKEN"):
+                adapters["github"] = {"type": "github", "enabled": True}
+            if os.getenv("JIRA_SERVER"):
+                adapters["jira"] = {"type": "jira", "enabled": True}
 
-        return get_config
+            # Always include aitrackdown as fallback
+            if not adapters:
+                adapters["aitrackdown"] = {"type": "aitrackdown", "enabled": True}
+
+            return adapters
+
+        @property
+        def default_adapter(self):
+            adapters = self.get_enabled_adapters()
+            return list(adapters.keys())[0] if adapters else "aitrackdown"
+
+    def get_config():
+        return MockConfig()
+
+    return get_config
 
 def safe_import_registry():
     """Safely import adapter registry with fallback."""
@@ -51,17 +79,32 @@ def safe_import_registry():
 def safe_import_queue_manager():
     """Safely import queue manager with fallback."""
     try:
-        from ..queue.manager import QueueManager
-        return QueueManager
+        from ..queue.manager import QueueManager as RealQueueManager
+
+        # Test if the real queue manager works
+        try:
+            qm = RealQueueManager()
+            # Test a basic operation
+            qm.get_worker_status()
+            return RealQueueManager
+        except Exception:
+            # Real queue manager failed, use fallback
+            pass
+
     except ImportError:
-        class MockQueueManager:
-            def get_worker_status(self):
-                return {"running": False, "pid": None}
+        pass
 
-            def get_queue_stats(self):
-                return {"total": 0, "failed": 0}
+    class MockQueueManager:
+        def get_worker_status(self):
+            return {"running": False, "pid": None, "status": "fallback_mode"}
 
-        return MockQueueManager
+        def get_queue_stats(self):
+            return {"total": 0, "failed": 0, "pending": 0, "completed": 0}
+
+        def health_check(self):
+            return {"status": "degraded", "score": 50, "details": "Running in fallback mode"}
+
+    return MockQueueManager
 
 # Initialize with safe imports
 get_config = safe_import_config()
@@ -256,16 +299,34 @@ class SystemDiagnostics:
             adapter_status["total_adapters"] = len(adapters)
 
             for name, adapter_config in adapters.items():
+                # Handle both dict and object adapter configs
+                if isinstance(adapter_config, dict):
+                    adapter_type = adapter_config.get("type", "unknown")
+                    config_dict = adapter_config
+                else:
+                    adapter_type = adapter_config.type.value if hasattr(adapter_config, 'type') else "unknown"
+                    config_dict = adapter_config.dict() if hasattr(adapter_config, 'dict') else adapter_config
+
                 details = {
-                    "type": adapter_config.type.value,
+                    "type": adapter_type,
                     "status": "unknown",
                     "last_test": None,
                     "error": None,
                 }
 
                 try:
-                    adapter_class = AdapterRegistry.get_adapter(adapter_config.type.value)
-                    adapter = adapter_class(adapter_config.dict())
+                    # Import AdapterRegistry safely
+                    try:
+                        from ..core.registry import AdapterRegistry
+                    except ImportError:
+                        details["status"] = "failed"
+                        details["error"] = "AdapterRegistry not available"
+                        adapter_status["failed_adapters"] += 1
+                        adapter_status["adapter_details"][name] = details
+                        continue
+
+                    adapter_class = AdapterRegistry.get_adapter(adapter_type)
+                    adapter = adapter_class(config_dict)
                     
                     # Test basic adapter functionality
                     test_start = datetime.now()
@@ -303,9 +364,9 @@ class SystemDiagnostics:
         return adapter_status
 
     async def _diagnose_queue_system(self) -> Dict[str, Any]:
-        """Diagnose queue system health."""
+        """Diagnose queue system health with active testing."""
         console.print("\n⚡ [yellow]Queue System Diagnosis[/yellow]")
-        
+
         queue_status = {
             "worker_running": False,
             "worker_pid": None,
@@ -313,19 +374,24 @@ class SystemDiagnostics:
             "recent_failures": [],
             "failure_rate": 0.0,
             "health_score": 0,
+            "worker_start_test": {"attempted": False, "success": False, "error": None},
+            "queue_operation_test": {"attempted": False, "success": False, "error": None},
         }
 
         try:
             if not self.queue_available:
-                warning = "Queue system in fallback mode - limited functionality"
+                warning = "Queue system in fallback mode - testing basic functionality"
                 self.warnings.append(warning)
                 console.print(f"⚠️  {warning}")
-                queue_status["worker_running"] = False
-                queue_status["worker_pid"] = None
-                queue_status["health_score"] = 50  # Degraded but not critical
+
+                # Even in fallback mode, test if we can create a basic queue operation
+                test_result = await self._test_basic_queue_functionality()
+                queue_status["queue_operation_test"] = test_result
+                queue_status["health_score"] = 50 if test_result["success"] else 25
                 return queue_status
 
-            # Check worker status
+            # Test 1: Check current worker status
+            console.print("🔍 Checking current worker status...")
             worker_status = self.queue_manager.get_worker_status()
             queue_status["worker_running"] = worker_status.get("running", False)
             queue_status["worker_pid"] = worker_status.get("pid")
@@ -334,21 +400,32 @@ class SystemDiagnostics:
                 console.print(f"✅ Queue worker running (PID: {queue_status['worker_pid']})")
                 self.successes.append("Queue worker is running")
             else:
-                issue = "Queue worker not running"
-                self.issues.append(issue)
-                console.print(f"❌ {issue}")
+                console.print("⚠️  Queue worker not running - attempting to start...")
 
-            # Get queue statistics
+                # Test 2: Try to start worker
+                start_test = await self._test_worker_startup()
+                queue_status["worker_start_test"] = start_test
+
+                if start_test["success"]:
+                    console.print("✅ Successfully started queue worker")
+                    queue_status["worker_running"] = True
+                    self.successes.append("Queue worker started successfully")
+                else:
+                    console.print(f"❌ Failed to start queue worker: {start_test['error']}")
+                    self.issues.append(f"Queue worker startup failed: {start_test['error']}")
+
+            # Test 3: Get queue statistics
+            console.print("🔍 Analyzing queue statistics...")
             stats = self.queue_manager.get_queue_stats()
             queue_status["queue_stats"] = stats
-            
+
             total_items = stats.get("total", 0)
             failed_items = stats.get("failed", 0)
-            
+
             if total_items > 0:
                 failure_rate = (failed_items / total_items) * 100
                 queue_status["failure_rate"] = failure_rate
-                
+
                 if failure_rate > 50:
                     issue = f"High failure rate: {failure_rate:.1f}% ({failed_items}/{total_items})"
                     self.issues.append(issue)
@@ -360,14 +437,30 @@ class SystemDiagnostics:
                 else:
                     console.print(f"✅ Queue failure rate: {failure_rate:.1f}% ({failed_items}/{total_items})")
 
-            # Calculate health score
+            # Test 4: Test actual queue operations
+            console.print("🔍 Testing queue operations...")
+            operation_test = await self._test_queue_operations()
+            queue_status["queue_operation_test"] = operation_test
+
+            if operation_test["success"]:
+                console.print("✅ Queue operations test passed")
+                self.successes.append("Queue operations working correctly")
+            else:
+                console.print(f"❌ Queue operations test failed: {operation_test['error']}")
+                self.issues.append(f"Queue operations failed: {operation_test['error']}")
+
+            # Calculate health score based on actual tests
             health_score = 100
             if not queue_status["worker_running"]:
-                health_score -= 50
-            health_score -= min(queue_status["failure_rate"], 50)
+                health_score -= 30
+            if not queue_status["worker_start_test"]["success"] and queue_status["worker_start_test"]["attempted"]:
+                health_score -= 20
+            if not queue_status["queue_operation_test"]["success"]:
+                health_score -= 30
+            health_score -= min(queue_status["failure_rate"], 20)
             queue_status["health_score"] = max(0, health_score)
 
-            console.print(f"📊 Queue health score: {queue_status['health_score']}/100")
+            console.print(f"📊 Queue health score: {queue_status['health_score']}/100 (based on active testing)")
 
         except Exception as e:
             issue = f"Queue system diagnosis failed: {str(e)}"
@@ -375,6 +468,116 @@ class SystemDiagnostics:
             console.print(f"❌ {issue}")
 
         return queue_status
+
+    async def _test_worker_startup(self) -> Dict[str, Any]:
+        """Test starting a queue worker."""
+        test_result = {
+            "attempted": True,
+            "success": False,
+            "error": None,
+            "details": None
+        }
+
+        try:
+            # Try to start worker using the queue manager
+            if hasattr(self.queue_manager, 'start_worker'):
+                result = await self.queue_manager.start_worker()
+                test_result["success"] = True
+                test_result["details"] = "Worker started successfully"
+            else:
+                # Try alternative method - use CLI command
+                import subprocess
+                result = subprocess.run(
+                    ["mcp-ticketer", "queue", "worker", "start"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                if result.returncode == 0:
+                    test_result["success"] = True
+                    test_result["details"] = "Worker started via CLI"
+                else:
+                    test_result["error"] = f"CLI start failed: {result.stderr}"
+
+        except subprocess.TimeoutExpired:
+            test_result["error"] = "Worker startup timed out"
+        except Exception as e:
+            test_result["error"] = str(e)
+
+        return test_result
+
+    async def _test_queue_operations(self) -> Dict[str, Any]:
+        """Test basic queue operations."""
+        test_result = {
+            "attempted": True,
+            "success": False,
+            "error": None,
+            "details": None
+        }
+
+        try:
+            # Test creating a simple queue item (diagnostic test)
+            from ..core.models import Task, Priority
+
+            test_task = Task(
+                title="[DIAGNOSTIC TEST] Queue functionality test",
+                description="This is a diagnostic test - safe to ignore",
+                priority=Priority.LOW
+            )
+
+            # Try to queue the test task
+            if hasattr(self.queue_manager, 'queue_task'):
+                queue_id = await self.queue_manager.queue_task("create", test_task, "aitrackdown")
+                test_result["success"] = True
+                test_result["details"] = f"Test task queued successfully: {queue_id}"
+            else:
+                test_result["error"] = "Queue manager doesn't support task queuing"
+
+        except Exception as e:
+            test_result["error"] = str(e)
+
+        return test_result
+
+    async def _test_basic_queue_functionality(self) -> Dict[str, Any]:
+        """Test basic queue functionality in fallback mode."""
+        test_result = {
+            "attempted": True,
+            "success": False,
+            "error": None,
+            "details": None
+        }
+
+        try:
+            # Test if we can at least create a task directly (bypass queue)
+            from ..core.models import Task, Priority
+            from ..adapters.aitrackdown import AITrackdownAdapter
+
+            test_task = Task(
+                title="[DIAGNOSTIC TEST] Direct adapter test",
+                description="Testing direct adapter functionality",
+                priority=Priority.LOW
+            )
+
+            # Try direct adapter creation
+            adapter_config = {
+                "type": "aitrackdown",
+                "enabled": True,
+                "base_path": "/tmp/mcp-ticketer-diagnostic-test"
+            }
+
+            adapter = AITrackdownAdapter(adapter_config)
+            result = await adapter.create(test_task)
+
+            test_result["success"] = True
+            test_result["details"] = f"Direct adapter test passed: {result.id}"
+
+            # Clean up test
+            await adapter.delete(result.id)
+
+        except Exception as e:
+            test_result["error"] = str(e)
+
+        return test_result
 
     async def _analyze_recent_logs(self) -> Dict[str, Any]:
         """Analyze recent log entries for issues."""
