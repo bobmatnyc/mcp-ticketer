@@ -8,7 +8,7 @@ import builtins
 import json
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from ..core.adapter import BaseAdapter
 from ..core.models import Comment, Epic, SearchQuery, Task, TicketState
@@ -153,7 +153,7 @@ class HybridAdapter(BaseAdapter):
 
         return f"hybrid-{uuid.uuid4().hex[:12]}"
 
-    async def create(self, ticket: Task | Epic) -> Task | Epic:
+    async def create(self, ticket: Union[Task, Epic]) -> Union[Task, Epic]:
         """Create ticket in all configured adapters.
 
         Args:
@@ -208,7 +208,7 @@ class HybridAdapter(BaseAdapter):
         return primary_ticket
 
     def _add_cross_references(
-        self, ticket: Task | Epic, results: list[tuple[str, Task | Epic]]
+        self, ticket: Union[Task, Epic], results: list[tuple[str, Union[Task, Epic]]]
     ) -> None:
         """Add cross-references to ticket description.
 
@@ -226,7 +226,7 @@ class HybridAdapter(BaseAdapter):
         else:
             ticket.description = cross_refs.strip()
 
-    async def read(self, ticket_id: str) -> Optional[Task | Epic]:
+    async def read(self, ticket_id: str) -> Optional[Union[Task, Epic]]:
         """Read ticket from primary adapter.
 
         Args:
@@ -255,7 +255,7 @@ class HybridAdapter(BaseAdapter):
 
     async def update(
         self, ticket_id: str, updates: dict[str, Any]
-    ) -> Optional[Task | Epic]:
+    ) -> Optional[Union[Task, Epic]]:
         """Update ticket across all adapters.
 
         Args:
@@ -360,7 +360,7 @@ class HybridAdapter(BaseAdapter):
 
     async def list(
         self, limit: int = 10, offset: int = 0, filters: Optional[dict[str, Any]] = None
-    ) -> list[Task | Epic]:
+    ) -> list[Union[Task, Epic]]:
         """List tickets from primary adapter.
 
         Args:
@@ -375,7 +375,7 @@ class HybridAdapter(BaseAdapter):
         primary = self.adapters[self.primary_adapter_name]
         return await primary.list(limit, offset, filters)
 
-    async def search(self, query: SearchQuery) -> builtins.list[Task | Epic]:
+    async def search(self, query: SearchQuery) -> builtins.list[Union[Task, Epic]]:
         """Search tickets in primary adapter.
 
         Args:
@@ -390,7 +390,7 @@ class HybridAdapter(BaseAdapter):
 
     async def transition_state(
         self, ticket_id: str, target_state: TicketState
-    ) -> Optional[Task | Epic]:
+    ) -> Optional[Union[Task, Epic]]:
         """Transition ticket state across all adapters.
 
         Args:
