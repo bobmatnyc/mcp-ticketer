@@ -6,6 +6,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.1.29] - 2025-10-24
+
+### Added
+- **Comprehensive Diagnostics System**: Complete health monitoring and self-diagnosis capabilities
+  - `mcp-ticketer health`: Quick system health check command
+  - `mcp-ticketer diagnose`: Comprehensive system diagnostics with detailed analysis
+  - `system_health` MCP tool: AI agents can perform quick health checks
+  - `system_diagnose` MCP tool: AI agents can run comprehensive diagnostics
+- **Intelligent Fallback System**: Graceful degradation when dependencies are missing
+  - Simple health checks that work without heavy dependencies
+  - Automatic fallback to lightweight diagnostics when full system fails
+  - Import protection for missing optional dependencies
+- **Multi-Component Analysis**:
+  - Configuration validation and adapter testing
+  - Queue system health monitoring with failure rate analysis
+  - Environment variable detection and validation
+  - Installation verification and version checking
+  - Performance metrics and response time analysis
+- **Rich Output Formats**:
+  - Colorized terminal output with status indicators
+  - JSON export for automation and integration
+  - File output for reporting and analysis
+  - Progressive disclosure (health → diagnose)
+- **Exit Code Standards**: Proper exit codes for CI/CD integration (0=healthy, 1=critical, 2=warnings)
+
+### Enhanced
+- **MCP Server**: Added two new diagnostic tools for AI agent integration
+- **Error Handling**: Improved graceful handling of missing dependencies and failed components
+- **User Experience**: Clear, actionable recommendations for resolving detected issues
+
+### Fixed
+- **System Visibility**: Addresses the "60% failure rate" issue by providing comprehensive system monitoring
+- **AI Agent Troubleshooting**: AI agents can now self-diagnose and identify system issues
+- **Dependency Resilience**: System remains functional even when optional dependencies are missing
+
 ### Added
 - WebSocket support for real-time updates
 - Custom ticket templates

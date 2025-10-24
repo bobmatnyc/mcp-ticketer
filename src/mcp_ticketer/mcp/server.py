@@ -1460,6 +1460,29 @@ class MCPTicketServer:
                         "required": ["queue_id"],
                     },
                 },
+                # System diagnostics tools
+                {
+                    "name": "system_health",
+                    "description": "Quick system health check - shows configuration, queue worker, and failure rates",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {},
+                    },
+                },
+                {
+                    "name": "system_diagnose",
+                    "description": "Comprehensive system diagnostics - detailed analysis of all components",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "include_logs": {
+                                "type": "boolean",
+                                "default": False,
+                                "description": "Include recent log analysis in diagnosis",
+                            },
+                        },
+                    },
+                },
             ]
         }
 
@@ -1514,6 +1537,11 @@ class MCPTicketServer:
                 result = await self._handle_search(arguments)
             elif tool_name == "ticket_status":
                 result = await self._handle_queue_status(arguments)
+            # System diagnostics
+            elif tool_name == "system_health":
+                result = await self._handle_system_health(arguments)
+            elif tool_name == "system_diagnose":
+                result = await self._handle_system_diagnose(arguments)
             # PR integration
             elif tool_name == "ticket_create_pr":
                 result = await self._handle_create_pr(arguments)
@@ -1672,6 +1700,195 @@ async def main():
     # Create and run server
     server = MCPTicketServer(adapter_type, adapter_config)
     await server.run()
+
+
+# Add diagnostic handler methods to MCPTicketServer class
+async def _handle_system_health(self, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Handle system health check."""
+    from ..cli.diagnostics import SystemDiagnostics
+
+    try:
+        diagnostics = SystemDiagnostics()
+
+        # Quick health checks
+        health_status = {
+            "overall_status": "healthy",
+            "components": {},
+            "issues": [],
+            "warnings": [],
+        }
+
+        # Check configuration
+        try:
+            from ..core.config import get_config
+            config = get_config()
+            adapters = config.get_enabled_adapters()
+            if adapters:
+                health_status["components"]["configuration"] = {
+                    "status": "healthy",
+                    "adapters_count": len(adapters),
+                }
+            else:
+                health_status["components"]["configuration"] = {
+                    "status": "failed",
+                    "error": "No adapters configured",
+                }
+                health_status["issues"].append("No adapters configured")
+                health_status["overall_status"] = "critical"
+        except Exception as e:
+            health_status["components"]["configuration"] = {
+                "status": "failed",
+                "error": str(e),
+            }
+            health_status["issues"].append(f"Configuration error: {str(e)}")
+            health_status["overall_status"] = "critical"
+
+        # Check queue system
+        try:
+            from ..queue.manager import QueueManager
+            queue_manager = QueueManager()
+            worker_status = queue_manager.get_worker_status()
+            stats = queue_manager.get_queue_stats()
+
+            total = stats.get("total", 0)
+            failed = stats.get("failed", 0)
+            failure_rate = (failed / total * 100) if total > 0 else 0
+
+            queue_health = {
+                "status": "healthy",
+                "worker_running": worker_status.get("running", False),
+                "worker_pid": worker_status.get("pid"),
+                "failure_rate": failure_rate,
+                "total_processed": total,
+                "failed_items": failed,
+            }
+
+            if not worker_status.get("running", False):
+                queue_health["status"] = "failed"
+                health_status["issues"].append("Queue worker not running")
+                health_status["overall_status"] = "critical"
+            elif failure_rate > 50:
+                queue_health["status"] = "degraded"
+                health_status["issues"].append(f"High queue failure rate: {failure_rate:.1f}%")
+                health_status["overall_status"] = "critical"
+            elif failure_rate > 20:
+                queue_health["status"] = "warning"
+                health_status["warnings"].append(f"Elevated queue failure rate: {failure_rate:.1f}%")
+                if health_status["overall_status"] == "healthy":
+                    health_status["overall_status"] = "warning"
+
+            health_status["components"]["queue_system"] = queue_health
+
+        except Exception as e:
+            health_status["components"]["queue_system"] = {
+                "status": "failed",
+                "error": str(e),
+            }
+            health_status["issues"].append(f"Queue system error: {str(e)}")
+            health_status["overall_status"] = "critical"
+
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"System Health Status: {health_status['overall_status'].upper()}\n\n" +
+                           f"Configuration: {health_status['components'].get('configuration', {}).get('status', 'unknown')}\n" +
+                           f"Queue System: {health_status['components'].get('queue_system', {}).get('status', 'unknown')}\n\n" +
+                           f"Issues: {len(health_status['issues'])}\n" +
+                           f"Warnings: {len(health_status['warnings'])}\n\n" +
+                           (f"Critical Issues:\n" + "\n".join(f"• {issue}" for issue in health_status['issues']) + "\n\n" if health_status['issues'] else "") +
+                           (f"Warnings:\n" + "\n".join(f"• {warning}" for warning in health_status['warnings']) + "\n\n" if health_status['warnings'] else "") +
+                           "For detailed diagnosis, use system_diagnose tool.",
+                }
+            ],
+            "isError": health_status["overall_status"] == "critical",
+        }
+
+    except Exception as e:
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"Health check failed: {str(e)}",
+                }
+            ],
+            "isError": True,
+        }
+
+
+async def _handle_system_diagnose(self, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Handle comprehensive system diagnosis."""
+    from ..cli.diagnostics import SystemDiagnostics
+
+    try:
+        diagnostics = SystemDiagnostics()
+        report = await diagnostics.run_full_diagnosis()
+
+        # Format report for MCP response
+        summary = f"""System Diagnosis Report
+Generated: {report['timestamp']}
+Version: {report['version']}
+
+OVERALL STATUS: {
+    'CRITICAL' if diagnostics.issues else
+    'WARNING' if diagnostics.warnings else
+    'HEALTHY'
+}
+
+COMPONENT STATUS:
+• Configuration: {len(report['configuration']['issues'])} issues
+• Adapters: {report['adapters']['failed_adapters']}/{report['adapters']['total_adapters']} failed
+• Queue System: {report['queue_system']['health_score']}/100 health score
+
+STATISTICS:
+• Successes: {len(diagnostics.successes)}
+• Warnings: {len(diagnostics.warnings)}
+• Critical Issues: {len(diagnostics.issues)}
+
+"""
+
+        if diagnostics.issues:
+            summary += "CRITICAL ISSUES:\n"
+            for issue in diagnostics.issues:
+                summary += f"• {issue}\n"
+            summary += "\n"
+
+        if diagnostics.warnings:
+            summary += "WARNINGS:\n"
+            for warning in diagnostics.warnings:
+                summary += f"• {warning}\n"
+            summary += "\n"
+
+        if report['recommendations']:
+            summary += "RECOMMENDATIONS:\n"
+            for rec in report['recommendations']:
+                summary += f"{rec}\n"
+
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": summary,
+                }
+            ],
+            "isError": bool(diagnostics.issues),
+        }
+
+    except Exception as e:
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"System diagnosis failed: {str(e)}",
+                }
+            ],
+            "isError": True,
+        }
+
+
+# Monkey patch the methods onto the class
+MCPTicketServer._handle_system_health = _handle_system_health
+MCPTicketServer._handle_system_diagnose = _handle_system_diagnose
 
 
 if __name__ == "__main__":

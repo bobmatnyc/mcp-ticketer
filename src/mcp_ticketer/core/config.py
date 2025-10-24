@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Optional, Union
 
 import yaml
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 logger = logging.getLogger(__name__)
 
@@ -45,24 +45,27 @@ class GitHubConfig(BaseAdapterConfig):
     use_projects_v2: bool = False
     custom_priority_scheme: Optional[dict[str, list[str]]] = None
 
-    @validator("token", pre=True, always=True)
-    def validate_token(self, v):
+    @field_validator("token", mode="before")
+    @classmethod
+    def validate_token(cls, v):
         if not v:
             v = os.getenv("GITHUB_TOKEN")
         if not v:
             raise ValueError("GitHub token is required")
         return v
 
-    @validator("owner", pre=True, always=True)
-    def validate_owner(self, v):
+    @field_validator("owner", mode="before")
+    @classmethod
+    def validate_owner(cls, v):
         if not v:
             v = os.getenv("GITHUB_OWNER")
         if not v:
             raise ValueError("GitHub owner is required")
         return v
 
-    @validator("repo", pre=True, always=True)
-    def validate_repo(self, v):
+    @field_validator("repo", mode="before")
+    @classmethod
+    def validate_repo(cls, v):
         if not v:
             v = os.getenv("GITHUB_REPO")
         if not v:
@@ -81,24 +84,27 @@ class JiraConfig(BaseAdapterConfig):
     cloud: bool = True
     verify_ssl: bool = True
 
-    @validator("server", pre=True, always=True)
-    def validate_server(self, v):
+    @field_validator("server", mode="before")
+    @classmethod
+    def validate_server(cls, v):
         if not v:
             v = os.getenv("JIRA_SERVER")
         if not v:
             raise ValueError("JIRA server URL is required")
         return v.rstrip("/")
 
-    @validator("email", pre=True, always=True)
-    def validate_email(self, v):
+    @field_validator("email", mode="before")
+    @classmethod
+    def validate_email(cls, v):
         if not v:
             v = os.getenv("JIRA_EMAIL")
         if not v:
             raise ValueError("JIRA email is required")
         return v
 
-    @validator("api_token", pre=True, always=True)
-    def validate_api_token(self, v):
+    @field_validator("api_token", mode="before")
+    @classmethod
+    def validate_api_token(cls, v):
         if not v:
             v = os.getenv("JIRA_API_TOKEN")
         if not v:
@@ -115,8 +121,9 @@ class LinearConfig(BaseAdapterConfig):
     team_key: str
     api_url: str = "https://api.linear.app/graphql"
 
-    @validator("api_key", pre=True, always=True)
-    def validate_api_key(self, v):
+    @field_validator("api_key", mode="before")
+    @classmethod
+    def validate_api_key(cls, v):
         if not v:
             v = os.getenv("LINEAR_API_KEY")
         if not v:
@@ -163,23 +170,23 @@ class AppConfig(BaseModel):
     cache_ttl: int = 300  # Cache TTL in seconds
     default_adapter: Optional[str] = None
 
-    @root_validator(skip_on_failure=True)
-    def validate_adapters(self, values):
+    @model_validator(mode="after")
+    def validate_adapters(self):
         """Validate adapter configurations."""
-        adapters = values.get("adapters", {})
+        adapters = self.adapters
 
         if not adapters:
             logger.warning("No adapters configured")
-            return values
+            return self
 
         # Validate default adapter
-        default_adapter = values.get("default_adapter")
+        default_adapter = self.default_adapter
         if default_adapter and default_adapter not in adapters:
             raise ValueError(
                 f"Default adapter '{default_adapter}' not found in adapters"
             )
 
-        return values
+        return self
 
     def get_adapter_config(self, adapter_name: str) -> Optional[BaseAdapterConfig]:
         """Get configuration for a specific adapter."""

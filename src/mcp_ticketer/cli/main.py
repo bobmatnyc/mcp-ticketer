@@ -22,6 +22,7 @@ from ..queue.ticket_registry import TicketRegistry
 # Import adapters module to trigger registration
 import mcp_ticketer.adapters  # noqa: F401
 from .configure import configure_wizard, set_adapter_config, show_current_config
+from .diagnostics import run_diagnostics
 from .discover import app as discover_app
 from .migrate_config import migrate_config_command
 from .queue_commands import app as queue_app
@@ -1259,6 +1260,48 @@ app.add_typer(queue_app, name="queue")
 
 # Add discover command to main app
 app.add_typer(discover_app, name="discover")
+
+# Add diagnostics command
+@app.command()
+def diagnose(
+    output_file: Optional[str] = typer.Option(None, "--output", "-o", help="Save full report to file"),
+    json_output: bool = typer.Option(False, "--json", help="Output report in JSON format"),
+    simple: bool = typer.Option(False, "--simple", help="Use simple diagnostics (no heavy dependencies)"),
+) -> None:
+    """Run comprehensive system diagnostics and health check."""
+    if simple:
+        from .simple_health import simple_diagnose
+        report = simple_diagnose()
+        if output_file:
+            import json
+            with open(output_file, 'w') as f:
+                json.dump(report, f, indent=2)
+            console.print(f"\n📄 Report saved to: {output_file}")
+        if json_output:
+            import json
+            console.print("\n" + json.dumps(report, indent=2))
+        if report["issues"]:
+            raise typer.Exit(1)
+    else:
+        try:
+            asyncio.run(run_diagnostics(output_file=output_file, json_output=json_output))
+        except Exception as e:
+            console.print(f"⚠️  Full diagnostics failed: {e}")
+            console.print("🔄 Falling back to simple diagnostics...")
+            from .simple_health import simple_diagnose
+            report = simple_diagnose()
+            if report["issues"]:
+                raise typer.Exit(1)
+
+
+@app.command()
+def health() -> None:
+    """Quick health check - shows system status summary."""
+    from .simple_health import simple_health_check
+
+    result = simple_health_check()
+    if result != 0:
+        raise typer.Exit(result)
 
 # Create MCP configuration command group
 mcp_app = typer.Typer(

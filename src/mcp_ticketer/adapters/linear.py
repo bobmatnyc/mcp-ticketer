@@ -973,6 +973,66 @@ class LinearAdapter(BaseAdapter[Task]):
         created_issue = result["issueCreate"]["issue"]
         return self._task_from_linear_issue(created_issue)
 
+    async def create_epic(self, title: str, description: str = None, **kwargs) -> Task:
+        """Create a new epic (Linear project).
+
+        Args:
+            title: Epic title
+            description: Epic description
+            **kwargs: Additional epic properties
+
+        Returns:
+            Created Task instance representing the epic
+        """
+        # In Linear, epics are represented as issues with special labels/properties
+        task = Task(
+            title=title,
+            description=description,
+            tags=kwargs.get('tags', []) + ['epic'],  # Add epic tag
+            **{k: v for k, v in kwargs.items() if k != 'tags'}
+        )
+        return await self.create(task)
+
+    async def create_issue(self, title: str, parent_epic: str = None, description: str = None, **kwargs) -> Task:
+        """Create a new issue.
+
+        Args:
+            title: Issue title
+            parent_epic: Parent epic ID
+            description: Issue description
+            **kwargs: Additional issue properties
+
+        Returns:
+            Created Task instance representing the issue
+        """
+        task = Task(
+            title=title,
+            description=description,
+            parent_epic=parent_epic,
+            **kwargs
+        )
+        return await self.create(task)
+
+    async def create_task(self, title: str, parent_id: str, description: str = None, **kwargs) -> Task:
+        """Create a new task under an issue.
+
+        Args:
+            title: Task title
+            parent_id: Parent issue ID
+            description: Task description
+            **kwargs: Additional task properties
+
+        Returns:
+            Created Task instance
+        """
+        task = Task(
+            title=title,
+            description=description,
+            parent_issue=parent_id,
+            **kwargs
+        )
+        return await self.create(task)
+
     async def read(self, ticket_id: str) -> Optional[Task]:
         """Read a Linear issue by identifier with full details."""
         # Validate credentials before attempting operation
