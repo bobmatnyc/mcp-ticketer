@@ -180,7 +180,7 @@ class Queue:
         return queue_id
 
     def get_next_pending(self) -> Optional[QueueItem]:
-        """Get next pending item from queue.
+        """Get next pending item from queue atomically.
 
         Returns:
             Next pending QueueItem or None if queue is empty
@@ -188,34 +188,50 @@ class Queue:
         """
         with self._lock:
             with sqlite3.connect(self.db_path) as conn:
-                # Get next pending item ordered by creation time
-                cursor = conn.execute(
-                    """
-                    SELECT * FROM queue
-                    WHERE status = ?
-                    ORDER BY created_at
-                    LIMIT 1
-                """,
-                    (QueueStatus.PENDING.value,),
-                )
-
-                row = cursor.fetchone()
-                if row:
-                    # Mark as processing
-                    conn.execute(
+                # Use a transaction to atomically get and update the item
+                conn.execute("BEGIN IMMEDIATE")
+                try:
+                    # Get next pending item ordered by creation time
+                    cursor = conn.execute(
                         """
-                        UPDATE queue
-                        SET status = ?
-                        WHERE id = ?
+                        SELECT * FROM queue
+                        WHERE status = ?
+                        ORDER BY created_at
+                        LIMIT 1
                     """,
-                        (QueueStatus.PROCESSING.value, row[0]),
+                        (QueueStatus.PENDING.value,),
                     )
-                    conn.commit()
 
-                    # Create QueueItem from row and update status
-                    item = QueueItem.from_row(row)
-                    item.status = QueueStatus.PROCESSING
-                    return item
+                    row = cursor.fetchone()
+                    if row:
+                        # Atomically mark as processing
+                        update_cursor = conn.execute(
+                            """
+                            UPDATE queue
+                            SET status = ?, processed_at = ?
+                            WHERE id = ? AND status = ?
+                        """,
+                            (QueueStatus.PROCESSING.value, datetime.now().isoformat(), row[0], QueueStatus.PENDING.value),
+                        )
+
+                        # Check if update was successful (prevents race conditions)
+                        if update_cursor.rowcount == 1:
+                            conn.commit()
+                            # Create QueueItem from row and update status
+                            item = QueueItem.from_row(row)
+                            item.status = QueueStatus.PROCESSING
+                            return item
+                        else:
+                            # Item was already taken by another worker
+                            conn.rollback()
+                            return None
+                    else:
+                        conn.rollback()
+                        return None
+
+                except Exception:
+                    conn.rollback()
+                    raise
 
         return None
 
@@ -225,67 +241,132 @@ class Queue:
         status: QueueStatus,
         error_message: Optional[str] = None,
         result: Optional[dict[str, Any]] = None,
-    ):
-        """Update queue item status.
+        expected_status: Optional[QueueStatus] = None,
+    ) -> bool:
+        """Update queue item status atomically.
 
         Args:
             queue_id: Queue item ID
             status: New status
             error_message: Error message if failed
             result: Result data if completed
+            expected_status: Expected current status (for atomic updates)
 
+        Returns:
+            True if update was successful, False if item was in unexpected state
         """
         with self._lock:
             with sqlite3.connect(self.db_path) as conn:
-                processed_at = (
-                    datetime.now().isoformat()
-                    if status in [QueueStatus.COMPLETED, QueueStatus.FAILED]
-                    else None
-                )
+                conn.execute("BEGIN IMMEDIATE")
+                try:
+                    processed_at = (
+                        datetime.now().isoformat()
+                        if status in [QueueStatus.COMPLETED, QueueStatus.FAILED]
+                        else None
+                    )
 
-                conn.execute(
-                    """
-                    UPDATE queue
-                    SET status = ?, processed_at = ?,
-                        error_message = ?, result = ?
-                    WHERE id = ?
-                """,
-                    (
-                        status.value,
-                        processed_at,
-                        error_message,
-                        json.dumps(result) if result else None,
-                        queue_id,
-                    ),
-                )
-                conn.commit()
+                    if expected_status:
+                        # Atomic update with status check
+                        cursor = conn.execute(
+                            """
+                            UPDATE queue
+                            SET status = ?, processed_at = ?,
+                                error_message = ?, result = ?
+                            WHERE id = ? AND status = ?
+                        """,
+                            (
+                                status.value,
+                                processed_at,
+                                error_message,
+                                json.dumps(result) if result else None,
+                                queue_id,
+                                expected_status.value,
+                            ),
+                        )
+                        success = cursor.rowcount == 1
+                    else:
+                        # Regular update
+                        cursor = conn.execute(
+                            """
+                            UPDATE queue
+                            SET status = ?, processed_at = ?,
+                                error_message = ?, result = ?
+                            WHERE id = ?
+                        """,
+                            (
+                                status.value,
+                                processed_at,
+                                error_message,
+                                json.dumps(result) if result else None,
+                                queue_id,
+                            ),
+                        )
+                        success = cursor.rowcount == 1
 
-    def increment_retry(self, queue_id: str) -> int:
-        """Increment retry count for item.
+                    if success:
+                        conn.commit()
+                    else:
+                        conn.rollback()
+
+                    return success
+
+                except Exception:
+                    conn.rollback()
+                    raise
+
+    def increment_retry(self, queue_id: str, expected_status: Optional[QueueStatus] = None) -> int:
+        """Increment retry count and reset to pending atomically.
 
         Args:
             queue_id: Queue item ID
+            expected_status: Expected current status for atomic operation
 
         Returns:
-            New retry count
+            New retry count, or -1 if operation failed
 
         """
         with self._lock:
             with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.execute(
-                    """
-                    UPDATE queue
-                    SET retry_count = retry_count + 1,
-                        status = ?
-                    WHERE id = ?
-                    RETURNING retry_count
-                """,
-                    (QueueStatus.PENDING.value, queue_id),
-                )
+                conn.execute("BEGIN IMMEDIATE")
+                try:
+                    if expected_status:
+                        # Atomic increment with status check
+                        cursor = conn.execute(
+                            """
+                            UPDATE queue
+                            SET retry_count = retry_count + 1,
+                                status = ?, processed_at = NULL,
+                                error_message = NULL
+                            WHERE id = ? AND status = ?
+                            RETURNING retry_count
+                        """,
+                            (QueueStatus.PENDING.value, queue_id, expected_status.value),
+                        )
+                    else:
+                        # Regular increment
+                        cursor = conn.execute(
+                            """
+                            UPDATE queue
+                            SET retry_count = retry_count + 1,
+                                status = ?, processed_at = NULL,
+                                error_message = NULL
+                            WHERE id = ?
+                            RETURNING retry_count
+                        """,
+                            (QueueStatus.PENDING.value, queue_id),
+                        )
 
-                result = cursor.fetchone()
-                conn.commit()
-                return result[0] if result else 0
+                    result = cursor.fetchone()
+                    if result:
+                        conn.commit()
+                        return result[0]
+                    else:
+                        conn.rollback()
+                        return -1
+
+                except Exception:
+                    conn.rollback()
+                    raise
 
     def get_item(self, queue_id: str) -> Optional[QueueItem]:
         """Get specific queue item by ID.

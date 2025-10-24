@@ -16,6 +16,11 @@ from ..__version__ import __version__
 from ..core import AdapterRegistry, Priority, TicketState
 from ..core.models import SearchQuery
 from ..queue import Queue, QueueStatus, WorkerManager
+from ..queue.health_monitor import QueueHealthMonitor, HealthStatus
+from ..queue.ticket_registry import TicketRegistry
+
+# Import adapters module to trigger registration
+import mcp_ticketer.adapters  # noqa: F401
 from .configure import configure_wizard, set_adapter_config, show_current_config
 from .discover import app as discover_app
 from .migrate_config import migrate_config_command
@@ -792,6 +797,76 @@ def status_command():
 
 
 @app.command()
+def health(
+    auto_repair: bool = typer.Option(False, "--auto-repair", help="Attempt automatic repair of issues"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed health information")
+) -> None:
+    """Check queue system health and detect issues immediately."""
+
+    health_monitor = QueueHealthMonitor()
+    health = health_monitor.check_health()
+
+    # Display overall status
+    status_color = {
+        HealthStatus.HEALTHY: "green",
+        HealthStatus.WARNING: "yellow",
+        HealthStatus.CRITICAL: "red",
+        HealthStatus.FAILED: "red"
+    }
+
+    status_icon = {
+        HealthStatus.HEALTHY: "✓",
+        HealthStatus.WARNING: "⚠️",
+        HealthStatus.CRITICAL: "🚨",
+        HealthStatus.FAILED: "❌"
+    }
+
+    color = status_color.get(health["status"], "white")
+    icon = status_icon.get(health["status"], "?")
+
+    console.print(f"[{color}]{icon} Queue Health: {health['status'].upper()}[/{color}]")
+    console.print(f"Last checked: {health['timestamp']}")
+
+    # Display alerts
+    if health["alerts"]:
+        console.print("\n[bold]Issues Found:[/bold]")
+        for alert in health["alerts"]:
+            alert_color = status_color.get(alert["level"], "white")
+            console.print(f"[{alert_color}]  • {alert['message']}[/{alert_color}]")
+
+            if verbose and alert.get("details"):
+                for key, value in alert["details"].items():
+                    console.print(f"    {key}: {value}")
+    else:
+        console.print("\n[green]✓ No issues detected[/green]")
+
+    # Auto-repair if requested
+    if auto_repair and health["status"] in [HealthStatus.CRITICAL, HealthStatus.WARNING]:
+        console.print("\n[yellow]Attempting automatic repair...[/yellow]")
+        repair_result = health_monitor.auto_repair()
+
+        if repair_result["actions_taken"]:
+            console.print("[green]Repair actions taken:[/green]")
+            for action in repair_result["actions_taken"]:
+                console.print(f"[green]  ✓ {action}[/green]")
+
+            # Re-check health
+            console.print("\n[yellow]Re-checking health after repair...[/yellow]")
+            new_health = health_monitor.check_health()
+            new_color = status_color.get(new_health["status"], "white")
+            new_icon = status_icon.get(new_health["status"], "?")
+            console.print(f"[{new_color}]{new_icon} Updated Health: {new_health['status'].upper()}[/{new_color}]")
+        else:
+            console.print("[yellow]No repair actions available[/yellow]")
+
+    # Exit with appropriate code
+    if health["status"] == HealthStatus.CRITICAL:
+        raise typer.Exit(1)
+    elif health["status"] == HealthStatus.WARNING:
+        raise typer.Exit(2)
+
+
+@app.command()
 def create(
     title: str = typer.Argument(..., help="Ticket title"),
     description: Optional[str] = typer.Option(
@@ -810,7 +885,46 @@ def create(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
-    """Create a new ticket."""
+    """Create a new ticket with comprehensive health checks."""
+
+    # IMMEDIATE HEALTH CHECK - Critical for reliability
+    health_monitor = QueueHealthMonitor()
+    health = health_monitor.check_health()
+
+    # Display health status
+    if health["status"] == HealthStatus.CRITICAL:
+        console.print("[red]🚨 CRITICAL: Queue system has serious issues![/red]")
+        for alert in health["alerts"]:
+            if alert["level"] == "critical":
+                console.print(f"[red]  • {alert['message']}[/red]")
+
+        # Attempt auto-repair
+        console.print("[yellow]Attempting automatic repair...[/yellow]")
+        repair_result = health_monitor.auto_repair()
+
+        if repair_result["actions_taken"]:
+            for action in repair_result["actions_taken"]:
+                console.print(f"[yellow]  ✓ {action}[/yellow]")
+
+            # Re-check health after repair
+            health = health_monitor.check_health()
+            if health["status"] == HealthStatus.CRITICAL:
+                console.print("[red]❌ Auto-repair failed. Manual intervention required.[/red]")
+                console.print("[red]Cannot safely create ticket. Please check system status.[/red]")
+                raise typer.Exit(1)
+            else:
+                console.print("[green]✓ Auto-repair successful. Proceeding with ticket creation.[/green]")
+        else:
+            console.print("[red]❌ No repair actions available. Manual intervention required.[/red]")
+            raise typer.Exit(1)
+
+    elif health["status"] == HealthStatus.WARNING:
+        console.print("[yellow]⚠️  Warning: Queue system has minor issues[/yellow]")
+        for alert in health["alerts"]:
+            if alert["level"] == "warning":
+                console.print(f"[yellow]  • {alert['message']}[/yellow]")
+        console.print("[yellow]Proceeding with ticket creation...[/yellow]")
+
     # Get the adapter name
     config = load_config()
     adapter_name = (
@@ -832,15 +946,43 @@ def create(
         ticket_data=task_data, adapter=adapter_name, operation="create"
     )
 
+    # Register in ticket registry for tracking
+    registry = TicketRegistry()
+    registry.register_ticket_operation(queue_id, adapter_name, "create", title, task_data)
+
     console.print(f"[green]✓[/green] Queued ticket creation: {queue_id}")
     console.print(f"  Title: {title}")
     console.print(f"  Priority: {priority}")
-    console.print("[dim]Use 'mcp-ticketer status {queue_id}' to check progress[/dim]")
+    console.print(f"  Adapter: {adapter_name}")
+    console.print("[dim]Use 'mcp-ticketer check {queue_id}' to check progress[/dim]")
 
-    # Start worker if needed
+    # Start worker if needed with immediate feedback
     manager = WorkerManager()
-    if manager.start_if_needed():
+    worker_started = manager.start_if_needed()
+
+    if worker_started:
         console.print("[dim]Worker started to process request[/dim]")
+
+        # Give immediate feedback on processing
+        import time
+        time.sleep(1)  # Brief pause to let worker start
+
+        # Check if item is being processed
+        item = queue.get_item(queue_id)
+        if item and item.status == QueueStatus.PROCESSING:
+            console.print("[green]✓ Item is being processed by worker[/green]")
+        elif item and item.status == QueueStatus.PENDING:
+            console.print("[yellow]⏳ Item is queued for processing[/yellow]")
+        else:
+            console.print("[red]⚠️  Item status unclear - check with 'mcp-ticketer check {queue_id}'[/red]")
+    else:
+        # Worker didn't start - this is a problem
+        pending_count = queue.get_pending_count()
+        if pending_count > 1:  # More than just this item
+            console.print(f"[red]❌ Worker failed to start with {pending_count} pending items![/red]")
+            console.print("[red]This is a critical issue. Try 'mcp-ticketer queue worker start' manually.[/red]")
+        else:
+            console.print("[yellow]Worker not started (no other pending items)[/yellow]")
 
 
 @app.command("list")

@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from ..core import AdapterRegistry
 from ..core.models import SearchQuery
 from ..queue import Queue, QueueStatus, WorkerManager
+from ..queue.health_monitor import QueueHealthMonitor, HealthStatus
 
 # Import adapters module to trigger registration
 import mcp_ticketer.adapters  # noqa: F401
@@ -92,6 +93,36 @@ class MCPTicketServer:
                 result = await self._handle_create_pr(params)
             elif method == "ticket/link_pr":
                 result = await self._handle_link_pr(params)
+            elif method == "queue/health":
+                result = await self._handle_queue_health(params)
+            # Hierarchy management tools
+            elif method == "epic/create":
+                result = await self._handle_epic_create(params)
+            elif method == "epic/list":
+                result = await self._handle_epic_list(params)
+            elif method == "epic/issues":
+                result = await self._handle_epic_issues(params)
+            elif method == "issue/create":
+                result = await self._handle_issue_create(params)
+            elif method == "issue/tasks":
+                result = await self._handle_issue_tasks(params)
+            elif method == "task/create":
+                result = await self._handle_task_create(params)
+            elif method == "hierarchy/tree":
+                result = await self._handle_hierarchy_tree(params)
+            # Bulk operations
+            elif method == "ticket/bulk_create":
+                result = await self._handle_bulk_create(params)
+            elif method == "ticket/bulk_update":
+                result = await self._handle_bulk_update(params)
+            # Advanced search
+            elif method == "ticket/search_hierarchy":
+                result = await self._handle_search_hierarchy(params)
+            # Attachment handling
+            elif method == "ticket/attach":
+                result = await self._handle_attach(params)
+            elif method == "ticket/attachments":
+                result = await self._handle_list_attachments(params)
             elif method == "tools/list":
                 result = await self._handle_tools_list()
             elif method == "tools/call":
@@ -128,7 +159,30 @@ class MCPTicketServer:
 
     async def _handle_create(self, params: dict[str, Any]) -> dict[str, Any]:
         """Handle ticket creation."""
-        # Queue the operation instead of direct execution
+        # Check queue health before proceeding
+        health_monitor = QueueHealthMonitor()
+        health = health_monitor.check_health()
+
+        # If queue is in critical state, try auto-repair
+        if health["status"] == HealthStatus.CRITICAL:
+            repair_result = health_monitor.auto_repair()
+            # Re-check health after repair
+            health = health_monitor.check_health()
+
+            # If still critical, return error immediately
+            if health["status"] == HealthStatus.CRITICAL:
+                critical_alerts = [alert for alert in health["alerts"] if alert["level"] == "critical"]
+                return {
+                    "status": "error",
+                    "error": "Queue system is in critical state",
+                    "details": {
+                        "health_status": health["status"],
+                        "critical_issues": critical_alerts,
+                        "repair_attempted": repair_result["actions_taken"]
+                    }
+                }
+
+        # Queue the operation
         queue = Queue()
         task_data = {
             "title": params["title"],
@@ -146,7 +200,19 @@ class MCPTicketServer:
 
         # Start worker if needed
         manager = WorkerManager()
-        manager.start_if_needed()
+        worker_started = manager.start_if_needed()
+
+        # If worker failed to start and we have pending items, that's critical
+        if not worker_started and queue.get_pending_count() > 0:
+            return {
+                "status": "error",
+                "error": "Failed to start worker process",
+                "queue_id": queue_id,
+                "details": {
+                    "pending_count": queue.get_pending_count(),
+                    "action": "Worker process could not be started to process queued operations"
+                }
+            }
 
         # Check if async mode is requested (for backward compatibility)
         if params.get("async_mode", False):
@@ -478,6 +544,452 @@ class MCPTicketServer:
 
         return response
 
+    async def _handle_queue_health(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Handle queue health check."""
+        health_monitor = QueueHealthMonitor()
+        health = health_monitor.check_health()
+
+        # Add auto-repair option
+        auto_repair = params.get("auto_repair", False)
+        if auto_repair and health["status"] in [HealthStatus.CRITICAL, HealthStatus.WARNING]:
+            repair_result = health_monitor.auto_repair()
+            health["auto_repair"] = repair_result
+            # Re-check health after repair
+            health.update(health_monitor.check_health())
+
+        return health
+
+    # Hierarchy Management Handlers
+
+    async def _handle_epic_create(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Handle epic creation."""
+        # Check queue health before proceeding
+        health_monitor = QueueHealthMonitor()
+        health = health_monitor.check_health()
+
+        if health["status"] == HealthStatus.CRITICAL:
+            repair_result = health_monitor.auto_repair()
+            health = health_monitor.check_health()
+
+            if health["status"] == HealthStatus.CRITICAL:
+                critical_alerts = [alert for alert in health["alerts"] if alert["level"] == "critical"]
+                return {
+                    "status": "error",
+                    "error": "Queue system is in critical state",
+                    "details": {
+                        "health_status": health["status"],
+                        "critical_issues": critical_alerts,
+                        "repair_attempted": repair_result["actions_taken"]
+                    }
+                }
+
+        # Queue the epic creation
+        queue = Queue()
+        epic_data = {
+            "title": params["title"],
+            "description": params.get("description"),
+            "child_issues": params.get("child_issues", []),
+            "target_date": params.get("target_date"),
+            "lead_id": params.get("lead_id"),
+        }
+
+        queue_id = queue.add(
+            ticket_data=epic_data,
+            adapter=self.adapter.__class__.__name__.lower().replace("adapter", ""),
+            operation="create_epic",
+        )
+
+        # Start worker if needed
+        manager = WorkerManager()
+        worker_started = manager.start_if_needed()
+
+        if not worker_started and queue.get_pending_count() > 0:
+            return {
+                "status": "error",
+                "error": "Failed to start worker process",
+                "queue_id": queue_id,
+                "details": {
+                    "pending_count": queue.get_pending_count(),
+                    "action": "Worker process could not be started to process queued operations"
+                }
+            }
+
+        return {
+            "queue_id": queue_id,
+            "status": "queued",
+            "message": f"Epic creation queued with ID: {queue_id}",
+            "epic_data": epic_data
+        }
+
+    async def _handle_epic_list(self, params: dict[str, Any]) -> list[dict[str, Any]]:
+        """Handle epic listing."""
+        epics = await self.adapter.list_epics(
+            limit=params.get("limit", 10),
+            offset=params.get("offset", 0),
+            **{k: v for k, v in params.items() if k not in ["limit", "offset"]}
+        )
+        return [epic.model_dump() for epic in epics]
+
+    async def _handle_epic_issues(self, params: dict[str, Any]) -> list[dict[str, Any]]:
+        """Handle listing issues in an epic."""
+        epic_id = params["epic_id"]
+        issues = await self.adapter.list_issues_by_epic(epic_id)
+        return [issue.model_dump() for issue in issues]
+
+    async def _handle_issue_create(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Handle issue creation."""
+        # Check queue health
+        health_monitor = QueueHealthMonitor()
+        health = health_monitor.check_health()
+
+        if health["status"] == HealthStatus.CRITICAL:
+            repair_result = health_monitor.auto_repair()
+            health = health_monitor.check_health()
+
+            if health["status"] == HealthStatus.CRITICAL:
+                critical_alerts = [alert for alert in health["alerts"] if alert["level"] == "critical"]
+                return {
+                    "status": "error",
+                    "error": "Queue system is in critical state",
+                    "details": {
+                        "health_status": health["status"],
+                        "critical_issues": critical_alerts,
+                        "repair_attempted": repair_result["actions_taken"]
+                    }
+                }
+
+        # Queue the issue creation
+        queue = Queue()
+        issue_data = {
+            "title": params["title"],
+            "description": params.get("description"),
+            "epic_id": params.get("epic_id"),
+            "priority": params.get("priority", "medium"),
+            "assignee": params.get("assignee"),
+            "tags": params.get("tags", []),
+            "estimated_hours": params.get("estimated_hours"),
+        }
+
+        queue_id = queue.add(
+            ticket_data=issue_data,
+            adapter=self.adapter.__class__.__name__.lower().replace("adapter", ""),
+            operation="create_issue",
+        )
+
+        # Start worker if needed
+        manager = WorkerManager()
+        worker_started = manager.start_if_needed()
+
+        if not worker_started and queue.get_pending_count() > 0:
+            return {
+                "status": "error",
+                "error": "Failed to start worker process",
+                "queue_id": queue_id,
+                "details": {
+                    "pending_count": queue.get_pending_count(),
+                    "action": "Worker process could not be started to process queued operations"
+                }
+            }
+
+        return {
+            "queue_id": queue_id,
+            "status": "queued",
+            "message": f"Issue creation queued with ID: {queue_id}",
+            "issue_data": issue_data
+        }
+
+    async def _handle_issue_tasks(self, params: dict[str, Any]) -> list[dict[str, Any]]:
+        """Handle listing tasks in an issue."""
+        issue_id = params["issue_id"]
+        tasks = await self.adapter.list_tasks_by_issue(issue_id)
+        return [task.model_dump() for task in tasks]
+
+    async def _handle_task_create(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Handle task creation."""
+        # Check queue health
+        health_monitor = QueueHealthMonitor()
+        health = health_monitor.check_health()
+
+        if health["status"] == HealthStatus.CRITICAL:
+            repair_result = health_monitor.auto_repair()
+            health = health_monitor.check_health()
+
+            if health["status"] == HealthStatus.CRITICAL:
+                critical_alerts = [alert for alert in health["alerts"] if alert["level"] == "critical"]
+                return {
+                    "status": "error",
+                    "error": "Queue system is in critical state",
+                    "details": {
+                        "health_status": health["status"],
+                        "critical_issues": critical_alerts,
+                        "repair_attempted": repair_result["actions_taken"]
+                    }
+                }
+
+        # Validate required parent_id
+        if not params.get("parent_id"):
+            return {
+                "status": "error",
+                "error": "Tasks must have a parent_id (issue identifier)",
+                "details": {"required_field": "parent_id"}
+            }
+
+        # Queue the task creation
+        queue = Queue()
+        task_data = {
+            "title": params["title"],
+            "parent_id": params["parent_id"],
+            "description": params.get("description"),
+            "priority": params.get("priority", "medium"),
+            "assignee": params.get("assignee"),
+            "tags": params.get("tags", []),
+            "estimated_hours": params.get("estimated_hours"),
+        }
+
+        queue_id = queue.add(
+            ticket_data=task_data,
+            adapter=self.adapter.__class__.__name__.lower().replace("adapter", ""),
+            operation="create_task",
+        )
+
+        # Start worker if needed
+        manager = WorkerManager()
+        worker_started = manager.start_if_needed()
+
+        if not worker_started and queue.get_pending_count() > 0:
+            return {
+                "status": "error",
+                "error": "Failed to start worker process",
+                "queue_id": queue_id,
+                "details": {
+                    "pending_count": queue.get_pending_count(),
+                    "action": "Worker process could not be started to process queued operations"
+                }
+            }
+
+        return {
+            "queue_id": queue_id,
+            "status": "queued",
+            "message": f"Task creation queued with ID: {queue_id}",
+            "task_data": task_data
+        }
+
+    async def _handle_hierarchy_tree(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Handle hierarchy tree visualization."""
+        epic_id = params.get("epic_id")
+        max_depth = params.get("max_depth", 3)
+
+        if epic_id:
+            # Get specific epic tree
+            epic = await self.adapter.get_epic(epic_id)
+            if not epic:
+                return {"error": f"Epic {epic_id} not found"}
+
+            # Build tree structure
+            tree = {
+                "epic": epic.model_dump(),
+                "issues": []
+            }
+
+            # Get issues in epic
+            issues = await self.adapter.list_issues_by_epic(epic_id)
+            for issue in issues:
+                issue_node = {
+                    "issue": issue.model_dump(),
+                    "tasks": []
+                }
+
+                # Get tasks in issue if depth allows
+                if max_depth > 2:
+                    tasks = await self.adapter.list_tasks_by_issue(issue.id)
+                    issue_node["tasks"] = [task.model_dump() for task in tasks]
+
+                tree["issues"].append(issue_node)
+
+            return tree
+        else:
+            # Get all epics with their hierarchies
+            epics = await self.adapter.list_epics(limit=params.get("limit", 10))
+            trees = []
+
+            for epic in epics:
+                tree = await self._handle_hierarchy_tree({"epic_id": epic.id, "max_depth": max_depth})
+                trees.append(tree)
+
+            return {"trees": trees}
+
+    async def _handle_bulk_create(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Handle bulk ticket creation."""
+        tickets = params.get("tickets", [])
+        if not tickets:
+            return {"error": "No tickets provided for bulk creation"}
+
+        # Check queue health
+        health_monitor = QueueHealthMonitor()
+        health = health_monitor.check_health()
+
+        if health["status"] == HealthStatus.CRITICAL:
+            repair_result = health_monitor.auto_repair()
+            health = health_monitor.check_health()
+
+            if health["status"] == HealthStatus.CRITICAL:
+                return {
+                    "status": "error",
+                    "error": "Queue system is in critical state - cannot process bulk operations",
+                    "details": {"health_status": health["status"]}
+                }
+
+        # Queue all tickets
+        queue = Queue()
+        queue_ids = []
+
+        for i, ticket_data in enumerate(tickets):
+            if not ticket_data.get("title"):
+                return {
+                    "status": "error",
+                    "error": f"Ticket {i} missing required 'title' field"
+                }
+
+            queue_id = queue.add(
+                ticket_data=ticket_data,
+                adapter=self.adapter.__class__.__name__.lower().replace("adapter", ""),
+                operation=ticket_data.get("operation", "create"),
+            )
+            queue_ids.append(queue_id)
+
+        # Start worker if needed
+        manager = WorkerManager()
+        manager.start_if_needed()
+
+        return {
+            "queue_ids": queue_ids,
+            "status": "queued",
+            "message": f"Bulk creation of {len(tickets)} tickets queued",
+            "count": len(tickets)
+        }
+
+    async def _handle_bulk_update(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Handle bulk ticket updates."""
+        updates = params.get("updates", [])
+        if not updates:
+            return {"error": "No updates provided for bulk operation"}
+
+        # Check queue health
+        health_monitor = QueueHealthMonitor()
+        health = health_monitor.check_health()
+
+        if health["status"] == HealthStatus.CRITICAL:
+            repair_result = health_monitor.auto_repair()
+            health = health_monitor.check_health()
+
+            if health["status"] == HealthStatus.CRITICAL:
+                return {
+                    "status": "error",
+                    "error": "Queue system is in critical state - cannot process bulk operations",
+                    "details": {"health_status": health["status"]}
+                }
+
+        # Queue all updates
+        queue = Queue()
+        queue_ids = []
+
+        for i, update_data in enumerate(updates):
+            if not update_data.get("ticket_id"):
+                return {
+                    "status": "error",
+                    "error": f"Update {i} missing required 'ticket_id' field"
+                }
+
+            queue_id = queue.add(
+                ticket_data=update_data,
+                adapter=self.adapter.__class__.__name__.lower().replace("adapter", ""),
+                operation="update",
+            )
+            queue_ids.append(queue_id)
+
+        # Start worker if needed
+        manager = WorkerManager()
+        manager.start_if_needed()
+
+        return {
+            "queue_ids": queue_ids,
+            "status": "queued",
+            "message": f"Bulk update of {len(updates)} tickets queued",
+            "count": len(updates)
+        }
+
+    async def _handle_search_hierarchy(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Handle hierarchy-aware search."""
+        query = params.get("query", "")
+        include_children = params.get("include_children", True)
+        include_parents = params.get("include_parents", True)
+
+        # Perform basic search
+        search_query = SearchQuery(
+            query=query,
+            state=params.get("state"),
+            priority=params.get("priority"),
+            limit=params.get("limit", 50)
+        )
+
+        tickets = await self.adapter.search(search_query)
+
+        # Enhance with hierarchy information
+        enhanced_results = []
+        for ticket in tickets:
+            result = {
+                "ticket": ticket.model_dump(),
+                "hierarchy": {}
+            }
+
+            # Add parent information
+            if include_parents:
+                if hasattr(ticket, 'parent_epic') and ticket.parent_epic:
+                    parent_epic = await self.adapter.get_epic(ticket.parent_epic)
+                    if parent_epic:
+                        result["hierarchy"]["epic"] = parent_epic.model_dump()
+
+                if hasattr(ticket, 'parent_issue') and ticket.parent_issue:
+                    parent_issue = await self.adapter.read(ticket.parent_issue)
+                    if parent_issue:
+                        result["hierarchy"]["parent_issue"] = parent_issue.model_dump()
+
+            # Add children information
+            if include_children:
+                if ticket.ticket_type == "epic":
+                    issues = await self.adapter.list_issues_by_epic(ticket.id)
+                    result["hierarchy"]["issues"] = [issue.model_dump() for issue in issues]
+                elif ticket.ticket_type == "issue":
+                    tasks = await self.adapter.list_tasks_by_issue(ticket.id)
+                    result["hierarchy"]["tasks"] = [task.model_dump() for task in tasks]
+
+            enhanced_results.append(result)
+
+        return {
+            "results": enhanced_results,
+            "count": len(enhanced_results),
+            "query": query
+        }
+
+    async def _handle_attach(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Handle file attachment to ticket."""
+        # Note: This is a placeholder for attachment functionality
+        # Most adapters don't support file attachments directly
+        return {
+            "status": "not_implemented",
+            "error": "Attachment functionality not yet implemented",
+            "ticket_id": params.get("ticket_id"),
+            "details": {
+                "reason": "File attachments require adapter-specific implementation",
+                "alternatives": ["Add file URLs in comments", "Use external file storage"]
+            }
+        }
+
+    async def _handle_list_attachments(self, params: dict[str, Any]) -> list[dict[str, Any]]:
+        """Handle listing ticket attachments."""
+        # Note: This is a placeholder for attachment functionality
+        return []
+
     async def _handle_create_pr(self, params: dict[str, Any]) -> dict[str, Any]:
         """Handle PR creation for a ticket."""
         ticket_id = params.get("ticket_id")
@@ -640,6 +1152,172 @@ class MCPTicketServer:
         """List available MCP tools."""
         return {
             "tools": [
+                # Hierarchy Management Tools
+                {
+                    "name": "epic_create",
+                    "description": "Create a new epic (top-level project/milestone)",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "title": {"type": "string", "description": "Epic title"},
+                            "description": {"type": "string", "description": "Epic description"},
+                            "target_date": {"type": "string", "description": "Target completion date (ISO format)"},
+                            "lead_id": {"type": "string", "description": "Epic lead/owner ID"},
+                            "child_issues": {"type": "array", "items": {"type": "string"}, "description": "Initial child issue IDs"}
+                        },
+                        "required": ["title"]
+                    }
+                },
+                {
+                    "name": "epic_list",
+                    "description": "List all epics",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "limit": {"type": "integer", "default": 10, "description": "Maximum number of epics to return"},
+                            "offset": {"type": "integer", "default": 0, "description": "Number of epics to skip"}
+                        }
+                    }
+                },
+                {
+                    "name": "epic_issues",
+                    "description": "List all issues in an epic",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "epic_id": {"type": "string", "description": "Epic ID to get issues for"}
+                        },
+                        "required": ["epic_id"]
+                    }
+                },
+                {
+                    "name": "issue_create",
+                    "description": "Create a new issue (work item)",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "title": {"type": "string", "description": "Issue title"},
+                            "description": {"type": "string", "description": "Issue description"},
+                            "epic_id": {"type": "string", "description": "Parent epic ID"},
+                            "priority": {"type": "string", "enum": ["low", "medium", "high", "critical"], "default": "medium"},
+                            "assignee": {"type": "string", "description": "Assignee username"},
+                            "tags": {"type": "array", "items": {"type": "string"}, "description": "Issue tags"},
+                            "estimated_hours": {"type": "number", "description": "Estimated hours to complete"}
+                        },
+                        "required": ["title"]
+                    }
+                },
+                {
+                    "name": "issue_tasks",
+                    "description": "List all tasks in an issue",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "issue_id": {"type": "string", "description": "Issue ID to get tasks for"}
+                        },
+                        "required": ["issue_id"]
+                    }
+                },
+                {
+                    "name": "task_create",
+                    "description": "Create a new task (sub-item under an issue)",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "title": {"type": "string", "description": "Task title"},
+                            "parent_id": {"type": "string", "description": "Parent issue ID (required)"},
+                            "description": {"type": "string", "description": "Task description"},
+                            "priority": {"type": "string", "enum": ["low", "medium", "high", "critical"], "default": "medium"},
+                            "assignee": {"type": "string", "description": "Assignee username"},
+                            "tags": {"type": "array", "items": {"type": "string"}, "description": "Task tags"},
+                            "estimated_hours": {"type": "number", "description": "Estimated hours to complete"}
+                        },
+                        "required": ["title", "parent_id"]
+                    }
+                },
+                {
+                    "name": "hierarchy_tree",
+                    "description": "Get hierarchy tree view of epic/issues/tasks",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "epic_id": {"type": "string", "description": "Specific epic ID (optional - if not provided, returns all epics)"},
+                            "max_depth": {"type": "integer", "default": 3, "description": "Maximum depth to traverse (1=epics only, 2=epics+issues, 3=full tree)"},
+                            "limit": {"type": "integer", "default": 10, "description": "Maximum number of epics to return (when epic_id not specified)"}
+                        }
+                    }
+                },
+                # Bulk Operations
+                {
+                    "name": "ticket_bulk_create",
+                    "description": "Create multiple tickets in one operation",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "tickets": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "title": {"type": "string"},
+                                        "description": {"type": "string"},
+                                        "priority": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
+                                        "operation": {"type": "string", "enum": ["create", "create_epic", "create_issue", "create_task"], "default": "create"},
+                                        "epic_id": {"type": "string", "description": "For issues"},
+                                        "parent_id": {"type": "string", "description": "For tasks"}
+                                    },
+                                    "required": ["title"]
+                                },
+                                "description": "Array of tickets to create"
+                            }
+                        },
+                        "required": ["tickets"]
+                    }
+                },
+                {
+                    "name": "ticket_bulk_update",
+                    "description": "Update multiple tickets in one operation",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "updates": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "ticket_id": {"type": "string"},
+                                        "title": {"type": "string"},
+                                        "description": {"type": "string"},
+                                        "priority": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
+                                        "state": {"type": "string"},
+                                        "assignee": {"type": "string"}
+                                    },
+                                    "required": ["ticket_id"]
+                                },
+                                "description": "Array of ticket updates"
+                            }
+                        },
+                        "required": ["updates"]
+                    }
+                },
+                # Advanced Search
+                {
+                    "name": "ticket_search_hierarchy",
+                    "description": "Search tickets with hierarchy context",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": {"type": "string", "description": "Search query"},
+                            "state": {"type": "string", "description": "Filter by state"},
+                            "priority": {"type": "string", "description": "Filter by priority"},
+                            "limit": {"type": "integer", "default": 50, "description": "Maximum results"},
+                            "include_children": {"type": "boolean", "default": True, "description": "Include child items in results"},
+                            "include_parents": {"type": "boolean", "default": True, "description": "Include parent context in results"}
+                        },
+                        "required": ["query"]
+                    }
+                },
+                # PR Integration
                 {
                     "name": "ticket_create_pr",
                     "description": "Create a GitHub PR linked to a ticket",
@@ -676,6 +1354,7 @@ class MCPTicketServer:
                         "required": ["ticket_id"],
                     },
                 },
+                # Standard Ticket Operations
                 {
                     "name": "ticket_link_pr",
                     "description": "Link an existing PR to a ticket",
@@ -799,7 +1478,31 @@ class MCPTicketServer:
 
         try:
             # Route to appropriate handler based on tool name
-            if tool_name == "ticket_create":
+            # Hierarchy management tools
+            if tool_name == "epic_create":
+                result = await self._handle_epic_create(arguments)
+            elif tool_name == "epic_list":
+                result = await self._handle_epic_list(arguments)
+            elif tool_name == "epic_issues":
+                result = await self._handle_epic_issues(arguments)
+            elif tool_name == "issue_create":
+                result = await self._handle_issue_create(arguments)
+            elif tool_name == "issue_tasks":
+                result = await self._handle_issue_tasks(arguments)
+            elif tool_name == "task_create":
+                result = await self._handle_task_create(arguments)
+            elif tool_name == "hierarchy_tree":
+                result = await self._handle_hierarchy_tree(arguments)
+            # Bulk operations
+            elif tool_name == "ticket_bulk_create":
+                result = await self._handle_bulk_create(arguments)
+            elif tool_name == "ticket_bulk_update":
+                result = await self._handle_bulk_update(arguments)
+            # Advanced search
+            elif tool_name == "ticket_search_hierarchy":
+                result = await self._handle_search_hierarchy(arguments)
+            # Standard ticket operations
+            elif tool_name == "ticket_create":
                 result = await self._handle_create(arguments)
             elif tool_name == "ticket_list":
                 result = await self._handle_list(arguments)
@@ -811,6 +1514,7 @@ class MCPTicketServer:
                 result = await self._handle_search(arguments)
             elif tool_name == "ticket_status":
                 result = await self._handle_queue_status(arguments)
+            # PR integration
             elif tool_name == "ticket_create_pr":
                 result = await self._handle_create_pr(arguments)
             elif tool_name == "ticket_link_pr":

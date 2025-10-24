@@ -13,6 +13,10 @@ from dotenv import load_dotenv
 
 from ..core import AdapterRegistry, Task
 from .queue import Queue, QueueItem, QueueStatus
+from .ticket_registry import TicketRegistry
+
+# Import adapters module to trigger registration
+import mcp_ticketer.adapters  # noqa: F401
 
 # Load environment variables from .env.local
 env_path = Path.cwd() / ".env.local"
@@ -67,6 +71,7 @@ class Worker:
 
         """
         self.queue = queue or Queue()
+        self.ticket_registry = TicketRegistry()
         self.running = False
         self.stop_event = threading.Event()
         self.batch_size = batch_size
@@ -232,6 +237,13 @@ class Worker:
             f"Processing queue item {item.id}: {item.operation} on {item.adapter}"
         )
 
+        # Register operation start in ticket registry
+        title = item.ticket_data.get("title", "Unknown")
+        self.ticket_registry.register_ticket_operation(
+            item.id, item.adapter, item.operation, title, item.ticket_data
+        )
+        self.ticket_registry.update_ticket_status(item.id, "processing")
+
         try:
             # Check rate limit
             await self._check_rate_limit(item.adapter)
@@ -244,13 +256,33 @@ class Worker:
             # Process operation
             result = await self._execute_operation(adapter, item)
 
-            # Mark as completed
-            self.queue.update_status(item.id, QueueStatus.COMPLETED, result=result)
+            # Extract ticket ID from result if available
+            ticket_id = None
+            if isinstance(result, dict):
+                ticket_id = result.get("id")
+
+            # Mark as completed in both queue and registry (atomic)
+            success = self.queue.update_status(
+                item.id, QueueStatus.COMPLETED, result=result,
+                expected_status=QueueStatus.PROCESSING
+            )
+            if success:
+                self.ticket_registry.update_ticket_status(
+                    item.id, "completed", ticket_id=ticket_id, result_data=result
+                )
+            else:
+                logger.warning(f"Failed to update status for {item.id} - item may have been processed by another worker")
+
             self.stats["items_processed"] += 1
-            logger.info(f"Successfully processed {item.id}")
+            logger.info(f"Successfully processed {item.id}, ticket ID: {ticket_id}")
 
         except Exception as e:
             logger.error(f"Error processing {item.id}: {e}")
+
+            # Update registry with error
+            self.ticket_registry.update_ticket_status(
+                item.id, "failed", error_message=str(e), retry_count=item.retry_count
+            )
 
             # Check retry count
             if item.retry_count < self.MAX_RETRIES:
@@ -260,16 +292,31 @@ class Worker:
                     f"Retrying {item.id} after {retry_delay}s (attempt {item.retry_count + 1}/{self.MAX_RETRIES})"
                 )
 
-                # Increment retry count and reset to pending
-                self.queue.increment_retry(item.id)
+                # Increment retry count and reset to pending (atomic)
+                new_retry_count = self.queue.increment_retry(
+                    item.id, expected_status=QueueStatus.PROCESSING
+                )
+                if new_retry_count >= 0:
+                    self.ticket_registry.update_ticket_status(
+                        item.id, "queued", retry_count=new_retry_count
+                    )
+                else:
+                    logger.warning(f"Failed to increment retry for {item.id} - item may have been processed by another worker")
 
                 # Wait before retry
                 await asyncio.sleep(retry_delay)
             else:
-                # Max retries exceeded, mark as failed
-                self.queue.update_status(
-                    item.id, QueueStatus.FAILED, error_message=str(e)
+                # Max retries exceeded, mark as failed (atomic)
+                success = self.queue.update_status(
+                    item.id, QueueStatus.FAILED, error_message=str(e),
+                    expected_status=QueueStatus.PROCESSING
                 )
+                if success:
+                    self.ticket_registry.update_ticket_status(
+                        item.id, "failed", error_message=str(e), retry_count=item.retry_count
+                    )
+                else:
+                    logger.warning(f"Failed to mark {item.id} as failed - item may have been processed by another worker")
                 self.stats["items_failed"] += 1
                 logger.error(f"Max retries exceeded for {item.id}, marking as failed")
 
@@ -386,6 +433,53 @@ class Worker:
             content = data.get("content")
             await adapter.add_comment(ticket_id, content)
             return {"success": True}
+
+        # Hierarchy operations
+        elif operation == "create_epic":
+            result = await adapter.create_epic(
+                title=data["title"],
+                description=data.get("description"),
+                **{k: v for k, v in data.items()
+                   if k not in ["title", "description"]}
+            )
+            return {
+                "id": result.id if result else None,
+                "title": result.title if result else None,
+                "type": "epic",
+                "success": bool(result)
+            }
+
+        elif operation == "create_issue":
+            result = await adapter.create_issue(
+                title=data["title"],
+                description=data.get("description"),
+                epic_id=data.get("epic_id"),
+                **{k: v for k, v in data.items()
+                   if k not in ["title", "description", "epic_id"]}
+            )
+            return {
+                "id": result.id if result else None,
+                "title": result.title if result else None,
+                "type": "issue",
+                "epic_id": data.get("epic_id"),
+                "success": bool(result)
+            }
+
+        elif operation == "create_task":
+            result = await adapter.create_task(
+                title=data["title"],
+                parent_id=data["parent_id"],
+                description=data.get("description"),
+                **{k: v for k, v in data.items()
+                   if k not in ["title", "parent_id", "description"]}
+            )
+            return {
+                "id": result.id if result else None,
+                "title": result.title if result else None,
+                "type": "task",
+                "parent_id": data["parent_id"],
+                "success": bool(result)
+            }
 
         else:
             raise ValueError(f"Unknown operation: {operation}")
