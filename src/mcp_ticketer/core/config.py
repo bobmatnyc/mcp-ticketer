@@ -283,6 +283,10 @@ class ConfigurationManager:
             # Load from first available config file
             config_data = self._load_config_file(self._config_file_paths[0])
             logger.info(f"Loaded configuration from: {self._config_file_paths[0]}")
+        else:
+            # No config file found - try environment discovery
+            logger.info("No configuration file found, attempting environment discovery")
+            config_data = self._discover_from_environment()
 
         # Parse adapter configurations
         if "adapters" in config_data:
@@ -327,6 +331,95 @@ class ConfigurationManager:
         except Exception as e:
             logger.error(f"Error loading config file {config_path}: {e}")
             return {}
+
+    def _discover_from_environment(self) -> dict[str, Any]:
+        """Discover configuration from environment variables."""
+        try:
+            from .env_discovery import EnvironmentDiscovery
+
+            discovery = EnvironmentDiscovery()
+            discovered = discovery.discover_all()
+
+            if not discovered.adapters:
+                logger.info("No adapters discovered from environment variables")
+                # Return minimal config with aitrackdown as fallback
+                return {
+                    "adapters": {
+                        "aitrackdown": {
+                            "type": "aitrackdown",
+                            "enabled": True,
+                            "base_path": str(Path.home() / ".mcp-ticketer" / ".aitrackdown")
+                        }
+                    },
+                    "default_adapter": "aitrackdown"
+                }
+
+            # Convert discovered adapters to config format
+            config_data = {
+                "adapters": {},
+                "default_adapter": None
+            }
+
+            for adapter in discovered.adapters:
+                adapter_config = {
+                    "type": adapter.type.value,
+                    "enabled": True
+                }
+
+                # Add adapter-specific configuration
+                if adapter.type.value == "linear":
+                    adapter_config.update({
+                        "api_key": adapter.credentials.get("api_key"),
+                        "team_id": adapter.credentials.get("team_id"),
+                        "project_id": adapter.credentials.get("project_id")
+                    })
+                elif adapter.type.value == "github":
+                    adapter_config.update({
+                        "token": adapter.credentials.get("token"),
+                        "repo": adapter.credentials.get("repo"),
+                        "owner": adapter.credentials.get("owner")
+                    })
+                elif adapter.type.value == "jira":
+                    adapter_config.update({
+                        "server": adapter.credentials.get("server"),
+                        "email": adapter.credentials.get("email"),
+                        "api_token": adapter.credentials.get("api_token"),
+                        "project_key": adapter.credentials.get("project_key")
+                    })
+
+                config_data["adapters"][adapter.name] = adapter_config
+
+                # Set first discovered adapter as default
+                if config_data["default_adapter"] is None:
+                    config_data["default_adapter"] = adapter.name
+
+            logger.info(f"Discovered {len(config_data['adapters'])} adapter(s) from environment")
+            return config_data
+
+        except ImportError:
+            logger.warning("Environment discovery not available, using aitrackdown fallback")
+            return {
+                "adapters": {
+                    "aitrackdown": {
+                        "type": "aitrackdown",
+                        "enabled": True,
+                        "base_path": str(Path.home() / ".mcp-ticketer" / ".aitrackdown")
+                    }
+                },
+                "default_adapter": "aitrackdown"
+            }
+        except Exception as e:
+            logger.error(f"Environment discovery failed: {e}")
+            return {
+                "adapters": {
+                    "aitrackdown": {
+                        "type": "aitrackdown",
+                        "enabled": True,
+                        "base_path": str(Path.home() / ".mcp-ticketer" / ".aitrackdown")
+                    }
+                },
+                "default_adapter": "aitrackdown"
+            }
 
     def get_config(self) -> AppConfig:
         """Get the current configuration."""

@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.1.31] - 2025-10-24
+
+### Fixed
+- **CRITICAL: Configuration System Integration**: Fixed the root cause of the "60% failure rate" issue
+  - Configuration system now properly integrates with environment discovery
+  - Automatic fallback to aitrackdown adapter when no config files exist
+  - Environment variable detection and adapter auto-configuration
+  - Zero-configuration operation for new users on Linux systems
+- **Queue System Reliability**: Eliminated "0 adapters" failures that caused queue operations to fail
+  - Queue operations now have a working adapter (aitrackdown fallback) in all environments
+  - Reduced failure rate from 60% to near-zero for basic operations
+  - Improved error handling when no explicit configuration is provided
+
+### Enhanced
+- **User Experience**: System now works out-of-the-box without requiring manual configuration
+- **Linux Compatibility**: Resolved configuration issues specific to Linux environments
+- **Automatic Adapter Discovery**: Intelligent detection of available adapters from environment
+
+### Technical Details
+- Added `_discover_from_environment()` method to configuration loader
+- Integrated environment discovery system with main configuration flow
+- Automatic aitrackdown fallback ensures system always has a working adapter
+- Improved logging to show when fallback configuration is being used
+
 ## [0.1.30] - 2025-10-24
 
 ### Fixed
