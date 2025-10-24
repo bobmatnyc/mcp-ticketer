@@ -1385,6 +1385,9 @@ def diagnose(
     else:
         try:
             asyncio.run(run_diagnostics(output_file=output_file, json_output=json_output))
+        except typer.Exit:
+            # typer.Exit is expected - don't fall back to simple diagnostics
+            raise
         except Exception as e:
             console.print(f"⚠️  Full diagnostics failed: {e}")
             console.print("🔄 Falling back to simple diagnostics...")
