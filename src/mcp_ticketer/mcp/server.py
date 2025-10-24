@@ -1745,10 +1745,10 @@ async def _handle_system_health(self, arguments: dict[str, Any]) -> dict[str, An
 
         # Check queue system
         try:
-            from ..queue.manager import QueueManager
-            queue_manager = QueueManager()
-            worker_status = queue_manager.get_worker_status()
-            stats = queue_manager.get_queue_stats()
+            from ..queue.manager import WorkerManager
+            worker_manager = WorkerManager()
+            worker_status = worker_manager.get_status()
+            stats = worker_manager.queue.get_stats()
 
             total = stats.get("total", 0)
             failed = stats.get("failed", 0)

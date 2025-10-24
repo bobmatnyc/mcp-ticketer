@@ -92,17 +92,17 @@ def simple_health_check() -> int:
     
     # Try to check queue system (simplified)
     try:
-        from ..queue.manager import QueueManager
-        queue_manager = QueueManager()
-        worker_status = queue_manager.get_worker_status()
-        
+        from ..queue.manager import WorkerManager
+        worker_manager = WorkerManager()
+        worker_status = worker_manager.get_status()
+
         if worker_status.get("running", False):
             console.print(f"✅ Queue Worker: Running (PID: {worker_status.get('pid')})")
         else:
             console.print("⚠️  Queue Worker: Not running (start with: mcp-ticketer queue worker start)")
-            
+
         # Get basic stats
-        stats = queue_manager.get_queue_stats()
+        stats = worker_manager.queue.get_stats()
         total = stats.get("total", 0)
         failed = stats.get("failed", 0)
         
