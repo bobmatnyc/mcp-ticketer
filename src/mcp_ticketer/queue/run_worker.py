@@ -15,7 +15,12 @@ logger = logging.getLogger(__name__)
 
 def main():
     """Run the worker process."""
+    import sys
+    import os
     logger.info("Starting standalone worker process")
+    logger.info(f"Worker Python executable: {sys.executable}")
+    logger.info(f"Worker working directory: {os.getcwd()}")
+    logger.info(f"Worker Python path: {sys.path[:3]}...")  # Show first 3 entries
 
     try:
         # Create queue and worker

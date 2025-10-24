@@ -18,6 +18,7 @@ from mcp_ticketer.core.models import (
 )
 
 
+@pytest.mark.unit
 class TestPriority:
     """Tests for Priority enum."""
 
@@ -39,6 +40,7 @@ class TestPriority:
             Priority("invalid")
 
 
+@pytest.mark.unit
 class TestTicketState:
     """Tests for TicketState enum and state transitions."""
 
@@ -93,6 +95,7 @@ class TestTicketState:
         assert not TicketState.DONE.can_transition_to(TicketState.OPEN)
 
 
+@pytest.mark.unit
 class TestTask:
     """Tests for Task model."""
 
@@ -181,6 +184,7 @@ class TestTask:
         assert task_dict["id"] == "TEST-123"
 
 
+@pytest.mark.unit
 class TestEpic:
     """Tests for Epic model."""
 
@@ -214,6 +218,7 @@ class TestEpic:
             epic.ticket_type = "task"  # type: ignore[misc]
 
 
+@pytest.mark.unit
 class TestComment:
     """Tests for Comment model."""
 
@@ -266,6 +271,7 @@ class TestComment:
         assert comment.metadata == metadata
 
 
+@pytest.mark.unit
 class TestSearchQuery:
     """Tests for SearchQuery model."""
 

@@ -210,10 +210,14 @@ class CommonPatterns:
             config = CommonPatterns.load_config()
             adapter_name = config.get("default_adapter", "aitrackdown")
 
-        # Add to queue
+        # Add to queue with explicit project directory
+        from pathlib import Path
         queue = Queue()
         queue_id = queue.add(
-            ticket_data=ticket_data, adapter=adapter_name, operation=operation
+            ticket_data=ticket_data,
+            adapter=adapter_name,
+            operation=operation,
+            project_dir=str(Path.cwd())  # Explicitly pass current project directory
         )
 
         if show_progress:

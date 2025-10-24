@@ -99,8 +99,23 @@ class WorkerManager:
             return False
 
         try:
-            # Start worker in subprocess
-            cmd = [sys.executable, "-m", "mcp_ticketer.queue.run_worker"]
+            # Start worker in subprocess using the same Python executable as the CLI
+            # This ensures the worker can import mcp_ticketer modules
+            python_executable = self._get_python_executable()
+            cmd = [python_executable, "-m", "mcp_ticketer.queue.run_worker"]
+
+            # Prepare environment for subprocess
+            # Ensure the subprocess gets the same environment as the parent
+            subprocess_env = os.environ.copy()
+
+            # Explicitly load environment variables from .env.local if it exists
+            env_file = Path.cwd() / ".env.local"
+            if env_file.exists():
+                logger.debug(f"Loading environment from {env_file} for subprocess")
+                from dotenv import dotenv_values
+                env_vars = dotenv_values(env_file)
+                subprocess_env.update(env_vars)
+                logger.debug(f"Added {len(env_vars)} environment variables from .env.local")
 
             # Start as background process
             process = subprocess.Popen(
@@ -108,6 +123,8 @@ class WorkerManager:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 start_new_session=True,
+                env=subprocess_env,  # Pass environment explicitly
+                cwd=str(Path.cwd()),  # Ensure correct working directory
             )
 
             # Save PID
@@ -255,6 +272,44 @@ class WorkerManager:
             return int(pid_text)
         except (OSError, ValueError):
             return None
+
+    def _get_python_executable(self) -> str:
+        """Get the correct Python executable for the worker subprocess.
+
+        This ensures the worker uses the same Python environment as the CLI,
+        which is critical for module imports to work correctly.
+
+        Returns:
+            Path to Python executable
+        """
+        # First, try to detect if we're running in a pipx environment
+        # by checking if the current executable is in a pipx venv
+        current_executable = sys.executable
+
+        # Check if we're in a pipx venv (path contains /pipx/venvs/)
+        if "/pipx/venvs/" in current_executable:
+            logger.debug(f"Using pipx Python executable: {current_executable}")
+            return current_executable
+
+        # Check if we can find the mcp-ticketer executable and extract its Python
+        import shutil
+        mcp_ticketer_path = shutil.which("mcp-ticketer")
+        if mcp_ticketer_path:
+            try:
+                # Read the shebang line to get the Python executable
+                with open(mcp_ticketer_path, 'r') as f:
+                    first_line = f.readline().strip()
+                    if first_line.startswith("#!") and "python" in first_line:
+                        python_path = first_line[2:].strip()
+                        if os.path.exists(python_path):
+                            logger.debug(f"Using Python from mcp-ticketer shebang: {python_path}")
+                            return python_path
+            except (OSError, IOError):
+                pass
+
+        # Fallback to sys.executable
+        logger.debug(f"Using sys.executable as fallback: {current_executable}")
+        return current_executable
 
     def _cleanup(self):
         """Clean up lock and PID files."""

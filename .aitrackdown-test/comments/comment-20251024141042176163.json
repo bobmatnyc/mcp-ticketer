@@ -1,0 +1,8 @@
+{
+  "id": "comment-20251024141042176163",
+  "ticket_id": "task-20251024141042175285",
+  "author": "aitrackdown-tester",
+  "content": "\ud83d\udd27 Multi-line technical comment\nwith special characters: @#$%^&*()\n\nCode example:\n```python\ndef test():\n    return 'aitrackdown works!'\n```\n\nEnd of comment.",
+  "created_at": "2025-10-24 14:10:42.176166",
+  "metadata": {}
+}

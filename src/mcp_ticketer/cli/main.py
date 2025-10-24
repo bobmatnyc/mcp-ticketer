@@ -14,7 +14,7 @@ from rich.table import Table
 
 from ..__version__ import __version__
 from ..core import AdapterRegistry, Priority, TicketState
-from ..core.models import SearchQuery
+from ..core.models import SearchQuery, Comment
 from ..queue import Queue, QueueStatus, WorkerManager
 from ..queue.health_monitor import QueueHealthMonitor, HealthStatus
 from ..queue.ticket_registry import TicketRegistry
@@ -24,6 +24,7 @@ import mcp_ticketer.adapters  # noqa: F401
 from .configure import configure_wizard, set_adapter_config, show_current_config
 from .diagnostics import run_diagnostics
 from .discover import app as discover_app
+from .linear_commands import app as linear_app
 from .migrate_config import migrate_config_command
 from .queue_commands import app as queue_app
 
@@ -1033,18 +1034,64 @@ def create(
                 adapter_name = "aitrackdown"
 
     # Create task data
+    # Import Priority for type checking
+    from ..core.models import Priority as PriorityEnum
+
     task_data = {
         "title": title,
         "description": description,
-        "priority": priority.value if isinstance(priority, Priority) else priority,
+        "priority": priority.value if isinstance(priority, PriorityEnum) else priority,
         "tags": tags or [],
         "assignee": assignee,
     }
 
-    # Add to queue
+    # WORKAROUND: Use direct operation for Linear adapter to bypass worker subprocess issue
+    if adapter_name == "linear":
+        console.print("[yellow]⚠️[/yellow]  Using direct operation for Linear adapter (bypassing queue)")
+        try:
+            # Load configuration and create adapter directly
+            config = load_config()
+            adapter_config = config.get("adapters", {}).get(adapter_name, {})
+
+            # Import and create adapter
+            from ..core.registry import AdapterRegistry
+            adapter = AdapterRegistry.get_adapter(adapter_name, adapter_config)
+
+            # Create task directly
+            from ..core.models import Task, Priority
+            task = Task(
+                title=task_data["title"],
+                description=task_data.get("description"),
+                priority=Priority(task_data["priority"]) if task_data.get("priority") else Priority.MEDIUM,
+                tags=task_data.get("tags", []),
+                assignee=task_data.get("assignee")
+            )
+
+            # Create ticket synchronously
+            import asyncio
+            result = asyncio.run(adapter.create(task))
+
+            console.print(f"[green]✓[/green] Ticket created successfully: {result.id}")
+            console.print(f"  Title: {result.title}")
+            console.print(f"  Priority: {result.priority}")
+            console.print(f"  State: {result.state}")
+            # Get URL from metadata if available
+            if result.metadata and 'linear' in result.metadata and 'url' in result.metadata['linear']:
+                console.print(f"  URL: {result.metadata['linear']['url']}")
+
+            return result.id
+
+        except Exception as e:
+            console.print(f"[red]❌[/red] Failed to create ticket: {e}")
+            raise
+
+    # Use queue for other adapters
     queue = Queue()
     queue_id = queue.add(
-        ticket_data=task_data, adapter=adapter_name, operation="create"
+        ticket_data=task_data,
+        adapter=adapter_name,
+        operation="create",
+        project_dir=str(Path.cwd())  # Explicitly pass current project directory
     )
 
     # Register in ticket registry for tracking
@@ -1127,12 +1174,15 @@ def list_tickets(
     table.add_column("Assignee", style="blue")
 
     for ticket in tickets:
+        # Handle assignee field - Epic doesn't have assignee, Task does
+        assignee = getattr(ticket, 'assignee', None) or "-"
+
         table.add_row(
             ticket.id or "N/A",
             ticket.title,
             ticket.state,
             ticket.priority,
-            ticket.assignee or "-",
+            assignee,
         )
 
     console.print(table)
@@ -1189,6 +1239,42 @@ def show(
 
 
 @app.command()
+def comment(
+    ticket_id: str = typer.Argument(..., help="Ticket ID"),
+    content: str = typer.Argument(..., help="Comment content"),
+    adapter: Optional[AdapterType] = typer.Option(
+        None, "--adapter", help="Override default adapter"
+    ),
+) -> None:
+    """Add a comment to a ticket."""
+
+    async def _comment():
+        adapter_instance = get_adapter(
+            override_adapter=adapter.value if adapter else None
+        )
+
+        # Create comment
+        comment = Comment(
+            ticket_id=ticket_id,
+            content=content,
+            author="cli-user"  # Could be made configurable
+        )
+
+        result = await adapter_instance.add_comment(comment)
+        return result
+
+    try:
+        result = asyncio.run(_comment())
+        console.print(f"[green]✓[/green] Comment added successfully")
+        if result.id:
+            console.print(f"Comment ID: {result.id}")
+        console.print(f"Content: {content}")
+    except Exception as e:
+        console.print(f"[red]✗[/red] Failed to add comment: {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
 def update(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
     title: Optional[str] = typer.Option(None, "--title", help="New title"),
@@ -1231,9 +1317,14 @@ def update(
     # Add ticket_id to updates
     updates["ticket_id"] = ticket_id
 
-    # Add to queue
+    # Add to queue with explicit project directory
     queue = Queue()
-    queue_id = queue.add(ticket_data=updates, adapter=adapter_name, operation="update")
+    queue_id = queue.add(
+        ticket_data=updates,
+        adapter=adapter_name,
+        operation="update",
+        project_dir=str(Path.cwd())  # Explicitly pass current project directory
+    )
 
     console.print(f"[green]✓[/green] Queued ticket update: {queue_id}")
     for key, value in updates.items():
@@ -1289,7 +1380,7 @@ def transition(
         adapter.value if adapter else config.get("default_adapter", "aitrackdown")
     )
 
-    # Add to queue
+    # Add to queue with explicit project directory
     queue = Queue()
     queue_id = queue.add(
         ticket_data={
@@ -1300,6 +1391,7 @@ def transition(
         },
         adapter=adapter_name,
         operation="transition",
+        project_dir=str(Path.cwd())  # Explicitly pass current project directory
     )
 
     console.print(f"[green]✓[/green] Queued state transition: {queue_id}")
@@ -1679,7 +1771,8 @@ def mcp_auggie(
         raise typer.Exit(1)
 
 
-# Add MCP command group to main app (must be after all subcommands are defined)
+# Add command groups to main app (must be after all subcommands are defined)
+app.add_typer(linear_app, name="linear")
 app.add_typer(mcp_app, name="mcp")
 
 

@@ -18,6 +18,9 @@ from mcp_ticketer.core.models import (
     TicketState,
 )
 
+# Mark all tests in this module
+pytestmark = [pytest.mark.adapter, pytest.mark.aitrackdown, pytest.mark.unit]
+
 
 @pytest.fixture
 def adapter_config(aitrackdown_temp_dir: Path) -> dict[str, Any]:

@@ -4,9 +4,10 @@ import asyncio
 import builtins
 import logging
 import os
+import re
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import httpx
 from httpx import AsyncClient, HTTPStatusError, TimeoutException
@@ -14,8 +15,77 @@ from httpx import AsyncClient, HTTPStatusError, TimeoutException
 from ..core.adapter import BaseAdapter
 from ..core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
 from ..core.registry import AdapterRegistry
+from ..core.env_loader import load_adapter_config, validate_adapter_config
 
 logger = logging.getLogger(__name__)
+
+
+def parse_jira_datetime(date_str: str) -> Optional[datetime]:
+    """
+    Parse JIRA datetime strings which can be in various formats.
+
+    JIRA can return dates in formats like:
+    - 2025-10-24T14:12:18.771-0400
+    - 2025-10-24T14:12:18.771Z
+    - 2025-10-24T14:12:18.771+00:00
+    """
+    if not date_str:
+        return None
+
+    try:
+        # Handle Z timezone
+        if date_str.endswith('Z'):
+            return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+
+        # Handle timezone formats like -0400, +0500 (need to add colon)
+        if re.match(r'.*[+-]\d{4}$', date_str):
+            # Insert colon in timezone: -0400 -> -04:00
+            date_str = re.sub(r'([+-]\d{2})(\d{2})$', r'\1:\2', date_str)
+
+        return datetime.fromisoformat(date_str)
+
+    except (ValueError, TypeError) as e:
+        logger.warning(f"Failed to parse JIRA datetime '{date_str}': {e}")
+        return None
+
+
+def extract_text_from_adf(adf_content: Union[str, Dict[str, Any]]) -> str:
+    """
+    Extract plain text from Atlassian Document Format (ADF).
+
+    Args:
+        adf_content: Either a string (already plain text) or ADF document dict
+
+    Returns:
+        Plain text string extracted from the ADF content
+    """
+    if isinstance(adf_content, str):
+        return adf_content
+
+    if not isinstance(adf_content, dict):
+        return str(adf_content) if adf_content else ""
+
+    def extract_text_recursive(node: Dict[str, Any]) -> str:
+        """Recursively extract text from ADF nodes."""
+        if not isinstance(node, dict):
+            return ""
+
+        # If this is a text node, return its text
+        if node.get("type") == "text":
+            return node.get("text", "")
+
+        # If this node has content, process it recursively
+        content = node.get("content", [])
+        if isinstance(content, list):
+            return "".join(extract_text_recursive(child) for child in content)
+
+        return ""
+
+    try:
+        return extract_text_recursive(adf_content)
+    except Exception as e:
+        logger.warning(f"Failed to extract text from ADF: {e}")
+        return str(adf_content) if adf_content else ""
 
 
 class JiraIssueType(str, Enum):
@@ -60,21 +130,23 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         """
         super().__init__(config)
 
-        # Configuration
-        self.server = config.get("server") or os.getenv("JIRA_SERVER", "")
-        self.email = config.get("email") or os.getenv("JIRA_EMAIL", "")
-        self.api_token = config.get("api_token") or os.getenv("JIRA_API_TOKEN", "")
-        self.project_key = config.get("project_key") or os.getenv(
-            "JIRA_PROJECT_KEY", ""
-        )
-        self.is_cloud = config.get("cloud", True)
-        self.verify_ssl = config.get("verify_ssl", True)
-        self.timeout = config.get("timeout", 30)
-        self.max_retries = config.get("max_retries", 3)
+        # Load configuration with environment variable resolution
+        full_config = load_adapter_config("jira", config)
 
-        # Validate required fields
-        if not all([self.server, self.email, self.api_token]):
-            raise ValueError("JIRA adapter requires server, email, and api_token")
+        # Validate required configuration
+        missing_keys = validate_adapter_config("jira", full_config)
+        if missing_keys:
+            raise ValueError(f"JIRA adapter missing required configuration: {', '.join(missing_keys)}")
+
+        # Configuration
+        self.server = full_config.get("server", "")
+        self.email = full_config.get("email", "")
+        self.api_token = full_config.get("api_token", "")
+        self.project_key = full_config.get("project_key", "")
+        self.is_cloud = full_config.get("cloud", True)
+        self.verify_ssl = full_config.get("verify_ssl", True)
+        self.timeout = full_config.get("timeout", 30)
+        self.max_retries = full_config.get("max_retries", 3)
 
         # Clean up server URL
         self.server = self.server.rstrip("/")
@@ -382,16 +454,8 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                 label.get("name", "") if isinstance(label, dict) else str(label)
                 for label in fields.get("labels", [])
             ],
-            "created_at": (
-                datetime.fromisoformat(fields.get("created", "").replace("Z", "+00:00"))
-                if fields.get("created")
-                else None
-            ),
-            "updated_at": (
-                datetime.fromisoformat(fields.get("updated", "").replace("Z", "+00:00"))
-                if fields.get("updated")
-                else None
-            ),
+            "created_at": parse_jira_datetime(fields.get("created")),
+            "updated_at": parse_jira_datetime(fields.get("updated")),
             "metadata": {
                 "jira": {
                     "id": issue.get("id"),
@@ -457,8 +521,11 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             "summary": ticket.title,
             "description": description,
             "labels": ticket.tags,
-            "priority": {"name": self._map_priority_to_jira(ticket.priority)},
         }
+
+        # Only add priority for Tasks, not Epics (some JIRA configurations don't allow priority on Epics)
+        if isinstance(ticket, Task):
+            fields["priority"] = {"name": self._map_priority_to_jira(ticket.priority)}
 
         # Add project if creating new issue
         if not ticket.id and self.project_key:
@@ -608,16 +675,16 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
         jql = " AND ".join(jql_parts) if jql_parts else "ORDER BY created DESC"
 
-        # Search issues using the new API endpoint
+        # Search issues using the JIRA API endpoint
         data = await self._make_request(
-            "POST",
-            "search/jql",  # Updated to use new API endpoint
-            data={
+            "GET",
+            "search/jql",  # JIRA search endpoint (new API v3)
+            params={
                 "jql": jql,
                 "startAt": offset,
                 "maxResults": limit,
-                "fields": ["*all"],
-                "expand": ["renderedFields"],
+                "fields": "*all",
+                "expand": "renderedFields",
             },
         )
 
@@ -658,16 +725,16 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
         jql = " AND ".join(jql_parts) if jql_parts else "ORDER BY created DESC"
 
-        # Execute search using the new API endpoint
+        # Execute search using the JIRA API endpoint
         data = await self._make_request(
-            "POST",
-            "search/jql",  # Updated to use new API endpoint
-            data={
+            "GET",
+            "search/jql",  # JIRA search endpoint (new API v3)
+            params={
                 "jql": jql,
                 "startAt": query.offset,
                 "maxResults": query.limit,
-                "fields": ["*all"],
-                "expand": ["renderedFields"],
+                "fields": "*all",
+                "expand": "renderedFields",
             },
         )
 
@@ -728,8 +795,24 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
     async def add_comment(self, comment: Comment) -> Comment:
         """Add a comment to a JIRA issue."""
-        # Prepare comment data
-        data = {"body": comment.content}
+        # Prepare comment data in Atlassian Document Format
+        data = {
+            "body": {
+                "type": "doc",
+                "version": 1,
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": comment.content
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
 
         # Add comment
         result = await self._make_request(
@@ -738,11 +821,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
         # Update comment with JIRA data
         comment.id = result.get("id")
-        comment.created_at = (
-            datetime.fromisoformat(result.get("created", "").replace("Z", "+00:00"))
-            if result.get("created")
-            else datetime.now()
-        )
+        comment.created_at = parse_jira_datetime(result.get("created")) or datetime.now()
         comment.author = result.get("author", {}).get("displayName", comment.author)
         comment.metadata["jira"] = result
 
@@ -766,18 +845,16 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         # Convert to Comment objects
         comments = []
         for comment_data in paginated:
+            # Extract text content from ADF format
+            body_content = comment_data.get("body", "")
+            text_content = extract_text_from_adf(body_content)
+
             comment = Comment(
                 id=comment_data.get("id"),
                 ticket_id=ticket_id,
                 author=comment_data.get("author", {}).get("displayName", "Unknown"),
-                content=comment_data.get("body", ""),
-                created_at=(
-                    datetime.fromisoformat(
-                        comment_data.get("created", "").replace("Z", "+00:00")
-                    )
-                    if comment_data.get("created")
-                    else None
-                ),
+                content=text_content,
+                created_at=parse_jira_datetime(comment_data.get("created")),
                 metadata={"jira": comment_data},
             )
             comments.append(comment)
@@ -865,6 +942,61 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         )
 
         return sprints_data.get("values", [])
+
+    async def get_project_users(self) -> List[Dict[str, Any]]:
+        """Get users who have access to the project."""
+        if not self.project_key:
+            return []
+
+        try:
+            # Get project role users
+            project_data = await self._make_request("GET", f"project/{self.project_key}")
+
+            # Get users from project roles
+            users = []
+            if "roles" in project_data:
+                for role_name, role_url in project_data["roles"].items():
+                    # Extract role ID from URL
+                    role_id = role_url.split("/")[-1]
+                    try:
+                        role_data = await self._make_request("GET", f"project/{self.project_key}/role/{role_id}")
+                        if "actors" in role_data:
+                            for actor in role_data["actors"]:
+                                if actor.get("type") == "atlassian-user-role-actor":
+                                    users.append(actor.get("actorUser", {}))
+                    except Exception:
+                        # Skip if role access fails
+                        continue
+
+            # Remove duplicates based on accountId
+            seen_ids = set()
+            unique_users = []
+            for user in users:
+                account_id = user.get("accountId")
+                if account_id and account_id not in seen_ids:
+                    seen_ids.add(account_id)
+                    unique_users.append(user)
+
+            return unique_users
+
+        except Exception:
+            # Fallback: try to get assignable users for the project
+            try:
+                users_data = await self._make_request(
+                    "GET",
+                    "user/assignable/search",
+                    params={"project": self.project_key, "maxResults": 50}
+                )
+                return users_data if isinstance(users_data, list) else []
+            except Exception:
+                return []
+
+    async def get_current_user(self) -> Optional[Dict[str, Any]]:
+        """Get current authenticated user information."""
+        try:
+            return await self._make_request("GET", "myself")
+        except Exception:
+            return None
 
     async def close(self) -> None:
         """Close the adapter and cleanup resources."""

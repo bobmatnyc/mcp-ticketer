@@ -1,4 +1,26 @@
-"""Simplified Universal Ticket models using Pydantic."""
+"""Universal Ticket models using Pydantic.
+
+This module defines the core data models for the MCP Ticketer system, providing
+a unified interface across different ticket management platforms (Linear, JIRA,
+GitHub, etc.).
+
+The models follow a hierarchical structure:
+- Epic: Strategic level containers (Projects in Linear, Epics in JIRA)
+- Issue: Standard work items (Issues in GitHub, Stories in JIRA)
+- Task: Sub-work items (Sub-issues in Linear, Sub-tasks in JIRA)
+
+All models use Pydantic v2 for validation and serialization, ensuring type safety
+and consistent data handling across adapters.
+
+Example:
+    >>> from mcp_ticketer.core.models import Task, Priority, TicketState
+    >>> task = Task(
+    ...     title="Fix authentication bug",
+    ...     priority=Priority.HIGH,
+    ...     state=TicketState.IN_PROGRESS
+    ... )
+    >>> print(task.model_dump_json())
+"""
 
 from datetime import datetime
 from enum import Enum
@@ -8,7 +30,19 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class Priority(str, Enum):
-    """Universal priority levels."""
+    """Universal priority levels for tickets.
+
+    These priority levels are mapped to platform-specific priorities:
+    - Linear: 1 (Critical), 2 (High), 3 (Medium), 4 (Low)
+    - JIRA: Highest, High, Medium, Low
+    - GitHub: P0/critical, P1/high, P2/medium, P3/low labels
+
+    Attributes:
+        LOW: Low priority, non-urgent work
+        MEDIUM: Standard priority, default for most work
+        HIGH: High priority, should be addressed soon
+        CRITICAL: Critical priority, urgent work requiring immediate attention
+    """
 
     LOW = "low"
     MEDIUM = "medium"
@@ -17,7 +51,22 @@ class Priority(str, Enum):
 
 
 class TicketType(str, Enum):
-    """Ticket type hierarchy."""
+    """Ticket type hierarchy for organizing work.
+
+    Defines the three-level hierarchy used across all platforms:
+
+    Platform Mappings:
+    - Linear: Project (Epic) → Issue (Issue) → Sub-issue (Task)
+    - JIRA: Epic (Epic) → Story/Task (Issue) → Sub-task (Task)
+    - GitHub: Milestone (Epic) → Issue (Issue) → Checklist item (Task)
+    - Aitrackdown: Epic file → Issue file → Task reference
+
+    Attributes:
+        EPIC: Strategic level containers for large features or initiatives
+        ISSUE: Standard work items, the primary unit of work
+        TASK: Sub-work items, smaller pieces of an issue
+        SUBTASK: Alias for TASK for backward compatibility
+    """
 
     EPIC = "epic"  # Strategic level (Projects in Linear, Milestones in GitHub)
     ISSUE = "issue"  # Work item level (standard issues/tasks)
@@ -26,7 +75,33 @@ class TicketType(str, Enum):
 
 
 class TicketState(str, Enum):
-    """Universal ticket states with state machine abstraction."""
+    """Universal ticket states with workflow state machine.
+
+    Implements a standardized workflow that maps to different platform states:
+
+    State Flow:
+        OPEN → IN_PROGRESS → READY → TESTED → DONE → CLOSED
+          ↓         ↓          ↓
+        CLOSED   WAITING    BLOCKED
+                    ↓          ↓
+                IN_PROGRESS ← IN_PROGRESS
+
+    Platform Mappings:
+    - Linear: Backlog (OPEN), Started (IN_PROGRESS), Completed (DONE), Canceled (CLOSED)
+    - JIRA: To Do (OPEN), In Progress (IN_PROGRESS), Done (DONE), etc.
+    - GitHub: open (OPEN), closed (CLOSED) + labels for extended states
+    - Aitrackdown: File-based state tracking
+
+    Attributes:
+        OPEN: Initial state, work not yet started
+        IN_PROGRESS: Work is actively being done
+        READY: Work is complete and ready for review/testing
+        TESTED: Work has been tested and verified
+        DONE: Work is complete and accepted
+        WAITING: Work is paused waiting for external dependency
+        BLOCKED: Work is blocked by an impediment
+        CLOSED: Final state, work is closed/archived
+    """
 
     OPEN = "open"
     IN_PROGRESS = "in_progress"
@@ -39,7 +114,14 @@ class TicketState(str, Enum):
 
     @classmethod
     def valid_transitions(cls) -> dict[str, list[str]]:
-        """Define valid state transitions."""
+        """Define valid state transitions for workflow enforcement.
+
+        Returns:
+            Dictionary mapping each state to list of valid target states
+
+        Note:
+            CLOSED is a terminal state with no valid transitions
+        """
         return {
             cls.OPEN: [cls.IN_PROGRESS, cls.WAITING, cls.BLOCKED, cls.CLOSED],
             cls.IN_PROGRESS: [cls.READY, cls.WAITING, cls.BLOCKED, cls.OPEN],
@@ -52,12 +134,56 @@ class TicketState(str, Enum):
         }
 
     def can_transition_to(self, target: "TicketState") -> bool:
-        """Check if transition to target state is valid."""
+        """Check if transition to target state is valid.
+
+        Validates state transitions according to the defined workflow rules.
+        This prevents invalid state changes and ensures workflow integrity.
+
+        Args:
+            target: The state to transition to
+
+        Returns:
+            True if the transition is valid, False otherwise
+
+        Example:
+            >>> state = TicketState.OPEN
+            >>> state.can_transition_to(TicketState.IN_PROGRESS)
+            True
+            >>> state.can_transition_to(TicketState.DONE)
+            False
+        """
         return target.value in self.valid_transitions().get(self, [])
 
 
 class BaseTicket(BaseModel):
-    """Base model for all ticket types."""
+    """Base model for all ticket types with universal field mapping.
+
+    Provides common fields and functionality shared across all ticket types
+    (Epic, Task, Comment). Uses Pydantic v2 for validation and serialization.
+
+    The metadata field allows adapters to store platform-specific information
+    while maintaining the universal interface.
+
+    Attributes:
+        id: Unique identifier assigned by the platform
+        title: Human-readable title (required, min 1 character)
+        description: Optional detailed description or body text
+        state: Current workflow state (defaults to OPEN)
+        priority: Priority level (defaults to MEDIUM)
+        tags: List of tags/labels for categorization
+        created_at: Timestamp when ticket was created
+        updated_at: Timestamp when ticket was last modified
+        metadata: Platform-specific data and field mappings
+
+    Example:
+        >>> ticket = BaseTicket(
+        ...     title="Fix login issue",
+        ...     description="Users cannot log in with SSO",
+        ...     priority=Priority.HIGH,
+        ...     tags=["bug", "authentication"]
+        ... )
+        >>> ticket.state = TicketState.IN_PROGRESS
+    """
 
     model_config = ConfigDict(use_enum_values=True)
 
@@ -77,7 +203,32 @@ class BaseTicket(BaseModel):
 
 
 class Epic(BaseTicket):
-    """Epic - highest level container for work (Projects in Linear, Milestones in GitHub)."""
+    """Epic - highest level container for strategic work initiatives.
+
+    Epics represent large features, projects, or initiatives that contain
+    multiple related issues. They map to different concepts across platforms:
+
+    Platform Mappings:
+    - Linear: Projects (with issues as children)
+    - JIRA: Epics (with stories/tasks as children)
+    - GitHub: Milestones (with issues as children)
+    - Aitrackdown: Epic files (with issue references)
+
+    Epics sit at the top of the hierarchy and cannot have parent epics.
+    They can contain multiple child issues, which in turn can contain tasks.
+
+    Attributes:
+        ticket_type: Always TicketType.EPIC (frozen field)
+        child_issues: List of issue IDs that belong to this epic
+
+    Example:
+        >>> epic = Epic(
+        ...     title="User Authentication System",
+        ...     description="Complete overhaul of authentication",
+        ...     priority=Priority.HIGH
+        ... )
+        >>> epic.child_issues = ["ISSUE-123", "ISSUE-124"]
+    """
 
     ticket_type: TicketType = Field(
         default=TicketType.EPIC, frozen=True, description="Always EPIC type"
@@ -89,9 +240,11 @@ class Epic(BaseTicket):
     def validate_hierarchy(self) -> list[str]:
         """Validate epic hierarchy rules.
 
-        Returns:
-            List of validation errors (empty if valid)
+        Epics are at the top of the hierarchy and have no parent constraints.
+        This method is provided for consistency with other ticket types.
 
+        Returns:
+            Empty list (epics have no hierarchy constraints)
         """
         # Epics don't have parents in our hierarchy
         return []

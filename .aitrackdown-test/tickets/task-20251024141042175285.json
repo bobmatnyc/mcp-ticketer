@@ -1,0 +1,18 @@
+{
+  "id": "task-20251024141042175285",
+  "title": "\ud83e\uddea Aitrackdown Comment Test #2",
+  "description": "Second test ticket for testing multiple comments",
+  "status": "open",
+  "priority": "medium",
+  "tags": [
+    "test",
+    "aitrackdown",
+    "multi-comment"
+  ],
+  "parent_issue": null,
+  "parent_epic": null,
+  "assignee": null,
+  "created_at": "2025-10-24T14:10:42.175292",
+  "updated_at": "2025-10-24T14:10:42.175292",
+  "type": "task"
+}

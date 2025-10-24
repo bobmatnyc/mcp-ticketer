@@ -4,13 +4,14 @@ import builtins
 import os
 import re
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 
 import httpx
 
 from ..core.adapter import BaseAdapter
 from ..core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
 from ..core.registry import AdapterRegistry
+from ..core.env_loader import load_adapter_config, validate_adapter_config
 
 
 class GitHubStateMapping:
@@ -151,21 +152,22 @@ class GitHubAdapter(BaseAdapter[Task]):
         """
         super().__init__(config)
 
+        # Load configuration with environment variable resolution
+        full_config = load_adapter_config("github", config)
+
+        # Validate required configuration
+        missing_keys = validate_adapter_config("github", full_config)
+        if missing_keys:
+            raise ValueError(f"GitHub adapter missing required configuration: {', '.join(missing_keys)}")
+
         # Get authentication token - support both 'api_key' and 'token' for compatibility
         self.token = (
-            config.get("api_key") or config.get("token") or os.getenv("GITHUB_TOKEN")
+            full_config.get("api_key") or full_config.get("token") or full_config.get("token")
         )
-        if not self.token:
-            raise ValueError(
-                "GitHub token required (config.api_key, config.token or GITHUB_TOKEN env var)"
-            )
 
         # Get repository information
-        self.owner = config.get("owner") or os.getenv("GITHUB_OWNER")
-        self.repo = config.get("repo") or os.getenv("GITHUB_REPO")
-
-        if not self.owner or not self.repo:
-            raise ValueError("GitHub owner and repo are required")
+        self.owner = full_config.get("owner")
+        self.repo = full_config.get("repo")
 
         # API URLs
         self.api_url = config.get("api_url", "https://api.github.com")
@@ -1328,6 +1330,20 @@ Fixes #{issue_number}
             "linked_issue": issue_number,
             "message": f"Successfully linked PR #{pr_number} to issue #{issue_number}",
         }
+
+    async def get_collaborators(self) -> List[Dict[str, Any]]:
+        """Get repository collaborators."""
+        response = await self.client.get(
+            f"/repos/{self.owner}/{self.repo}/collaborators"
+        )
+        response.raise_for_status()
+        return response.json()
+
+    async def get_current_user(self) -> Optional[Dict[str, Any]]:
+        """Get current authenticated user information."""
+        response = await self.client.get("/user")
+        response.raise_for_status()
+        return response.json()
 
     async def close(self) -> None:
         """Close the HTTP client connection."""

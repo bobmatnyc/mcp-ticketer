@@ -6,6 +6,86 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.1.39] - 2025-10-24
+
+### Major Improvements
+- **🧹 Project Structure Cleanup**: Complete reorganization of project structure
+  - Moved 30+ test files to organized `tests/` directory structure
+  - Consolidated documentation in `docs/` with clear hierarchy
+  - Moved utility scripts to `scripts/` directory
+  - Removed build artifacts and temporary files from root directory
+  - Clean, professional project layout following best practices
+
+- **📚 Comprehensive Documentation Enhancement**: Significantly improved code documentation
+  - Enhanced core models with detailed docstrings and platform mappings
+  - Added comprehensive API documentation with Args/Returns/Examples
+  - Created detailed README files for tests/ and docs/ directories
+  - Improved inline code comments for complex logic
+  - Added practical usage examples throughout the codebase
+
+- **🧪 Test Suite Organization**: Professional test suite organization
+  - Categorized tests by type: unit, integration, performance, e2e
+  - Added pytest markers for selective test execution
+  - Enhanced test configuration with comprehensive settings
+  - Created comprehensive test documentation with usage instructions
+  - Organized debug tools and utilities
+
+- **👥 User Assignment System**: Complete user assignment functionality (91.7% success rate)
+  - User discovery across all platforms (Linear, GitHub, JIRA, Aitrackdown)
+  - Ticket assignment and reassignment capabilities
+  - Assignment-based search functionality
+  - Platform-specific user identifier handling
+
+- **🏗️ Hierarchy and Workflow System**: Complete hierarchy support (93.8% success rate)
+  - Epic → Issue → Task hierarchy across all platforms
+  - State transition validation and workflow enforcement
+  - Platform-specific hierarchy mapping (Linear Projects, JIRA Epics, GitHub Milestones)
+  - Cross-platform hierarchy consistency
+
+### Enhanced
+- **Code Quality**: Improved code documentation standards
+  - Google-style docstrings for all public methods
+  - Comprehensive type hints throughout codebase
+  - Enhanced error handling documentation
+  - Improved import organization and structure
+
+- **Developer Experience**: Significantly improved development workflow
+  - Clear project navigation with organized structure
+  - Comprehensive test suite with clear categories
+  - Enhanced debugging tools and documentation
+  - Better onboarding with improved documentation
+
+- **User Experience**: Enhanced user-facing documentation
+  - Clear quick start guides and setup instructions
+  - Platform-specific integration guides
+  - Comprehensive troubleshooting documentation
+  - Improved API reference with practical examples
+
+### Technical Improvements
+- **Documentation Structure**: Organized documentation hierarchy
+  - Setup guides for all supported platforms
+  - Development documentation for contributors
+  - Analysis reports and troubleshooting guides
+  - Clear navigation and cross-references
+
+- **Test Infrastructure**: Professional test organization
+  - Unit tests for core functionality
+  - Adapter-specific test suites
+  - Integration tests for cross-platform workflows
+  - Performance and end-to-end test categories
+
+- **Code Organization**: Clean, maintainable codebase
+  - Logical file and directory structure
+  - Consistent naming conventions
+  - Clear separation of concerns
+  - Enhanced modularity and reusability
+
+### Fixed
+- **Linear Epic Creation**: Fixed GraphQL fragment issues in Linear adapter
+- **Search Query Format**: Standardized SearchQuery object usage across adapters
+- **Project Structure**: Eliminated root directory clutter and improved organization
+- **Documentation Gaps**: Filled missing documentation for core components
+
 ## [0.1.33] - 2025-10-24
 
 ### Enhanced

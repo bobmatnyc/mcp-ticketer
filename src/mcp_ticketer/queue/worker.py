@@ -367,12 +367,17 @@ class Worker:
         if project_path:
             env_file = project_path / ".env.local"
             if env_file.exists():
-                logger.debug(f"Loading environment from {env_file}")
+                logger.info(f"Worker loading environment from {env_file}")
                 load_dotenv(env_file)
 
+        logger.info(f"Worker project_path: {project_path}")
+        logger.info(f"Worker current working directory: {os.getcwd()}")
+
         config = load_config(project_dir=project_path)
+        logger.info(f"Worker loaded config: {config}")
         adapters_config = config.get("adapters", {})
         adapter_config = adapters_config.get(item.adapter, {})
+        logger.info(f"Worker adapter config for {item.adapter}: {adapter_config}")
 
         # Add environment variables for authentication
         if item.adapter == "linear":
@@ -387,7 +392,24 @@ class Worker:
             if not adapter_config.get("email"):
                 adapter_config["email"] = os.getenv("JIRA_ACCESS_USER")
 
-        return AdapterRegistry.get_adapter(item.adapter, adapter_config)
+        logger.info(f"Worker final adapter config: {adapter_config}")
+
+        # Add debugging for Linear adapter specifically
+        if item.adapter == "linear":
+            import os
+            linear_api_key = os.getenv("LINEAR_API_KEY", "Not set")
+            logger.info(f"Worker LINEAR_API_KEY: {linear_api_key[:20] if linear_api_key != 'Not set' else 'Not set'}...")
+            logger.info(f"Worker adapter_config api_key: {adapter_config.get('api_key', 'Not set')[:20] if adapter_config.get('api_key') else 'Not set'}...")
+
+        adapter = AdapterRegistry.get_adapter(item.adapter, adapter_config)
+        logger.info(f"Worker created adapter: {type(adapter)} with team_id: {getattr(adapter, 'team_id_config', 'Not set')}")
+
+        # Add more debugging for Linear adapter
+        if item.adapter == "linear":
+            logger.info(f"Worker Linear adapter api_key: {getattr(adapter, 'api_key', 'Not set')[:20] if getattr(adapter, 'api_key', None) else 'Not set'}...")
+            logger.info(f"Worker Linear adapter team_key: {getattr(adapter, 'team_key', 'Not set')}")
+
+        return adapter
 
     async def _execute_operation(self, adapter, item: QueueItem) -> dict[str, Any]:
         """Execute the queued operation.

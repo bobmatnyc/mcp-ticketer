@@ -5,7 +5,7 @@ import builtins
 import os
 from datetime import date, datetime
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from gql import Client, gql
 from gql.transport.exceptions import TransportQueryError
@@ -22,6 +22,7 @@ from ..core.models import (
     TicketType,
 )
 from ..core.registry import AdapterRegistry
+from ..core.env_loader import load_adapter_config, validate_adapter_config
 
 
 class LinearStateType(str, Enum):
@@ -295,24 +296,36 @@ class LinearAdapter(BaseAdapter[Task]):
         """
         super().__init__(config)
 
+        # Load configuration with environment variable resolution
+        full_config = load_adapter_config("linear", config)
+
         # Get API key from config or environment
-        self.api_key = config.get("api_key") or os.getenv("LINEAR_API_KEY")
+        self.api_key = full_config.get("api_key")
         if not self.api_key:
             raise ValueError(
                 "Linear API key required (config.api_key or LINEAR_API_KEY env var)"
             )
 
-        self.workspace = config.get("workspace")  # Optional, for documentation
+        self.workspace = full_config.get("workspace")  # Optional, for documentation
 
         # Support both team_key (short key) and team_id (UUID)
-        self.team_key = config.get("team_key")  # Short key like "BTA"
-        self.team_id_config = config.get("team_id")  # UUID like "02d15669-..."
+        self.team_key = full_config.get("team_key")  # Short key like "BTA"
+        self.team_id_config = full_config.get("team_id")  # UUID like "02d15669-..."
 
         # Require at least one team identifier
         if not self.team_key and not self.team_id_config:
             raise ValueError("Either team_key or team_id is required in configuration")
 
-        self.api_url = config.get("api_url", "https://api.linear.app/graphql")
+        self.api_url = full_config.get("api_url", "https://api.linear.app/graphql")
+
+        # DEBUG: Log API key details for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"LinearAdapter initialized with API key: {self.api_key[:20]}...")
+        logger.info(f"LinearAdapter config api_key: {config.get('api_key', 'Not set')[:20] if config.get('api_key') else 'Not set'}...")
+        logger.info(f"LinearAdapter env LINEAR_API_KEY: {os.getenv('LINEAR_API_KEY', 'Not set')[:20] if os.getenv('LINEAR_API_KEY') else 'Not set'}...")
+        logger.info(f"LinearAdapter team_id_config: {self.team_id_config}")
+        logger.info(f"LinearAdapter team_key: {self.team_key}")
 
         # Caches for frequently used data
         self._team_id: Optional[str] = None
@@ -839,12 +852,21 @@ class LinearAdapter(BaseAdapter[Task]):
             metadata=metadata,
         )
 
-    async def create(self, ticket: Task) -> Task:
-        """Create a new Linear issue with full field support."""
+    async def create(self, ticket: Union[Epic, Task]) -> Union[Epic, Task]:
+        """Create a new Linear issue or project with full field support."""
         # Validate credentials before attempting operation
         is_valid, error_message = self.validate_credentials()
         if not is_valid:
             raise ValueError(error_message)
+
+        # Handle Epic creation (Linear Projects)
+        if isinstance(ticket, Epic):
+            return await self.create_epic(
+                title=ticket.title,
+                description=ticket.description,
+                tags=ticket.tags,
+                priority=ticket.priority
+            )
 
         team_id = await self._ensure_team_id()
         states = await self._get_workflow_states()
@@ -1942,7 +1964,8 @@ class LinearAdapter(BaseAdapter[Task]):
         team_id = await self._ensure_team_id()
 
         create_query = gql(
-            PROJECT_FRAGMENT
+            TEAM_FRAGMENT
+            + PROJECT_FRAGMENT
             + """
             mutation CreateProject($input: ProjectCreateInput!) {
                 projectCreate(input: $input) {
@@ -2305,6 +2328,52 @@ class LinearAdapter(BaseAdapter[Task]):
             return tasks
         except TransportQueryError:
             return []
+
+    async def get_team_members(self) -> List[Dict[str, Any]]:
+        """Get team members for the current team."""
+        team_id = await self._ensure_team_id()
+
+        query = gql(
+            USER_FRAGMENT + """
+            query GetTeamMembers($teamId: String!) {
+                team(id: $teamId) {
+                    members {
+                        nodes {
+                            ...UserFields
+                        }
+                    }
+                }
+            }
+        """
+        )
+
+        client = self._create_client()
+        async with client as session:
+            result = await session.execute(
+                query, variable_values={"teamId": team_id}
+            )
+
+        if result.get("team", {}).get("members", {}).get("nodes"):
+            return result["team"]["members"]["nodes"]
+        return []
+
+    async def get_current_user(self) -> Optional[Dict[str, Any]]:
+        """Get current user information."""
+        query = gql(
+            USER_FRAGMENT + """
+            query GetCurrentUser {
+                viewer {
+                    ...UserFields
+                }
+            }
+        """
+        )
+
+        client = self._create_client()
+        async with client as session:
+            result = await session.execute(query)
+
+        return result.get("viewer")
 
     async def close(self) -> None:
         """Close the GraphQL client connection.
