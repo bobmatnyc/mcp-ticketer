@@ -295,24 +295,8 @@ class ConfigurationManager:
             # No config file found - use empty config
             config_data = {"adapters": {}, "default_adapter": None}
 
-        # Always try environment discovery and merge with file-based config
-        logger.info("Attempting environment discovery to supplement configuration")
-        env_config_data = self._discover_from_environment()
-
-        # Merge environment-discovered adapters with file-based config
-        if env_config_data and "adapters" in env_config_data:
-            if "adapters" not in config_data:
-                config_data["adapters"] = {}
-
-            # Add discovered adapters that aren't already configured
-            for adapter_name, adapter_config in env_config_data["adapters"].items():
-                if adapter_name not in config_data["adapters"]:
-                    config_data["adapters"][adapter_name] = adapter_config
-                    logger.info(f"Added environment-discovered adapter: {adapter_name}")
-
-            # Set default adapter if not already set
-            if not config_data.get("default_adapter") and env_config_data.get("default_adapter"):
-                config_data["default_adapter"] = env_config_data["default_adapter"]
+        # Use saved configuration only - no automatic discovery
+        # Discovery should be done explicitly via 'mcp-ticketer init' or 'mcp-ticketer discover'
 
         # Parse adapter configurations
         if "adapters" in config_data:

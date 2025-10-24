@@ -15,53 +15,11 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-def safe_import_config():
-    """Safely import configuration with fallback."""
-    try:
-        from ..core.config import get_config as real_get_config
-
-        # Test if the real config system works
-        try:
-            config = real_get_config()
-            # If we get here, the real config system is working
-            return real_get_config
-        except Exception:
-            # Real config system failed, use fallback
-            pass
-
-    except ImportError:
-        pass
-
-    # Create a minimal config fallback
-    class MockConfig:
-        def get_enabled_adapters(self):
-            # Try to detect adapters from environment even in fallback
-            import os
-            adapters = {}
-
-            # Check for environment variables
-            if os.getenv("LINEAR_API_KEY"):
-                adapters["linear"] = {"type": "linear", "enabled": True}
-            if os.getenv("GITHUB_TOKEN"):
-                adapters["github"] = {"type": "github", "enabled": True}
-            if os.getenv("JIRA_SERVER"):
-                adapters["jira"] = {"type": "jira", "enabled": True}
-
-            # Always include aitrackdown as fallback
-            if not adapters:
-                adapters["aitrackdown"] = {"type": "aitrackdown", "enabled": True}
-
-            return adapters
-
-        @property
-        def default_adapter(self):
-            adapters = self.get_enabled_adapters()
-            return list(adapters.keys())[0] if adapters else "aitrackdown"
-
-    def get_config():
-        return MockConfig()
-
-    return get_config
+def get_config():
+    """Get configuration using the real configuration system."""
+    from ..core.config import ConfigurationManager
+    config_manager = ConfigurationManager()
+    return config_manager.load_config()
 
 def safe_import_registry():
     """Safely import adapter registry with fallback."""
@@ -77,24 +35,27 @@ def safe_import_registry():
         return MockRegistry
 
 def safe_import_queue_manager():
-    """Safely import queue manager with fallback."""
+    """Safely import worker manager with fallback."""
     try:
-        from ..queue.manager import QueueManager as RealQueueManager
+        from ..queue.manager import WorkerManager as RealWorkerManager
 
-        # Test if the real queue manager works
+        # Test if the real worker manager works
         try:
-            qm = RealQueueManager()
+            wm = RealWorkerManager()
             # Test a basic operation
-            qm.get_worker_status()
-            return RealQueueManager
+            wm.get_status()
+            return RealWorkerManager
         except Exception:
-            # Real queue manager failed, use fallback
+            # Real worker manager failed, use fallback
             pass
 
     except ImportError:
         pass
 
-    class MockQueueManager:
+    class MockWorkerManager:
+        def get_status(self):
+            return {"running": False, "pid": None, "status": "fallback_mode"}
+
         def get_worker_status(self):
             return {"running": False, "pid": None, "status": "fallback_mode"}
 
@@ -104,12 +65,11 @@ def safe_import_queue_manager():
         def health_check(self):
             return {"status": "degraded", "score": 50, "details": "Running in fallback mode"}
 
-    return MockQueueManager
+    return MockWorkerManager
 
 # Initialize with safe imports
-get_config = safe_import_config()
 AdapterRegistry = safe_import_registry()
-QueueManager = safe_import_queue_manager()
+WorkerManager = safe_import_queue_manager()
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -126,29 +86,20 @@ class SystemDiagnostics:
 
         try:
             self.config = get_config()
-            # Check if this is a mock config
-            if hasattr(self.config, '__class__') and 'Mock' in self.config.__class__.__name__:
-                self.config_available = False
-                self.warnings.append("Configuration system using fallback mode")
-            else:
-                self.config_available = True
+            self.config_available = True
         except Exception as e:
             self.config = None
             self.config_available = False
-            console.print(f"⚠️  Could not load configuration: {e}")
+            console.print(f"❌ Could not load configuration: {e}")
+            raise e
 
         try:
-            self.queue_manager = QueueManager()
-            # Check if this is a mock queue manager
-            if hasattr(self.queue_manager, '__class__') and 'Mock' in self.queue_manager.__class__.__name__:
-                self.queue_available = False
-                self.warnings.append("Queue system using fallback mode")
-            else:
-                self.queue_available = True
+            self.worker_manager = WorkerManager()
+            self.queue_available = True
         except Exception as e:
-            self.queue_manager = None
+            self.worker_manager = None
             self.queue_available = False
-            console.print(f"⚠️  Could not initialize queue manager: {e}")
+            console.print(f"⚠️  Could not initialize worker manager: {e}")
 
     async def run_full_diagnosis(self) -> Dict[str, Any]:
         """Run complete system diagnosis and return detailed report."""
@@ -234,27 +185,27 @@ class SystemDiagnostics:
             return config_status
 
         try:
-            # Check adapter configurations
-            adapters = self.config.get_enabled_adapters()
-            config_status["adapters_configured"] = len(adapters)
-            config_status["default_adapter"] = self.config.default_adapter
+            # Check adapter configurations using the same approach as working commands
+            from .utils import CommonPatterns
+            raw_config = CommonPatterns.load_config()
+            adapters_config = raw_config.get("adapters", {})
+            config_status["adapters_configured"] = len(adapters_config)
+            config_status["default_adapter"] = raw_config.get("default_adapter")
 
-            if not adapters:
+            if not adapters_config:
                 issue = "No adapters configured"
                 config_status["issues"].append(issue)
                 config_status["status"] = "critical"
                 self.issues.append(issue)
                 console.print(f"❌ {issue}")
             else:
-                console.print(f"✅ {len(adapters)} adapter(s) configured")
+                console.print(f"✅ {len(adapters_config)} adapter(s) configured")
 
             # Check each adapter configuration
-            for name, adapter_config in adapters.items():
+            for name, adapter_config in adapters_config.items():
                 try:
-                    adapter_class = AdapterRegistry.get_adapter(adapter_config.type.value)
-                    # Convert Pydantic model to dict, excluding None values
-                    config_dict = adapter_config.model_dump(exclude_none=False)
-                    adapter = adapter_class(config_dict)
+                    # Use the same adapter creation approach as working commands
+                    adapter = CommonPatterns.get_adapter(override_adapter=name)
                     
                     # Test adapter validation if available
                     if hasattr(adapter, 'validate_credentials'):
@@ -297,23 +248,15 @@ class SystemDiagnostics:
         }
 
         try:
-            adapters = self.config.get_enabled_adapters()
-            adapter_status["total_adapters"] = len(adapters)
+            # Use the same configuration loading approach as working commands
+            from .utils import CommonPatterns
+            raw_config = CommonPatterns.load_config()
+            adapters_config = raw_config.get("adapters", {})
+            adapter_status["total_adapters"] = len(adapters_config)
 
-            for name, adapter_config in adapters.items():
-                # Handle both dict and object adapter configs
-                if isinstance(adapter_config, dict):
-                    adapter_type = adapter_config.get("type", "unknown")
-                    config_dict = adapter_config
-                else:
-                    adapter_type = adapter_config.type.value if hasattr(adapter_config, 'type') else "unknown"
-                    # Use model_dump for Pydantic v2 compatibility
-                    if hasattr(adapter_config, 'model_dump'):
-                        config_dict = adapter_config.model_dump(exclude_none=False)
-                    elif hasattr(adapter_config, 'dict'):
-                        config_dict = adapter_config.dict()
-                    else:
-                        config_dict = adapter_config
+            for name, adapter_config in adapters_config.items():
+                adapter_type = adapter_config.get("type", name)
+                config_dict = adapter_config
 
                 details = {
                     "type": adapter_type,
@@ -323,18 +266,9 @@ class SystemDiagnostics:
                 }
 
                 try:
-                    # Import AdapterRegistry safely
-                    try:
-                        from ..core.registry import AdapterRegistry
-                    except ImportError:
-                        details["status"] = "failed"
-                        details["error"] = "AdapterRegistry not available"
-                        adapter_status["failed_adapters"] += 1
-                        adapter_status["adapter_details"][name] = details
-                        continue
-
-                    adapter_class = AdapterRegistry.get_adapter(adapter_type)
-                    adapter = adapter_class(config_dict)
+                    # Use the same adapter creation approach as working commands
+                    from .utils import CommonPatterns
+                    adapter = CommonPatterns.get_adapter(override_adapter=adapter_type)
                     
                     # Test basic adapter functionality
                     test_start = datetime.now()
@@ -400,7 +334,7 @@ class SystemDiagnostics:
 
             # Test 1: Check current worker status
             console.print("🔍 Checking current worker status...")
-            worker_status = self.queue_manager.get_worker_status()
+            worker_status = self.worker_manager.get_status()
             queue_status["worker_running"] = worker_status.get("running", False)
             queue_status["worker_pid"] = worker_status.get("pid")
 
@@ -424,7 +358,7 @@ class SystemDiagnostics:
 
             # Test 3: Get queue statistics
             console.print("🔍 Analyzing queue statistics...")
-            stats = self.queue_manager.get_queue_stats()
+            stats = self.worker_manager.queue.get_stats()
             queue_status["queue_stats"] = stats
 
             total_items = stats.get("total", 0)
@@ -487,11 +421,11 @@ class SystemDiagnostics:
         }
 
         try:
-            # Try to start worker using the queue manager
-            if hasattr(self.queue_manager, 'start_worker'):
-                result = await self.queue_manager.start_worker()
-                test_result["success"] = True
-                test_result["details"] = "Worker started successfully"
+            # Try to start worker using the worker manager
+            if hasattr(self.worker_manager, 'start'):
+                result = self.worker_manager.start()
+                test_result["success"] = result
+                test_result["details"] = "Worker started successfully" if result else "Worker failed to start"
             else:
                 # Try alternative method - use CLI command
                 import subprocess
@@ -526,6 +460,7 @@ class SystemDiagnostics:
         try:
             # Test creating a simple queue item (diagnostic test)
             from ..core.models import Task, Priority
+            from ..queue.queue import Queue
 
             test_task = Task(
                 title="[DIAGNOSTIC TEST] Queue functionality test",
@@ -533,13 +468,15 @@ class SystemDiagnostics:
                 priority=Priority.LOW
             )
 
-            # Try to queue the test task
-            if hasattr(self.queue_manager, 'queue_task'):
-                queue_id = await self.queue_manager.queue_task("create", test_task, "aitrackdown")
-                test_result["success"] = True
-                test_result["details"] = f"Test task queued successfully: {queue_id}"
-            else:
-                test_result["error"] = "Queue manager doesn't support task queuing"
+            # Try to queue the test task using the correct Queue.add() method
+            queue = Queue()
+            queue_id = queue.add(
+                ticket_data=test_task.model_dump(),
+                adapter="aitrackdown",
+                operation="create"
+            )
+            test_result["success"] = True
+            test_result["details"] = f"Test task queued successfully: {queue_id}"
 
         except Exception as e:
             test_result["error"] = str(e)

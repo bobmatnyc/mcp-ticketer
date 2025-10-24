@@ -56,6 +56,7 @@ dependencies = [
     "psutil>=5.9.0",
     "pydantic>=2.0",
     "python-dotenv>=1.0.0",
+    "pyyaml>=6.0.0",
     "rich>=13.0.0",
     "tomli>=2.0.0; python_version<'3.11'",
     "tomli-w>=1.0.0",
@@ -150,7 +151,7 @@ extend-exclude = '''
 '''
 
 [tool.ruff]
-target-version = "py39"
+target-version = "0.1.36"
 line-length = 88
 
 [tool.ruff.lint]

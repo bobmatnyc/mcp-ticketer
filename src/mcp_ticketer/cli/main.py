@@ -446,11 +446,19 @@ def init(
     if discovered and adapter_type != "aitrackdown":
         discovered_adapter = discovered.get_adapter_by_type(adapter_type)
         if discovered_adapter:
-            config["adapters"][adapter_type] = discovered_adapter.config
+            adapter_config = discovered_adapter.config.copy()
+            # Ensure the config has the correct 'type' field
+            adapter_config["type"] = adapter_type
+            # Remove 'adapter' field if present (legacy)
+            adapter_config.pop("adapter", None)
+            config["adapters"][adapter_type] = adapter_config
 
     # 4. Handle manual configuration for specific adapters
     if adapter_type == "aitrackdown":
-        config["adapters"]["aitrackdown"] = {"base_path": base_path or ".aitrackdown"}
+        config["adapters"]["aitrackdown"] = {
+            "type": "aitrackdown",
+            "base_path": base_path or ".aitrackdown"
+        }
 
     elif adapter_type == "linear":
         # If not auto-discovered, build from CLI params
@@ -472,6 +480,7 @@ def init(
                 )
 
             if linear_config:
+                linear_config["type"] = "linear"
                 config["adapters"]["linear"] = linear_config
 
     elif adapter_type == "jira":
