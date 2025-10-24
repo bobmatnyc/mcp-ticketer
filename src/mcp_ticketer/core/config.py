@@ -118,8 +118,16 @@ class LinearConfig(BaseAdapterConfig):
     type: AdapterType = AdapterType.LINEAR
     api_key: Optional[str] = Field(None, env="LINEAR_API_KEY")
     workspace: Optional[str] = None
-    team_key: str
+    team_key: Optional[str] = None  # Short team key like "BTA"
+    team_id: Optional[str] = None   # UUID team identifier
     api_url: str = "https://api.linear.app/graphql"
+
+    @model_validator(mode="after")
+    def validate_team_identifier(self):
+        """Ensure either team_key or team_id is provided."""
+        if not self.team_key and not self.team_id:
+            raise ValueError("Either team_key or team_id is required")
+        return self
 
     @field_validator("api_key", mode="before")
     @classmethod
@@ -284,9 +292,27 @@ class ConfigurationManager:
             config_data = self._load_config_file(self._config_file_paths[0])
             logger.info(f"Loaded configuration from: {self._config_file_paths[0]}")
         else:
-            # No config file found - try environment discovery
-            logger.info("No configuration file found, attempting environment discovery")
-            config_data = self._discover_from_environment()
+            # No config file found - use empty config
+            config_data = {"adapters": {}, "default_adapter": None}
+
+        # Always try environment discovery and merge with file-based config
+        logger.info("Attempting environment discovery to supplement configuration")
+        env_config_data = self._discover_from_environment()
+
+        # Merge environment-discovered adapters with file-based config
+        if env_config_data and "adapters" in env_config_data:
+            if "adapters" not in config_data:
+                config_data["adapters"] = {}
+
+            # Add discovered adapters that aren't already configured
+            for adapter_name, adapter_config in env_config_data["adapters"].items():
+                if adapter_name not in config_data["adapters"]:
+                    config_data["adapters"][adapter_name] = adapter_config
+                    logger.info(f"Added environment-discovered adapter: {adapter_name}")
+
+            # Set default adapter if not already set
+            if not config_data.get("default_adapter") and env_config_data.get("default_adapter"):
+                config_data["default_adapter"] = env_config_data["default_adapter"]
 
         # Parse adapter configurations
         if "adapters" in config_data:
@@ -294,13 +320,21 @@ class ConfigurationManager:
             for name, adapter_config in config_data["adapters"].items():
                 adapter_type = adapter_config.get("type", "").lower()
 
+                # If no type specified, try to infer from adapter name
+                if not adapter_type:
+                    adapter_type = name.lower()
+
                 if adapter_type == "github":
+                    adapter_config["type"] = "github"
                     parsed_adapters[name] = GitHubConfig(**adapter_config)
                 elif adapter_type == "jira":
+                    adapter_config["type"] = "jira"
                     parsed_adapters[name] = JiraConfig(**adapter_config)
                 elif adapter_type == "linear":
+                    adapter_config["type"] = "linear"
                     parsed_adapters[name] = LinearConfig(**adapter_config)
                 elif adapter_type == "aitrackdown":
+                    adapter_config["type"] = "aitrackdown"
                     parsed_adapters[name] = AITrackdownConfig(**adapter_config)
                 else:
                     logger.warning(
@@ -335,10 +369,10 @@ class ConfigurationManager:
     def _discover_from_environment(self) -> dict[str, Any]:
         """Discover configuration from environment variables."""
         try:
-            from .env_discovery import EnvironmentDiscovery
+            from .env_discovery import EnvDiscovery
 
-            discovery = EnvironmentDiscovery()
-            discovered = discovery.discover_all()
+            discovery = EnvDiscovery()
+            discovered = discovery.discover()
 
             if not discovered.adapters:
                 logger.info("No adapters discovered from environment variables")
@@ -362,36 +396,24 @@ class ConfigurationManager:
 
             for adapter in discovered.adapters:
                 adapter_config = {
-                    "type": adapter.type.value,
+                    "type": adapter.adapter_type,
                     "enabled": True
                 }
 
-                # Add adapter-specific configuration
-                if adapter.type.value == "linear":
-                    adapter_config.update({
-                        "api_key": adapter.credentials.get("api_key"),
-                        "team_id": adapter.credentials.get("team_id"),
-                        "project_id": adapter.credentials.get("project_id")
-                    })
-                elif adapter.type.value == "github":
-                    adapter_config.update({
-                        "token": adapter.credentials.get("token"),
-                        "repo": adapter.credentials.get("repo"),
-                        "owner": adapter.credentials.get("owner")
-                    })
-                elif adapter.type.value == "jira":
-                    adapter_config.update({
-                        "server": adapter.credentials.get("server"),
-                        "email": adapter.credentials.get("email"),
-                        "api_token": adapter.credentials.get("api_token"),
-                        "project_key": adapter.credentials.get("project_key")
-                    })
+                # Add adapter-specific configuration from discovered config
+                adapter_config.update(adapter.config)
 
-                config_data["adapters"][adapter.name] = adapter_config
+                # Ensure type is set correctly (remove 'adapter' key if present)
+                if 'adapter' in adapter_config:
+                    del adapter_config['adapter']
+
+                # Use adapter type as the key name
+                adapter_name = adapter.adapter_type
+                config_data["adapters"][adapter_name] = adapter_config
 
                 # Set first discovered adapter as default
                 if config_data["default_adapter"] is None:
-                    config_data["default_adapter"] = adapter.name
+                    config_data["default_adapter"] = adapter.adapter_type
 
             logger.info(f"Discovered {len(config_data['adapters'])} adapter(s) from environment")
             return config_data

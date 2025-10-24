@@ -144,6 +144,83 @@ def load_config(project_dir: Optional[Path] = None) -> dict:
     return {"adapter": "aitrackdown", "config": {"base_path": ".aitrackdown"}}
 
 
+def _discover_from_env_files() -> Optional[str]:
+    """Discover adapter configuration from .env or .env.local files.
+
+    Returns:
+        Adapter name if discovered, None otherwise
+    """
+    import os
+    import logging
+    from pathlib import Path
+
+    logger = logging.getLogger(__name__)
+
+    # Check .env.local first, then .env
+    env_files = [".env.local", ".env"]
+
+    for env_file in env_files:
+        env_path = Path.cwd() / env_file
+        if env_path.exists():
+            try:
+                # Simple .env parsing (key=value format)
+                env_vars = {}
+                with open(env_path, 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and '=' in line:
+                            key, value = line.split('=', 1)
+                            env_vars[key.strip()] = value.strip().strip('"\'')
+
+                # Check for adapter-specific variables
+                if env_vars.get("LINEAR_API_KEY"):
+                    logger.info(f"Discovered Linear configuration in {env_file}")
+                    return "linear"
+                elif env_vars.get("GITHUB_TOKEN"):
+                    logger.info(f"Discovered GitHub configuration in {env_file}")
+                    return "github"
+                elif env_vars.get("JIRA_SERVER"):
+                    logger.info(f"Discovered JIRA configuration in {env_file}")
+                    return "jira"
+
+            except Exception as e:
+                logger.warning(f"Could not read {env_file}: {e}")
+
+    return None
+
+
+def _save_adapter_to_config(adapter_name: str) -> None:
+    """Save adapter configuration to config file.
+
+    Args:
+        adapter_name: Name of the adapter to save as default
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        config = load_config()
+        config["default_adapter"] = adapter_name
+
+        # Ensure adapters section exists
+        if "adapters" not in config:
+            config["adapters"] = {}
+
+        # Add basic adapter config if not exists
+        if adapter_name not in config["adapters"]:
+            if adapter_name == "aitrackdown":
+                config["adapters"][adapter_name] = {"base_path": ".aitrackdown"}
+            else:
+                config["adapters"][adapter_name] = {"type": adapter_name}
+
+        save_config(config)
+        logger.info(f"Saved {adapter_name} as default adapter")
+
+    except Exception as e:
+        logger.warning(f"Could not save adapter configuration: {e}")
+
+
 def save_config(config: dict) -> None:
     """Save configuration to project-local config file ONLY.
 
@@ -926,11 +1003,25 @@ def create(
                 console.print(f"[yellow]  • {alert['message']}[/yellow]")
         console.print("[yellow]Proceeding with ticket creation...[/yellow]")
 
-    # Get the adapter name
-    config = load_config()
-    adapter_name = (
-        adapter.value if adapter else config.get("default_adapter", "aitrackdown")
-    )
+    # Get the adapter name with priority: 1) argument, 2) config, 3) .env files, 4) default
+    if adapter:
+        # Priority 1: Command-line argument - save to config for future use
+        adapter_name = adapter.value
+        _save_adapter_to_config(adapter_name)
+    else:
+        # Priority 2: Check existing config
+        config = load_config()
+        adapter_name = config.get("default_adapter")
+
+        if not adapter_name or adapter_name == "aitrackdown":
+            # Priority 3: Check .env files and save if found
+            env_adapter = _discover_from_env_files()
+            if env_adapter:
+                adapter_name = env_adapter
+                _save_adapter_to_config(adapter_name)
+            else:
+                # Priority 4: Default
+                adapter_name = "aitrackdown"
 
     # Create task data
     task_data = {

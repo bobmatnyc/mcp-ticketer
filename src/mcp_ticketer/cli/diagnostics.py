@@ -252,7 +252,9 @@ class SystemDiagnostics:
             for name, adapter_config in adapters.items():
                 try:
                     adapter_class = AdapterRegistry.get_adapter(adapter_config.type.value)
-                    adapter = adapter_class(adapter_config.dict())
+                    # Convert Pydantic model to dict, excluding None values
+                    config_dict = adapter_config.model_dump(exclude_none=False)
+                    adapter = adapter_class(config_dict)
                     
                     # Test adapter validation if available
                     if hasattr(adapter, 'validate_credentials'):
@@ -305,7 +307,13 @@ class SystemDiagnostics:
                     config_dict = adapter_config
                 else:
                     adapter_type = adapter_config.type.value if hasattr(adapter_config, 'type') else "unknown"
-                    config_dict = adapter_config.dict() if hasattr(adapter_config, 'dict') else adapter_config
+                    # Use model_dump for Pydantic v2 compatibility
+                    if hasattr(adapter_config, 'model_dump'):
+                        config_dict = adapter_config.model_dump(exclude_none=False)
+                    elif hasattr(adapter_config, 'dict'):
+                        config_dict = adapter_config.dict()
+                    else:
+                        config_dict = adapter_config
 
                 details = {
                     "type": adapter_type,

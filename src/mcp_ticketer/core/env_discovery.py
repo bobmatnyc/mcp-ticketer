@@ -30,8 +30,10 @@ LINEAR_KEY_PATTERNS = [
 
 LINEAR_TEAM_PATTERNS = [
     "LINEAR_TEAM_ID",
+    "LINEAR_TEAM_KEY",  # Added support for team key (e.g., "BTA")
     "LINEAR_TEAM",
     "MCP_TICKETER_LINEAR_TEAM_ID",
+    "MCP_TICKETER_LINEAR_TEAM_KEY",
 ]
 
 LINEAR_PROJECT_PATTERNS = [
@@ -210,7 +212,11 @@ class EnvDiscovery:
         return result
 
     def _load_env_files(self, result: DiscoveryResult) -> dict[str, str]:
-        """Load environment variables from files.
+        """Load environment variables from files and actual environment.
+
+        Priority order (highest to lowest):
+        1. .env files (highest priority)
+        2. Environment variables (lowest priority)
 
         Args:
             result: DiscoveryResult to update with found files
@@ -221,7 +227,15 @@ class EnvDiscovery:
         """
         merged_env: dict[str, str] = {}
 
-        # Load files in reverse order (lowest priority first)
+        # First, load from actual environment variables (lowest priority)
+        import os
+        actual_env = {k: v for k, v in os.environ.items() if v}
+        merged_env.update(actual_env)
+        if actual_env:
+            result.env_files_found.append("environment")
+            logger.debug(f"Loaded {len(actual_env)} variables from environment")
+
+        # Load files in reverse order (higher priority than environment)
         for env_file in reversed(self.ENV_FILE_ORDER):
             file_path = self.project_path / env_file
             if file_path.exists():
@@ -282,13 +296,19 @@ class EnvDiscovery:
         missing_fields: list[str] = []
         confidence = 0.6  # Has API key
 
-        # Extract team ID (recommended but not required)
-        team_id = self._find_key_value(env_vars, LINEAR_TEAM_PATTERNS)
-        if team_id:
-            config["team_id"] = team_id
+        # Extract team identifier (either team_id or team_key is required)
+        team_identifier = self._find_key_value(env_vars, LINEAR_TEAM_PATTERNS)
+        if team_identifier:
+            # Determine if it's a team_id (UUID format) or team_key (short string)
+            if len(team_identifier) > 20 and '-' in team_identifier:
+                # Looks like a UUID (team_id)
+                config["team_id"] = team_identifier
+            else:
+                # Looks like a short key (team_key)
+                config["team_key"] = team_identifier
             confidence += 0.3
         else:
-            missing_fields.append("team_id (recommended)")
+            missing_fields.append("team_id or team_key (required)")
 
         # Extract project ID (optional)
         project_id = self._find_key_value(env_vars, LINEAR_PROJECT_PATTERNS)

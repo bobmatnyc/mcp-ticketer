@@ -31,7 +31,7 @@ class CommonPatterns:
 
     @staticmethod
     def load_config() -> dict:
-        """Load configuration from project-local config file ONLY.
+        """Load configuration from project-local config file with environment discovery fallback.
 
         SECURITY: This method ONLY reads from the current project directory
         to prevent configuration leakage across projects. It will NEVER read
@@ -39,7 +39,8 @@ class CommonPatterns:
 
         Resolution order:
         1. Project-specific config (.mcp-ticketer/config.json in cwd)
-        2. Default to aitrackdown adapter
+        2. Environment discovery (environment variables and .env files in cwd)
+        3. Default to aitrackdown adapter
 
         Returns:
             Configuration dictionary with adapter and config keys.
@@ -76,6 +77,39 @@ class CommonPatterns:
                 console.print(
                     f"[yellow]Warning: Could not load project config: {e}[/yellow]"
                 )
+
+        # Try environment discovery as fallback
+        try:
+            from ..core.config import ConfigurationManager
+            config_manager = ConfigurationManager()
+            app_config = config_manager.load_config()
+
+            # Convert AppConfig to legacy dict format for CLI compatibility
+            enabled_adapters = app_config.get_enabled_adapters()
+            if enabled_adapters:
+                # Use the first enabled adapter as default
+                default_adapter = app_config.default_adapter or list(enabled_adapters.keys())[0]
+
+                # Convert to legacy format
+                legacy_config = {
+                    "default_adapter": default_adapter,
+                    "adapters": {}
+                }
+
+                # Convert adapter configs to dict format
+                for name, adapter_config in enabled_adapters.items():
+                    if hasattr(adapter_config, 'model_dump'):
+                        legacy_config["adapters"][name] = adapter_config.model_dump(exclude_none=False)
+                    elif hasattr(adapter_config, 'dict'):
+                        legacy_config["adapters"][name] = adapter_config.dict()
+                    else:
+                        legacy_config["adapters"][name] = adapter_config
+
+                logger.info(f"Loaded configuration from environment discovery: {list(enabled_adapters.keys())}")
+                return legacy_config
+
+        except Exception as e:
+            logger.warning(f"Environment discovery failed: {e}")
 
         # Default to aitrackdown with local base path
         logger.info("No project-local config found, defaulting to aitrackdown adapter")
