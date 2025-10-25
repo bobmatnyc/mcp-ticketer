@@ -75,7 +75,7 @@ def map_linear_issue_to_task(issue_data: Dict[str, Any]) -> Task:
 
     # Extract Linear-specific metadata
     linear_metadata = extract_linear_metadata(issue_data)
-    metadata = {"linear": linear_metadata} if linear_metadata else None
+    metadata = {"linear": linear_metadata} if linear_metadata else {}
 
     return Task(
         id=task_id,
@@ -152,7 +152,7 @@ def map_linear_project_to_epic(project_data: Dict[str, Any]) -> Epic:
         priority=Priority.MEDIUM,  # Projects don't have priority in Linear
         created_at=created_at,
         updated_at=updated_at,
-        metadata=metadata if metadata["linear"] else None,
+        metadata=metadata if metadata["linear"] else {},
     )
 
 
@@ -186,19 +186,19 @@ def map_linear_comment_to_comment(
             comment_data["createdAt"].replace("Z", "+00:00")
         )
 
-    updated_at = None
+    # Note: Comment model doesn't have updated_at field
+    # Store it in metadata if needed
+    metadata = {}
     if comment_data.get("updatedAt"):
-        updated_at = datetime.fromisoformat(
-            comment_data["updatedAt"].replace("Z", "+00:00")
-        )
+        metadata["updated_at"] = comment_data["updatedAt"]
 
     return Comment(
         id=comment_id,
         ticket_id=ticket_id,
-        body=body,
+        content=body,
         author=author,
         created_at=created_at,
-        updated_at=updated_at,
+        metadata=metadata,
     )
 
 

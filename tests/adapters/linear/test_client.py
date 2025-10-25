@@ -31,7 +31,7 @@ class TestLinearGraphQLClient:
         assert client.timeout == 60
 
     @patch("mcp_ticketer.adapters.linear.client.Client")
-    @patch("mcp_ticketer.adapters.linear.client.AIOHTTPTransport")
+    @patch("mcp_ticketer.adapters.linear.client.HTTPXAsyncTransport")
     def test_create_client_success(self, mock_transport, mock_client):
         """Test successful client creation."""
         client = LinearGraphQLClient("test-api-key")
@@ -41,7 +41,7 @@ class TestLinearGraphQLClient:
         # Verify transport was created with correct parameters
         mock_transport.assert_called_once_with(
             url="https://api.linear.app/graphql",
-            headers={"Authorization": "Bearer test-api-key"},
+            headers={"Authorization": "test-api-key"},
             timeout=30,
         )
 
