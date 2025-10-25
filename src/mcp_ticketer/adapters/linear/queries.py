@@ -225,7 +225,7 @@ ISSUE_LIST_FRAGMENTS = (
 # Query definitions
 
 WORKFLOW_STATES_QUERY = """
-    query WorkflowStates($teamId: ID!) {
+    query WorkflowStates($teamId: String!) {
         workflowStates(filter: { team: { id: { eq: $teamId } } }) {
             nodes {
                 id
