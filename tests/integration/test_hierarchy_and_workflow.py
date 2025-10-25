@@ -4,30 +4,25 @@ Comprehensive test for hierarchy, state transitions, workflows, tags, and priori
 Tests Epic → Issue → Subtask relationships and platform-specific implementations.
 """
 
-import os
-import sys
 import asyncio
 import logging
+import sys
 from pathlib import Path
-from datetime import datetime
-from typing import Dict, List, Any, Optional
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from mcp_ticketer.core.registry import AdapterRegistry
+# Import adapters to register them
 from mcp_ticketer.core.env_loader import load_adapter_config
 from mcp_ticketer.core.models import (
     Epic,
-    Task,
     Priority,
-    TicketState,
     SearchQuery,
+    Task,
+    TicketState,
     TicketType,
 )
-
-# Import adapters to register them
-from mcp_ticketer.adapters import linear, github, jira, aitrackdown
+from mcp_ticketer.core.registry import AdapterRegistry
 
 # Set up logging
 logging.basicConfig(
@@ -78,7 +73,7 @@ class HierarchyWorkflowTester:
                 if adapter_name == "github":
                     # GitHub doesn't support Epics natively - skip Epic creation
                     print(
-                        f"    ℹ️  GitHub doesn't support Epics natively - creating issues only"
+                        "    ℹ️  GitHub doesn't support Epics natively - creating issues only"
                     )
                     created_epic = None
                 elif adapter_name == "jira":
@@ -88,7 +83,7 @@ class HierarchyWorkflowTester:
                         "description": f"Epic for testing {adapter_name} hierarchy and workflow features.\n\nThis epic will contain multiple issues and subtasks.",
                         "tags": ["epic", "hierarchy-test", adapter_name],
                     }
-                    print(f"    📝 Creating Epic (JIRA - no priority)...")
+                    print("    📝 Creating Epic (JIRA - no priority)...")
                     epic = Epic(**epic_data)
                     created_epic = await adapter.create(epic)
                 else:
@@ -102,10 +97,10 @@ class HierarchyWorkflowTester:
 
                     if adapter_name == "linear":
                         print(
-                            f"    📝 Creating Project (Epic equivalent) for Linear..."
+                            "    📝 Creating Project (Epic equivalent) for Linear..."
                         )
                     else:
-                        print(f"    📝 Creating Epic...")
+                        print("    📝 Creating Epic...")
 
                     epic = Epic(**epic_data)
                     created_epic = await adapter.create(epic)
@@ -161,7 +156,7 @@ class HierarchyWorkflowTester:
                     "jira",
                     "linear",
                 ]:  # Platforms that support subtasks
-                    print(f"    📝 Creating Subtasks under Issue 1...")
+                    print("    📝 Creating Subtasks under Issue 1...")
 
                     subtasks = []
                     subtask_titles = [
@@ -321,7 +316,7 @@ class HierarchyWorkflowTester:
 
                 # Test tag filtering (if supported)
                 try:
-                    print(f"    🔍 Testing tag-based search...")
+                    print("    🔍 Testing tag-based search...")
                     search_query = SearchQuery(tags=["priority-test"], limit=10)
                     search_results = await adapter.search(search_query)
 
@@ -361,7 +356,7 @@ class HierarchyWorkflowTester:
                 issues = self.created_tickets[adapter_name].get("issues", [])
 
                 if epic and issues:
-                    print(f"    🔍 Checking Epic → Issue relationships...")
+                    print("    🔍 Checking Epic → Issue relationships...")
 
                     # Retrieve epic and check if it shows child issues
                     retrieved_epic = await adapter.read(epic.id)
@@ -371,7 +366,7 @@ class HierarchyWorkflowTester:
 
                         if adapter_name == "linear":
                             print(
-                                f"    ℹ️  Linear uses Projects - relationship handled differently"
+                                "    ℹ️  Linear uses Projects - relationship handled differently"
                             )
 
                     # Check issues for parent epic reference
@@ -395,7 +390,7 @@ class HierarchyWorkflowTester:
                 # Test Issue → Subtask relationships (if applicable)
                 subtasks = self.created_tickets[adapter_name].get("subtasks", [])
                 if subtasks and issues:
-                    print(f"    🔍 Checking Issue → Subtask relationships...")
+                    print("    🔍 Checking Issue → Subtask relationships...")
 
                     parent_issue = issues[0]
                     retrieved_issue = await adapter.read(parent_issue.id)
@@ -442,13 +437,13 @@ class HierarchyWorkflowTester:
         print("=" * 100)
 
         # Adapter status overview
-        print(f"\n🔧 Adapter Setup:")
+        print("\n🔧 Adapter Setup:")
         for adapter_name in ["linear", "github", "jira", "aitrackdown"]:
             status = "✅ Ready" if adapter_name in self.adapters else "❌ Failed"
             print(f"    {adapter_name.upper()}: {status}")
 
         # Hierarchy creation results
-        print(f"\n🏗️  Hierarchy Creation Results:")
+        print("\n🏗️  Hierarchy Creation Results:")
         for adapter_name in self.adapters.keys():
             result = self.test_results.get(f"{adapter_name}_hierarchy", {})
             if result.get("success"):
@@ -469,7 +464,7 @@ class HierarchyWorkflowTester:
                 )
 
         # State transition results
-        print(f"\n🔄 State Transition Results:")
+        print("\n🔄 State Transition Results:")
         for adapter_name in self.adapters.keys():
             result = self.test_results.get(f"{adapter_name}_transitions", {})
             if result.get("success"):
@@ -484,7 +479,7 @@ class HierarchyWorkflowTester:
                 )
 
         # Priority and tags results
-        print(f"\n🏷️  Priority and Tags Results:")
+        print("\n🏷️  Priority and Tags Results:")
         for adapter_name in self.adapters.keys():
             result = self.test_results.get(f"{adapter_name}_priority_tags", {})
             if result.get("success"):
@@ -499,7 +494,7 @@ class HierarchyWorkflowTester:
                 )
 
         # Relationship testing results
-        print(f"\n🔗 Relationship Testing Results:")
+        print("\n🔗 Relationship Testing Results:")
         for adapter_name in self.adapters.keys():
             result = self.test_results.get(f"{adapter_name}_relationships", {})
             if result.get("success"):
@@ -519,7 +514,7 @@ class HierarchyWorkflowTester:
             [k for k, v in self.test_results.items() if v.get("success")]
         )
 
-        print(f"\n🎯 Overall Assessment:")
+        print("\n🎯 Overall Assessment:")
         print(f"    Total tests: {total_tests}")
         print(f"    Successful: {successful_tests}")
         print(
@@ -529,11 +524,11 @@ class HierarchyWorkflowTester:
         )
 
         if successful_tests == total_tests:
-            print(f"    🎉 ALL HIERARCHY AND WORKFLOW FEATURES WORKING PERFECTLY!")
+            print("    🎉 ALL HIERARCHY AND WORKFLOW FEATURES WORKING PERFECTLY!")
         elif successful_tests > total_tests * 0.8:
-            print(f"    ✅ Most features working well - minor issues to address")
+            print("    ✅ Most features working well - minor issues to address")
         else:
-            print(f"    ⚠️  Significant issues found - needs attention")
+            print("    ⚠️  Significant issues found - needs attention")
 
     async def run_comprehensive_test(self):
         """Run all hierarchy and workflow tests."""

@@ -3,8 +3,9 @@
 Test GitHub token permissions
 """
 import os
-import httpx
 from pathlib import Path
+
+import httpx
 from dotenv import load_dotenv
 
 # Load environment variables

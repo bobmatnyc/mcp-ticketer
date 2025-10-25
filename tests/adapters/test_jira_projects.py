@@ -3,17 +3,17 @@
 Test to find JIRA projects where we have create permissions.
 """
 
-import os
-import sys
 import asyncio
 import logging
+import sys
 from pathlib import Path
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from mcp_ticketer.core.env_loader import load_adapter_config
 import httpx
+
+from mcp_ticketer.core.env_loader import load_adapter_config
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -49,7 +49,7 @@ async def test_jira_projects():
             return
 
         # Test create permissions for each project
-        print(f"\n🔍 Testing create permissions for each project...")
+        print("\n🔍 Testing create permissions for each project...")
 
         for project in projects:
             project_key = project["key"]
@@ -74,7 +74,7 @@ async def test_jira_projects():
 
                     if issue_types:
                         print(f"    ✅ Can create issues in {project_key}")
-                        print(f"    📋 Available issue types:")
+                        print("    📋 Available issue types:")
                         for issue_type in issue_types[:3]:  # Show first 3
                             print(f"        - {issue_type['name']}")
 
@@ -91,7 +91,7 @@ async def test_jira_projects():
             except Exception as e:
                 print(f"    ❌ Error checking {project_key}: {e}")
 
-        print(f"\n❌ No projects found with create permissions")
+        print("\n❌ No projects found with create permissions")
         return None
 
 
@@ -161,8 +161,8 @@ async def main():
         print(f"\n🎉 Found working project: {working_project}")
         print(f"💡 Update your configuration to use project_key: {working_project}")
     else:
-        print(f"\n❌ No projects found with create permissions")
-        print(f"💡 Contact your JIRA administrator to grant create permissions")
+        print("\n❌ No projects found with create permissions")
+        print("💡 Contact your JIRA administrator to grant create permissions")
 
     print("\n" + "=" * 60)
     print("✅ JIRA projects test complete!")

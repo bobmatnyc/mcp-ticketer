@@ -5,10 +5,10 @@ This tests that all adapters can load their configuration consistently
 from environment variables using multiple naming conventions.
 """
 
-import os
-import sys
 import asyncio
 import logging
+import os
+import sys
 from pathlib import Path
 
 # Add src to path for imports
@@ -20,7 +20,6 @@ from mcp_ticketer.core.env_loader import (
     validate_adapter_config,
 )
 from mcp_ticketer.core.registry import AdapterRegistry
-
 
 # Set up logging
 logging.basicConfig(
@@ -40,7 +39,7 @@ async def test_unified_env_loading():
     # Show debug info
     debug_info = env_loader.get_debug_info()
     print(f"📁 Project Root: {debug_info['project_root']}")
-    print(f"📄 Environment Files Checked:")
+    print("📄 Environment Files Checked:")
     for env_file in debug_info["env_files_checked"]:
         exists = "✅" if Path(env_file).exists() else "❌"
         print(f"    {exists} {env_file}")
@@ -65,7 +64,7 @@ async def test_unified_env_loading():
         # Load configuration
         config = load_adapter_config(adapter_name, {})
 
-        print(f"📋 Loaded Configuration:")
+        print("📋 Loaded Configuration:")
         for key, value in config.items():
             if key in ["api_key", "api_token", "token"]:
                 # Mask sensitive values
@@ -81,7 +80,7 @@ async def test_unified_env_loading():
         if missing_keys:
             print(f"❌ Missing Required Keys: {missing_keys}")
         else:
-            print(f"✅ All required configuration present")
+            print("✅ All required configuration present")
 
         # Test adapter creation
         try:

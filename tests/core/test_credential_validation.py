@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Test script to demonstrate credential validation."""
 
-import os
 import sys
 
 # Remove any existing credentials for testing
@@ -34,7 +33,7 @@ try:
     if not is_valid:
         print(f"✓ Validation correctly failed: {error_message}")
     else:
-        print(f"✗ Validation should have failed!")
+        print("✗ Validation should have failed!")
         sys.exit(1)
 except Exception as e:
     print(f"Expected behavior - adapter init failed: {e}")
@@ -55,7 +54,7 @@ try:
     if not is_valid:
         print(f"✓ Validation correctly failed: {error_message}")
     else:
-        print(f"✗ Validation should have failed!")
+        print("✗ Validation should have failed!")
         sys.exit(1)
 except Exception as e:
     print(f"Expected behavior - adapter init failed: {e}")
@@ -76,7 +75,7 @@ try:
     if not is_valid:
         print(f"✓ Validation correctly failed: {error_message}")
     else:
-        print(f"✗ Validation should have failed!")
+        print("✗ Validation should have failed!")
         sys.exit(1)
 except Exception as e:
     print(f"Expected behavior - adapter init failed: {e}")
@@ -97,7 +96,7 @@ try:
     if not is_valid:
         print(f"✓ Validation correctly failed: {error_message}")
     else:
-        print(f"✗ Validation should have failed!")
+        print("✗ Validation should have failed!")
         sys.exit(1)
 except Exception as e:
     print(f"Expected behavior - adapter init failed: {e}")
@@ -116,7 +115,7 @@ try:
     is_valid, error_message = adapter.validate_credentials()
 
     if is_valid:
-        print(f"✓ Validation passed (file-based adapter doesn't need credentials)")
+        print("✓ Validation passed (file-based adapter doesn't need credentials)")
     else:
         print(f"✗ AITrackdown validation should pass: {error_message}")
         sys.exit(1)

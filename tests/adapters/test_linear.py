@@ -4,10 +4,11 @@
 import asyncio
 import os
 from datetime import datetime
+
 from dotenv import load_dotenv
 
-from src.mcp_ticketer.core import AdapterRegistry, Task, Priority, TicketState
-from src.mcp_ticketer.core.models import SearchQuery, Comment
+from src.mcp_ticketer.core import AdapterRegistry, Priority, Task, TicketState
+from src.mcp_ticketer.core.models import Comment, SearchQuery
 
 # Load environment variables
 load_dotenv()

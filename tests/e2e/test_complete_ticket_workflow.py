@@ -1,10 +1,9 @@
 """End-to-end tests for complete ticket workflow across all adapters."""
 
-import pytest
-import asyncio
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional
 
+import pytest
+
+from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
 from mcp_ticketer.core.models import (
     Comment,
     Epic,
@@ -12,9 +11,7 @@ from mcp_ticketer.core.models import (
     SearchQuery,
     Task,
     TicketState,
-    TicketType,
 )
-from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
 
 
 @pytest.mark.e2e

@@ -1,20 +1,16 @@
 """End-to-end tests for comments, attachments, and metadata management."""
 
-import pytest
 import asyncio
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional
 
+import pytest
+
+from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
 from mcp_ticketer.core.models import (
     Comment,
     Epic,
     Priority,
-    SearchQuery,
     Task,
-    TicketState,
-    TicketType,
 )
-from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
 
 
 @pytest.mark.e2e
@@ -425,8 +421,8 @@ class TestCommentsAndAttachments:
             # Add comments with searchable content
             comments = [
                 f"Starting work on task {i+1} - implementing feature X",
-                f"Bug found in feature X implementation - needs debugging",
-                f"Feature X testing complete - all tests passing",
+                "Bug found in feature X implementation - needs debugging",
+                "Feature X testing complete - all tests passing",
                 f"Task {i+1} ready for deployment to production",
             ]
 

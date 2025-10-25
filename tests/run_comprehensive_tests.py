@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Comprehensive test runner for MCP Ticketer unit and E2E tests."""
 
-import asyncio
-import sys
 import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Dict, List, Tuple

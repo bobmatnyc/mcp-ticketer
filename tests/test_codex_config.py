@@ -51,7 +51,7 @@ def test_codex_config_structure():
     print(f"✓ Created test TOML file: {temp_path}")
 
     # Read file as text to verify format
-    with open(temp_path, "r") as f:
+    with open(temp_path) as f:
         toml_content = f.read()
         print("\n--- Generated TOML ---")
         print(toml_content)

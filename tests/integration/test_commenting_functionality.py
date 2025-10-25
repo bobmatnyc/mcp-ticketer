@@ -4,23 +4,19 @@ Comprehensive test script for commenting functionality across all adapters.
 Tests adding comments, retrieving comments, and comment formatting.
 """
 
-import os
-import sys
 import asyncio
 import logging
-from pathlib import Path
+import sys
 from datetime import datetime
+from pathlib import Path
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from mcp_ticketer.core.registry import AdapterRegistry
-from mcp_ticketer.core.env_loader import load_adapter_config, validate_adapter_config
-from mcp_ticketer.core.models import Task, Comment, Priority
-
 # Import adapters to register them
-from mcp_ticketer.adapters import linear, jira, github
-
+from mcp_ticketer.core.env_loader import load_adapter_config, validate_adapter_config
+from mcp_ticketer.core.models import Comment, Priority, Task
+from mcp_ticketer.core.registry import AdapterRegistry
 
 # Set up logging
 logging.basicConfig(
@@ -101,7 +97,7 @@ class CommentingTester:
                         "description": "Formatted comment with markdown",
                     },
                     {
-                        "body": f"🔧 Technical note: This is a multi-line comment\nwith line breaks and special characters: @#$%\n\nEnd of comment.",
+                        "body": "🔧 Technical note: This is a multi-line comment\nwith line breaks and special characters: @#$%\n\nEnd of comment.",
                         "description": "Multi-line comment with special characters",
                     },
                 ]
@@ -160,7 +156,7 @@ class CommentingTester:
                 print(f"    ✅ Retrieved {len(comments)} comments")
 
                 if comments:
-                    print(f"    📝 Comment details:")
+                    print("    📝 Comment details:")
                     for i, comment in enumerate(comments[:3], 1):  # Show first 3
                         print(f"       #{i} ID: {comment.id}")
                         print(f"           Author: {comment.author}")
@@ -169,12 +165,12 @@ class CommentingTester:
 
                         # Validate comment structure
                         if not comment.id:
-                            print(f"           ⚠️  Warning: Comment missing ID")
+                            print("           ⚠️  Warning: Comment missing ID")
                         if not comment.content:
-                            print(f"           ⚠️  Warning: Comment missing content")
+                            print("           ⚠️  Warning: Comment missing content")
 
                 else:
-                    print(f"    ℹ️  No comments found (might be processing delay)")
+                    print("    ℹ️  No comments found (might be processing delay)")
 
                 # Update test results
                 if adapter_name in self.test_results:
@@ -265,7 +261,7 @@ class CommentingTester:
                 )
 
                 if result.returncode == 0:
-                    print(f"    ✅ CLI comment added successfully")
+                    print("    ✅ CLI comment added successfully")
                     print(f"       Output: {result.stdout.strip()}")
                 else:
                     print(f"    ❌ CLI comment failed: {result.stderr}")
@@ -298,7 +294,7 @@ class CommentingTester:
                 error = results.get("error", "Unknown error")
                 print(f"  ❌ Error: {error}")
 
-        print(f"\n🎯 Overall Results:")
+        print("\n🎯 Overall Results:")
         print(f"  📊 Adapters tested: {total_adapters}")
         print(f"  ✅ Successful: {successful_adapters}")
         print(f"  ❌ Failed: {total_adapters - successful_adapters}")
@@ -309,7 +305,7 @@ class CommentingTester:
         )
 
         # Test tickets summary
-        print(f"\n🎫 Test Tickets Created:")
+        print("\n🎫 Test Tickets Created:")
         for adapter_name, ticket_info in self.test_tickets.items():
             ticket = ticket_info["ticket"]
             print(f"  {adapter_name.upper()}: {ticket.id} - {ticket.title}")

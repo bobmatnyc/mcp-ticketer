@@ -1,9 +1,8 @@
 """End-to-end tests for hierarchy validation and epic/project → issue → task relationships."""
 
-import pytest
-from typing import Dict, Any
 
-from mcp_ticketer.core.models import Epic, Task, TicketType, Priority
+import pytest
+
 from mcp_ticketer.mcp.server import MCPTicketServer
 
 

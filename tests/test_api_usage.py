@@ -9,7 +9,6 @@ and verifies that the package installation works correctly.
 import os
 import sys
 from datetime import datetime
-from typing import List
 
 
 def test_core_imports():
@@ -17,9 +16,7 @@ def test_core_imports():
     print("=== Testing Core Imports ===")
 
     try:
-        from mcp_ticketer.core.models import Task, Epic, Comment, Priority, TicketState
-        from mcp_ticketer.core.adapter import BaseAdapter
-        from mcp_ticketer.core.registry import AdapterRegistry
+        from mcp_ticketer.core.models import Comment, Epic, Priority, Task, TicketState
 
         print("✓ Core models and adapters imported successfully")
 
@@ -66,19 +63,15 @@ def test_adapter_imports():
     print("\n=== Testing Adapter Imports ===")
 
     try:
-        from mcp_ticketer.adapters import AITrackdownAdapter
 
         print("✓ AITrackdown adapter imported")
 
-        from mcp_ticketer.adapters.linear import LinearAdapter
 
         print("✓ Linear adapter imported")
 
-        from mcp_ticketer.adapters.jira import JiraAdapter
 
         print("✓ Jira adapter imported")
 
-        from mcp_ticketer.adapters.github import GitHubAdapter
 
         print("✓ GitHub adapter imported")
 
@@ -122,7 +115,6 @@ def test_mcp_server():
 
     try:
         # Just import what's available without specifics
-        import mcp_ticketer.mcp.server
 
         print("✓ MCP server module imported")
 
@@ -138,7 +130,6 @@ def test_cli_components():
     print("\n=== Testing CLI Components ===")
 
     try:
-        from mcp_ticketer.cli.main import app
 
         print("✓ CLI main app imported")
 

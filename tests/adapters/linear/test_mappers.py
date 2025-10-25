@@ -1,9 +1,9 @@
 """Unit tests for Linear data mappers."""
 
-import pytest
 from datetime import datetime
 
-from mcp_ticketer.core.models import Comment, Epic, Priority, Task, TicketState
+import pytest
+
 from mcp_ticketer.adapters.linear.mappers import (
     build_linear_issue_input,
     build_linear_issue_update_input,
@@ -12,6 +12,7 @@ from mcp_ticketer.adapters.linear.mappers import (
     map_linear_issue_to_task,
     map_linear_project_to_epic,
 )
+from mcp_ticketer.core.models import Priority, Task, TicketState
 
 
 @pytest.mark.unit

@@ -1,9 +1,8 @@
 """End-to-end tests for all ticket state transitions and workflow states."""
 
-import pytest
-from typing import List, Tuple
 
-from mcp_ticketer.core.models import TicketState
+import pytest
+
 from mcp_ticketer.mcp.server import MCPTicketServer
 
 

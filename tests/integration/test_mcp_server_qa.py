@@ -7,16 +7,12 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Dict, Any, List, Optional
-import tempfile
+from typing import Any, Dict, Optional
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from mcp_ticketer.mcp.server import MCPTicketServer
-from mcp_ticketer.adapters.github import GitHubAdapter
-from mcp_ticketer.adapters.linear import LinearAdapter
-from mcp_ticketer.core.models import Task, TicketState, Priority
 
 
 class QATestResults:
@@ -104,7 +100,7 @@ async def test_ticket_creation_response(results: QATestResults):
                 sync_result,
                 f"Expected status 'completed', got '{sync_result.get('status')}'",
             )
-            print(f"  ❌ FAIL: Wrong status")
+            print("  ❌ FAIL: Wrong status")
             return
 
         print(f"  ✅ Sync mode: ticket_id={sync_result.get('ticket_id')}")
@@ -129,7 +125,7 @@ async def test_ticket_creation_response(results: QATestResults):
                 async_result,
                 f"Expected async status 'queued', got '{async_result.get('status')}'",
             )
-            print(f"  ❌ FAIL: Wrong async status")
+            print("  ❌ FAIL: Wrong async status")
             return
 
         print(f"  ✅ Async mode: queue_id={async_result.get('queue_id')}")
@@ -151,7 +147,7 @@ async def test_ticket_creation_response(results: QATestResults):
                 results.add_test_result(
                     test_name, "FAIL", status_result, "Queue operation failed"
                 )
-                print(f"  ❌ FAIL: Queue operation failed")
+                print("  ❌ FAIL: Queue operation failed")
                 return
             await asyncio.sleep(0.5)
         else:
@@ -161,7 +157,7 @@ async def test_ticket_creation_response(results: QATestResults):
                 {"timeout": max_polls * 0.5},
                 "Queue operation timed out",
             )
-            print(f"  ❌ FAIL: Queue operation timed out")
+            print("  ❌ FAIL: Queue operation timed out")
             return
 
         results.add_test_result(
@@ -173,7 +169,7 @@ async def test_ticket_creation_response(results: QATestResults):
                 "queue_status": status_result,
             },
         )
-        print(f"  ✅ PASS: All response structures correct")
+        print("  ✅ PASS: All response structures correct")
 
     except Exception as e:
         results.add_test_result(test_name, "FAIL", {}, str(e))
@@ -194,7 +190,7 @@ async def test_pr_creation_functionality(results: QATestResults):
             {"reason": "No GITHUB_TOKEN environment variable"},
             "GITHUB_TOKEN not available",
         )
-        print(f"  ⏭️  SKIP: GITHUB_TOKEN not available")
+        print("  ⏭️  SKIP: GITHUB_TOKEN not available")
         return
 
     try:
@@ -260,7 +256,7 @@ async def test_pr_creation_functionality(results: QATestResults):
                 "github_config": {"has_token": bool(github_token)},
             },
         )
-        print(f"  ✅ PASS: PR functionality available")
+        print("  ✅ PASS: PR functionality available")
 
     except Exception as e:
         results.add_test_result(test_name, "FAIL", {"error": str(e)}, str(e))
@@ -280,7 +276,7 @@ async def test_linear_integration(results: QATestResults):
             {"reason": "No LINEAR_API_KEY environment variable"},
             "LINEAR_API_KEY not available",
         )
-        print(f"  ⏭️  SKIP: LINEAR_API_KEY not available")
+        print("  ⏭️  SKIP: LINEAR_API_KEY not available")
         return
 
     try:
@@ -291,7 +287,7 @@ async def test_linear_integration(results: QATestResults):
         }
 
         server = MCPTicketServer("linear", linear_config)
-        print(f"  ✅ Linear server initialized")
+        print("  ✅ Linear server initialized")
 
         # Test ticket creation with Linear
         print("  → Testing Linear ticket creation...")
@@ -312,7 +308,7 @@ async def test_linear_integration(results: QATestResults):
                 linear_result,
                 f"Linear ticket creation failed: {linear_result.get('status')}",
             )
-            print(f"  ❌ FAIL: Linear ticket creation failed")
+            print("  ❌ FAIL: Linear ticket creation failed")
             return
 
         ticket_id = linear_result.get("ticket_id")
@@ -333,7 +329,7 @@ async def test_linear_integration(results: QATestResults):
             "PASS",
             {"ticket_created": ticket_id, "pr_linking_available": True},
         )
-        print(f"  ✅ PASS: Linear integration working")
+        print("  ✅ PASS: Linear integration working")
 
     except Exception as e:
         results.add_test_result(test_name, "FAIL", {"error": str(e)}, str(e))
@@ -355,10 +351,10 @@ async def test_error_handling(results: QATestResults):
             results.add_test_result(
                 test_name, "FAIL", {}, "Should have failed with missing title"
             )
-            print(f"  ❌ FAIL: Should have thrown error for missing title")
+            print("  ❌ FAIL: Should have thrown error for missing title")
             return
-        except Exception as e:
-            print(f"  ✅ Correctly threw error for missing title")
+        except Exception:
+            print("  ✅ Correctly threw error for missing title")
 
         # Test 2: Invalid queue ID
         print("  → Testing invalid queue ID...")
@@ -370,9 +366,9 @@ async def test_error_handling(results: QATestResults):
                 status_result,
                 "Should have returned error for invalid queue ID",
             )
-            print(f"  ❌ FAIL: Should have returned error for invalid queue ID")
+            print("  ❌ FAIL: Should have returned error for invalid queue ID")
             return
-        print(f"  ✅ Correctly handled invalid queue ID")
+        print("  ✅ Correctly handled invalid queue ID")
 
         # Test 3: Timeout scenario
         print("  → Testing timeout handling...")
@@ -390,7 +386,7 @@ async def test_error_handling(results: QATestResults):
                 timeout_result,
                 f"Unexpected timeout result: {timeout_result.get('status')}",
             )
-            print(f"  ❌ FAIL: Unexpected timeout behavior")
+            print("  ❌ FAIL: Unexpected timeout behavior")
             return
         print(f"  ✅ Timeout handled correctly: {timeout_result.get('status')}")
 
@@ -403,7 +399,7 @@ async def test_error_handling(results: QATestResults):
                 "timeout_handled": True,
             },
         )
-        print(f"  ✅ PASS: Error handling working correctly")
+        print("  ✅ PASS: Error handling working correctly")
 
     except Exception as e:
         results.add_test_result(test_name, "FAIL", {"error": str(e)}, str(e))
@@ -457,10 +453,10 @@ async def test_mcp_tools_integration(results: QATestResults):
                 tool_result,
                 "MCP tool call response missing 'content' field",
             )
-            print(f"  ❌ FAIL: Invalid MCP response format")
+            print("  ❌ FAIL: Invalid MCP response format")
             return
 
-        print(f"  ✅ MCP tool call format correct")
+        print("  ✅ MCP tool call format correct")
 
         # Parse the content to verify ticket creation
         content = tool_result.get("content", [])
@@ -472,7 +468,7 @@ async def test_mcp_tools_integration(results: QATestResults):
                         f"  ✅ Ticket created via MCP tool: {result_data['ticket_id']}"
                     )
             except json.JSONDecodeError:
-                print(f"  ⚠️  Could not parse tool result as JSON")
+                print("  ⚠️  Could not parse tool result as JSON")
 
         results.add_test_result(
             test_name,
@@ -483,7 +479,7 @@ async def test_mcp_tools_integration(results: QATestResults):
                 "tool_call_successful": not tool_result.get("isError", False),
             },
         )
-        print(f"  ✅ PASS: MCP tools integration working")
+        print("  ✅ PASS: MCP tools integration working")
 
     except Exception as e:
         results.add_test_result(test_name, "FAIL", {"error": str(e)}, str(e))
@@ -498,7 +494,7 @@ def print_comprehensive_report(results: QATestResults):
     print("🧪 MCP-TICKETER QA TEST REPORT")
     print("=" * 70)
 
-    print(f"\n📊 SUMMARY:")
+    print("\n📊 SUMMARY:")
     print(f"   Total Tests: {summary['total']}")
     print(f"   Passed: {summary['passed']} ✅")
     print(f"   Failed: {summary['failed']} ❌")
@@ -506,7 +502,7 @@ def print_comprehensive_report(results: QATestResults):
     print(f"   Success Rate: {summary['success_rate']:.1f}%")
     print(f"   Duration: {summary['duration']:.2f}s")
 
-    print(f"\n📋 DETAILED RESULTS:")
+    print("\n📋 DETAILED RESULTS:")
     for i, test in enumerate(results.tests, 1):
         status_icon = {"PASS": "✅", "FAIL": "❌", "SKIP": "⏭️"}[test["status"]]
         print(f"   {i}. {status_icon} {test['test_name']}")
@@ -524,49 +520,49 @@ def print_comprehensive_report(results: QATestResults):
             if "tools_available" in details:
                 print(f"      Tools: {details['tools_available']}")
 
-    print(f"\n🔍 KEY FINDINGS:")
+    print("\n🔍 KEY FINDINGS:")
 
     # Analyze results for key insights
     ticket_creation_tests = [
         t for t in results.tests if "Ticket Creation" in t["test_name"]
     ]
     if ticket_creation_tests and ticket_creation_tests[0]["status"] == "PASS":
-        print(f"   ✅ Ticket creation returns both queue_id and ticket_id correctly")
+        print("   ✅ Ticket creation returns both queue_id and ticket_id correctly")
 
     pr_tests = [t for t in results.tests if "PR" in t["test_name"]]
     if pr_tests:
         if pr_tests[0]["status"] == "PASS":
-            print(f"   ✅ PR creation and linking functionality available")
+            print("   ✅ PR creation and linking functionality available")
         elif pr_tests[0]["status"] == "SKIP":
-            print(f"   ⚠️  PR functionality not tested (missing GITHUB_TOKEN)")
+            print("   ⚠️  PR functionality not tested (missing GITHUB_TOKEN)")
         else:
-            print(f"   ❌ PR functionality has issues")
+            print("   ❌ PR functionality has issues")
 
     linear_tests = [t for t in results.tests if "Linear" in t["test_name"]]
     if linear_tests:
         if linear_tests[0]["status"] == "PASS":
-            print(f"   ✅ Linear integration working correctly")
+            print("   ✅ Linear integration working correctly")
         elif linear_tests[0]["status"] == "SKIP":
-            print(f"   ⚠️  Linear integration not tested (missing LINEAR_API_KEY)")
+            print("   ⚠️  Linear integration not tested (missing LINEAR_API_KEY)")
         else:
-            print(f"   ❌ Linear integration has issues")
+            print("   ❌ Linear integration has issues")
 
     error_tests = [t for t in results.tests if "Error Handling" in t["test_name"]]
     if error_tests and error_tests[0]["status"] == "PASS":
-        print(f"   ✅ Error handling robust and appropriate")
+        print("   ✅ Error handling robust and appropriate")
 
     mcp_tests = [t for t in results.tests if "MCP Tools" in t["test_name"]]
     if mcp_tests and mcp_tests[0]["status"] == "PASS":
-        print(f"   ✅ MCP server responses in correct format")
+        print("   ✅ MCP server responses in correct format")
 
-    print(f"\n🎯 RECOMMENDATIONS:")
+    print("\n🎯 RECOMMENDATIONS:")
     if summary["failed"] == 0:
-        print(f"   🌟 All tests passed! The fixes are working correctly.")
+        print("   🌟 All tests passed! The fixes are working correctly.")
     else:
         print(f"   🔧 Address the {summary['failed']} failing test(s) above")
 
     if summary["skipped"] > 0:
-        print(f"   🔑 Set up missing API keys to test all functionality")
+        print("   🔑 Set up missing API keys to test all functionality")
 
     print("\n" + "=" * 70)
 

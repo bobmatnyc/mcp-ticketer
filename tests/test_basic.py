@@ -8,9 +8,9 @@ from pathlib import Path
 # Add src to path for testing
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from mcp_ticketer.core import Task, TicketState, Priority, AdapterRegistry
 from mcp_ticketer.adapters import AITrackdownAdapter
 from mcp_ticketer.cache import MemoryCache
+from mcp_ticketer.core import AdapterRegistry, Priority, Task, TicketState
 
 
 async def test_basic_functionality():
@@ -63,7 +63,7 @@ async def test_basic_functionality():
 
     # Clean up
     await adapter.delete(created_task.id)
-    print(f"   ✓ Deleted test ticket")
+    print("   ✓ Deleted test ticket")
 
     print("\n" + "=" * 50)
     print("All tests passed! ✓")

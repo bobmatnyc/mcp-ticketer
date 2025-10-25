@@ -16,10 +16,9 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Import adapters to trigger registration
 import mcp_ticketer.adapters  # noqa: F401
-
+from mcp_ticketer.cli.main import get_adapter, load_config
+from mcp_ticketer.core.models import Priority, Task
 from mcp_ticketer.core.registry import AdapterRegistry
-from mcp_ticketer.cli.main import load_config, get_adapter
-from mcp_ticketer.core.models import Task, Priority
 
 
 async def compare_cli_vs_simulation():
@@ -27,10 +26,10 @@ async def compare_cli_vs_simulation():
     print("🔍 Comparing CLI vs simulation configuration loading...")
 
     # Method 1: CLI get_adapter method
-    print(f"\n📋 Method 1: CLI get_adapter method...")
+    print("\n📋 Method 1: CLI get_adapter method...")
     try:
         cli_adapter = get_adapter(override_adapter="linear")
-        print(f"   ✅ CLI adapter created successfully!")
+        print("   ✅ CLI adapter created successfully!")
         print(
             f"   Team ID (config): {getattr(cli_adapter, 'team_id_config', 'Not set')}"
         )
@@ -56,7 +55,7 @@ async def compare_cli_vs_simulation():
         cli_result = None
 
     # Method 2: Direct registry method (like our simulation)
-    print(f"\n🔧 Method 2: Direct registry method...")
+    print("\n🔧 Method 2: Direct registry method...")
     try:
         # Load config like simulation
         config = load_config()
@@ -73,7 +72,7 @@ async def compare_cli_vs_simulation():
         direct_adapter = AdapterRegistry.get_adapter(
             "linear", adapter_config, force_new=True
         )
-        print(f"   ✅ Direct adapter created successfully!")
+        print("   ✅ Direct adapter created successfully!")
         print(
             f"   Team ID (config): {getattr(direct_adapter, 'team_id_config', 'Not set')}"
         )
@@ -99,7 +98,7 @@ async def compare_cli_vs_simulation():
         direct_result = None
 
     # Compare results
-    print(f"\n🔍 Comparison Results:")
+    print("\n🔍 Comparison Results:")
     if cli_result and direct_result:
         cli_prefix = cli_result.id.split("-")[0] if "-" in cli_result.id else "Unknown"
         direct_prefix = (
@@ -112,18 +111,18 @@ async def compare_cli_vs_simulation():
         if cli_prefix == direct_prefix:
             print(f"   ✅ Both methods create tickets with same prefix: {cli_prefix}")
         else:
-            print(f"   ⚠️  Different prefixes detected!")
-            print(f"      This suggests different team configurations")
+            print("   ⚠️  Different prefixes detected!")
+            print("      This suggests different team configurations")
 
         # Check if same adapter instance
         if cli_adapter and direct_adapter:
             if id(cli_adapter) == id(direct_adapter):
-                print(f"   ⚠️  Same adapter instance (cached)")
+                print("   ⚠️  Same adapter instance (cached)")
             else:
-                print(f"   ✅ Different adapter instances")
+                print("   ✅ Different adapter instances")
 
     # Check registry state
-    print(f"\n📊 Registry State:")
+    print("\n📊 Registry State:")
     instances = AdapterRegistry._instances
     print(f"   Cached instances: {list(instances.keys())}")
     if "linear" in instances:

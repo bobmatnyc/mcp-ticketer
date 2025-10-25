@@ -3,21 +3,18 @@
 Direct test of JIRA adapter with MT project to debug issues.
 """
 
-import os
-import sys
 import asyncio
 import logging
+import sys
 from pathlib import Path
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from mcp_ticketer.core.registry import AdapterRegistry
-from mcp_ticketer.core.env_loader import load_adapter_config, validate_adapter_config
-from mcp_ticketer.core.models import Task, Priority
-
 # Import adapters to register them
-from mcp_ticketer.adapters import jira
+from mcp_ticketer.core.env_loader import load_adapter_config, validate_adapter_config
+from mcp_ticketer.core.models import Priority, Task
+from mcp_ticketer.core.registry import AdapterRegistry
 
 # Set up logging
 logging.basicConfig(
@@ -33,7 +30,7 @@ async def test_jira_direct():
     try:
         # Load configuration
         config = load_adapter_config("jira", {})
-        print(f"📋 Loaded configuration:")
+        print("📋 Loaded configuration:")
         for key, value in config.items():
             if key in ["api_token"]:
                 masked_value = (
@@ -49,14 +46,14 @@ async def test_jira_direct():
             print(f"❌ Missing required keys: {missing_keys}")
             return
 
-        print(f"✅ All required configuration present")
+        print("✅ All required configuration present")
 
         # Create adapter
         adapter = AdapterRegistry.get_adapter("jira", config)
-        print(f"✅ JIRA adapter created successfully")
+        print("✅ JIRA adapter created successfully")
 
         # Test listing first
-        print(f"\n🔍 Testing JIRA list operation...")
+        print("\n🔍 Testing JIRA list operation...")
         try:
             tickets = await adapter.list(limit=3, offset=0)
             print(f"✅ List operation successful - found {len(tickets)} tickets")
@@ -65,7 +62,7 @@ async def test_jira_direct():
             return
 
         # Test creating a ticket
-        print(f"\n🔍 Testing JIRA ticket creation...")
+        print("\n🔍 Testing JIRA ticket creation...")
         test_task = Task(
             title="🧪 Direct JIRA Test - MT Project",
             description="Testing JIRA adapter directly with MT project.\n\nThis should work now!",
@@ -75,7 +72,7 @@ async def test_jira_direct():
 
         try:
             created_ticket = await adapter.create(test_task)
-            print(f"✅ JIRA ticket created successfully!")
+            print("✅ JIRA ticket created successfully!")
             print(f"    Ticket ID: {created_ticket.id}")
             print(f"    Title: {created_ticket.title}")
             print(f"    State: {created_ticket.state}")
@@ -109,7 +106,7 @@ async def test_jira_commenting(ticket):
         print("⏭️  Skipping comment test - no ticket created")
         return
 
-    print(f"\n💬 Testing JIRA commenting...")
+    print("\n💬 Testing JIRA commenting...")
 
     try:
         # Load configuration and create adapter
@@ -127,12 +124,12 @@ async def test_jira_commenting(ticket):
         )
 
         result = await adapter.add_comment(comment)
-        print(f"✅ Comment added successfully!")
+        print("✅ Comment added successfully!")
         print(f"    Comment ID: {result.id}")
         print(f"    Content: {result.content[:50]}...")
 
         # Test retrieving comments
-        print(f"\n📖 Testing comment retrieval...")
+        print("\n📖 Testing comment retrieval...")
         comments = await adapter.get_comments(ticket.id, limit=10, offset=0)
         print(f"✅ Retrieved {len(comments)} comments")
 

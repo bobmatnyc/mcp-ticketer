@@ -2,20 +2,19 @@
 """Performance and load testing for mcp-ticketer."""
 
 import asyncio
-import time
-import statistics
-import tempfile
 import shutil
+import statistics
 import sys
+import tempfile
+import time
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor
-from typing import List, Dict
+from typing import List
 
 # Add src to path for testing
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from mcp_ticketer.core import Task, Priority
 from mcp_ticketer.adapters import AITrackdownAdapter
+from mcp_ticketer.core import Priority, Task
 
 
 class PerformanceTestSuite:
@@ -67,7 +66,7 @@ class PerformanceTestSuite:
         max_time = max(times)
         min_time = min(times)
 
-        print(f"✅ Create Operations Results:")
+        print("✅ Create Operations Results:")
         print(f"   Average: {avg_time:.4f}s")
         print(f"   Median:  {median_time:.4f}s")
         print(f"   Min:     {min_time:.4f}s")
@@ -97,7 +96,7 @@ class PerformanceTestSuite:
         avg_time = statistics.mean(times)
         median_time = statistics.median(times)
 
-        print(f"✅ Read Operations Results:")
+        print("✅ Read Operations Results:")
         print(f"   Average: {avg_time:.4f}s")
         print(f"   Median:  {median_time:.4f}s")
         print(f"   Min:     {min(times):.4f}s")
@@ -106,7 +105,7 @@ class PerformanceTestSuite:
 
     async def benchmark_list_operations(self, limits: List[int] = [10, 50, 100]):
         """Benchmark list operations with different limits."""
-        print(f"\n📋 Benchmarking list operations...")
+        print("\n📋 Benchmarking list operations...")
 
         list_results = {}
 
@@ -142,7 +141,7 @@ class PerformanceTestSuite:
         self.results["search_times"] = search_times
         avg_time = statistics.mean(search_times)
 
-        print(f"✅ Search Operations Results:")
+        print("✅ Search Operations Results:")
         print(f"   Average: {avg_time:.4f}s")
         print(f"   Rate:    {len(queries) / sum(search_times):.1f} queries/sec")
 
@@ -175,7 +174,7 @@ class PerformanceTestSuite:
 
         total_time = time.time() - start_total
 
-        print(f"✅ Concurrent Operations Results:")
+        print("✅ Concurrent Operations Results:")
         print(f"   Operations: {len(selected_ids)}")
         print(f"   Concurrency: {concurrency}")
         print(f"   Total time: {total_time:.4f}s")
@@ -203,7 +202,7 @@ class PerformanceTestSuite:
                 description=f"Large description for scalability testing ticket {i} "
                 * 5,
                 priority=Priority.LOW,
-                tags=[f"scale", f"test-{i}", f"batch-{i // 100}"],
+                tags=["scale", f"test-{i}", f"batch-{i // 100}"],
             )
             created = await self.adapter.create(task)
             if created:
@@ -217,7 +216,7 @@ class PerformanceTestSuite:
         total_time = time.time() - start_time
         avg_rate = count / total_time
 
-        print(f"✅ Scalability Test Results:")
+        print("✅ Scalability Test Results:")
         print(f"   Total tickets: {count}")
         print(f"   Total time:    {total_time:.2f}s")
         print(f"   Average rate:  {avg_rate:.1f} tickets/sec")

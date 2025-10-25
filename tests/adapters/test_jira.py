@@ -4,11 +4,12 @@
 import asyncio
 import os
 from datetime import datetime
+
 from dotenv import load_dotenv
 
-from src.mcp_ticketer.core import Task, Epic, TicketState, Priority, Comment
-from src.mcp_ticketer.core.models import SearchQuery
 from src.mcp_ticketer.adapters.jira import JiraAdapter
+from src.mcp_ticketer.core import Comment, Priority, Task, TicketState
+from src.mcp_ticketer.core.models import SearchQuery
 
 # Load environment variables
 load_dotenv()
@@ -41,7 +42,7 @@ async def test_jira_adapter():
         print("export JIRA_PROJECT_KEY='TEST'  # Optional")
         return
 
-    print(f"🔧 Configuration:")
+    print("🔧 Configuration:")
     print(f"  Server: {config['server']}")
     print(f"  Email: {config['email']}")
     print(f"  Project: {config.get('project_key', 'Not specified')}")
@@ -88,7 +89,7 @@ async def test_jira_adapter():
             },
         )
         if updated:
-            print(f"✅ Task updated successfully")
+            print("✅ Task updated successfully")
             print(f"   New Title: {updated.title}")
             print(f"   New Priority: {updated.priority}\n")
         else:

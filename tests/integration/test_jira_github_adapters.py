@@ -4,21 +4,19 @@ Comprehensive test script for JIRA and GitHub adapters.
 Tests configuration, authentication, and basic operations.
 """
 
+import asyncio
+import json
+import logging
 import os
 import sys
-import json
-import asyncio
-import logging
 from pathlib import Path
-from typing import Dict, Any, Optional
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from mcp_ticketer.cli.main import load_config
+from mcp_ticketer.core.models import Priority, Task
 from mcp_ticketer.core.registry import AdapterRegistry
-from mcp_ticketer.core.models import Task, Priority
-
 
 # Set up logging
 logging.basicConfig(
@@ -314,7 +312,7 @@ class AdapterTester:
         jira_env_ok = all(env_results.get("jira", {}).values())
         github_env_ok = all(env_results.get("github", {}).values())
 
-        print(f"🌍 Environment Variables:")
+        print("🌍 Environment Variables:")
         print(f"  JIRA: {'✅ All set' if jira_env_ok else '❌ Missing variables'}")
         print(f"  GitHub: {'✅ All set' if github_env_ok else '❌ Missing variables'}")
 

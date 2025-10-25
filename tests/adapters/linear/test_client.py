@@ -1,15 +1,15 @@
 """Unit tests for Linear GraphQL client."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-import asyncio
+from unittest.mock import AsyncMock, patch
 
+import pytest
+
+from mcp_ticketer.adapters.linear.client import LinearGraphQLClient
 from mcp_ticketer.core.exceptions import (
     AdapterError,
     AuthenticationError,
     RateLimitError,
 )
-from mcp_ticketer.adapters.linear.client import LinearGraphQLClient
 
 
 @pytest.mark.unit

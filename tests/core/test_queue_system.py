@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """Test script for the async queue system."""
 
-import asyncio
 import sys
 import time
 from pathlib import Path
+
 from rich.console import Console
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from mcp_ticketer.queue import Queue, QueueStatus, Worker, WorkerManager
 from mcp_ticketer.core import Priority
+from mcp_ticketer.queue import Queue, QueueStatus, Worker, WorkerManager
 
 console = Console()
 
@@ -67,7 +67,7 @@ def test_queue_operations():
 
     # Check queue statistics
     stats = queue.get_stats()
-    console.print(f"\n[bold]Queue Statistics:[/bold]")
+    console.print("\n[bold]Queue Statistics:[/bold]")
     for status, count in stats.items():
         console.print(f"  {status}: {count}")
 

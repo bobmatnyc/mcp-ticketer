@@ -6,11 +6,11 @@ import asyncio
 import os
 from datetime import datetime
 from pathlib import Path
+
 from dotenv import load_dotenv
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
-from rich import print as rprint
+from rich.table import Table
 
 # Load environment variables
 env_path = Path(".env.local")
@@ -82,7 +82,7 @@ async def test_linear():
             tests_total += 1
             success = await adapter.delete(created_task.id)
             if success:
-                console.print(f"  ✓ Archived test issue")
+                console.print("  ✓ Archived test issue")
                 tests_passed += 1
 
         except Exception as e:
@@ -104,7 +104,7 @@ async def test_github():
 
     try:
         from src.mcp_ticketer.adapters.github import GitHubAdapter
-        from src.mcp_ticketer.core.models import Priority, Comment
+        from src.mcp_ticketer.core.models import Comment, Priority
 
         config = {
             "api_key": os.getenv("GITHUB_TOKEN"),  # Use api_key for consistency
@@ -178,7 +178,7 @@ async def test_github():
                 {"tags": ["test", "automation", "mcp-ticketer", "updated"]},
             )
             if updated_task:
-                console.print(f"  ✓ Updated issue with new tags")
+                console.print("  ✓ Updated issue with new tags")
                 tests_passed += 1
 
         except Exception as e:
@@ -217,7 +217,7 @@ async def test_jira():
 
     try:
         from src.mcp_ticketer.adapters.jira import JiraAdapter
-        from src.mcp_ticketer.core.models import Priority, Task, TicketState, Comment
+        from src.mcp_ticketer.core.models import Comment, Priority, Task, TicketState
 
         config = {
             "server": "https://1m-hyperdev.atlassian.net",
@@ -289,7 +289,7 @@ async def test_jira():
                 {"description": "Updated description from integration tests"},
             )
             if updated_task:
-                console.print(f"  ✓ Updated issue description")
+                console.print("  ✓ Updated issue description")
                 tests_passed += 1
 
             # 6. Add a comment
@@ -311,11 +311,11 @@ async def test_jira():
                     created_issue_key, TicketState.IN_PROGRESS
                 )
                 if transitioned_task:
-                    console.print(f"  ✓ Transitioned issue to In Progress")
+                    console.print("  ✓ Transitioned issue to In Progress")
                     tests_passed += 1
                 else:
                     console.print(
-                        f"  [yellow]⚠ Could not transition issue state[/yellow]"
+                        "  [yellow]⚠ Could not transition issue state[/yellow]"
                     )
             except Exception as e:
                 console.print(
@@ -334,11 +334,11 @@ async def test_jira():
                     created_issue_key, TicketState.DONE
                 )
                 if final_task:
-                    console.print(f"  ✓ Transitioned test issue to Done")
+                    console.print("  ✓ Transitioned test issue to Done")
                     tests_passed += 1
                 else:
                     console.print(
-                        f"  [yellow]⚠ Could not transition test issue to Done[/yellow]"
+                        "  [yellow]⚠ Could not transition test issue to Done[/yellow]"
                     )
             except Exception as e:
                 console.print(f"  [yellow]⚠ Cleanup error: {e}[/yellow]")
@@ -360,17 +360,18 @@ async def test_aitrackdown():
     console.print("\n[bold cyan]Testing AI-Trackdown Adapter[/bold cyan]")
 
     try:
+        import os
+        import shutil
+
         from src.mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
         from src.mcp_ticketer.core.models import (
-            Priority,
-            Task,
-            TicketState,
             Comment,
             Epic,
+            Priority,
             SearchQuery,
+            Task,
+            TicketState,
         )
-        import shutil
-        import os
 
         test_project_path = ".test_aitrackdown"
 
@@ -446,7 +447,7 @@ async def test_aitrackdown():
                 },
             )
             if updated_task:
-                console.print(f"  ✓ Updated task description and priority")
+                console.print("  ✓ Updated task description and priority")
                 tests_passed += 1
 
             # 6. Add comments
@@ -459,7 +460,7 @@ async def test_aitrackdown():
                     content=f"Test comment {i+1} from integration tests",
                 )
                 created_comment = await adapter.add_comment(comment)
-            console.print(f"  ✓ Added comments to tasks")
+            console.print("  ✓ Added comments to tasks")
             tests_passed += 1
 
             # 7. Search tasks
@@ -505,7 +506,7 @@ async def test_aitrackdown():
             tests_total += 1
             if os.path.exists(test_project_path):
                 shutil.rmtree(test_project_path)
-                console.print(f"  ✓ Cleaned up test project directory")
+                console.print("  ✓ Cleaned up test project directory")
                 tests_passed += 1
         except Exception as e:
             console.print(f"  [yellow]⚠ Cleanup error: {e}[/yellow]")
@@ -614,7 +615,7 @@ async def main():
     console.print(table)
 
     # Detailed results analysis
-    console.print(f"\n[bold]Test Summary:[/bold]")
+    console.print("\n[bold]Test Summary:[/bold]")
     console.print(f"  • {passed_count}/{total_count} adapters passed all tests")
     console.print(f"  • Test duration: {duration:.1f} seconds")
 
@@ -644,7 +645,7 @@ async def main():
     # Recommendations
     failed_adapters = [name for name, passed, _ in results if not passed]
     if failed_adapters:
-        console.print(f"\n[bold]Recommendations for failed adapters:[/bold]")
+        console.print("\n[bold]Recommendations for failed adapters:[/bold]")
         for adapter in failed_adapters:
             if adapter == "Linear":
                 console.print("  • Linear: Verify LINEAR_API_KEY in .env.local")
