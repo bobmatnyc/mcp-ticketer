@@ -454,9 +454,30 @@ class EnvDiscovery:
         """
         base_path = self._find_key_value(env_vars, AITRACKDOWN_PATH_PATTERNS)
 
-        # Also check if .aitrackdown directory exists
+        # Check for explicit MCP_TICKETER_ADAPTER setting
+        explicit_adapter = env_vars.get("MCP_TICKETER_ADAPTER")
+        if explicit_adapter and explicit_adapter != "aitrackdown":
+            # If another adapter is explicitly set, don't detect aitrackdown
+            return None
+
+        # Check if .aitrackdown directory exists
         aitrackdown_dir = self.project_path / ".aitrackdown"
+
+        # Only detect aitrackdown if:
+        # 1. There's an explicit base_path setting, OR
+        # 2. There's a .aitrackdown directory AND no other adapter variables are present
+        has_other_adapter_vars = (
+            any(key.startswith("LINEAR_") for key in env_vars) or
+            any(key.startswith("GITHUB_") for key in env_vars) or
+            any(key.startswith("JIRA_") for key in env_vars)
+        )
+
         if not base_path and not aitrackdown_dir.exists():
+            return None
+
+        if not base_path and has_other_adapter_vars:
+            # Don't detect aitrackdown if other adapter variables are present
+            # unless explicitly configured
             return None
 
         config: dict[str, Any] = {
@@ -468,8 +489,15 @@ class EnvDiscovery:
         else:
             config["base_path"] = ".aitrackdown"
 
-        # AITrackdown has no required external credentials
-        confidence = 1.0 if aitrackdown_dir.exists() else 0.7
+        # Lower confidence when other adapter variables are present
+        if has_other_adapter_vars:
+            confidence = 0.3  # Low confidence when other adapters are configured
+        elif base_path:
+            confidence = 1.0  # High confidence when explicitly configured
+        elif aitrackdown_dir.exists():
+            confidence = 0.8  # Medium confidence when directory exists
+        else:
+            confidence = 0.5  # Low confidence as fallback
 
         return DiscoveredAdapter(
             adapter_type=AdapterType.AITRACKDOWN.value,
