@@ -229,6 +229,7 @@ class EnvDiscovery:
 
         # First, load from actual environment variables (lowest priority)
         import os
+
         actual_env = {k: v for k, v in os.environ.items() if v}
         merged_env.update(actual_env)
         if actual_env:
@@ -300,7 +301,7 @@ class EnvDiscovery:
         team_identifier = self._find_key_value(env_vars, LINEAR_TEAM_PATTERNS)
         if team_identifier:
             # Determine if it's a team_id (UUID format) or team_key (short string)
-            if len(team_identifier) > 20 and '-' in team_identifier:
+            if len(team_identifier) > 20 and "-" in team_identifier:
                 # Looks like a UUID (team_id)
                 config["team_id"] = team_identifier
             else:
@@ -467,9 +468,9 @@ class EnvDiscovery:
         # 1. There's an explicit base_path setting, OR
         # 2. There's a .aitrackdown directory AND no other adapter variables are present
         has_other_adapter_vars = (
-            any(key.startswith("LINEAR_") for key in env_vars) or
-            any(key.startswith("GITHUB_") for key in env_vars) or
-            any(key.startswith("JIRA_") for key in env_vars)
+            any(key.startswith("LINEAR_") for key in env_vars)
+            or any(key.startswith("GITHUB_") for key in env_vars)
+            or any(key.startswith("JIRA_") for key in env_vars)
         )
 
         if not base_path and not aitrackdown_dir.exists():

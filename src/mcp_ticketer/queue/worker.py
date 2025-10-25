@@ -11,12 +11,12 @@ from typing import Any, Optional
 
 from dotenv import load_dotenv
 
+# Import adapters module to trigger registration
+import mcp_ticketer.adapters  # noqa: F401
+
 from ..core import AdapterRegistry, Task
 from .queue import Queue, QueueItem, QueueStatus
 from .ticket_registry import TicketRegistry
-
-# Import adapters module to trigger registration
-import mcp_ticketer.adapters  # noqa: F401
 
 # Load environment variables from .env.local
 env_path = Path.cwd() / ".env.local"
@@ -263,15 +263,19 @@ class Worker:
 
             # Mark as completed in both queue and registry (atomic)
             success = self.queue.update_status(
-                item.id, QueueStatus.COMPLETED, result=result,
-                expected_status=QueueStatus.PROCESSING
+                item.id,
+                QueueStatus.COMPLETED,
+                result=result,
+                expected_status=QueueStatus.PROCESSING,
             )
             if success:
                 self.ticket_registry.update_ticket_status(
                     item.id, "completed", ticket_id=ticket_id, result_data=result
                 )
             else:
-                logger.warning(f"Failed to update status for {item.id} - item may have been processed by another worker")
+                logger.warning(
+                    f"Failed to update status for {item.id} - item may have been processed by another worker"
+                )
 
             self.stats["items_processed"] += 1
             logger.info(f"Successfully processed {item.id}, ticket ID: {ticket_id}")
@@ -301,22 +305,31 @@ class Worker:
                         item.id, "queued", retry_count=new_retry_count
                     )
                 else:
-                    logger.warning(f"Failed to increment retry for {item.id} - item may have been processed by another worker")
+                    logger.warning(
+                        f"Failed to increment retry for {item.id} - item may have been processed by another worker"
+                    )
 
                 # Wait before retry
                 await asyncio.sleep(retry_delay)
             else:
                 # Max retries exceeded, mark as failed (atomic)
                 success = self.queue.update_status(
-                    item.id, QueueStatus.FAILED, error_message=str(e),
-                    expected_status=QueueStatus.PROCESSING
+                    item.id,
+                    QueueStatus.FAILED,
+                    error_message=str(e),
+                    expected_status=QueueStatus.PROCESSING,
                 )
                 if success:
                     self.ticket_registry.update_ticket_status(
-                        item.id, "failed", error_message=str(e), retry_count=item.retry_count
+                        item.id,
+                        "failed",
+                        error_message=str(e),
+                        retry_count=item.retry_count,
                     )
                 else:
-                    logger.warning(f"Failed to mark {item.id} as failed - item may have been processed by another worker")
+                    logger.warning(
+                        f"Failed to mark {item.id} as failed - item may have been processed by another worker"
+                    )
                 self.stats["items_failed"] += 1
                 logger.error(f"Max retries exceeded for {item.id}, marking as failed")
 
@@ -397,17 +410,28 @@ class Worker:
         # Add debugging for Linear adapter specifically
         if item.adapter == "linear":
             import os
+
             linear_api_key = os.getenv("LINEAR_API_KEY", "Not set")
-            logger.info(f"Worker LINEAR_API_KEY: {linear_api_key[:20] if linear_api_key != 'Not set' else 'Not set'}...")
-            logger.info(f"Worker adapter_config api_key: {adapter_config.get('api_key', 'Not set')[:20] if adapter_config.get('api_key') else 'Not set'}...")
+            logger.info(
+                f"Worker LINEAR_API_KEY: {linear_api_key[:20] if linear_api_key != 'Not set' else 'Not set'}..."
+            )
+            logger.info(
+                f"Worker adapter_config api_key: {adapter_config.get('api_key', 'Not set')[:20] if adapter_config.get('api_key') else 'Not set'}..."
+            )
 
         adapter = AdapterRegistry.get_adapter(item.adapter, adapter_config)
-        logger.info(f"Worker created adapter: {type(adapter)} with team_id: {getattr(adapter, 'team_id_config', 'Not set')}")
+        logger.info(
+            f"Worker created adapter: {type(adapter)} with team_id: {getattr(adapter, 'team_id_config', 'Not set')}"
+        )
 
         # Add more debugging for Linear adapter
         if item.adapter == "linear":
-            logger.info(f"Worker Linear adapter api_key: {getattr(adapter, 'api_key', 'Not set')[:20] if getattr(adapter, 'api_key', None) else 'Not set'}...")
-            logger.info(f"Worker Linear adapter team_key: {getattr(adapter, 'team_key', 'Not set')}")
+            logger.info(
+                f"Worker Linear adapter api_key: {getattr(adapter, 'api_key', 'Not set')[:20] if getattr(adapter, 'api_key', None) else 'Not set'}..."
+            )
+            logger.info(
+                f"Worker Linear adapter team_key: {getattr(adapter, 'team_key', 'Not set')}"
+            )
 
         return adapter
 
@@ -461,14 +485,13 @@ class Worker:
             result = await adapter.create_epic(
                 title=data["title"],
                 description=data.get("description"),
-                **{k: v for k, v in data.items()
-                   if k not in ["title", "description"]}
+                **{k: v for k, v in data.items() if k not in ["title", "description"]},
             )
             return {
                 "id": result.id if result else None,
                 "title": result.title if result else None,
                 "type": "epic",
-                "success": bool(result)
+                "success": bool(result),
             }
 
         elif operation == "create_issue":
@@ -476,15 +499,18 @@ class Worker:
                 title=data["title"],
                 description=data.get("description"),
                 epic_id=data.get("epic_id"),
-                **{k: v for k, v in data.items()
-                   if k not in ["title", "description", "epic_id"]}
+                **{
+                    k: v
+                    for k, v in data.items()
+                    if k not in ["title", "description", "epic_id"]
+                },
             )
             return {
                 "id": result.id if result else None,
                 "title": result.title if result else None,
                 "type": "issue",
                 "epic_id": data.get("epic_id"),
-                "success": bool(result)
+                "success": bool(result),
             }
 
         elif operation == "create_task":
@@ -492,15 +518,18 @@ class Worker:
                 title=data["title"],
                 parent_id=data["parent_id"],
                 description=data.get("description"),
-                **{k: v for k, v in data.items()
-                   if k not in ["title", "parent_id", "description"]}
+                **{
+                    k: v
+                    for k, v in data.items()
+                    if k not in ["title", "parent_id", "description"]
+                },
             )
             return {
                 "id": result.id if result else None,
                 "title": result.title if result else None,
                 "type": "task",
                 "parent_id": data["parent_id"],
-                "success": bool(result)
+                "success": bool(result),
             }
 
         else:

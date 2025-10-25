@@ -81,6 +81,7 @@ class CommonPatterns:
         # Try environment discovery as fallback
         try:
             from ..core.config import ConfigurationManager
+
             config_manager = ConfigurationManager()
             app_config = config_manager.load_config()
 
@@ -88,24 +89,27 @@ class CommonPatterns:
             enabled_adapters = app_config.get_enabled_adapters()
             if enabled_adapters:
                 # Use the first enabled adapter as default
-                default_adapter = app_config.default_adapter or list(enabled_adapters.keys())[0]
+                default_adapter = (
+                    app_config.default_adapter or list(enabled_adapters.keys())[0]
+                )
 
                 # Convert to legacy format
-                legacy_config = {
-                    "default_adapter": default_adapter,
-                    "adapters": {}
-                }
+                legacy_config = {"default_adapter": default_adapter, "adapters": {}}
 
                 # Convert adapter configs to dict format
                 for name, adapter_config in enabled_adapters.items():
-                    if hasattr(adapter_config, 'model_dump'):
-                        legacy_config["adapters"][name] = adapter_config.model_dump(exclude_none=False)
-                    elif hasattr(adapter_config, 'dict'):
+                    if hasattr(adapter_config, "model_dump"):
+                        legacy_config["adapters"][name] = adapter_config.model_dump(
+                            exclude_none=False
+                        )
+                    elif hasattr(adapter_config, "dict"):
                         legacy_config["adapters"][name] = adapter_config.dict()
                     else:
                         legacy_config["adapters"][name] = adapter_config
 
-                logger.info(f"Loaded configuration from environment discovery: {list(enabled_adapters.keys())}")
+                logger.info(
+                    f"Loaded configuration from environment discovery: {list(enabled_adapters.keys())}"
+                )
                 return legacy_config
 
         except Exception as e:
@@ -212,12 +216,13 @@ class CommonPatterns:
 
         # Add to queue with explicit project directory
         from pathlib import Path
+
         queue = Queue()
         queue_id = queue.add(
             ticket_data=ticket_data,
             adapter=adapter_name,
             operation=operation,
-            project_dir=str(Path.cwd())  # Explicitly pass current project directory
+            project_dir=str(Path.cwd()),  # Explicitly pass current project directory
         )
 
         if show_progress:

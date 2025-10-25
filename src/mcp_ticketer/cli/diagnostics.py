@@ -1,38 +1,40 @@
 """Comprehensive diagnostics and self-diagnosis functionality for MCP Ticketer."""
 
-import asyncio
 import json
 import logging
-import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import typer
 from rich.console import Console
-from rich.panel import Panel
 from rich.table import Table
-from rich.text import Text
+
 
 def get_config():
     """Get configuration using the real configuration system."""
     from ..core.config import ConfigurationManager
+
     config_manager = ConfigurationManager()
     return config_manager.load_config()
+
 
 def safe_import_registry():
     """Safely import adapter registry with fallback."""
     try:
         from ..core.registry import AdapterRegistry
+
         return AdapterRegistry
     except ImportError:
+
         class MockRegistry:
             @staticmethod
             def get_adapter(adapter_type):
                 raise ImportError(f"Adapter {adapter_type} not available")
 
         return MockRegistry
+
 
 def safe_import_queue_manager():
     """Safely import worker manager with fallback."""
@@ -63,9 +65,14 @@ def safe_import_queue_manager():
             return {"total": 0, "failed": 0, "pending": 0, "completed": 0}
 
         def health_check(self):
-            return {"status": "degraded", "score": 50, "details": "Running in fallback mode"}
+            return {
+                "status": "degraded",
+                "score": 50,
+                "details": "Running in fallback mode",
+            }
 
     return MockWorkerManager
+
 
 # Initialize with safe imports
 AdapterRegistry = safe_import_registry()
@@ -125,6 +132,7 @@ class SystemDiagnostics:
         """Get current version information."""
         try:
             from ..__version__ import __version__
+
             return __version__
         except ImportError:
             return "unknown"
@@ -135,7 +143,11 @@ class SystemDiagnostics:
             "python_version": sys.version,
             "platform": sys.platform,
             "working_directory": str(Path.cwd()),
-            "config_path": str(self.config.config_file) if hasattr(self.config, 'config_file') else "unknown",
+            "config_path": (
+                str(self.config.config_file)
+                if hasattr(self.config, "config_file")
+                else "unknown"
+            ),
         }
 
     async def _diagnose_configuration(self) -> Dict[str, Any]:
@@ -166,6 +178,7 @@ class SystemDiagnostics:
 
             # Try to detect adapters from environment variables
             import os
+
             env_adapters = []
             if os.getenv("LINEAR_API_KEY"):
                 env_adapters.append("linear")
@@ -178,15 +191,20 @@ class SystemDiagnostics:
             config_status["default_adapter"] = "aitrackdown"
 
             if env_adapters:
-                console.print(f"ℹ️  Detected {len(env_adapters)} adapter(s) from environment: {', '.join(env_adapters)}")
+                console.print(
+                    f"ℹ️  Detected {len(env_adapters)} adapter(s) from environment: {', '.join(env_adapters)}"
+                )
             else:
-                console.print("ℹ️  No adapter environment variables detected, using aitrackdown")
+                console.print(
+                    "ℹ️  No adapter environment variables detected, using aitrackdown"
+                )
 
             return config_status
 
         try:
             # Check adapter configurations using the same approach as working commands
             from .utils import CommonPatterns
+
             raw_config = CommonPatterns.load_config()
             adapters_config = raw_config.get("adapters", {})
             config_status["adapters_configured"] = len(adapters_config)
@@ -206,13 +224,15 @@ class SystemDiagnostics:
                 try:
                     # Use the same adapter creation approach as working commands
                     adapter = CommonPatterns.get_adapter(override_adapter=name)
-                    
+
                     # Test adapter validation if available
-                    if hasattr(adapter, 'validate_credentials'):
+                    if hasattr(adapter, "validate_credentials"):
                         is_valid, error = adapter.validate_credentials()
                         if is_valid:
                             console.print(f"✅ {name}: credentials valid")
-                            self.successes.append(f"{name} adapter configured correctly")
+                            self.successes.append(
+                                f"{name} adapter configured correctly"
+                            )
                         else:
                             issue = f"{name}: credential validation failed - {error}"
                             config_status["issues"].append(issue)
@@ -239,7 +259,7 @@ class SystemDiagnostics:
     async def _diagnose_adapters(self) -> Dict[str, Any]:
         """Diagnose adapter functionality."""
         console.print("\n🔌 [yellow]Adapter Diagnosis[/yellow]")
-        
+
         adapter_status = {
             "total_adapters": 0,
             "healthy_adapters": 0,
@@ -250,6 +270,7 @@ class SystemDiagnostics:
         try:
             # Use the same configuration loading approach as working commands
             from .utils import CommonPatterns
+
             raw_config = CommonPatterns.load_config()
             adapters_config = raw_config.get("adapters", {})
             adapter_status["total_adapters"] = len(adapters_config)
@@ -268,11 +289,12 @@ class SystemDiagnostics:
                 try:
                     # Use the same adapter creation approach as working commands
                     from .utils import CommonPatterns
+
                     adapter = CommonPatterns.get_adapter(override_adapter=adapter_type)
-                    
+
                     # Test basic adapter functionality
                     test_start = datetime.now()
-                    
+
                     # Try to list tickets (non-destructive test)
                     try:
                         await adapter.list(limit=1)
@@ -317,7 +339,11 @@ class SystemDiagnostics:
             "failure_rate": 0.0,
             "health_score": 0,
             "worker_start_test": {"attempted": False, "success": False, "error": None},
-            "queue_operation_test": {"attempted": False, "success": False, "error": None},
+            "queue_operation_test": {
+                "attempted": False,
+                "success": False,
+                "error": None,
+            },
         }
 
         try:
@@ -339,7 +365,9 @@ class SystemDiagnostics:
             queue_status["worker_pid"] = worker_status.get("pid")
 
             if queue_status["worker_running"]:
-                console.print(f"✅ Queue worker running (PID: {queue_status['worker_pid']})")
+                console.print(
+                    f"✅ Queue worker running (PID: {queue_status['worker_pid']})"
+                )
                 self.successes.append("Queue worker is running")
             else:
                 console.print("⚠️  Queue worker not running - attempting to start...")
@@ -353,8 +381,12 @@ class SystemDiagnostics:
                     queue_status["worker_running"] = True
                     self.successes.append("Queue worker started successfully")
                 else:
-                    console.print(f"❌ Failed to start queue worker: {start_test['error']}")
-                    self.issues.append(f"Queue worker startup failed: {start_test['error']}")
+                    console.print(
+                        f"❌ Failed to start queue worker: {start_test['error']}"
+                    )
+                    self.issues.append(
+                        f"Queue worker startup failed: {start_test['error']}"
+                    )
 
             # Test 3: Get queue statistics
             console.print("🔍 Analyzing queue statistics...")
@@ -377,7 +409,9 @@ class SystemDiagnostics:
                     self.warnings.append(warning)
                     console.print(f"⚠️  {warning}")
                 else:
-                    console.print(f"✅ Queue failure rate: {failure_rate:.1f}% ({failed_items}/{total_items})")
+                    console.print(
+                        f"✅ Queue failure rate: {failure_rate:.1f}% ({failed_items}/{total_items})"
+                    )
 
             # Test 4: Test actual queue operations
             console.print("🔍 Testing queue operations...")
@@ -388,21 +422,30 @@ class SystemDiagnostics:
                 console.print("✅ Queue operations test passed")
                 self.successes.append("Queue operations working correctly")
             else:
-                console.print(f"❌ Queue operations test failed: {operation_test['error']}")
-                self.issues.append(f"Queue operations failed: {operation_test['error']}")
+                console.print(
+                    f"❌ Queue operations test failed: {operation_test['error']}"
+                )
+                self.issues.append(
+                    f"Queue operations failed: {operation_test['error']}"
+                )
 
             # Calculate health score based on actual tests
             health_score = 100
             if not queue_status["worker_running"]:
                 health_score -= 30
-            if not queue_status["worker_start_test"]["success"] and queue_status["worker_start_test"]["attempted"]:
+            if (
+                not queue_status["worker_start_test"]["success"]
+                and queue_status["worker_start_test"]["attempted"]
+            ):
                 health_score -= 20
             if not queue_status["queue_operation_test"]["success"]:
                 health_score -= 30
             health_score -= min(queue_status["failure_rate"], 20)
             queue_status["health_score"] = max(0, health_score)
 
-            console.print(f"📊 Queue health score: {queue_status['health_score']}/100 (based on active testing)")
+            console.print(
+                f"📊 Queue health score: {queue_status['health_score']}/100 (based on active testing)"
+            )
 
         except Exception as e:
             issue = f"Queue system diagnosis failed: {str(e)}"
@@ -417,23 +460,28 @@ class SystemDiagnostics:
             "attempted": True,
             "success": False,
             "error": None,
-            "details": None
+            "details": None,
         }
 
         try:
             # Try to start worker using the worker manager
-            if hasattr(self.worker_manager, 'start'):
+            if hasattr(self.worker_manager, "start"):
                 result = self.worker_manager.start()
                 test_result["success"] = result
-                test_result["details"] = "Worker started successfully" if result else "Worker failed to start"
+                test_result["details"] = (
+                    "Worker started successfully"
+                    if result
+                    else "Worker failed to start"
+                )
             else:
                 # Try alternative method - use CLI command
                 import subprocess
+
                 result = subprocess.run(
                     ["mcp-ticketer", "queue", "worker", "start"],
                     capture_output=True,
                     text=True,
-                    timeout=10
+                    timeout=10,
                 )
                 if result.returncode == 0:
                     test_result["success"] = True
@@ -454,18 +502,18 @@ class SystemDiagnostics:
             "attempted": True,
             "success": False,
             "error": None,
-            "details": None
+            "details": None,
         }
 
         try:
             # Test creating a simple queue item (diagnostic test)
-            from ..core.models import Task, Priority
+            from ..core.models import Priority, Task
             from ..queue.queue import Queue
 
             test_task = Task(
                 title="[DIAGNOSTIC TEST] Queue functionality test",
                 description="This is a diagnostic test - safe to ignore",
-                priority=Priority.LOW
+                priority=Priority.LOW,
             )
 
             # Try to queue the test task using the correct Queue.add() method
@@ -473,7 +521,7 @@ class SystemDiagnostics:
             queue_id = queue.add(
                 ticket_data=test_task.model_dump(),
                 adapter="aitrackdown",
-                operation="create"
+                operation="create",
             )
             test_result["success"] = True
             test_result["details"] = f"Test task queued successfully: {queue_id}"
@@ -489,25 +537,25 @@ class SystemDiagnostics:
             "attempted": True,
             "success": False,
             "error": None,
-            "details": None
+            "details": None,
         }
 
         try:
             # Test if we can at least create a task directly (bypass queue)
-            from ..core.models import Task, Priority
             from ..adapters.aitrackdown import AITrackdownAdapter
+            from ..core.models import Priority, Task
 
             test_task = Task(
                 title="[DIAGNOSTIC TEST] Direct adapter test",
                 description="Testing direct adapter functionality",
-                priority=Priority.LOW
+                priority=Priority.LOW,
             )
 
             # Try direct adapter creation
             adapter_config = {
                 "type": "aitrackdown",
                 "enabled": True,
-                "base_path": "/tmp/mcp-ticketer-diagnostic-test"
+                "base_path": "/tmp/mcp-ticketer-diagnostic-test",
             }
 
             adapter = AITrackdownAdapter(adapter_config)
@@ -527,7 +575,7 @@ class SystemDiagnostics:
     async def _analyze_recent_logs(self) -> Dict[str, Any]:
         """Analyze recent log entries for issues."""
         console.print("\n📝 [yellow]Recent Log Analysis[/yellow]")
-        
+
         log_analysis = {
             "log_files_found": [],
             "recent_errors": [],
@@ -551,7 +599,9 @@ class SystemDiagnostics:
             if not log_analysis["log_files_found"]:
                 console.print("ℹ️  No log files found in standard locations")
             else:
-                console.print(f"✅ Found logs in {len(log_analysis['log_files_found'])} location(s)")
+                console.print(
+                    f"✅ Found logs in {len(log_analysis['log_files_found'])} location(s)"
+                )
 
         except Exception as e:
             issue = f"Log analysis failed: {str(e)}"
@@ -560,11 +610,16 @@ class SystemDiagnostics:
 
         return log_analysis
 
-    async def _analyze_log_directory(self, log_path: Path, log_analysis: Dict[str, Any]):
+    async def _analyze_log_directory(
+        self, log_path: Path, log_analysis: Dict[str, Any]
+    ):
         """Analyze logs in a specific directory."""
         try:
             for log_file in log_path.glob("*.log"):
-                if log_file.stat().st_mtime > (datetime.now() - timedelta(hours=24)).timestamp():
+                if (
+                    log_file.stat().st_mtime
+                    > (datetime.now() - timedelta(hours=24)).timestamp()
+                ):
                     await self._parse_log_file(log_file, log_analysis)
         except Exception as e:
             self.warnings.append(f"Could not analyze logs in {log_path}: {str(e)}")
@@ -572,9 +627,9 @@ class SystemDiagnostics:
     async def _parse_log_file(self, log_file: Path, log_analysis: Dict[str, Any]):
         """Parse individual log file for issues."""
         try:
-            with open(log_file, 'r') as f:
+            with open(log_file) as f:
                 lines = f.readlines()[-100:]  # Last 100 lines
-                
+
             for line in lines:
                 if "ERROR" in line:
                     log_analysis["recent_errors"].append(line.strip())
@@ -587,7 +642,7 @@ class SystemDiagnostics:
     async def _analyze_performance(self) -> Dict[str, Any]:
         """Analyze system performance metrics."""
         console.print("\n⚡ [yellow]Performance Analysis[/yellow]")
-        
+
         performance = {
             "response_times": {},
             "throughput": {},
@@ -597,16 +652,16 @@ class SystemDiagnostics:
         try:
             # Test basic operations performance
             start_time = datetime.now()
-            
+
             # Test configuration loading
             config_start = datetime.now()
             _ = get_config()
             config_time = (datetime.now() - config_start).total_seconds()
             performance["response_times"]["config_load"] = config_time
-            
+
             if config_time > 1.0:
                 self.warnings.append(f"Slow configuration loading: {config_time:.2f}s")
-            
+
             console.print(f"📊 Configuration load time: {config_time:.3f}s")
 
         except Exception as e:
@@ -621,23 +676,33 @@ class SystemDiagnostics:
         recommendations = []
 
         if self.issues:
-            recommendations.append("🚨 Critical issues detected - immediate attention required")
-            
+            recommendations.append(
+                "🚨 Critical issues detected - immediate attention required"
+            )
+
             if any("Queue worker not running" in issue for issue in self.issues):
-                recommendations.append("• Restart queue worker: mcp-ticketer queue worker restart")
-                
+                recommendations.append(
+                    "• Restart queue worker: mcp-ticketer queue worker restart"
+                )
+
             if any("failure rate" in issue.lower() for issue in self.issues):
                 recommendations.append("• Check queue system logs for error patterns")
-                recommendations.append("• Consider clearing failed queue items: mcp-ticketer queue clear --failed")
-                
+                recommendations.append(
+                    "• Consider clearing failed queue items: mcp-ticketer queue clear --failed"
+                )
+
             if any("No adapters configured" in issue for issue in self.issues):
-                recommendations.append("• Configure at least one adapter: mcp-ticketer init-aitrackdown")
+                recommendations.append(
+                    "• Configure at least one adapter: mcp-ticketer init-aitrackdown"
+                )
 
         if self.warnings:
             recommendations.append("⚠️  Warnings detected - monitoring recommended")
 
         if not self.issues and not self.warnings:
-            recommendations.append("✅ System appears healthy - no immediate action required")
+            recommendations.append(
+                "✅ System appears healthy - no immediate action required"
+            )
 
         return recommendations
 
@@ -661,7 +726,9 @@ class SystemDiagnostics:
             status_text = "HEALTHY"
             status_icon = "✅"
 
-        console.print(f"\n{status_icon} [bold {status_color}]System Status: {status_text}[/bold {status_color}]")
+        console.print(
+            f"\n{status_icon} [bold {status_color}]System Status: {status_text}[/bold {status_color}]"
+        )
 
         # Statistics
         stats_table = Table(show_header=True, header_style="bold blue")
@@ -670,36 +737,62 @@ class SystemDiagnostics:
         stats_table.add_column("Details")
 
         # Add component statuses
-        config_status = "✅ OK" if not any("configuration" in issue.lower() for issue in self.issues) else "❌ FAILED"
-        stats_table.add_row("Configuration", config_status, f"{report['configuration']['adapters_configured']} adapters")
+        config_status = (
+            "✅ OK"
+            if not any("configuration" in issue.lower() for issue in self.issues)
+            else "❌ FAILED"
+        )
+        stats_table.add_row(
+            "Configuration",
+            config_status,
+            f"{report['configuration']['adapters_configured']} adapters",
+        )
 
-        queue_health = report['queue_system']['health_score']
-        queue_status = "✅ OK" if queue_health > 80 else "⚠️  DEGRADED" if queue_health > 50 else "❌ FAILED"
-        stats_table.add_row("Queue System", queue_status, f"{queue_health}/100 health score")
+        queue_health = report["queue_system"]["health_score"]
+        queue_status = (
+            "✅ OK"
+            if queue_health > 80
+            else "⚠️  DEGRADED" if queue_health > 50 else "❌ FAILED"
+        )
+        stats_table.add_row(
+            "Queue System", queue_status, f"{queue_health}/100 health score"
+        )
 
-        adapter_stats = report['adapters']
-        adapter_status = "✅ OK" if adapter_stats['failed_adapters'] == 0 else "❌ FAILED"
-        stats_table.add_row("Adapters", adapter_status, f"{adapter_stats['healthy_adapters']}/{adapter_stats['total_adapters']} healthy")
+        adapter_stats = report["adapters"]
+        adapter_status = (
+            "✅ OK" if adapter_stats["failed_adapters"] == 0 else "❌ FAILED"
+        )
+        stats_table.add_row(
+            "Adapters",
+            adapter_status,
+            f"{adapter_stats['healthy_adapters']}/{adapter_stats['total_adapters']} healthy",
+        )
 
         console.print(stats_table)
 
         # Issues and recommendations
         if self.issues:
-            console.print(f"\n🚨 [bold red]Critical Issues ({len(self.issues)}):[/bold red]")
+            console.print(
+                f"\n🚨 [bold red]Critical Issues ({len(self.issues)}):[/bold red]"
+            )
             for issue in self.issues:
                 console.print(f"  • {issue}")
 
         if self.warnings:
-            console.print(f"\n⚠️  [bold yellow]Warnings ({len(self.warnings)}):[/bold yellow]")
+            console.print(
+                f"\n⚠️  [bold yellow]Warnings ({len(self.warnings)}):[/bold yellow]"
+            )
             for warning in self.warnings:
                 console.print(f"  • {warning}")
 
-        if report['recommendations']:
-            console.print(f"\n💡 [bold blue]Recommendations:[/bold blue]")
-            for rec in report['recommendations']:
+        if report["recommendations"]:
+            console.print("\n💡 [bold blue]Recommendations:[/bold blue]")
+            for rec in report["recommendations"]:
                 console.print(f"  {rec}")
 
-        console.print(f"\n📊 [bold]Summary:[/bold] {len(self.successes)} successes, {len(self.warnings)} warnings, {len(self.issues)} critical issues")
+        console.print(
+            f"\n📊 [bold]Summary:[/bold] {len(self.successes)} successes, {len(self.warnings)} warnings, {len(self.issues)} critical issues"
+        )
 
 
 async def run_diagnostics(
@@ -711,7 +804,7 @@ async def run_diagnostics(
     report = await diagnostics.run_full_diagnosis()
 
     if output_file:
-        with open(output_file, 'w') as f:
+        with open(output_file, "w") as f:
             json.dump(report, f, indent=2)
         console.print(f"\n📄 Full report saved to: {output_file}")
 

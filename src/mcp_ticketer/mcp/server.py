@@ -8,13 +8,13 @@ from typing import Any, Optional
 
 from dotenv import load_dotenv
 
+# Import adapters module to trigger registration
+import mcp_ticketer.adapters  # noqa: F401
+
 from ..core import AdapterRegistry
 from ..core.models import SearchQuery
 from ..queue import Queue, QueueStatus, WorkerManager
-from ..queue.health_monitor import QueueHealthMonitor, HealthStatus
-
-# Import adapters module to trigger registration
-import mcp_ticketer.adapters  # noqa: F401
+from ..queue.health_monitor import HealthStatus, QueueHealthMonitor
 
 # Load environment variables early (prioritize .env.local)
 # Check for .env.local first (takes precedence)
@@ -171,15 +171,17 @@ class MCPTicketServer:
 
             # If still critical, return error immediately
             if health["status"] == HealthStatus.CRITICAL:
-                critical_alerts = [alert for alert in health["alerts"] if alert["level"] == "critical"]
+                critical_alerts = [
+                    alert for alert in health["alerts"] if alert["level"] == "critical"
+                ]
                 return {
                     "status": "error",
                     "error": "Queue system is in critical state",
                     "details": {
                         "health_status": health["status"],
                         "critical_issues": critical_alerts,
-                        "repair_attempted": repair_result["actions_taken"]
-                    }
+                        "repair_attempted": repair_result["actions_taken"],
+                    },
                 }
 
         # Queue the operation
@@ -210,8 +212,8 @@ class MCPTicketServer:
                 "queue_id": queue_id,
                 "details": {
                     "pending_count": queue.get_pending_count(),
-                    "action": "Worker process could not be started to process queued operations"
-                }
+                    "action": "Worker process could not be started to process queued operations",
+                },
             }
 
         # Check if async mode is requested (for backward compatibility)
@@ -551,7 +553,10 @@ class MCPTicketServer:
 
         # Add auto-repair option
         auto_repair = params.get("auto_repair", False)
-        if auto_repair and health["status"] in [HealthStatus.CRITICAL, HealthStatus.WARNING]:
+        if auto_repair and health["status"] in [
+            HealthStatus.CRITICAL,
+            HealthStatus.WARNING,
+        ]:
             repair_result = health_monitor.auto_repair()
             health["auto_repair"] = repair_result
             # Re-check health after repair
@@ -572,15 +577,17 @@ class MCPTicketServer:
             health = health_monitor.check_health()
 
             if health["status"] == HealthStatus.CRITICAL:
-                critical_alerts = [alert for alert in health["alerts"] if alert["level"] == "critical"]
+                critical_alerts = [
+                    alert for alert in health["alerts"] if alert["level"] == "critical"
+                ]
                 return {
                     "status": "error",
                     "error": "Queue system is in critical state",
                     "details": {
                         "health_status": health["status"],
                         "critical_issues": critical_alerts,
-                        "repair_attempted": repair_result["actions_taken"]
-                    }
+                        "repair_attempted": repair_result["actions_taken"],
+                    },
                 }
 
         # Queue the epic creation
@@ -610,15 +617,15 @@ class MCPTicketServer:
                 "queue_id": queue_id,
                 "details": {
                     "pending_count": queue.get_pending_count(),
-                    "action": "Worker process could not be started to process queued operations"
-                }
+                    "action": "Worker process could not be started to process queued operations",
+                },
             }
 
         return {
             "queue_id": queue_id,
             "status": "queued",
             "message": f"Epic creation queued with ID: {queue_id}",
-            "epic_data": epic_data
+            "epic_data": epic_data,
         }
 
     async def _handle_epic_list(self, params: dict[str, Any]) -> list[dict[str, Any]]:
@@ -626,7 +633,7 @@ class MCPTicketServer:
         epics = await self.adapter.list_epics(
             limit=params.get("limit", 10),
             offset=params.get("offset", 0),
-            **{k: v for k, v in params.items() if k not in ["limit", "offset"]}
+            **{k: v for k, v in params.items() if k not in ["limit", "offset"]},
         )
         return [epic.model_dump() for epic in epics]
 
@@ -647,15 +654,17 @@ class MCPTicketServer:
             health = health_monitor.check_health()
 
             if health["status"] == HealthStatus.CRITICAL:
-                critical_alerts = [alert for alert in health["alerts"] if alert["level"] == "critical"]
+                critical_alerts = [
+                    alert for alert in health["alerts"] if alert["level"] == "critical"
+                ]
                 return {
                     "status": "error",
                     "error": "Queue system is in critical state",
                     "details": {
                         "health_status": health["status"],
                         "critical_issues": critical_alerts,
-                        "repair_attempted": repair_result["actions_taken"]
-                    }
+                        "repair_attempted": repair_result["actions_taken"],
+                    },
                 }
 
         # Queue the issue creation
@@ -687,15 +696,15 @@ class MCPTicketServer:
                 "queue_id": queue_id,
                 "details": {
                     "pending_count": queue.get_pending_count(),
-                    "action": "Worker process could not be started to process queued operations"
-                }
+                    "action": "Worker process could not be started to process queued operations",
+                },
             }
 
         return {
             "queue_id": queue_id,
             "status": "queued",
             "message": f"Issue creation queued with ID: {queue_id}",
-            "issue_data": issue_data
+            "issue_data": issue_data,
         }
 
     async def _handle_issue_tasks(self, params: dict[str, Any]) -> list[dict[str, Any]]:
@@ -715,15 +724,17 @@ class MCPTicketServer:
             health = health_monitor.check_health()
 
             if health["status"] == HealthStatus.CRITICAL:
-                critical_alerts = [alert for alert in health["alerts"] if alert["level"] == "critical"]
+                critical_alerts = [
+                    alert for alert in health["alerts"] if alert["level"] == "critical"
+                ]
                 return {
                     "status": "error",
                     "error": "Queue system is in critical state",
                     "details": {
                         "health_status": health["status"],
                         "critical_issues": critical_alerts,
-                        "repair_attempted": repair_result["actions_taken"]
-                    }
+                        "repair_attempted": repair_result["actions_taken"],
+                    },
                 }
 
         # Validate required parent_id
@@ -731,7 +742,7 @@ class MCPTicketServer:
             return {
                 "status": "error",
                 "error": "Tasks must have a parent_id (issue identifier)",
-                "details": {"required_field": "parent_id"}
+                "details": {"required_field": "parent_id"},
             }
 
         # Queue the task creation
@@ -763,15 +774,15 @@ class MCPTicketServer:
                 "queue_id": queue_id,
                 "details": {
                     "pending_count": queue.get_pending_count(),
-                    "action": "Worker process could not be started to process queued operations"
-                }
+                    "action": "Worker process could not be started to process queued operations",
+                },
             }
 
         return {
             "queue_id": queue_id,
             "status": "queued",
             "message": f"Task creation queued with ID: {queue_id}",
-            "task_data": task_data
+            "task_data": task_data,
         }
 
     async def _handle_hierarchy_tree(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -786,18 +797,12 @@ class MCPTicketServer:
                 return {"error": f"Epic {epic_id} not found"}
 
             # Build tree structure
-            tree = {
-                "epic": epic.model_dump(),
-                "issues": []
-            }
+            tree = {"epic": epic.model_dump(), "issues": []}
 
             # Get issues in epic
             issues = await self.adapter.list_issues_by_epic(epic_id)
             for issue in issues:
-                issue_node = {
-                    "issue": issue.model_dump(),
-                    "tasks": []
-                }
+                issue_node = {"issue": issue.model_dump(), "tasks": []}
 
                 # Get tasks in issue if depth allows
                 if max_depth > 2:
@@ -813,7 +818,9 @@ class MCPTicketServer:
             trees = []
 
             for epic in epics:
-                tree = await self._handle_hierarchy_tree({"epic_id": epic.id, "max_depth": max_depth})
+                tree = await self._handle_hierarchy_tree(
+                    {"epic_id": epic.id, "max_depth": max_depth}
+                )
                 trees.append(tree)
 
             return {"trees": trees}
@@ -836,7 +843,7 @@ class MCPTicketServer:
                 return {
                     "status": "error",
                     "error": "Queue system is in critical state - cannot process bulk operations",
-                    "details": {"health_status": health["status"]}
+                    "details": {"health_status": health["status"]},
                 }
 
         # Queue all tickets
@@ -847,7 +854,7 @@ class MCPTicketServer:
             if not ticket_data.get("title"):
                 return {
                     "status": "error",
-                    "error": f"Ticket {i} missing required 'title' field"
+                    "error": f"Ticket {i} missing required 'title' field",
                 }
 
             queue_id = queue.add(
@@ -865,7 +872,7 @@ class MCPTicketServer:
             "queue_ids": queue_ids,
             "status": "queued",
             "message": f"Bulk creation of {len(tickets)} tickets queued",
-            "count": len(tickets)
+            "count": len(tickets),
         }
 
     async def _handle_bulk_update(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -886,7 +893,7 @@ class MCPTicketServer:
                 return {
                     "status": "error",
                     "error": "Queue system is in critical state - cannot process bulk operations",
-                    "details": {"health_status": health["status"]}
+                    "details": {"health_status": health["status"]},
                 }
 
         # Queue all updates
@@ -897,7 +904,7 @@ class MCPTicketServer:
             if not update_data.get("ticket_id"):
                 return {
                     "status": "error",
-                    "error": f"Update {i} missing required 'ticket_id' field"
+                    "error": f"Update {i} missing required 'ticket_id' field",
                 }
 
             queue_id = queue.add(
@@ -915,7 +922,7 @@ class MCPTicketServer:
             "queue_ids": queue_ids,
             "status": "queued",
             "message": f"Bulk update of {len(updates)} tickets queued",
-            "count": len(updates)
+            "count": len(updates),
         }
 
     async def _handle_search_hierarchy(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -929,7 +936,7 @@ class MCPTicketServer:
             query=query,
             state=params.get("state"),
             priority=params.get("priority"),
-            limit=params.get("limit", 50)
+            limit=params.get("limit", 50),
         )
 
         tickets = await self.adapter.search(search_query)
@@ -937,19 +944,16 @@ class MCPTicketServer:
         # Enhance with hierarchy information
         enhanced_results = []
         for ticket in tickets:
-            result = {
-                "ticket": ticket.model_dump(),
-                "hierarchy": {}
-            }
+            result = {"ticket": ticket.model_dump(), "hierarchy": {}}
 
             # Add parent information
             if include_parents:
-                if hasattr(ticket, 'parent_epic') and ticket.parent_epic:
+                if hasattr(ticket, "parent_epic") and ticket.parent_epic:
                     parent_epic = await self.adapter.get_epic(ticket.parent_epic)
                     if parent_epic:
                         result["hierarchy"]["epic"] = parent_epic.model_dump()
 
-                if hasattr(ticket, 'parent_issue') and ticket.parent_issue:
+                if hasattr(ticket, "parent_issue") and ticket.parent_issue:
                     parent_issue = await self.adapter.read(ticket.parent_issue)
                     if parent_issue:
                         result["hierarchy"]["parent_issue"] = parent_issue.model_dump()
@@ -958,7 +962,9 @@ class MCPTicketServer:
             if include_children:
                 if ticket.ticket_type == "epic":
                     issues = await self.adapter.list_issues_by_epic(ticket.id)
-                    result["hierarchy"]["issues"] = [issue.model_dump() for issue in issues]
+                    result["hierarchy"]["issues"] = [
+                        issue.model_dump() for issue in issues
+                    ]
                 elif ticket.ticket_type == "issue":
                     tasks = await self.adapter.list_tasks_by_issue(ticket.id)
                     result["hierarchy"]["tasks"] = [task.model_dump() for task in tasks]
@@ -968,7 +974,7 @@ class MCPTicketServer:
         return {
             "results": enhanced_results,
             "count": len(enhanced_results),
-            "query": query
+            "query": query,
         }
 
     async def _handle_attach(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -981,11 +987,16 @@ class MCPTicketServer:
             "ticket_id": params.get("ticket_id"),
             "details": {
                 "reason": "File attachments require adapter-specific implementation",
-                "alternatives": ["Add file URLs in comments", "Use external file storage"]
-            }
+                "alternatives": [
+                    "Add file URLs in comments",
+                    "Use external file storage",
+                ],
+            },
         }
 
-    async def _handle_list_attachments(self, params: dict[str, Any]) -> list[dict[str, Any]]:
+    async def _handle_list_attachments(
+        self, params: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Handle listing ticket attachments."""
         # Note: This is a placeholder for attachment functionality
         return []
@@ -1160,13 +1171,26 @@ class MCPTicketServer:
                         "type": "object",
                         "properties": {
                             "title": {"type": "string", "description": "Epic title"},
-                            "description": {"type": "string", "description": "Epic description"},
-                            "target_date": {"type": "string", "description": "Target completion date (ISO format)"},
-                            "lead_id": {"type": "string", "description": "Epic lead/owner ID"},
-                            "child_issues": {"type": "array", "items": {"type": "string"}, "description": "Initial child issue IDs"}
+                            "description": {
+                                "type": "string",
+                                "description": "Epic description",
+                            },
+                            "target_date": {
+                                "type": "string",
+                                "description": "Target completion date (ISO format)",
+                            },
+                            "lead_id": {
+                                "type": "string",
+                                "description": "Epic lead/owner ID",
+                            },
+                            "child_issues": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Initial child issue IDs",
+                            },
                         },
-                        "required": ["title"]
-                    }
+                        "required": ["title"],
+                    },
                 },
                 {
                     "name": "epic_list",
@@ -1174,10 +1198,18 @@ class MCPTicketServer:
                     "inputSchema": {
                         "type": "object",
                         "properties": {
-                            "limit": {"type": "integer", "default": 10, "description": "Maximum number of epics to return"},
-                            "offset": {"type": "integer", "default": 0, "description": "Number of epics to skip"}
-                        }
-                    }
+                            "limit": {
+                                "type": "integer",
+                                "default": 10,
+                                "description": "Maximum number of epics to return",
+                            },
+                            "offset": {
+                                "type": "integer",
+                                "default": 0,
+                                "description": "Number of epics to skip",
+                            },
+                        },
+                    },
                 },
                 {
                     "name": "epic_issues",
@@ -1185,10 +1217,13 @@ class MCPTicketServer:
                     "inputSchema": {
                         "type": "object",
                         "properties": {
-                            "epic_id": {"type": "string", "description": "Epic ID to get issues for"}
+                            "epic_id": {
+                                "type": "string",
+                                "description": "Epic ID to get issues for",
+                            }
                         },
-                        "required": ["epic_id"]
-                    }
+                        "required": ["epic_id"],
+                    },
                 },
                 {
                     "name": "issue_create",
@@ -1197,15 +1232,35 @@ class MCPTicketServer:
                         "type": "object",
                         "properties": {
                             "title": {"type": "string", "description": "Issue title"},
-                            "description": {"type": "string", "description": "Issue description"},
-                            "epic_id": {"type": "string", "description": "Parent epic ID"},
-                            "priority": {"type": "string", "enum": ["low", "medium", "high", "critical"], "default": "medium"},
-                            "assignee": {"type": "string", "description": "Assignee username"},
-                            "tags": {"type": "array", "items": {"type": "string"}, "description": "Issue tags"},
-                            "estimated_hours": {"type": "number", "description": "Estimated hours to complete"}
+                            "description": {
+                                "type": "string",
+                                "description": "Issue description",
+                            },
+                            "epic_id": {
+                                "type": "string",
+                                "description": "Parent epic ID",
+                            },
+                            "priority": {
+                                "type": "string",
+                                "enum": ["low", "medium", "high", "critical"],
+                                "default": "medium",
+                            },
+                            "assignee": {
+                                "type": "string",
+                                "description": "Assignee username",
+                            },
+                            "tags": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Issue tags",
+                            },
+                            "estimated_hours": {
+                                "type": "number",
+                                "description": "Estimated hours to complete",
+                            },
                         },
-                        "required": ["title"]
-                    }
+                        "required": ["title"],
+                    },
                 },
                 {
                     "name": "issue_tasks",
@@ -1213,10 +1268,13 @@ class MCPTicketServer:
                     "inputSchema": {
                         "type": "object",
                         "properties": {
-                            "issue_id": {"type": "string", "description": "Issue ID to get tasks for"}
+                            "issue_id": {
+                                "type": "string",
+                                "description": "Issue ID to get tasks for",
+                            }
                         },
-                        "required": ["issue_id"]
-                    }
+                        "required": ["issue_id"],
+                    },
                 },
                 {
                     "name": "task_create",
@@ -1225,15 +1283,35 @@ class MCPTicketServer:
                         "type": "object",
                         "properties": {
                             "title": {"type": "string", "description": "Task title"},
-                            "parent_id": {"type": "string", "description": "Parent issue ID (required)"},
-                            "description": {"type": "string", "description": "Task description"},
-                            "priority": {"type": "string", "enum": ["low", "medium", "high", "critical"], "default": "medium"},
-                            "assignee": {"type": "string", "description": "Assignee username"},
-                            "tags": {"type": "array", "items": {"type": "string"}, "description": "Task tags"},
-                            "estimated_hours": {"type": "number", "description": "Estimated hours to complete"}
+                            "parent_id": {
+                                "type": "string",
+                                "description": "Parent issue ID (required)",
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Task description",
+                            },
+                            "priority": {
+                                "type": "string",
+                                "enum": ["low", "medium", "high", "critical"],
+                                "default": "medium",
+                            },
+                            "assignee": {
+                                "type": "string",
+                                "description": "Assignee username",
+                            },
+                            "tags": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Task tags",
+                            },
+                            "estimated_hours": {
+                                "type": "number",
+                                "description": "Estimated hours to complete",
+                            },
                         },
-                        "required": ["title", "parent_id"]
-                    }
+                        "required": ["title", "parent_id"],
+                    },
                 },
                 {
                     "name": "hierarchy_tree",
@@ -1241,11 +1319,22 @@ class MCPTicketServer:
                     "inputSchema": {
                         "type": "object",
                         "properties": {
-                            "epic_id": {"type": "string", "description": "Specific epic ID (optional - if not provided, returns all epics)"},
-                            "max_depth": {"type": "integer", "default": 3, "description": "Maximum depth to traverse (1=epics only, 2=epics+issues, 3=full tree)"},
-                            "limit": {"type": "integer", "default": 10, "description": "Maximum number of epics to return (when epic_id not specified)"}
-                        }
-                    }
+                            "epic_id": {
+                                "type": "string",
+                                "description": "Specific epic ID (optional - if not provided, returns all epics)",
+                            },
+                            "max_depth": {
+                                "type": "integer",
+                                "default": 3,
+                                "description": "Maximum depth to traverse (1=epics only, 2=epics+issues, 3=full tree)",
+                            },
+                            "limit": {
+                                "type": "integer",
+                                "default": 10,
+                                "description": "Maximum number of epics to return (when epic_id not specified)",
+                            },
+                        },
+                    },
                 },
                 # Bulk Operations
                 {
@@ -1261,18 +1350,41 @@ class MCPTicketServer:
                                     "properties": {
                                         "title": {"type": "string"},
                                         "description": {"type": "string"},
-                                        "priority": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
-                                        "operation": {"type": "string", "enum": ["create", "create_epic", "create_issue", "create_task"], "default": "create"},
-                                        "epic_id": {"type": "string", "description": "For issues"},
-                                        "parent_id": {"type": "string", "description": "For tasks"}
+                                        "priority": {
+                                            "type": "string",
+                                            "enum": [
+                                                "low",
+                                                "medium",
+                                                "high",
+                                                "critical",
+                                            ],
+                                        },
+                                        "operation": {
+                                            "type": "string",
+                                            "enum": [
+                                                "create",
+                                                "create_epic",
+                                                "create_issue",
+                                                "create_task",
+                                            ],
+                                            "default": "create",
+                                        },
+                                        "epic_id": {
+                                            "type": "string",
+                                            "description": "For issues",
+                                        },
+                                        "parent_id": {
+                                            "type": "string",
+                                            "description": "For tasks",
+                                        },
                                     },
-                                    "required": ["title"]
+                                    "required": ["title"],
                                 },
-                                "description": "Array of tickets to create"
+                                "description": "Array of tickets to create",
                             }
                         },
-                        "required": ["tickets"]
-                    }
+                        "required": ["tickets"],
+                    },
                 },
                 {
                     "name": "ticket_bulk_update",
@@ -1288,17 +1400,25 @@ class MCPTicketServer:
                                         "ticket_id": {"type": "string"},
                                         "title": {"type": "string"},
                                         "description": {"type": "string"},
-                                        "priority": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
+                                        "priority": {
+                                            "type": "string",
+                                            "enum": [
+                                                "low",
+                                                "medium",
+                                                "high",
+                                                "critical",
+                                            ],
+                                        },
                                         "state": {"type": "string"},
-                                        "assignee": {"type": "string"}
+                                        "assignee": {"type": "string"},
                                     },
-                                    "required": ["ticket_id"]
+                                    "required": ["ticket_id"],
                                 },
-                                "description": "Array of ticket updates"
+                                "description": "Array of ticket updates",
                             }
                         },
-                        "required": ["updates"]
-                    }
+                        "required": ["updates"],
+                    },
                 },
                 # Advanced Search
                 {
@@ -1308,14 +1428,32 @@ class MCPTicketServer:
                         "type": "object",
                         "properties": {
                             "query": {"type": "string", "description": "Search query"},
-                            "state": {"type": "string", "description": "Filter by state"},
-                            "priority": {"type": "string", "description": "Filter by priority"},
-                            "limit": {"type": "integer", "default": 50, "description": "Maximum results"},
-                            "include_children": {"type": "boolean", "default": True, "description": "Include child items in results"},
-                            "include_parents": {"type": "boolean", "default": True, "description": "Include parent context in results"}
+                            "state": {
+                                "type": "string",
+                                "description": "Filter by state",
+                            },
+                            "priority": {
+                                "type": "string",
+                                "description": "Filter by priority",
+                            },
+                            "limit": {
+                                "type": "integer",
+                                "default": 50,
+                                "description": "Maximum results",
+                            },
+                            "include_children": {
+                                "type": "boolean",
+                                "default": True,
+                                "description": "Include child items in results",
+                            },
+                            "include_parents": {
+                                "type": "boolean",
+                                "default": True,
+                                "description": "Include parent context in results",
+                            },
                         },
-                        "required": ["query"]
-                    }
+                        "required": ["query"],
+                    },
                 },
                 # PR Integration
                 {
@@ -1652,7 +1790,6 @@ async def main():
     # Load configuration
     import json
     import logging
-    import os
     from pathlib import Path
 
     logger = logging.getLogger(__name__)
@@ -1726,6 +1863,7 @@ def _load_env_configuration() -> Optional[dict[str, Any]]:
 
     Returns:
         Dictionary with 'adapter_type' and 'adapter_config' keys, or None if no config found
+
     """
     from pathlib import Path
 
@@ -1738,11 +1876,11 @@ def _load_env_configuration() -> Optional[dict[str, Any]]:
         if env_path.exists():
             try:
                 # Parse .env file manually to avoid external dependencies
-                with open(env_path, 'r') as f:
+                with open(env_path) as f:
                     for line in f:
                         line = line.strip()
-                        if line and not line.startswith('#') and '=' in line:
-                            key, value = line.split('=', 1)
+                        if line and not line.startswith("#") and "=" in line:
+                            key, value = line.split("=", 1)
                             key = key.strip()
                             value = value.strip().strip('"').strip("'")
                             if value:  # Only add non-empty values
@@ -1772,13 +1910,12 @@ def _load_env_configuration() -> Optional[dict[str, Any]]:
     if not adapter_config:
         return None
 
-    return {
-        "adapter_type": adapter_type,
-        "adapter_config": adapter_config
-    }
+    return {"adapter_type": adapter_type, "adapter_config": adapter_config}
 
 
-def _build_adapter_config_from_env_vars(adapter_type: str, env_vars: dict[str, str]) -> dict[str, Any]:
+def _build_adapter_config_from_env_vars(
+    adapter_type: str, env_vars: dict[str, str]
+) -> dict[str, Any]:
     """Build adapter configuration from parsed environment variables.
 
     Args:
@@ -1787,6 +1924,7 @@ def _build_adapter_config_from_env_vars(adapter_type: str, env_vars: dict[str, s
 
     Returns:
         Dictionary of adapter configuration
+
     """
     config = {}
 
@@ -1834,9 +1972,6 @@ def _build_adapter_config_from_env_vars(adapter_type: str, env_vars: dict[str, s
     return config
 
 
-
-
-
 # Add diagnostic handler methods to MCPTicketServer class
 async def _handle_system_health(self, arguments: dict[str, Any]) -> dict[str, Any]:
     """Handle system health check."""
@@ -1856,6 +1991,7 @@ async def _handle_system_health(self, arguments: dict[str, Any]) -> dict[str, An
         # Check configuration
         try:
             from ..core.config import get_config
+
             config = get_config()
             adapters = config.get_enabled_adapters()
             if adapters:
@@ -1881,6 +2017,7 @@ async def _handle_system_health(self, arguments: dict[str, Any]) -> dict[str, An
         # Check queue system
         try:
             from ..queue.manager import WorkerManager
+
             worker_manager = WorkerManager()
             worker_status = worker_manager.get_status()
             stats = worker_manager.queue.get_stats()
@@ -1904,11 +2041,15 @@ async def _handle_system_health(self, arguments: dict[str, Any]) -> dict[str, An
                 health_status["overall_status"] = "critical"
             elif failure_rate > 50:
                 queue_health["status"] = "degraded"
-                health_status["issues"].append(f"High queue failure rate: {failure_rate:.1f}%")
+                health_status["issues"].append(
+                    f"High queue failure rate: {failure_rate:.1f}%"
+                )
                 health_status["overall_status"] = "critical"
             elif failure_rate > 20:
                 queue_health["status"] = "warning"
-                health_status["warnings"].append(f"Elevated queue failure rate: {failure_rate:.1f}%")
+                health_status["warnings"].append(
+                    f"Elevated queue failure rate: {failure_rate:.1f}%"
+                )
                 if health_status["overall_status"] == "healthy":
                     health_status["overall_status"] = "warning"
 
@@ -1926,14 +2067,28 @@ async def _handle_system_health(self, arguments: dict[str, Any]) -> dict[str, An
             "content": [
                 {
                     "type": "text",
-                    "text": f"System Health Status: {health_status['overall_status'].upper()}\n\n" +
-                           f"Configuration: {health_status['components'].get('configuration', {}).get('status', 'unknown')}\n" +
-                           f"Queue System: {health_status['components'].get('queue_system', {}).get('status', 'unknown')}\n\n" +
-                           f"Issues: {len(health_status['issues'])}\n" +
-                           f"Warnings: {len(health_status['warnings'])}\n\n" +
-                           (f"Critical Issues:\n" + "\n".join(f"• {issue}" for issue in health_status['issues']) + "\n\n" if health_status['issues'] else "") +
-                           (f"Warnings:\n" + "\n".join(f"• {warning}" for warning in health_status['warnings']) + "\n\n" if health_status['warnings'] else "") +
-                           "For detailed diagnosis, use system_diagnose tool.",
+                    "text": f"System Health Status: {health_status['overall_status'].upper()}\n\n"
+                    + f"Configuration: {health_status['components'].get('configuration', {}).get('status', 'unknown')}\n"
+                    + f"Queue System: {health_status['components'].get('queue_system', {}).get('status', 'unknown')}\n\n"
+                    + f"Issues: {len(health_status['issues'])}\n"
+                    + f"Warnings: {len(health_status['warnings'])}\n\n"
+                    + (
+                        "Critical Issues:\n"
+                        + "\n".join(f"• {issue}" for issue in health_status["issues"])
+                        + "\n\n"
+                        if health_status["issues"]
+                        else ""
+                    )
+                    + (
+                        "Warnings:\n"
+                        + "\n".join(
+                            f"• {warning}" for warning in health_status["warnings"]
+                        )
+                        + "\n\n"
+                        if health_status["warnings"]
+                        else ""
+                    )
+                    + "For detailed diagnosis, use system_diagnose tool.",
                 }
             ],
             "isError": health_status["overall_status"] == "critical",
@@ -1994,9 +2149,9 @@ STATISTICS:
                 summary += f"• {warning}\n"
             summary += "\n"
 
-        if report['recommendations']:
+        if report["recommendations"]:
             summary += "RECOMMENDATIONS:\n"
-            for rec in report['recommendations']:
+            for rec in report["recommendations"]:
                 summary += f"{rec}\n"
 
         return {

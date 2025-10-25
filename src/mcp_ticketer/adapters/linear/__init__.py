@@ -11,7 +11,7 @@ The adapter is split into multiple modules for better organization:
 
 Usage:
     from mcp_ticketer.adapters.linear import LinearAdapter
-    
+
     config = {
         "api_key": "your_linear_api_key",
         "team_id": "your_team_id"

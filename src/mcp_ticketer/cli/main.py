@@ -12,15 +12,15 @@ from dotenv import load_dotenv
 from rich.console import Console
 from rich.table import Table
 
-from ..__version__ import __version__
-from ..core import AdapterRegistry, Priority, TicketState
-from ..core.models import SearchQuery, Comment
-from ..queue import Queue, QueueStatus, WorkerManager
-from ..queue.health_monitor import QueueHealthMonitor, HealthStatus
-from ..queue.ticket_registry import TicketRegistry
-
 # Import adapters module to trigger registration
 import mcp_ticketer.adapters  # noqa: F401
+
+from ..__version__ import __version__
+from ..core import AdapterRegistry, Priority, TicketState
+from ..core.models import Comment, SearchQuery
+from ..queue import Queue, QueueStatus, WorkerManager
+from ..queue.health_monitor import HealthStatus, QueueHealthMonitor
+from ..queue.ticket_registry import TicketRegistry
 from .configure import configure_wizard, set_adapter_config, show_current_config
 from .diagnostics import run_diagnostics
 from .discover import app as discover_app
@@ -150,8 +150,8 @@ def _discover_from_env_files() -> Optional[str]:
 
     Returns:
         Adapter name if discovered, None otherwise
+
     """
-    import os
     import logging
     from pathlib import Path
 
@@ -166,12 +166,12 @@ def _discover_from_env_files() -> Optional[str]:
             try:
                 # Simple .env parsing (key=value format)
                 env_vars = {}
-                with open(env_path, 'r') as f:
+                with open(env_path) as f:
                     for line in f:
                         line = line.strip()
-                        if line and not line.startswith('#') and '=' in line:
-                            key, value = line.split('=', 1)
-                            env_vars[key.strip()] = value.strip().strip('"\'')
+                        if line and not line.startswith("#") and "=" in line:
+                            key, value = line.split("=", 1)
+                            env_vars[key.strip()] = value.strip().strip("\"'")
 
                 # Check for adapter-specific variables
                 if env_vars.get("LINEAR_API_KEY"):
@@ -195,6 +195,7 @@ def _save_adapter_to_config(adapter_name: str) -> None:
 
     Args:
         adapter_name: Name of the adapter to save as default
+
     """
     import logging
 
@@ -325,6 +326,7 @@ def _prompt_for_adapter_selection(console: Console) -> str:
 
     Returns:
         Selected adapter type
+
     """
     console.print("\n[bold blue]🚀 MCP Ticketer Setup[/bold blue]")
     console.print("Choose which ticket system you want to connect to:\n")
@@ -335,26 +337,26 @@ def _prompt_for_adapter_selection(console: Console) -> str:
             "name": "linear",
             "title": "Linear",
             "description": "Modern project management (linear.app)",
-            "requirements": "API key and team ID"
+            "requirements": "API key and team ID",
         },
         {
             "name": "github",
             "title": "GitHub Issues",
             "description": "GitHub repository issues",
-            "requirements": "Personal access token, owner, and repo"
+            "requirements": "Personal access token, owner, and repo",
         },
         {
             "name": "jira",
             "title": "JIRA",
             "description": "Atlassian JIRA project management",
-            "requirements": "Server URL, email, and API token"
+            "requirements": "Server URL, email, and API token",
         },
         {
             "name": "aitrackdown",
             "title": "Local Files (AITrackdown)",
             "description": "Store tickets in local files (no external service)",
-            "requirements": "None - works offline"
-        }
+            "requirements": "None - works offline",
+        },
     ]
 
     # Display options
@@ -366,17 +368,17 @@ def _prompt_for_adapter_selection(console: Console) -> str:
     # Get user selection
     while True:
         try:
-            choice = typer.prompt(
-                "Select adapter (1-4)",
-                type=int,
-                default=1
-            )
+            choice = typer.prompt("Select adapter (1-4)", type=int, default=1)
             if 1 <= choice <= len(adapters):
                 selected_adapter = adapters[choice - 1]
-                console.print(f"\n[green]✓ Selected: {selected_adapter['title']}[/green]")
+                console.print(
+                    f"\n[green]✓ Selected: {selected_adapter['title']}[/green]"
+                )
                 return selected_adapter["name"]
             else:
-                console.print(f"[red]Please enter a number between 1 and {len(adapters)}[/red]")
+                console.print(
+                    f"[red]Please enter a number between 1 and {len(adapters)}[/red]"
+                )
         except (ValueError, typer.Abort):
             console.print("[yellow]Setup cancelled.[/yellow]")
             raise typer.Exit(0)
@@ -447,6 +449,7 @@ def setup(
 
         # Setup for different project
         mcp-ticketer setup --path /path/to/project
+
     """
     # Call init with all parameters
     init(
@@ -571,6 +574,7 @@ def init(
 
         # First try our improved .env configuration loader
         from ..mcp.server import _load_env_configuration
+
         env_config = _load_env_configuration()
 
         if env_config:
@@ -580,8 +584,8 @@ def init(
             )
 
             # Show what was discovered
-            console.print(f"\n[dim]Configuration found in: .env files[/dim]")
-            console.print(f"[dim]Confidence: 100%[/dim]")
+            console.print("\n[dim]Configuration found in: .env files[/dim]")
+            console.print("[dim]Confidence: 100%[/dim]")
 
             # Ask user to confirm auto-detected adapter
             if not typer.confirm(
@@ -640,7 +644,7 @@ def init(
     if adapter_type == "aitrackdown":
         config["adapters"]["aitrackdown"] = {
             "type": "aitrackdown",
-            "base_path": base_path or ".aitrackdown"
+            "base_path": base_path or ".aitrackdown",
         }
 
     elif adapter_type == "linear":
@@ -653,11 +657,12 @@ def init(
             if not linear_api_key and not discovered:
                 console.print("\n[bold]Linear Configuration[/bold]")
                 console.print("You need a Linear API key to connect to Linear.")
-                console.print("[dim]Get your API key at: https://linear.app/settings/api[/dim]\n")
+                console.print(
+                    "[dim]Get your API key at: https://linear.app/settings/api[/dim]\n"
+                )
 
                 linear_api_key = typer.prompt(
-                    "Enter your Linear API key",
-                    hide_input=True
+                    "Enter your Linear API key", hide_input=True
                 )
 
             if linear_api_key:
@@ -675,8 +680,12 @@ def init(
                 linear_config["team_id"] = linear_team_id
 
             if not linear_config.get("api_key") or not linear_config.get("team_id"):
-                console.print("[red]Error:[/red] Linear requires both API key and team ID")
-                console.print("Run 'mcp-ticketer init --adapter linear' with proper credentials")
+                console.print(
+                    "[red]Error:[/red] Linear requires both API key and team ID"
+                )
+                console.print(
+                    "Run 'mcp-ticketer init --adapter linear' with proper credentials"
+                )
                 raise typer.Exit(1)
 
             linear_config["type"] = "linear"
@@ -704,18 +713,17 @@ def init(
 
             if not token and not discovered:
                 console.print("\nYou need a JIRA API token.")
-                console.print("[dim]Generate one at: https://id.atlassian.com/manage/api-tokens[/dim]\n")
-
-                token = typer.prompt(
-                    "Enter your JIRA API token",
-                    hide_input=True
+                console.print(
+                    "[dim]Generate one at: https://id.atlassian.com/manage/api-tokens[/dim]\n"
                 )
+
+                token = typer.prompt("Enter your JIRA API token", hide_input=True)
 
             if not project and not discovered:
                 project = typer.prompt(
                     "Default JIRA project key (optional, press Enter to skip)",
                     default="",
-                    show_default=False
+                    show_default=False,
                 )
 
             # Validate required fields
@@ -735,7 +743,7 @@ def init(
                 "server": server,
                 "email": email,
                 "api_token": token,
-                "type": "jira"
+                "type": "jira",
             }
 
             if project:
@@ -755,19 +763,24 @@ def init(
                 console.print("\n[bold]GitHub Configuration[/bold]")
                 console.print("Enter your GitHub repository details.\n")
 
-                owner = typer.prompt("GitHub repository owner (username or organization)")
+                owner = typer.prompt(
+                    "GitHub repository owner (username or organization)"
+                )
 
             if not repo and not discovered:
                 repo = typer.prompt("GitHub repository name")
 
             if not token and not discovered:
                 console.print("\nYou need a GitHub Personal Access Token.")
-                console.print("[dim]Create one at: https://github.com/settings/tokens/new[/dim]")
-                console.print("[dim]Required scopes: repo (for private repos) or public_repo (for public repos)[/dim]\n")
+                console.print(
+                    "[dim]Create one at: https://github.com/settings/tokens/new[/dim]"
+                )
+                console.print(
+                    "[dim]Required scopes: repo (for private repos) or public_repo (for public repos)[/dim]\n"
+                )
 
                 token = typer.prompt(
-                    "Enter your GitHub Personal Access Token",
-                    hide_input=True
+                    "Enter your GitHub Personal Access Token", hide_input=True
                 )
 
             # Validate required fields
@@ -780,14 +793,16 @@ def init(
                 raise typer.Exit(1)
 
             if not token:
-                console.print("[red]Error:[/red] GitHub Personal Access Token is required")
+                console.print(
+                    "[red]Error:[/red] GitHub Personal Access Token is required"
+                )
                 raise typer.Exit(1)
 
             config["adapters"]["github"] = {
                 "owner": owner,
                 "repo": repo,
                 "token": token,
-                "type": "github"
+                "type": "github",
             }
 
     # 5. Save to appropriate location
@@ -831,13 +846,16 @@ def init(
     _show_next_steps(console, adapter_type, config_file_path)
 
 
-def _show_next_steps(console: Console, adapter_type: str, config_file_path: Path) -> None:
+def _show_next_steps(
+    console: Console, adapter_type: str, config_file_path: Path
+) -> None:
     """Show helpful next steps after initialization.
 
     Args:
         console: Rich console for output
         adapter_type: Type of adapter that was configured
         config_file_path: Path to the configuration file
+
     """
     console.print("\n[bold green]🎉 Setup Complete![/bold green]")
     console.print(f"MCP Ticketer is now configured to use {adapter_type.title()}.\n")
@@ -849,7 +867,9 @@ def _show_next_steps(console: Console, adapter_type: str, config_file_path: Path
     console.print("   mcp-ticketer create 'Test ticket from MCP Ticketer'")
 
     if adapter_type != "aitrackdown":
-        console.print(f"\n3. [cyan]Verify the ticket appears in {adapter_type.title()}[/cyan]")
+        console.print(
+            f"\n3. [cyan]Verify the ticket appears in {adapter_type.title()}[/cyan]"
+        )
 
         if adapter_type == "linear":
             console.print("   Check your Linear workspace for the new ticket")
@@ -1155,11 +1175,14 @@ def status_command():
 
 @app.command()
 def health(
-    auto_repair: bool = typer.Option(False, "--auto-repair", help="Attempt automatic repair of issues"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed health information")
+    auto_repair: bool = typer.Option(
+        False, "--auto-repair", help="Attempt automatic repair of issues"
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Show detailed health information"
+    ),
 ) -> None:
     """Check queue system health and detect issues immediately."""
-
     health_monitor = QueueHealthMonitor()
     health = health_monitor.check_health()
 
@@ -1168,14 +1191,14 @@ def health(
         HealthStatus.HEALTHY: "green",
         HealthStatus.WARNING: "yellow",
         HealthStatus.CRITICAL: "red",
-        HealthStatus.FAILED: "red"
+        HealthStatus.FAILED: "red",
     }
 
     status_icon = {
         HealthStatus.HEALTHY: "✓",
         HealthStatus.WARNING: "⚠️",
         HealthStatus.CRITICAL: "🚨",
-        HealthStatus.FAILED: "❌"
+        HealthStatus.FAILED: "❌",
     }
 
     color = status_color.get(health["status"], "white")
@@ -1198,7 +1221,10 @@ def health(
         console.print("\n[green]✓ No issues detected[/green]")
 
     # Auto-repair if requested
-    if auto_repair and health["status"] in [HealthStatus.CRITICAL, HealthStatus.WARNING]:
+    if auto_repair and health["status"] in [
+        HealthStatus.CRITICAL,
+        HealthStatus.WARNING,
+    ]:
         console.print("\n[yellow]Attempting automatic repair...[/yellow]")
         repair_result = health_monitor.auto_repair()
 
@@ -1212,7 +1238,9 @@ def health(
             new_health = health_monitor.check_health()
             new_color = status_color.get(new_health["status"], "white")
             new_icon = status_icon.get(new_health["status"], "?")
-            console.print(f"[{new_color}]{new_icon} Updated Health: {new_health['status'].upper()}[/{new_color}]")
+            console.print(
+                f"[{new_color}]{new_icon} Updated Health: {new_health['status'].upper()}[/{new_color}]"
+            )
         else:
             console.print("[yellow]No repair actions available[/yellow]")
 
@@ -1243,7 +1271,6 @@ def create(
     ),
 ) -> None:
     """Create a new ticket with comprehensive health checks."""
-
     # IMMEDIATE HEALTH CHECK - Critical for reliability
     health_monitor = QueueHealthMonitor()
     health = health_monitor.check_health()
@@ -1266,13 +1293,21 @@ def create(
             # Re-check health after repair
             health = health_monitor.check_health()
             if health["status"] == HealthStatus.CRITICAL:
-                console.print("[red]❌ Auto-repair failed. Manual intervention required.[/red]")
-                console.print("[red]Cannot safely create ticket. Please check system status.[/red]")
+                console.print(
+                    "[red]❌ Auto-repair failed. Manual intervention required.[/red]"
+                )
+                console.print(
+                    "[red]Cannot safely create ticket. Please check system status.[/red]"
+                )
                 raise typer.Exit(1)
             else:
-                console.print("[green]✓ Auto-repair successful. Proceeding with ticket creation.[/green]")
+                console.print(
+                    "[green]✓ Auto-repair successful. Proceeding with ticket creation.[/green]"
+                )
         else:
-            console.print("[red]❌ No repair actions available. Manual intervention required.[/red]")
+            console.print(
+                "[red]❌ No repair actions available. Manual intervention required.[/red]"
+            )
             raise typer.Exit(1)
 
     elif health["status"] == HealthStatus.WARNING:
@@ -1316,7 +1351,9 @@ def create(
 
     # WORKAROUND: Use direct operation for Linear adapter to bypass worker subprocess issue
     if adapter_name == "linear":
-        console.print("[yellow]⚠️[/yellow]  Using direct operation for Linear adapter (bypassing queue)")
+        console.print(
+            "[yellow]⚠️[/yellow]  Using direct operation for Linear adapter (bypassing queue)"
+        )
         try:
             # Load configuration and create adapter directly
             config = load_config()
@@ -1324,20 +1361,27 @@ def create(
 
             # Import and create adapter
             from ..core.registry import AdapterRegistry
+
             adapter = AdapterRegistry.get_adapter(adapter_name, adapter_config)
 
             # Create task directly
-            from ..core.models import Task, Priority
+            from ..core.models import Priority, Task
+
             task = Task(
                 title=task_data["title"],
                 description=task_data.get("description"),
-                priority=Priority(task_data["priority"]) if task_data.get("priority") else Priority.MEDIUM,
+                priority=(
+                    Priority(task_data["priority"])
+                    if task_data.get("priority")
+                    else Priority.MEDIUM
+                ),
                 tags=task_data.get("tags", []),
-                assignee=task_data.get("assignee")
+                assignee=task_data.get("assignee"),
             )
 
             # Create ticket synchronously
             import asyncio
+
             result = asyncio.run(adapter.create(task))
 
             console.print(f"[green]✓[/green] Ticket created successfully: {result.id}")
@@ -1345,7 +1389,11 @@ def create(
             console.print(f"  Priority: {result.priority}")
             console.print(f"  State: {result.state}")
             # Get URL from metadata if available
-            if result.metadata and 'linear' in result.metadata and 'url' in result.metadata['linear']:
+            if (
+                result.metadata
+                and "linear" in result.metadata
+                and "url" in result.metadata["linear"]
+            ):
                 console.print(f"  URL: {result.metadata['linear']['url']}")
 
             return result.id
@@ -1360,12 +1408,14 @@ def create(
         ticket_data=task_data,
         adapter=adapter_name,
         operation="create",
-        project_dir=str(Path.cwd())  # Explicitly pass current project directory
+        project_dir=str(Path.cwd()),  # Explicitly pass current project directory
     )
 
     # Register in ticket registry for tracking
     registry = TicketRegistry()
-    registry.register_ticket_operation(queue_id, adapter_name, "create", title, task_data)
+    registry.register_ticket_operation(
+        queue_id, adapter_name, "create", title, task_data
+    )
 
     console.print(f"[green]✓[/green] Queued ticket creation: {queue_id}")
     console.print(f"  Title: {title}")
@@ -1382,6 +1432,7 @@ def create(
 
         # Give immediate feedback on processing
         import time
+
         time.sleep(1)  # Brief pause to let worker start
 
         # Check if item is being processed
@@ -1391,15 +1442,23 @@ def create(
         elif item and item.status == QueueStatus.PENDING:
             console.print("[yellow]⏳ Item is queued for processing[/yellow]")
         else:
-            console.print("[red]⚠️  Item status unclear - check with 'mcp-ticketer check {queue_id}'[/red]")
+            console.print(
+                "[red]⚠️  Item status unclear - check with 'mcp-ticketer check {queue_id}'[/red]"
+            )
     else:
         # Worker didn't start - this is a problem
         pending_count = queue.get_pending_count()
         if pending_count > 1:  # More than just this item
-            console.print(f"[red]❌ Worker failed to start with {pending_count} pending items![/red]")
-            console.print("[red]This is a critical issue. Try 'mcp-ticketer queue worker start' manually.[/red]")
+            console.print(
+                f"[red]❌ Worker failed to start with {pending_count} pending items![/red]"
+            )
+            console.print(
+                "[red]This is a critical issue. Try 'mcp-ticketer queue worker start' manually.[/red]"
+            )
         else:
-            console.print("[yellow]Worker not started (no other pending items)[/yellow]")
+            console.print(
+                "[yellow]Worker not started (no other pending items)[/yellow]"
+            )
 
 
 @app.command("list")
@@ -1444,7 +1503,7 @@ def list_tickets(
 
     for ticket in tickets:
         # Handle assignee field - Epic doesn't have assignee, Task does
-        assignee = getattr(ticket, 'assignee', None) or "-"
+        assignee = getattr(ticket, "assignee", None) or "-"
 
         table.add_row(
             ticket.id or "N/A",
@@ -1526,7 +1585,7 @@ def comment(
         comment = Comment(
             ticket_id=ticket_id,
             content=content,
-            author="cli-user"  # Could be made configurable
+            author="cli-user",  # Could be made configurable
         )
 
         result = await adapter_instance.add_comment(comment)
@@ -1534,7 +1593,7 @@ def comment(
 
     try:
         result = asyncio.run(_comment())
-        console.print(f"[green]✓[/green] Comment added successfully")
+        console.print("[green]✓[/green] Comment added successfully")
         if result.id:
             console.print(f"Comment ID: {result.id}")
         console.print(f"Content: {content}")
@@ -1592,7 +1651,7 @@ def update(
         ticket_data=updates,
         adapter=adapter_name,
         operation="update",
-        project_dir=str(Path.cwd())  # Explicitly pass current project directory
+        project_dir=str(Path.cwd()),  # Explicitly pass current project directory
     )
 
     console.print(f"[green]✓[/green] Queued ticket update: {queue_id}")
@@ -1660,7 +1719,7 @@ def transition(
         },
         adapter=adapter_name,
         operation="transition",
-        project_dir=str(Path.cwd())  # Explicitly pass current project directory
+        project_dir=str(Path.cwd()),  # Explicitly pass current project directory
     )
 
     console.print(f"[green]✓[/green] Queued state transition: {queue_id}")
@@ -1722,30 +1781,42 @@ app.add_typer(queue_app, name="queue")
 # Add discover command to main app
 app.add_typer(discover_app, name="discover")
 
+
 # Add diagnostics command
 @app.command()
 def diagnose(
-    output_file: Optional[str] = typer.Option(None, "--output", "-o", help="Save full report to file"),
-    json_output: bool = typer.Option(False, "--json", help="Output report in JSON format"),
-    simple: bool = typer.Option(False, "--simple", help="Use simple diagnostics (no heavy dependencies)"),
+    output_file: Optional[str] = typer.Option(
+        None, "--output", "-o", help="Save full report to file"
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", help="Output report in JSON format"
+    ),
+    simple: bool = typer.Option(
+        False, "--simple", help="Use simple diagnostics (no heavy dependencies)"
+    ),
 ) -> None:
     """Run comprehensive system diagnostics and health check."""
     if simple:
         from .simple_health import simple_diagnose
+
         report = simple_diagnose()
         if output_file:
             import json
-            with open(output_file, 'w') as f:
+
+            with open(output_file, "w") as f:
                 json.dump(report, f, indent=2)
             console.print(f"\n📄 Report saved to: {output_file}")
         if json_output:
             import json
+
             console.print("\n" + json.dumps(report, indent=2))
         if report["issues"]:
             raise typer.Exit(1)
     else:
         try:
-            asyncio.run(run_diagnostics(output_file=output_file, json_output=json_output))
+            asyncio.run(
+                run_diagnostics(output_file=output_file, json_output=json_output)
+            )
         except typer.Exit:
             # typer.Exit is expected - don't fall back to simple diagnostics
             raise
@@ -1753,6 +1824,7 @@ def diagnose(
             console.print(f"⚠️  Full diagnostics failed: {e}")
             console.print("🔄 Falling back to simple diagnostics...")
             from .simple_health import simple_diagnose
+
             report = simple_diagnose()
             if report["issues"]:
                 raise typer.Exit(1)
@@ -1766,6 +1838,7 @@ def health() -> None:
     result = simple_health_check()
     if result != 0:
         raise typer.Exit(result)
+
 
 # Create MCP configuration command group
 mcp_app = typer.Typer(
@@ -1817,9 +1890,6 @@ def check(queue_id: str = typer.Argument(..., help="Queue ID to check")):
         console.print(f"\nRetry Count: {item.retry_count}")
 
 
-
-
-
 @app.command()
 def serve(
     adapter: Optional[AdapterType] = typer.Option(
@@ -1857,6 +1927,7 @@ def serve(
     else:
         # Priority 2: .env files
         from ..mcp.server import _load_env_configuration
+
         env_config = _load_env_configuration()
         if env_config:
             adapter_type = env_config["adapter_type"]

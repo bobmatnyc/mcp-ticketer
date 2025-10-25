@@ -211,7 +211,12 @@ class Queue:
                             SET status = ?, processed_at = ?
                             WHERE id = ? AND status = ?
                         """,
-                            (QueueStatus.PROCESSING.value, datetime.now().isoformat(), row[0], QueueStatus.PENDING.value),
+                            (
+                                QueueStatus.PROCESSING.value,
+                                datetime.now().isoformat(),
+                                row[0],
+                                QueueStatus.PENDING.value,
+                            ),
                         )
 
                         # Check if update was successful (prevents race conditions)
@@ -254,6 +259,7 @@ class Queue:
 
         Returns:
             True if update was successful, False if item was in unexpected state
+
         """
         with self._lock:
             with sqlite3.connect(self.db_path) as conn:
@@ -314,7 +320,9 @@ class Queue:
                     conn.rollback()
                     raise
 
-    def increment_retry(self, queue_id: str, expected_status: Optional[QueueStatus] = None) -> int:
+    def increment_retry(
+        self, queue_id: str, expected_status: Optional[QueueStatus] = None
+    ) -> int:
         """Increment retry count and reset to pending atomically.
 
         Args:
@@ -340,7 +348,11 @@ class Queue:
                             WHERE id = ? AND status = ?
                             RETURNING retry_count
                         """,
-                            (QueueStatus.PENDING.value, queue_id, expected_status.value),
+                            (
+                                QueueStatus.PENDING.value,
+                                queue_id,
+                                expected_status.value,
+                            ),
                         )
                     else:
                         # Regular increment

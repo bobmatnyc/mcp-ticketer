@@ -113,9 +113,12 @@ class WorkerManager:
             if env_file.exists():
                 logger.debug(f"Loading environment from {env_file} for subprocess")
                 from dotenv import dotenv_values
+
                 env_vars = dotenv_values(env_file)
                 subprocess_env.update(env_vars)
-                logger.debug(f"Added {len(env_vars)} environment variables from .env.local")
+                logger.debug(
+                    f"Added {len(env_vars)} environment variables from .env.local"
+                )
 
             # Start as background process
             process = subprocess.Popen(
@@ -281,6 +284,7 @@ class WorkerManager:
 
         Returns:
             Path to Python executable
+
         """
         # First, try to detect if we're running in a pipx environment
         # by checking if the current executable is in a pipx venv
@@ -293,18 +297,21 @@ class WorkerManager:
 
         # Check if we can find the mcp-ticketer executable and extract its Python
         import shutil
+
         mcp_ticketer_path = shutil.which("mcp-ticketer")
         if mcp_ticketer_path:
             try:
                 # Read the shebang line to get the Python executable
-                with open(mcp_ticketer_path, 'r') as f:
+                with open(mcp_ticketer_path) as f:
                     first_line = f.readline().strip()
                     if first_line.startswith("#!") and "python" in first_line:
                         python_path = first_line[2:].strip()
                         if os.path.exists(python_path):
-                            logger.debug(f"Using Python from mcp-ticketer shebang: {python_path}")
+                            logger.debug(
+                                f"Using Python from mcp-ticketer shebang: {python_path}"
+                            )
                             return python_path
-            except (OSError, IOError):
+            except OSError:
                 pass
 
         # Fallback to sys.executable

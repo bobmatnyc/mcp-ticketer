@@ -245,15 +245,14 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
         Returns:
             Created Epic instance
+
         """
-        epic = Epic(
-            title=title,
-            description=description,
-            **kwargs
-        )
+        epic = Epic(title=title, description=description, **kwargs)
         return await self.create(epic)
 
-    async def create_issue(self, title: str, parent_epic: str = None, description: str = None, **kwargs) -> Task:
+    async def create_issue(
+        self, title: str, parent_epic: str = None, description: str = None, **kwargs
+    ) -> Task:
         """Create a new issue.
 
         Args:
@@ -264,16 +263,16 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
         Returns:
             Created Task instance (representing an issue)
+
         """
         task = Task(
-            title=title,
-            description=description,
-            parent_epic=parent_epic,
-            **kwargs
+            title=title, description=description, parent_epic=parent_epic, **kwargs
         )
         return await self.create(task)
 
-    async def create_task(self, title: str, parent_id: str, description: str = None, **kwargs) -> Task:
+    async def create_task(
+        self, title: str, parent_id: str, description: str = None, **kwargs
+    ) -> Task:
         """Create a new task under an issue.
 
         Args:
@@ -284,12 +283,10 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
         Returns:
             Created Task instance
+
         """
         task = Task(
-            title=title,
-            description=description,
-            parent_issue=parent_id,
-            **kwargs
+            title=title, description=description, parent_issue=parent_id, **kwargs
         )
         return await self.create(task)
 

@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import asyncio
 import os
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
 try:
@@ -18,19 +16,15 @@ from ...core.adapter import BaseAdapter
 from ...core.models import (
     Comment,
     Epic,
-    Priority,
     SearchQuery,
     Task,
     TicketState,
-    TicketType,
 )
 from ...core.registry import AdapterRegistry
-
 from .client import LinearGraphQLClient
 from .mappers import (
     build_linear_issue_input,
     build_linear_issue_update_input,
-    extract_child_issue_ids,
     map_linear_comment_to_comment,
     map_linear_issue_to_task,
     map_linear_project_to_epic,
@@ -38,7 +32,6 @@ from .mappers import (
 from .queries import (
     ALL_FRAGMENTS,
     CREATE_ISSUE_MUTATION,
-    GET_CURRENT_USER_QUERY,
     LIST_ISSUES_QUERY,
     SEARCH_ISSUES_QUERY,
     UPDATE_ISSUE_MUTATION,
@@ -49,22 +42,21 @@ from .types import (
     build_issue_filter,
     get_linear_priority,
     get_linear_state_type,
-    get_universal_state,
 )
 
 
 class LinearAdapter(BaseAdapter[Task]):
     """Adapter for Linear issue tracking system using native GraphQL API.
-    
+
     This adapter provides comprehensive integration with Linear's GraphQL API,
     supporting all major ticket management operations including:
-    
+
     - CRUD operations for issues and projects
     - State transitions and workflow management
     - User assignment and search functionality
     - Comment management
     - Epic/Issue/Task hierarchy support
-    
+
     The adapter is organized into multiple modules for better maintainability:
     - client.py: GraphQL client management
     - queries.py: GraphQL queries and fragments
@@ -85,6 +77,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Raises:
             ValueError: If required configuration is missing
+
         """
         # Initialize instance variables before calling super().__init__
         # because parent constructor calls _get_state_mapping()
@@ -95,11 +88,13 @@ class LinearAdapter(BaseAdapter[Task]):
         self._initialized = False
 
         super().__init__(config)
-        
+
         # Extract configuration
         self.api_key = config.get("api_key") or os.getenv("LINEAR_API_KEY")
         if not self.api_key:
-            raise ValueError("Linear API key is required (api_key or LINEAR_API_KEY env var)")
+            raise ValueError(
+                "Linear API key is required (api_key or LINEAR_API_KEY env var)"
+            )
 
         # Clean API key - remove Bearer prefix if accidentally included in config
         # (The client will add it back when making requests)
@@ -120,54 +115,56 @@ class LinearAdapter(BaseAdapter[Task]):
 
     def validate_credentials(self) -> tuple[bool, str]:
         """Validate Linear API credentials.
-        
+
         Returns:
             Tuple of (is_valid, error_message)
+
         """
         if not self.api_key:
             return False, "Linear API key is required"
-        
+
         if not self.team_key and not self.team_id:
             return False, "Either team_key or team_id must be provided"
-        
+
         return True, ""
 
     async def initialize(self) -> None:
         """Initialize adapter by preloading team, states, and labels data concurrently."""
         if self._initialized:
             return
-        
+
         try:
             # Test connection first
             if not await self.client.test_connection():
                 raise ValueError("Failed to connect to Linear API - check credentials")
-            
+
             # Load team data and workflow states concurrently
             team_id = await self._ensure_team_id()
-            
+
             # Load workflow states for the team
             await self._load_workflow_states(team_id)
-            
+
             self._initialized = True
-            
+
         except Exception as e:
             raise ValueError(f"Failed to initialize Linear adapter: {e}")
 
     async def _ensure_team_id(self) -> str:
         """Ensure we have a team ID, resolving from team_key if needed.
-        
+
         Returns:
             Linear team UUID
-            
+
         Raises:
             ValueError: If team cannot be found or resolved
+
         """
         if self.team_id:
             return self.team_id
-        
+
         if not self.team_key:
             raise ValueError("Either team_id or team_key must be provided")
-        
+
         # Query team by key
         query = """
             query GetTeamByKey($key: String!) {
@@ -181,35 +178,35 @@ class LinearAdapter(BaseAdapter[Task]):
                 }
             }
         """
-        
+
         try:
             result = await self.client.execute_query(query, {"key": self.team_key})
             teams = result.get("teams", {}).get("nodes", [])
-            
+
             if not teams:
                 raise ValueError(f"Team with key '{self.team_key}' not found")
-            
+
             team = teams[0]
             self.team_id = team["id"]
             self._team_data = team
-            
+
             return self.team_id
-            
+
         except Exception as e:
             raise ValueError(f"Failed to resolve team '{self.team_key}': {e}")
 
     async def _load_workflow_states(self, team_id: str) -> None:
         """Load and cache workflow states for the team.
-        
+
         Args:
             team_id: Linear team ID
+
         """
         try:
             result = await self.client.execute_query(
-                WORKFLOW_STATES_QUERY,
-                {"teamId": team_id}
+                WORKFLOW_STATES_QUERY, {"teamId": team_id}
             )
-            
+
             workflow_states = {}
             for state in result["workflowStates"]["nodes"]:
                 state_type = state["type"].lower()
@@ -217,23 +214,24 @@ class LinearAdapter(BaseAdapter[Task]):
                     workflow_states[state_type] = state
                 elif state["position"] < workflow_states[state_type]["position"]:
                     workflow_states[state_type] = state
-            
+
             self._workflow_states = workflow_states
-            
+
         except Exception as e:
             raise ValueError(f"Failed to load workflow states: {e}")
 
     def _get_state_mapping(self) -> Dict[TicketState, str]:
         """Get mapping from universal states to Linear workflow state IDs.
-        
+
         Returns:
             Dictionary mapping TicketState to Linear state ID
+
         """
         if not self._workflow_states:
             # Return type-based mapping if states not loaded
             return {
                 TicketState.OPEN: "unstarted",
-                TicketState.IN_PROGRESS: "started", 
+                TicketState.IN_PROGRESS: "started",
                 TicketState.READY: "unstarted",
                 TicketState.TESTED: "started",
                 TicketState.DONE: "completed",
@@ -241,7 +239,7 @@ class LinearAdapter(BaseAdapter[Task]):
                 TicketState.WAITING: "unstarted",
                 TicketState.BLOCKED: "unstarted",
             }
-        
+
         # Return ID-based mapping using cached workflow states
         mapping = {}
         for universal_state, linear_type in LinearStateMapping.TO_LINEAR.items():
@@ -250,23 +248,24 @@ class LinearAdapter(BaseAdapter[Task]):
             else:
                 # Fallback to type name
                 mapping[universal_state] = linear_type
-        
+
         return mapping
 
     async def _get_user_id(self, user_identifier: str) -> Optional[str]:
         """Get Linear user ID from email or display name.
-        
+
         Args:
             user_identifier: Email address or display name
-            
+
         Returns:
             Linear user ID or None if not found
+
         """
         # Try to get user by email first
         user = await self.client.get_user_by_email(user_identifier)
         if user:
             return user["id"]
-        
+
         # If not found by email, could implement search by display name
         # For now, assume the identifier is already a user ID
         return user_identifier if user_identifier else None
@@ -284,6 +283,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Raises:
             ValueError: If credentials are invalid or creation fails
+
         """
         # Validate credentials before attempting operation
         is_valid, error_message = self.validate_credentials()
@@ -308,6 +308,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             Created task with Linear metadata
+
         """
         team_id = await self._ensure_team_id()
 
@@ -322,8 +323,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         try:
             result = await self.client.execute_mutation(
-                CREATE_ISSUE_MUTATION,
-                {"input": issue_input}
+                CREATE_ISSUE_MUTATION, {"input": issue_input}
             )
 
             if not result["issueCreate"]["success"]:
@@ -343,6 +343,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             Created epic with Linear metadata
+
         """
         team_id = await self._ensure_team_id()
 
@@ -387,8 +388,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         try:
             result = await self.client.execute_mutation(
-                create_query,
-                {"input": project_input}
+                create_query, {"input": project_input}
             )
 
             if not result["projectCreate"]["success"]:
@@ -408,25 +408,26 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             Task with full details or None if not found
+
         """
         # Validate credentials before attempting operation
         is_valid, error_message = self.validate_credentials()
         if not is_valid:
             raise ValueError(error_message)
 
-        query = ALL_FRAGMENTS + """
+        query = (
+            ALL_FRAGMENTS
+            + """
             query GetIssue($identifier: String!) {
                 issue(id: $identifier) {
                     ...IssueFullFields
                 }
             }
         """
+        )
 
         try:
-            result = await self.client.execute_query(
-                query,
-                {"identifier": ticket_id}
-            )
+            result = await self.client.execute_query(query, {"identifier": ticket_id})
 
             if result.get("issue"):
                 return map_linear_issue_to_task(result["issue"])
@@ -446,6 +447,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             Updated task or None if not found
+
         """
         # Validate credentials before attempting operation
         is_valid, error_message = self.validate_credentials()
@@ -463,8 +465,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         try:
             result = await self.client.execute_query(
-                id_query,
-                {"identifier": ticket_id}
+                id_query, {"identifier": ticket_id}
             )
 
             if not result.get("issue"):
@@ -477,7 +478,11 @@ class LinearAdapter(BaseAdapter[Task]):
 
             # Handle state transitions
             if "state" in updates:
-                target_state = TicketState(updates["state"]) if isinstance(updates["state"], str) else updates["state"]
+                target_state = (
+                    TicketState(updates["state"])
+                    if isinstance(updates["state"], str)
+                    else updates["state"]
+                )
                 state_mapping = self._get_state_mapping()
                 if target_state in state_mapping:
                     update_input["stateId"] = state_mapping[target_state]
@@ -490,8 +495,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
             # Execute update
             result = await self.client.execute_mutation(
-                UPDATE_ISSUE_MUTATION,
-                {"id": linear_id, "input": update_input}
+                UPDATE_ISSUE_MUTATION, {"id": linear_id, "input": update_input}
             )
 
             if not result["issueUpdate"]["success"]:
@@ -511,6 +515,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             True if successfully deleted/archived
+
         """
         # Linear doesn't support true deletion, so we archive the issue
         try:
@@ -520,10 +525,7 @@ class LinearAdapter(BaseAdapter[Task]):
             return False
 
     async def list(
-        self,
-        limit: int = 10,
-        offset: int = 0,
-        filters: Optional[Dict[str, Any]] = None
+        self, limit: int = 10, offset: int = 0, filters: Optional[Dict[str, Any]] = None
     ) -> List[Task]:
         """List Linear issues with optional filtering.
 
@@ -534,6 +536,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             List of tasks matching the criteria
+
         """
         # Validate credentials
         is_valid, error_message = self.validate_credentials()
@@ -548,7 +551,9 @@ class LinearAdapter(BaseAdapter[Task]):
             team_id=team_id,
             state=filters.get("state") if filters else None,
             priority=filters.get("priority") if filters else None,
-            include_archived=filters.get("includeArchived", False) if filters else False,
+            include_archived=(
+                filters.get("includeArchived", False) if filters else False
+            ),
         )
 
         # Add additional filters
@@ -567,8 +572,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         try:
             result = await self.client.execute_query(
-                LIST_ISSUES_QUERY,
-                {"filter": issue_filter, "first": limit}
+                LIST_ISSUES_QUERY, {"filter": issue_filter, "first": limit}
             )
 
             tasks = []
@@ -588,6 +592,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             List of tasks matching the search criteria
+
         """
         # Validate credentials
         is_valid, error_message = self.validate_credentials()
@@ -631,8 +636,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         try:
             result = await self.client.execute_query(
-                SEARCH_ISSUES_QUERY,
-                {"filter": issue_filter, "first": query.limit}
+                SEARCH_ISSUES_QUERY, {"filter": issue_filter, "first": query.limit}
             )
 
             tasks = []
@@ -655,6 +659,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             Updated task or None if transition failed
+
         """
         # Validate transition
         if not await self.validate_transition(ticket_id, target_state):
@@ -674,6 +679,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             True if transition is valid
+
         """
         # For now, allow all transitions
         # In practice, you might want to implement Linear's workflow rules
@@ -687,6 +693,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             Created comment with ID
+
         """
         # First get the Linear internal ID
         id_query = """
@@ -699,8 +706,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         try:
             result = await self.client.execute_query(
-                id_query,
-                {"identifier": comment.ticket_id}
+                id_query, {"identifier": comment.ticket_id}
             )
 
             if not result.get("issue"):
@@ -735,8 +741,7 @@ class LinearAdapter(BaseAdapter[Task]):
             }
 
             result = await self.client.execute_mutation(
-                create_comment_query,
-                {"input": comment_input}
+                create_comment_query, {"input": comment_input}
             )
 
             if not result["commentCreate"]["success"]:
@@ -760,6 +765,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
             List of comments for the issue
+
         """
         query = """
             query GetIssueComments($identifier: String!, $first: Int!) {
@@ -788,8 +794,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         try:
             result = await self.client.execute_query(
-                query,
-                {"identifier": ticket_id, "first": limit}
+                query, {"identifier": ticket_id, "first": limit}
             )
 
             if not result.get("issue"):

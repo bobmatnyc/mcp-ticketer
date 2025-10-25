@@ -119,7 +119,7 @@ class LinearConfig(BaseAdapterConfig):
     api_key: Optional[str] = Field(None, env="LINEAR_API_KEY")
     workspace: Optional[str] = None
     team_key: Optional[str] = None  # Short team key like "BTA"
-    team_id: Optional[str] = None   # UUID team identifier
+    team_id: Optional[str] = None  # UUID team identifier
     api_url: str = "https://api.linear.app/graphql"
 
     @model_validator(mode="after")
@@ -366,30 +366,26 @@ class ConfigurationManager:
                         "aitrackdown": {
                             "type": "aitrackdown",
                             "enabled": True,
-                            "base_path": str(Path.home() / ".mcp-ticketer" / ".aitrackdown")
+                            "base_path": str(
+                                Path.home() / ".mcp-ticketer" / ".aitrackdown"
+                            ),
                         }
                     },
-                    "default_adapter": "aitrackdown"
+                    "default_adapter": "aitrackdown",
                 }
 
             # Convert discovered adapters to config format
-            config_data = {
-                "adapters": {},
-                "default_adapter": None
-            }
+            config_data = {"adapters": {}, "default_adapter": None}
 
             for adapter in discovered.adapters:
-                adapter_config = {
-                    "type": adapter.adapter_type,
-                    "enabled": True
-                }
+                adapter_config = {"type": adapter.adapter_type, "enabled": True}
 
                 # Add adapter-specific configuration from discovered config
                 adapter_config.update(adapter.config)
 
                 # Ensure type is set correctly (remove 'adapter' key if present)
-                if 'adapter' in adapter_config:
-                    del adapter_config['adapter']
+                if "adapter" in adapter_config:
+                    del adapter_config["adapter"]
 
                 # Use adapter type as the key name
                 adapter_name = adapter.adapter_type
@@ -399,20 +395,26 @@ class ConfigurationManager:
                 if config_data["default_adapter"] is None:
                     config_data["default_adapter"] = adapter.adapter_type
 
-            logger.info(f"Discovered {len(config_data['adapters'])} adapter(s) from environment")
+            logger.info(
+                f"Discovered {len(config_data['adapters'])} adapter(s) from environment"
+            )
             return config_data
 
         except ImportError:
-            logger.warning("Environment discovery not available, using aitrackdown fallback")
+            logger.warning(
+                "Environment discovery not available, using aitrackdown fallback"
+            )
             return {
                 "adapters": {
                     "aitrackdown": {
                         "type": "aitrackdown",
                         "enabled": True,
-                        "base_path": str(Path.home() / ".mcp-ticketer" / ".aitrackdown")
+                        "base_path": str(
+                            Path.home() / ".mcp-ticketer" / ".aitrackdown"
+                        ),
                     }
                 },
-                "default_adapter": "aitrackdown"
+                "default_adapter": "aitrackdown",
             }
         except Exception as e:
             logger.error(f"Environment discovery failed: {e}")
@@ -421,10 +423,12 @@ class ConfigurationManager:
                     "aitrackdown": {
                         "type": "aitrackdown",
                         "enabled": True,
-                        "base_path": str(Path.home() / ".mcp-ticketer" / ".aitrackdown")
+                        "base_path": str(
+                            Path.home() / ".mcp-ticketer" / ".aitrackdown"
+                        ),
                     }
                 },
-                "default_adapter": "aitrackdown"
+                "default_adapter": "aitrackdown",
             }
 
     def get_config(self) -> AppConfig:
