@@ -347,8 +347,8 @@ class TestQueryValidation:
         ]
 
         for query in queries:
-            # Each query should start with "query" keyword
-            assert query.strip().startswith("query")
+            # Each query should contain "query" keyword (may have fragments first)
+            assert "query" in query.lower()
             # Each query should have opening and closing braces
             assert "{" in query
             assert "}" in query
