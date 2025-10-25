@@ -23,11 +23,7 @@ def test_project_specific_config_takes_precedence():
 
         project_config_data = {
             "default_adapter": "linear",
-            "adapters": {
-                "linear": {
-                    "team_key": "PROJECT-SPECIFIC"
-                }
-            }
+            "adapters": {"linear": {"team_key": "PROJECT-SPECIFIC"}},
         }
 
         with open(project_config_file, "w") as f:
@@ -40,11 +36,7 @@ def test_project_specific_config_takes_precedence():
 
         global_config_data = {
             "default_adapter": "github",
-            "adapters": {
-                "github": {
-                    "owner": "GLOBAL-CONFIG"
-                }
-            }
+            "adapters": {"github": {"owner": "GLOBAL-CONFIG"}},
         }
 
         # Backup existing global config if it exists
@@ -59,17 +51,20 @@ def test_project_specific_config_takes_precedence():
                 json.dump(global_config_data, f)
 
             # Mock Path.cwd() to return our temp directory
-            with mock.patch('pathlib.Path.cwd', return_value=tmpdir_path):
+            with mock.patch("pathlib.Path.cwd", return_value=tmpdir_path):
                 # Load config - should prefer project-specific
                 config = load_config()
 
                 # Verify project-specific config was loaded
-                assert config["default_adapter"] == "linear", \
-                    f"Expected 'linear', got '{config['default_adapter']}'"
-                assert "linear" in config["adapters"], \
-                    "Expected 'linear' adapter in config"
-                assert config["adapters"]["linear"]["team_key"] == "PROJECT-SPECIFIC", \
-                    "Expected project-specific config values"
+                assert (
+                    config["default_adapter"] == "linear"
+                ), f"Expected 'linear', got '{config['default_adapter']}'"
+                assert (
+                    "linear" in config["adapters"]
+                ), "Expected 'linear' adapter in config"
+                assert (
+                    config["adapters"]["linear"]["team_key"] == "PROJECT-SPECIFIC"
+                ), "Expected project-specific config values"
 
                 print("✓ Test passed: Project-specific config takes precedence")
 
@@ -95,11 +90,7 @@ def test_global_config_fallback():
 
         global_config_data = {
             "default_adapter": "github",
-            "adapters": {
-                "github": {
-                    "owner": "GLOBAL-FALLBACK"
-                }
-            }
+            "adapters": {"github": {"owner": "GLOBAL-FALLBACK"}},
         }
 
         # Backup existing global config if it exists
@@ -114,17 +105,20 @@ def test_global_config_fallback():
                 json.dump(global_config_data, f)
 
             # Mock Path.cwd() to return temp directory (no project config)
-            with mock.patch('pathlib.Path.cwd', return_value=tmpdir_path):
+            with mock.patch("pathlib.Path.cwd", return_value=tmpdir_path):
                 # Load config - should use global
                 config = load_config()
 
                 # Verify global config was loaded
-                assert config["default_adapter"] == "github", \
-                    f"Expected 'github', got '{config['default_adapter']}'"
-                assert "github" in config["adapters"], \
-                    "Expected 'github' adapter in config"
-                assert config["adapters"]["github"]["owner"] == "GLOBAL-FALLBACK", \
-                    "Expected global config values"
+                assert (
+                    config["default_adapter"] == "github"
+                ), f"Expected 'github', got '{config['default_adapter']}'"
+                assert (
+                    "github" in config["adapters"]
+                ), "Expected 'github' adapter in config"
+                assert (
+                    config["adapters"]["github"]["owner"] == "GLOBAL-FALLBACK"
+                ), "Expected global config values"
 
                 print("✓ Test passed: Global config used when project config missing")
 
@@ -153,17 +147,18 @@ def test_default_fallback():
 
         try:
             # Mock Path.cwd() to return temp directory
-            with mock.patch('pathlib.Path.cwd', return_value=tmpdir_path):
+            with mock.patch("pathlib.Path.cwd", return_value=tmpdir_path):
                 # Load config - should use defaults
                 config = load_config()
 
                 # Verify default config was loaded
-                assert config["adapter"] == "aitrackdown", \
-                    f"Expected 'aitrackdown', got '{config.get('adapter')}'"
-                assert "config" in config, \
-                    "Expected default config structure"
-                assert config["config"]["base_path"] == ".aitrackdown", \
-                    "Expected default base_path"
+                assert (
+                    config["adapter"] == "aitrackdown"
+                ), f"Expected 'aitrackdown', got '{config.get('adapter')}'"
+                assert "config" in config, "Expected default config structure"
+                assert (
+                    config["config"]["base_path"] == ".aitrackdown"
+                ), "Expected default base_path"
 
                 print("✓ Test passed: Default config used when no configs exist")
 

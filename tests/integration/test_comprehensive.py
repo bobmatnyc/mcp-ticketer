@@ -14,7 +14,14 @@ from typing import Dict, Any
 # Add src to path for testing
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from mcp_ticketer.core import Task, Epic, Comment, TicketState, Priority, AdapterRegistry
+from mcp_ticketer.core import (
+    Task,
+    Epic,
+    Comment,
+    TicketState,
+    Priority,
+    AdapterRegistry,
+)
 from mcp_ticketer.adapters import AITrackdownAdapter
 from mcp_ticketer.cache import MemoryCache
 
@@ -86,7 +93,7 @@ class ComprehensiveTestSuite:
                 title="Test Task",
                 description="This is a test task",
                 priority=Priority.HIGH,
-                tags=["test", "demo"]
+                tags=["test", "demo"],
             )
             self.results.pass_test(f"Created valid task: {task.title}")
 
@@ -120,11 +127,15 @@ class ComprehensiveTestSuite:
 
             # Test transition logic
             can_progress = TicketState.IN_PROGRESS.value in open_transitions
-            self.results.pass_test(f"Can transition OPEN -> IN_PROGRESS: {can_progress}")
+            self.results.pass_test(
+                f"Can transition OPEN -> IN_PROGRESS: {can_progress}"
+            )
 
             # Test invalid transition
             closed_transitions = valid_transitions[TicketState.CLOSED]
-            self.results.pass_test(f"Closed state transitions: {closed_transitions} (should be empty)")
+            self.results.pass_test(
+                f"Closed state transitions: {closed_transitions} (should be empty)"
+            )
 
         except Exception as e:
             self.results.fail_test("State transition test failed", e)
@@ -186,7 +197,9 @@ class ComprehensiveTestSuite:
             if deleted_value is None:
                 self.results.pass_test("Cache deletion working")
             else:
-                self.results.fail_test(f"Cache should have been deleted: {deleted_value}")
+                self.results.fail_test(
+                    f"Cache should have been deleted: {deleted_value}"
+                )
 
         except Exception as e:
             self.results.fail_test("Cache operations test failed", e)
@@ -207,7 +220,7 @@ class ComprehensiveTestSuite:
                 title="AITrackdown Test Task",
                 description="Testing AITrackdown adapter",
                 priority=Priority.MEDIUM,
-                tags=["test", "aitrackdown"]
+                tags=["test", "aitrackdown"],
             )
 
             # Test create
@@ -216,7 +229,9 @@ class ComprehensiveTestSuite:
             create_time = time.time() - elapsed
 
             if created_task and created_task.id:
-                self.results.pass_test(f"Created task with ID: {created_task.id} ({create_time:.3f}s)")
+                self.results.pass_test(
+                    f"Created task with ID: {created_task.id} ({create_time:.3f}s)"
+                )
                 self.results.performance_metrics["create_task"] = create_time
             else:
                 self.results.fail_test("Failed to create task")
@@ -240,7 +255,9 @@ class ComprehensiveTestSuite:
             update_time = time.time() - elapsed
 
             if updated_task and updated_task.description == "Updated description":
-                self.results.pass_test(f"Updated task successfully ({update_time:.3f}s)")
+                self.results.pass_test(
+                    f"Updated task successfully ({update_time:.3f}s)"
+                )
                 self.results.performance_metrics["update_task"] = update_time
             else:
                 self.results.fail_test("Failed to update task")
@@ -251,20 +268,25 @@ class ComprehensiveTestSuite:
             list_time = time.time() - elapsed
 
             if len(tasks) >= 1:
-                self.results.pass_test(f"Listed {len(tasks)} task(s) ({list_time:.3f}s)")
+                self.results.pass_test(
+                    f"Listed {len(tasks)} task(s) ({list_time:.3f}s)"
+                )
                 self.results.performance_metrics["list_tasks"] = list_time
             else:
                 self.results.fail_test("Failed to list tasks")
 
             # Test search
             from mcp_ticketer.core.models import SearchQuery
+
             search_query = SearchQuery(query="AITrackdown")
             elapsed = time.time()
             search_results = await adapter.search(search_query)
             search_time = time.time() - elapsed
 
             if len(search_results) >= 1:
-                self.results.pass_test(f"Search found {len(search_results)} result(s) ({search_time:.3f}s)")
+                self.results.pass_test(
+                    f"Search found {len(search_results)} result(s) ({search_time:.3f}s)"
+                )
                 self.results.performance_metrics["search_tasks"] = search_time
             else:
                 self.results.fail_test("Search found no results")
@@ -273,7 +295,7 @@ class ComprehensiveTestSuite:
             comment = Comment(
                 ticket_id=created_task.id,
                 content="Test comment for AITrackdown adapter",
-                author="test_user"
+                author="test_user",
             )
 
             created_comment = await adapter.add_comment(comment)
@@ -308,7 +330,7 @@ class ComprehensiveTestSuite:
                 title="Test Epic",
                 description="Epic for testing hierarchy",
                 priority=Priority.HIGH,
-                tags=["epic", "test"]
+                tags=["epic", "test"],
             )
 
             created_epic = await adapter.create(epic)
@@ -324,14 +346,18 @@ class ComprehensiveTestSuite:
                 description="Task under the epic",
                 parent_epic=created_epic.id,
                 priority=Priority.MEDIUM,
-                tags=["task", "child"]
+                tags=["task", "child"],
             )
 
             created_task = await adapter.create(task)
             if created_task and created_task.parent_epic == created_epic.id:
-                self.results.pass_test(f"Created child task with parent epic: {created_task.parent_epic}")
+                self.results.pass_test(
+                    f"Created child task with parent epic: {created_task.parent_epic}"
+                )
             else:
-                self.results.fail_test("Failed to create child task with proper hierarchy")
+                self.results.fail_test(
+                    "Failed to create child task with proper hierarchy"
+                )
 
             # Clean up
             await adapter.delete(created_task.id)
@@ -358,7 +384,7 @@ class ComprehensiveTestSuite:
                     title=f"Performance Test Task {i}",
                     description=f"Task {i} for performance testing",
                     priority=Priority.LOW,
-                    tags=["performance", f"task-{i}"]
+                    tags=["performance", f"task-{i}"],
                 )
                 created_task = await adapter.create(task)
                 if created_task:
@@ -387,7 +413,9 @@ class ComprehensiveTestSuite:
             list_large_time = time.time() - start_time
             self.results.performance_metrics["list_large"] = list_large_time
 
-            self.results.pass_test(f"Listed {len(all_tasks)} tasks in {list_large_time:.3f}s")
+            self.results.pass_test(
+                f"Listed {len(all_tasks)} tasks in {list_large_time:.3f}s"
+            )
 
             # Clean up
             for task_id in task_ids:
@@ -420,14 +448,18 @@ class ComprehensiveTestSuite:
             if updated is None:
                 self.results.pass_test("Correctly handles non-existent task update")
             else:
-                self.results.fail_test("Should return None for non-existent task update")
+                self.results.fail_test(
+                    "Should return None for non-existent task update"
+                )
 
             # Test deleting non-existent task
             try:
                 await adapter.delete("fake-id")
                 self.results.pass_test("Gracefully handles non-existent task deletion")
             except Exception as e:
-                self.results.fail_test(f"Should handle non-existent deletion gracefully: {e}")
+                self.results.fail_test(
+                    f"Should handle non-existent deletion gracefully: {e}"
+                )
 
             # Test adapter with default configuration
             try:
@@ -495,7 +527,9 @@ class ComprehensiveTestSuite:
         if self.results.tests_failed == 0:
             print("🎉 ALL TESTS PASSED! MCP Ticketer is ready for production.")
         else:
-            print(f"⚠️  {self.results.tests_failed} test(s) failed. Review issues before production use.")
+            print(
+                f"⚠️  {self.results.tests_failed} test(s) failed. Review issues before production use."
+            )
 
         # Recommendations
         print("\nRECOMMENDATIONS:")
@@ -508,7 +542,12 @@ class ComprehensiveTestSuite:
         else:
             print("⚠ Low test coverage, add more comprehensive tests")
 
-        avg_performance = sum(self.results.performance_metrics.values()) / len(self.results.performance_metrics) if self.results.performance_metrics else 0
+        avg_performance = (
+            sum(self.results.performance_metrics.values())
+            / len(self.results.performance_metrics)
+            if self.results.performance_metrics
+            else 0
+        )
         if avg_performance < 0.1:
             print("✓ Excellent performance")
         elif avg_performance < 0.5:

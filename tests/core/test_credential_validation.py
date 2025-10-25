@@ -6,13 +6,13 @@ import sys
 
 # Remove any existing credentials for testing
 test_env_vars = [
-    'LINEAR_API_KEY',
-    'GITHUB_TOKEN',
-    'GITHUB_OWNER',
-    'GITHUB_REPO',
-    'JIRA_SERVER',
-    'JIRA_EMAIL',
-    'JIRA_API_TOKEN'
+    "LINEAR_API_KEY",
+    "GITHUB_TOKEN",
+    "GITHUB_OWNER",
+    "GITHUB_REPO",
+    "JIRA_SERVER",
+    "JIRA_EMAIL",
+    "JIRA_API_TOKEN",
 ]
 
 print("Testing credential validation for all adapters...\n")

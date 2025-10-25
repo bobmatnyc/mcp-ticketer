@@ -73,12 +73,8 @@ def test_codex_config_structure():
 
     # Structural validation
     assert "mcp_servers" in loaded, "Missing mcp_servers key"
-    assert (
-        "mcp-ticketer" in loaded["mcp_servers"]
-    ), "Missing mcp-ticketer server config"
-    assert (
-        "command" in loaded["mcp_servers"]["mcp-ticketer"]
-    ), "Missing command field"
+    assert "mcp-ticketer" in loaded["mcp_servers"], "Missing mcp-ticketer server config"
+    assert "command" in loaded["mcp_servers"]["mcp-ticketer"], "Missing command field"
     assert "args" in loaded["mcp_servers"]["mcp-ticketer"], "Missing args field"
     assert "env" in loaded["mcp_servers"]["mcp-ticketer"], "Missing env field"
     print("✓ Structure validation passed")
@@ -100,7 +96,9 @@ def test_codex_config_structure():
     print("\n✅ All tests passed!")
     print("\nKey Points:")
     print("  - Uses 'mcp_servers' (underscore, not camelCase)")
-    print("  - Nested sections: [mcp_servers.mcp-ticketer] and [mcp_servers.mcp-ticketer.env]")
+    print(
+        "  - Nested sections: [mcp_servers.mcp-ticketer] and [mcp_servers.mcp-ticketer.env]"
+    )
     print("  - Environment variables in env dict")
     print("  - TOML format matches Codex CLI specification")
 

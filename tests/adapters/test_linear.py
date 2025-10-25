@@ -33,10 +33,7 @@ async def test_linear_adapter():
     print(f"✅ Using Linear team: {team_id}")
 
     # Initialize adapter
-    config = {
-        "api_key": api_key,
-        "team_id": team_id
-    }
+    config = {"api_key": api_key, "team_id": team_id}
 
     try:
         adapter = AdapterRegistry.get_adapter("linear", config)
@@ -51,7 +48,7 @@ async def test_linear_adapter():
         title=f"Test Task - {datetime.now().strftime('%Y-%m-%d %H:%M')}",
         description="This is a test task created by mcp-ticketer Linear adapter",
         priority=Priority.MEDIUM,
-        tags=["test", "mcp-ticketer"]
+        tags=["test", "mcp-ticketer"],
     )
 
     try:
@@ -82,8 +79,8 @@ async def test_linear_adapter():
             task_id,
             {
                 "title": f"Updated Test Task - {datetime.now().strftime('%H:%M')}",
-                "priority": Priority.HIGH
-            }
+                "priority": Priority.HIGH,
+            },
         )
         if updated_task:
             print(f"✅ Updated task: {updated_task.title}")
@@ -96,8 +93,7 @@ async def test_linear_adapter():
     # Test 4: Add a comment
     print(f"\n💬 Test 4: Adding comment to task {task_id}...")
     comment = Comment(
-        ticket_id=task_id,
-        content="This is a test comment from mcp-ticketer"
+        ticket_id=task_id, content="This is a test comment from mcp-ticketer"
     )
 
     try:
@@ -118,10 +114,7 @@ async def test_linear_adapter():
 
     # Test 6: Search tasks
     print("\n🔍 Test 6: Searching for 'test' tasks...")
-    search_query = SearchQuery(
-        query="test",
-        limit=5
-    )
+    search_query = SearchQuery(query="test", limit=5)
 
     try:
         results = await adapter.search(search_query)

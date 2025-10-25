@@ -98,44 +98,34 @@ class TestFilterBuilders:
     def test_build_issue_filter_basic(self):
         """Test basic issue filter building."""
         filter_obj = build_issue_filter(team_id="team-123")
-        
+
         assert filter_obj["team"]["id"]["eq"] == "team-123"
         assert filter_obj["archivedAt"]["null"] is True
 
     def test_build_issue_filter_with_state(self):
         """Test issue filter with state."""
         filter_obj = build_issue_filter(
-            team_id="team-123",
-            state=TicketState.IN_PROGRESS
+            team_id="team-123", state=TicketState.IN_PROGRESS
         )
-        
+
         assert filter_obj["state"]["type"]["eq"] == "started"
 
     def test_build_issue_filter_with_priority(self):
         """Test issue filter with priority."""
-        filter_obj = build_issue_filter(
-            team_id="team-123",
-            priority=Priority.HIGH
-        )
-        
+        filter_obj = build_issue_filter(team_id="team-123", priority=Priority.HIGH)
+
         assert filter_obj["priority"]["eq"] == 2
 
     def test_build_issue_filter_with_assignee(self):
         """Test issue filter with assignee."""
-        filter_obj = build_issue_filter(
-            team_id="team-123",
-            assignee_id="user-456"
-        )
-        
+        filter_obj = build_issue_filter(team_id="team-123", assignee_id="user-456")
+
         assert filter_obj["assignee"]["id"]["eq"] == "user-456"
 
     def test_build_issue_filter_with_labels(self):
         """Test issue filter with labels."""
-        filter_obj = build_issue_filter(
-            team_id="team-123",
-            labels=["bug", "frontend"]
-        )
-        
+        filter_obj = build_issue_filter(team_id="team-123", labels=["bug", "frontend"])
+
         assert filter_obj["labels"]["some"]["name"]["in"] == ["bug", "frontend"]
 
     def test_build_issue_filter_with_dates(self):
@@ -144,45 +134,36 @@ class TestFilterBuilders:
             team_id="team-123",
             created_after="2023-01-01T00:00:00Z",
             updated_after="2023-01-02T00:00:00Z",
-            due_before="2023-12-31T23:59:59Z"
+            due_before="2023-12-31T23:59:59Z",
         )
-        
+
         assert filter_obj["createdAt"]["gte"] == "2023-01-01T00:00:00Z"
         assert filter_obj["updatedAt"]["gte"] == "2023-01-02T00:00:00Z"
         assert filter_obj["dueDate"]["lte"] == "2023-12-31T23:59:59Z"
 
     def test_build_issue_filter_include_archived(self):
         """Test issue filter with archived issues included."""
-        filter_obj = build_issue_filter(
-            team_id="team-123",
-            include_archived=True
-        )
-        
+        filter_obj = build_issue_filter(team_id="team-123", include_archived=True)
+
         # Should not have archivedAt filter when including archived
         assert "archivedAt" not in filter_obj
 
     def test_build_project_filter_basic(self):
         """Test basic project filter building."""
         filter_obj = build_project_filter(team_id="team-123")
-        
+
         assert filter_obj["teams"]["some"]["id"]["eq"] == "team-123"
 
     def test_build_project_filter_with_state(self):
         """Test project filter with state."""
-        filter_obj = build_project_filter(
-            team_id="team-123",
-            state="started"
-        )
-        
+        filter_obj = build_project_filter(team_id="team-123", state="started")
+
         assert filter_obj["state"]["eq"] == "started"
 
     def test_build_project_filter_exclude_completed(self):
         """Test project filter excluding completed projects."""
-        filter_obj = build_project_filter(
-            team_id="team-123",
-            include_completed=False
-        )
-        
+        filter_obj = build_project_filter(team_id="team-123", include_completed=False)
+
         assert filter_obj["state"]["neq"] == "completed"
 
 
@@ -195,30 +176,27 @@ class TestMetadataExtraction:
         issue_data = {
             "id": "issue-123",
             "title": "Test Issue",
-            "url": "https://linear.app/team/issue/TEST-123"
+            "url": "https://linear.app/team/issue/TEST-123",
         }
-        
+
         metadata = extract_linear_metadata(issue_data)
-        
+
         assert metadata["linear_url"] == "https://linear.app/team/issue/TEST-123"
 
     def test_extract_linear_metadata_comprehensive(self):
         """Test comprehensive metadata extraction."""
         issue_data = {
             "dueDate": "2023-12-31T23:59:59Z",
-            "cycle": {
-                "id": "cycle-456",
-                "name": "Sprint 1"
-            },
+            "cycle": {"id": "cycle-456", "name": "Sprint 1"},
             "estimate": 5,
             "branchName": "feature/test-123",
             "url": "https://linear.app/team/issue/TEST-123",
             "slaBreachesAt": "2023-12-30T00:00:00Z",
-            "customerTicketCount": 3
+            "customerTicketCount": 3,
         }
-        
+
         metadata = extract_linear_metadata(issue_data)
-        
+
         assert metadata["due_date"] == "2023-12-31T23:59:59Z"
         assert metadata["cycle_id"] == "cycle-456"
         assert metadata["cycle_name"] == "Sprint 1"
@@ -230,13 +208,10 @@ class TestMetadataExtraction:
 
     def test_extract_linear_metadata_empty(self):
         """Test metadata extraction with empty data."""
-        issue_data = {
-            "id": "issue-123",
-            "title": "Test Issue"
-        }
-        
+        issue_data = {"id": "issue-123", "title": "Test Issue"}
+
         metadata = extract_linear_metadata(issue_data)
-        
+
         assert metadata == {}
 
     def test_extract_linear_metadata_partial(self):
@@ -244,11 +219,11 @@ class TestMetadataExtraction:
         issue_data = {
             "dueDate": "2023-12-31T23:59:59Z",
             "estimate": None,  # Null value should be ignored
-            "url": "https://linear.app/team/issue/TEST-123"
+            "url": "https://linear.app/team/issue/TEST-123",
         }
-        
+
         metadata = extract_linear_metadata(issue_data)
-        
+
         assert metadata["due_date"] == "2023-12-31T23:59:59Z"
         assert metadata["linear_url"] == "https://linear.app/team/issue/TEST-123"
         assert "estimate" not in metadata  # Null values should be excluded

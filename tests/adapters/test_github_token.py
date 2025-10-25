@@ -8,18 +8,18 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # Load environment variables
-env_path = Path('.env.local')
+env_path = Path(".env.local")
 if env_path.exists():
     load_dotenv(env_path)
 
-token = os.getenv('GITHUB_TOKEN')
+token = os.getenv("GITHUB_TOKEN")
 if not token:
     print("GITHUB_TOKEN not found!")
     exit(1)
 
 headers = {
     "Authorization": f"Bearer {token}",
-    "Accept": "application/vnd.github.v3+json"
+    "Accept": "application/vnd.github.v3+json",
 }
 
 # Test different endpoints
@@ -44,8 +44,10 @@ with httpx.Client(headers=headers) as client:
                     print(f"  Authenticated as: {data.get('login', 'Unknown')}")
                 elif name == "Rate limit":
                     data = response.json()
-                    rate = data.get('rate', {})
-                    print(f"  API calls remaining: {rate.get('remaining', 0)}/{rate.get('limit', 0)}")
+                    rate = data.get("rate", {})
+                    print(
+                        f"  API calls remaining: {rate.get('remaining', 0)}/{rate.get('limit', 0)}"
+                    )
             else:
                 print(f"✗ {name}: {response.status_code} - {response.text[:100]}")
         except Exception as e:

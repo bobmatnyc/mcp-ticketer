@@ -7,7 +7,8 @@ from pprint import pprint
 
 # Add the source directory to the path
 import sys
-sys.path.insert(0, '/Users/masa/Projects/managed/mcp-ticketer/src')
+
+sys.path.insert(0, "/Users/masa/Projects/managed/mcp-ticketer/src")
 
 from mcp_ticketer.adapters.linear import LinearAdapter
 from mcp_ticketer.core.models import Task, Comment, SearchQuery, TicketState, Priority
@@ -18,13 +19,14 @@ async def test_linear_adapter():
 
     # Load environment
     from dotenv import load_dotenv
-    load_dotenv('.env.local')
+
+    load_dotenv(".env.local")
 
     # Initialize adapter with BTA workspace and BTA team
     config = {
         "api_key": os.getenv("LINEAR_API_KEY"),
         "workspace": "travel-bta",
-        "team_key": "BTA"
+        "team_key": "BTA",
     }
 
     adapter = LinearAdapter(config)
@@ -59,7 +61,7 @@ async def test_linear_adapter():
                 "linear": {
                     "due_date": (datetime.now() + timedelta(days=7)).date().isoformat()
                 }
-            }
+            },
         )
 
         created_task = await adapter.create(new_task)
@@ -77,7 +79,9 @@ async def test_linear_adapter():
             print(f"✅ Successfully read issue")
             print(f"   Team: {read_task.metadata['linear'].get('team_name')}")
             print(f"   State: {read_task.metadata['linear'].get('state_name')}")
-            print(f"   Priority Label: {read_task.metadata['linear'].get('priority_label')}")
+            print(
+                f"   Priority Label: {read_task.metadata['linear'].get('priority_label')}"
+            )
             print(f"   Due Date: {read_task.metadata['linear'].get('due_date')}")
             print(f"   Estimate: {read_task.estimated_hours}")
 
@@ -94,7 +98,7 @@ async def test_linear_adapter():
         comment2 = Comment(
             ticket_id=created_task.id,
             content="This is a reply to the first comment, demonstrating comment threading.",
-            metadata={"parent_comment_id": created_comment1.id}
+            metadata={"parent_comment_id": created_comment1.id},
         )
         created_comment2 = await adapter.add_comment(comment2)
         print(f"✅ Added reply comment: {created_comment2.id}")
@@ -113,7 +117,7 @@ async def test_linear_adapter():
             "priority": Priority.CRITICAL,
             "state": TicketState.READY,
             "tags": ["api-test", "graphql", "updated", "ready-for-review"],
-            "estimated_hours": 6.0
+            "estimated_hours": 6.0,
         }
         updated_task = await adapter.update(created_task.id, updates)
         if updated_task:
@@ -126,8 +130,7 @@ async def test_linear_adapter():
         # Test 6: Create a project
         print("\n6. Creating a new project...")
         project_id = await adapter.create_project(
-            "Test GraphQL Project",
-            "A test project created via the Linear GraphQL API"
+            "Test GraphQL Project", "A test project created via the Linear GraphQL API"
         )
         print(f"✅ Created project: {project_id}")
 
@@ -140,7 +143,7 @@ async def test_linear_adapter():
             priority=Priority.MEDIUM,
             parent_issue=created_task.id,
             parent_epic=project_id,
-            tags=["sub-task", "api-test"]
+            tags=["sub-task", "api-test"],
         )
         created_sub_task = await adapter.create(sub_task)
         print(f"✅ Created sub-issue: {created_sub_task.id}")
@@ -154,7 +157,7 @@ async def test_linear_adapter():
             state=TicketState.READY,
             priority=Priority.CRITICAL,
             tags=["api-test"],
-            limit=5
+            limit=5,
         )
         search_results = await adapter.search(search)
         print(f"✅ Found {len(search_results)} matching issues")
@@ -166,7 +169,7 @@ async def test_linear_adapter():
         filters = {
             "state": TicketState.IN_PROGRESS,
             "priority": Priority.HIGH,
-            "labels": ["api-test"]
+            "labels": ["api-test"],
         }
         listed_tasks = await adapter.list(limit=5, filters=filters)
         print(f"✅ Listed {len(listed_tasks)} issues matching filters")
@@ -177,9 +180,9 @@ async def test_linear_adapter():
         print(f"✅ Found {len(cycles)} active cycles")
         for cycle in cycles[:3]:
             print(f"   - Cycle {cycle.get('number')}: {cycle.get('name')}")
-            if cycle.get('startsAt'):
+            if cycle.get("startsAt"):
                 print(f"     Starts: {cycle['startsAt']}")
-            if cycle.get('endsAt'):
+            if cycle.get("endsAt"):
                 print(f"     Ends: {cycle['endsAt']}")
 
         # Test 11: Add to cycle (if there are active cycles)
@@ -234,6 +237,7 @@ async def test_linear_adapter():
     except Exception as e:
         print(f"\n❌ Error during testing: {e}")
         import traceback
+
         traceback.print_exc()
 
     finally:

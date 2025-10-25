@@ -38,7 +38,7 @@ def test_queue_operations():
             "tags": ["test", "demo"],
         },
         adapter="aitrackdown",
-        operation="create"
+        operation="create",
     )
     queue_ids.append(queue_id1)
     console.print(f"  Added create operation: {queue_id1}")
@@ -51,19 +51,16 @@ def test_queue_operations():
             "priority": Priority.CRITICAL.value,
         },
         adapter="aitrackdown",
-        operation="update"
+        operation="update",
     )
     queue_ids.append(queue_id2)
     console.print(f"  Added update operation: {queue_id2}")
 
     # Test 3: Transition ticket
     queue_id3 = queue.add(
-        ticket_data={
-            "ticket_id": "TEST-001",
-            "state": "in_progress"
-        },
+        ticket_data={"ticket_id": "TEST-001", "state": "in_progress"},
         adapter="aitrackdown",
-        operation="transition"
+        operation="transition",
     )
     queue_ids.append(queue_id3)
     console.print(f"  Added transition operation: {queue_id3}")
@@ -92,7 +89,9 @@ def test_worker_manager():
 
     # Check initial status
     status = manager.get_status()
-    console.print(f"Initial worker status: {'running' if status['running'] else 'not running'}")
+    console.print(
+        f"Initial worker status: {'running' if status['running'] else 'not running'}"
+    )
 
     # Start worker if not running
     if not manager.is_running():
@@ -192,6 +191,7 @@ def main():
     except Exception as e:
         console.print(f"\n[bold red]✗ Test failed: {e}[/bold red]")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
