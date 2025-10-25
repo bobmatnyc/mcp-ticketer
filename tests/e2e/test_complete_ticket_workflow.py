@@ -1,6 +1,5 @@
 """End-to-end tests for complete ticket workflow across all adapters."""
 
-
 import pytest
 
 from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter

@@ -1,6 +1,5 @@
 """End-to-end tests for all ticket state transitions and workflow states."""
 
-
 import pytest
 
 from mcp_ticketer.mcp.server import MCPTicketServer

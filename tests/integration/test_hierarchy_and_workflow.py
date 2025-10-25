@@ -96,9 +96,7 @@ class HierarchyWorkflowTester:
                     }
 
                     if adapter_name == "linear":
-                        print(
-                            "    📝 Creating Project (Epic equivalent) for Linear..."
-                        )
+                        print("    📝 Creating Project (Epic equivalent) for Linear...")
                     else:
                         print("    📝 Creating Epic...")
 

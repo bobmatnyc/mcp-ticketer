@@ -5,12 +5,7 @@ import asyncio
 import pytest
 
 from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
-from mcp_ticketer.core.models import (
-    Comment,
-    Epic,
-    Priority,
-    Task,
-)
+from mcp_ticketer.core.models import Comment, Epic, Priority, Task
 
 
 @pytest.mark.e2e

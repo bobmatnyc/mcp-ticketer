@@ -66,12 +66,9 @@ def test_adapter_imports():
 
         print("✓ AITrackdown adapter imported")
 
-
         print("✓ Linear adapter imported")
 
-
         print("✓ Jira adapter imported")
-
 
         print("✓ GitHub adapter imported")
 

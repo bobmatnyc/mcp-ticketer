@@ -1,6 +1,5 @@
 """Unit tests for Linear adapter types and mappings."""
 
-
 import pytest
 
 from mcp_ticketer.adapters.linear.types import (
