@@ -5,6 +5,7 @@ import asyncio
 import os
 from datetime import datetime
 
+import pytest
 from dotenv import load_dotenv
 
 from mcp_ticketer.core import AdapterRegistry, Priority, Task, TicketState
@@ -14,6 +15,7 @@ from mcp_ticketer.core.models import Comment, SearchQuery
 load_dotenv()
 
 
+@pytest.mark.asyncio
 async def test_linear_adapter():
     """Test basic Linear adapter operations."""
 

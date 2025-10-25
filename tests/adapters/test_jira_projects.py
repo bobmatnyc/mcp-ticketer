@@ -8,6 +8,8 @@ import logging
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
@@ -20,6 +22,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.skip(
+    reason="Standalone script, not a pytest test - run directly with python"
+)
+@pytest.mark.asyncio
 async def test_jira_projects():
     """Test JIRA projects and permissions."""
     print("🔍 Testing JIRA projects and permissions...")
@@ -95,6 +101,10 @@ async def test_jira_projects():
         return None
 
 
+@pytest.mark.skip(
+    reason="Standalone script helper, not a pytest test - run directly with python"
+)
+@pytest.mark.asyncio
 async def test_create_issue(client, config, project_key, issue_type):
     """Test creating an issue in the specified project."""
     print(f"\n🧪 Testing issue creation in {project_key}...")

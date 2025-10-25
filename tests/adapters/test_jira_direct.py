@@ -8,12 +8,13 @@ import logging
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Import adapters to register them
-from mcp_ticketer.core.env_loader import (load_adapter_config,
-                                          validate_adapter_config)
+from mcp_ticketer.core.env_loader import load_adapter_config, validate_adapter_config
 from mcp_ticketer.core.models import Priority, Task
 from mcp_ticketer.core.registry import AdapterRegistry
 
@@ -24,6 +25,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.skip(
+    reason="Standalone script, not a pytest test - run directly with python"
+)
+@pytest.mark.asyncio
 async def test_jira_direct():
     """Test JIRA adapter directly with MT project."""
     print("🔍 Testing JIRA adapter directly with MT project...")
@@ -101,6 +106,10 @@ async def test_jira_direct():
         traceback.print_exc()
 
 
+@pytest.mark.skip(
+    reason="Standalone script, not a pytest test - run directly with python"
+)
+@pytest.mark.asyncio
 async def test_jira_commenting(ticket):
     """Test JIRA commenting functionality."""
     if not ticket:

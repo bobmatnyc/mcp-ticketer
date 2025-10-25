@@ -9,9 +9,15 @@ from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from ..core.project_config import (AdapterConfig, AdapterType, ConfigResolver,
-                                   ConfigValidator, HybridConfig, SyncStrategy,
-                                   TicketerConfig)
+from ..core.project_config import (
+    AdapterConfig,
+    AdapterType,
+    ConfigResolver,
+    ConfigValidator,
+    HybridConfig,
+    SyncStrategy,
+    TicketerConfig,
+)
 
 console = Console()
 

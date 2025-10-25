@@ -14,8 +14,11 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from mcp_ticketer.core.env_loader import (get_env_loader, load_adapter_config,
-                                          validate_adapter_config)
+from mcp_ticketer.core.env_loader import (
+    get_env_loader,
+    load_adapter_config,
+    validate_adapter_config,
+)
 from mcp_ticketer.core.registry import AdapterRegistry
 
 # Set up logging

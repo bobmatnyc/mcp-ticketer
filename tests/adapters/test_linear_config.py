@@ -6,6 +6,8 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 # Load environment variables from .env.local
 from dotenv import load_dotenv
 
@@ -18,6 +20,7 @@ from mcp_ticketer.adapters.linear import LinearAdapter
 from mcp_ticketer.core.config import ConfigurationManager
 
 
+@pytest.mark.asyncio
 async def test_linear_config():
     """Test Linear adapter configuration."""
     print("🔍 Testing Linear adapter configuration...")

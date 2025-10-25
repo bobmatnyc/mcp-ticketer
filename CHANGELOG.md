@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.3.4] - 2025-01-25
+
+### Added
+- **Linear Label Resolution**: Automatic label ID resolution with case-insensitive matching
+  - Added `_load_team_labels()` method for efficient label caching
+  - Added `_resolve_label_ids()` with comprehensive debug logging
+  - Labels are now properly included when creating Linear issues
+- **Project Property Synonym**: `project` property added as synonym for `parent_epic` in Task model
+  - CLI now supports both `--project` and `--epic` parameters for consistency
+
+### Fixed
+- **Test Reliability**: Added missing `pytest.mark.asyncio` decorators to JIRA adapter tests
+  - Fixed `test_jira_jql` function to properly run async tests
+  - Fixed `test_jira_adapter` to include async decorator
+- **Linear Adapter**:
+  - Fixed default state mapping to use "To-Do" instead of "Backlog"
+  - Fixed `build_linear_issue_input()` to properly include labelIds
+  - Improved error handling and validation
+
+### Changed
+- **Code Formatting**: Applied comprehensive formatting across entire codebase
+  - Applied Black and isort formatting to all source and test files
+  - Fixed 136+ import ordering and formatting issues (I001)
+  - Reorganized imports for consistency across codebase
+  - Moved `test_credential_validation.py` to debug location for better organization
+
 ## [0.3.3] - 2025-01-25
 
 ### Fixed
