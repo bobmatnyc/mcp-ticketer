@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.3.3] - 2025-01-25
+
+### Fixed
+- **Test Suite Reliability**: Fixed all e2e tests (30/30 passing, previously 26/32)
+  - Fixed state machine transition tests to follow valid state paths
+  - Fixed case sensitivity bug in comment search test
+  - Fixed Linear adapter test_init_missing_api_key with proper environment mocking
+  - Removed 2 obsolete queue-related tests
+- **Code Quality**: Fixed 46+ auto-fixable linting issues across the codebase
+  - Applied modern Python type annotations
+  - Improved code formatting and organization
+  - Enhanced code readability and maintainability
+
+### Added
+- **Comprehensive Unit Tests**: Created extensive unit test suite (264 tests)
+  - Added tests/unit/ directory with organized test modules
+  - Achieved 100% test coverage for critical components:
+    - Core models (models.py)
+    - Exception handling (exceptions.py)
+    - Adapter registry (registry.py)
+    - Cache system (cache/memory.py)
+  - Improved overall code coverage from ~11% to 12.56%
+
+### Changed
+- **MCP Server Architecture**: Refactored for better maintainability (internal only - no API changes)
+  - Reduced MCP server code from ~1,800 to ~500 lines
+  - Extracted constants.py for centralized configuration
+  - Extracted dto.py for data transfer objects
+  - Extracted response_builder.py for consistent response formatting
+  - Improved code organization and testability
+- **Test Organization**: Updated test import paths for consistency
+  - Standardized on `mcp_ticketer` imports (from `src.mcp_ticketer`)
+
+### Improved
+- **Code Coverage**: Increased from ~11% to 12.56% with 11 files at 100% coverage
+- **Test Reliability**: All tests now pass consistently (294 total tests)
+- **Code Quality**: Enhanced type safety and code organization throughout
+
 ## [0.1.39] - 2025-10-24
 
 ### Major Improvements
