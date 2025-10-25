@@ -7,7 +7,8 @@ from pathlib import Path
 from typing import Any, Optional, Union
 
 from ..core.adapter import BaseAdapter
-from ..core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
+from ..core.models import (Comment, Epic, Priority, SearchQuery, Task,
+                           TicketState)
 from ..core.registry import AdapterRegistry
 
 # Import ai-trackdown-pytools when available

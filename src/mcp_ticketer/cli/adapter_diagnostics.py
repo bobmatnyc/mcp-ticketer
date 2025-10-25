@@ -197,7 +197,8 @@ def _test_adapter_instantiation(console: Console) -> None:
                 if primary:
                     adapter_type = primary.adapter_type
                     # Build config from discovery
-                    from ..mcp.server import _build_adapter_config_from_env_vars
+                    from ..mcp.server import \
+                        _build_adapter_config_from_env_vars
 
                     config = _build_adapter_config_from_env_vars(adapter_type, {})
                 else:
@@ -384,7 +385,8 @@ def get_adapter_status() -> dict[str, Any]:
                     adapter_type = primary.adapter_type
                     status["configuration_source"] = primary.found_in
                     # Build basic config
-                    from ..mcp.server import _build_adapter_config_from_env_vars
+                    from ..mcp.server import \
+                        _build_adapter_config_from_env_vars
 
                     config = _build_adapter_config_from_env_vars(adapter_type, {})
                 else:

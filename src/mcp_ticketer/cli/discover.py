@@ -7,12 +7,8 @@ import typer
 from rich.console import Console
 
 from ..core.env_discovery import DiscoveredAdapter, EnvDiscovery
-from ..core.project_config import (
-    AdapterConfig,
-    ConfigResolver,
-    ConfigValidator,
-    TicketerConfig,
-)
+from ..core.project_config import (AdapterConfig, ConfigResolver,
+                                   ConfigValidator, TicketerConfig)
 
 console = Console()
 app = typer.Typer(help="Auto-discover configuration from .env files")

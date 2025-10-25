@@ -9,7 +9,8 @@ import pytest
 from dotenv import load_dotenv
 
 from mcp_ticketer.adapters.github import GitHubAdapter
-from mcp_ticketer.core.models import Comment, Priority, SearchQuery, Task, TicketState
+from mcp_ticketer.core.models import (Comment, Priority, SearchQuery, Task,
+                                      TicketState)
 
 # Load environment variables
 load_dotenv()

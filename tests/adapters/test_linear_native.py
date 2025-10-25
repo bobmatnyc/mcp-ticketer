@@ -2,7 +2,6 @@
 
 import asyncio
 import os
-
 # Add the source directory to the path
 import sys
 from datetime import datetime, timedelta
@@ -10,7 +9,8 @@ from datetime import datetime, timedelta
 sys.path.insert(0, "/Users/masa/Projects/managed/mcp-ticketer/src")
 
 from mcp_ticketer.adapters.linear import LinearAdapter
-from mcp_ticketer.core.models import Comment, Priority, SearchQuery, Task, TicketState
+from mcp_ticketer.core.models import (Comment, Priority, SearchQuery, Task,
+                                      TicketState)
 
 
 async def test_linear_adapter():
