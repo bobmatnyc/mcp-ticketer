@@ -20,6 +20,7 @@ Example:
     ...     state=TicketState.IN_PROGRESS
     ... )
     >>> print(task.model_dump_json())
+
 """
 
 from datetime import datetime
@@ -42,6 +43,7 @@ class Priority(str, Enum):
         MEDIUM: Standard priority, default for most work
         HIGH: High priority, should be addressed soon
         CRITICAL: Critical priority, urgent work requiring immediate attention
+
     """
 
     LOW = "low"
@@ -66,6 +68,7 @@ class TicketType(str, Enum):
         ISSUE: Standard work items, the primary unit of work
         TASK: Sub-work items, smaller pieces of an issue
         SUBTASK: Alias for TASK for backward compatibility
+
     """
 
     EPIC = "epic"  # Strategic level (Projects in Linear, Milestones in GitHub)
@@ -101,6 +104,7 @@ class TicketState(str, Enum):
         WAITING: Work is paused waiting for external dependency
         BLOCKED: Work is blocked by an impediment
         CLOSED: Final state, work is closed/archived
+
     """
 
     OPEN = "open"
@@ -121,6 +125,7 @@ class TicketState(str, Enum):
 
         Note:
             CLOSED is a terminal state with no valid transitions
+
         """
         return {
             cls.OPEN: [cls.IN_PROGRESS, cls.WAITING, cls.BLOCKED, cls.CLOSED],
@@ -151,6 +156,7 @@ class TicketState(str, Enum):
             True
             >>> state.can_transition_to(TicketState.DONE)
             False
+
         """
         return target.value in self.valid_transitions().get(self, [])
 
@@ -183,6 +189,7 @@ class BaseTicket(BaseModel):
         ...     tags=["bug", "authentication"]
         ... )
         >>> ticket.state = TicketState.IN_PROGRESS
+
     """
 
     model_config = ConfigDict(use_enum_values=True)
@@ -228,6 +235,7 @@ class Epic(BaseTicket):
         ...     priority=Priority.HIGH
         ... )
         >>> epic.child_issues = ["ISSUE-123", "ISSUE-124"]
+
     """
 
     ticket_type: TicketType = Field(
@@ -245,6 +253,7 @@ class Epic(BaseTicket):
 
         Returns:
             Empty list (epics have no hierarchy constraints)
+
         """
         # Epics don't have parents in our hierarchy
         return []

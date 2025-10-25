@@ -1,7 +1,6 @@
 """GitHub adapter implementation using REST API v3 and GraphQL API v4."""
 
 import builtins
-import os
 import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -9,9 +8,9 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 from ..core.adapter import BaseAdapter
+from ..core.env_loader import load_adapter_config, validate_adapter_config
 from ..core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
 from ..core.registry import AdapterRegistry
-from ..core.env_loader import load_adapter_config, validate_adapter_config
 
 
 class GitHubStateMapping:
@@ -158,11 +157,15 @@ class GitHubAdapter(BaseAdapter[Task]):
         # Validate required configuration
         missing_keys = validate_adapter_config("github", full_config)
         if missing_keys:
-            raise ValueError(f"GitHub adapter missing required configuration: {', '.join(missing_keys)}")
+            raise ValueError(
+                f"GitHub adapter missing required configuration: {', '.join(missing_keys)}"
+            )
 
         # Get authentication token - support both 'api_key' and 'token' for compatibility
         self.token = (
-            full_config.get("api_key") or full_config.get("token") or full_config.get("token")
+            full_config.get("api_key")
+            or full_config.get("token")
+            or full_config.get("token")
         )
 
         # Get repository information

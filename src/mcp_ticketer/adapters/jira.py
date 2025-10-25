@@ -3,7 +3,6 @@
 import asyncio
 import builtins
 import logging
-import os
 import re
 from datetime import datetime
 from enum import Enum
@@ -13,16 +12,15 @@ import httpx
 from httpx import AsyncClient, HTTPStatusError, TimeoutException
 
 from ..core.adapter import BaseAdapter
+from ..core.env_loader import load_adapter_config, validate_adapter_config
 from ..core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
 from ..core.registry import AdapterRegistry
-from ..core.env_loader import load_adapter_config, validate_adapter_config
 
 logger = logging.getLogger(__name__)
 
 
 def parse_jira_datetime(date_str: str) -> Optional[datetime]:
-    """
-    Parse JIRA datetime strings which can be in various formats.
+    """Parse JIRA datetime strings which can be in various formats.
 
     JIRA can return dates in formats like:
     - 2025-10-24T14:12:18.771-0400
@@ -34,13 +32,13 @@ def parse_jira_datetime(date_str: str) -> Optional[datetime]:
 
     try:
         # Handle Z timezone
-        if date_str.endswith('Z'):
-            return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+        if date_str.endswith("Z"):
+            return datetime.fromisoformat(date_str.replace("Z", "+00:00"))
 
         # Handle timezone formats like -0400, +0500 (need to add colon)
-        if re.match(r'.*[+-]\d{4}$', date_str):
+        if re.match(r".*[+-]\d{4}$", date_str):
             # Insert colon in timezone: -0400 -> -04:00
-            date_str = re.sub(r'([+-]\d{2})(\d{2})$', r'\1:\2', date_str)
+            date_str = re.sub(r"([+-]\d{2})(\d{2})$", r"\1:\2", date_str)
 
         return datetime.fromisoformat(date_str)
 
@@ -50,14 +48,14 @@ def parse_jira_datetime(date_str: str) -> Optional[datetime]:
 
 
 def extract_text_from_adf(adf_content: Union[str, Dict[str, Any]]) -> str:
-    """
-    Extract plain text from Atlassian Document Format (ADF).
+    """Extract plain text from Atlassian Document Format (ADF).
 
     Args:
         adf_content: Either a string (already plain text) or ADF document dict
 
     Returns:
         Plain text string extracted from the ADF content
+
     """
     if isinstance(adf_content, str):
         return adf_content
@@ -136,7 +134,9 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         # Validate required configuration
         missing_keys = validate_adapter_config("jira", full_config)
         if missing_keys:
-            raise ValueError(f"JIRA adapter missing required configuration: {', '.join(missing_keys)}")
+            raise ValueError(
+                f"JIRA adapter missing required configuration: {', '.join(missing_keys)}"
+            )
 
         # Configuration
         self.server = full_config.get("server", "")
@@ -803,14 +803,9 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                 "content": [
                     {
                         "type": "paragraph",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": comment.content
-                            }
-                        ]
+                        "content": [{"type": "text", "text": comment.content}],
                     }
-                ]
+                ],
             }
         }
 
@@ -821,7 +816,9 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
         # Update comment with JIRA data
         comment.id = result.get("id")
-        comment.created_at = parse_jira_datetime(result.get("created")) or datetime.now()
+        comment.created_at = (
+            parse_jira_datetime(result.get("created")) or datetime.now()
+        )
         comment.author = result.get("author", {}).get("displayName", comment.author)
         comment.metadata["jira"] = result
 
@@ -950,7 +947,9 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
         try:
             # Get project role users
-            project_data = await self._make_request("GET", f"project/{self.project_key}")
+            project_data = await self._make_request(
+                "GET", f"project/{self.project_key}"
+            )
 
             # Get users from project roles
             users = []
@@ -959,7 +958,9 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                     # Extract role ID from URL
                     role_id = role_url.split("/")[-1]
                     try:
-                        role_data = await self._make_request("GET", f"project/{self.project_key}/role/{role_id}")
+                        role_data = await self._make_request(
+                            "GET", f"project/{self.project_key}/role/{role_id}"
+                        )
                         if "actors" in role_data:
                             for actor in role_data["actors"]:
                                 if actor.get("type") == "atlassian-user-role-actor":
@@ -985,7 +986,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                 users_data = await self._make_request(
                     "GET",
                     "user/assignable/search",
-                    params={"project": self.project_key, "maxResults": 50}
+                    params={"project": self.project_key, "maxResults": 50},
                 )
                 return users_data if isinstance(users_data, list) else []
             except Exception:

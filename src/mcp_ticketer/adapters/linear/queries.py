@@ -238,7 +238,9 @@ WORKFLOW_STATES_QUERY = """
     }
 """
 
-CREATE_ISSUE_MUTATION = ALL_FRAGMENTS + """
+CREATE_ISSUE_MUTATION = (
+    ALL_FRAGMENTS
+    + """
     mutation CreateIssue($input: IssueCreateInput!) {
         issueCreate(input: $input) {
             success
@@ -248,8 +250,11 @@ CREATE_ISSUE_MUTATION = ALL_FRAGMENTS + """
         }
     }
 """
+)
 
-UPDATE_ISSUE_MUTATION = ALL_FRAGMENTS + """
+UPDATE_ISSUE_MUTATION = (
+    ALL_FRAGMENTS
+    + """
     mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
         issueUpdate(id: $id, input: $input) {
             success
@@ -259,8 +264,11 @@ UPDATE_ISSUE_MUTATION = ALL_FRAGMENTS + """
         }
     }
 """
+)
 
-LIST_ISSUES_QUERY = ISSUE_LIST_FRAGMENTS + """
+LIST_ISSUES_QUERY = (
+    ISSUE_LIST_FRAGMENTS
+    + """
     query ListIssues($filter: IssueFilter, $first: Int!) {
         issues(
             filter: $filter
@@ -277,8 +285,11 @@ LIST_ISSUES_QUERY = ISSUE_LIST_FRAGMENTS + """
         }
     }
 """
+)
 
-SEARCH_ISSUES_QUERY = ISSUE_LIST_FRAGMENTS + """
+SEARCH_ISSUES_QUERY = (
+    ISSUE_LIST_FRAGMENTS
+    + """
     query SearchIssues($filter: IssueFilter, $first: Int!) {
         issues(
             filter: $filter
@@ -291,6 +302,7 @@ SEARCH_ISSUES_QUERY = ISSUE_LIST_FRAGMENTS + """
         }
     }
 """
+)
 
 GET_CYCLES_QUERY = """
     query GetCycles($filter: CycleFilter) {
@@ -336,7 +348,9 @@ SEARCH_ISSUE_BY_IDENTIFIER_QUERY = """
     }
 """
 
-LIST_PROJECTS_QUERY = PROJECT_FRAGMENT + """
+LIST_PROJECTS_QUERY = (
+    PROJECT_FRAGMENT
+    + """
     query ListProjects($filter: ProjectFilter, $first: Int!) {
         projects(filter: $filter, first: $first, orderBy: updatedAt) {
             nodes {
@@ -345,8 +359,11 @@ LIST_PROJECTS_QUERY = PROJECT_FRAGMENT + """
         }
     }
 """
+)
 
-CREATE_SUB_ISSUE_MUTATION = ALL_FRAGMENTS + """
+CREATE_SUB_ISSUE_MUTATION = (
+    ALL_FRAGMENTS
+    + """
     mutation CreateSubIssue($input: IssueCreateInput!) {
         issueCreate(input: $input) {
             success
@@ -356,11 +373,15 @@ CREATE_SUB_ISSUE_MUTATION = ALL_FRAGMENTS + """
         }
     }
 """
+)
 
-GET_CURRENT_USER_QUERY = USER_FRAGMENT + """
+GET_CURRENT_USER_QUERY = (
+    USER_FRAGMENT
+    + """
     query GetCurrentUser {
         viewer {
             ...UserFields
         }
     }
 """
+)
