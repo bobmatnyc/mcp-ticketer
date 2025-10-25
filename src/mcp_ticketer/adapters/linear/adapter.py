@@ -137,8 +137,9 @@ class LinearAdapter(BaseAdapter[Task]):
             # Load team data and workflow states concurrently
             team_id = await self._ensure_team_id()
 
-            # Load workflow states for the team
+            # Load workflow states and labels for the team
             await self._load_workflow_states(team_id)
+            await self._load_team_labels(team_id)
 
             self._initialized = True
 
@@ -215,6 +216,85 @@ class LinearAdapter(BaseAdapter[Task]):
 
         except Exception as e:
             raise ValueError(f"Failed to load workflow states: {e}")
+
+    async def _load_team_labels(self, team_id: str) -> None:
+        """Load and cache labels for the team.
+
+        Args:
+            team_id: Linear team ID
+
+        """
+        query = """
+            query GetTeamLabels($teamId: ID!) {
+                team(id: $teamId) {
+                    labels {
+                        nodes {
+                            id
+                            name
+                            color
+                            description
+                        }
+                    }
+                }
+            }
+        """
+
+        try:
+            result = await self.client.execute_query(query, {"teamId": team_id})
+            self._labels_cache = result["team"]["labels"]["nodes"]
+        except Exception:
+            # Log error but don't fail - labels are optional
+            self._labels_cache = []
+
+    async def _resolve_label_ids(self, label_names: list[str]) -> list[str]:
+        """Resolve label names to Linear label IDs.
+
+        Args:
+            label_names: List of label names
+
+        Returns:
+            List of Linear label IDs that exist
+
+        """
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        if not self._labels_cache:
+            team_id = await self._ensure_team_id()
+            await self._load_team_labels(team_id)
+
+        if not self._labels_cache:
+            logger.warning("No labels found in team cache")
+            return []
+
+        # Create name -> ID mapping (case-insensitive)
+        label_map = {label["name"].lower(): label["id"] for label in self._labels_cache}
+
+        logger.debug(f"Available labels in team: {list(label_map.keys())}")
+
+        # Resolve label names to IDs
+        label_ids = []
+        unmatched_labels = []
+
+        for name in label_names:
+            label_id = label_map.get(name.lower())
+            if label_id:
+                label_ids.append(label_id)
+                logger.debug(f"Resolved label '{name}' to ID: {label_id}")
+            else:
+                unmatched_labels.append(name)
+                logger.warning(
+                    f"Label '{name}' not found in team. Available labels: {list(label_map.keys())}"
+                )
+
+        if unmatched_labels:
+            logger.warning(
+                f"Could not resolve labels: {unmatched_labels}. "
+                f"Create them in Linear first or check spelling."
+            )
+
+        return label_ids
 
     def _get_state_mapping(self) -> dict[TicketState, str]:
         """Get mapping from universal states to Linear workflow state IDs.
@@ -311,11 +391,27 @@ class LinearAdapter(BaseAdapter[Task]):
         # Build issue input using mapper
         issue_input = build_linear_issue_input(task, team_id)
 
+        # Set default state if not provided
+        # Map OPEN to "unstarted" state (typically "To-Do" in Linear)
+        if task.state == TicketState.OPEN and self._workflow_states:
+            state_mapping = self._get_state_mapping()
+            if TicketState.OPEN in state_mapping:
+                issue_input["stateId"] = state_mapping[TicketState.OPEN]
+
         # Resolve assignee to user ID if provided
         if task.assignee:
             user_id = await self._get_user_id(task.assignee)
             if user_id:
                 issue_input["assigneeId"] = user_id
+
+        # Resolve label names to IDs if provided
+        if task.tags:
+            label_ids = await self._resolve_label_ids(task.tags)
+            if label_ids:
+                issue_input["labelIds"] = label_ids
+            else:
+                # Remove labelIds if no labels resolved
+                issue_input.pop("labelIds", None)
 
         try:
             result = await self.client.execute_mutation(
@@ -488,6 +584,12 @@ class LinearAdapter(BaseAdapter[Task]):
                 user_id = await self._get_user_id(updates["assignee"])
                 if user_id:
                     update_input["assigneeId"] = user_id
+
+            # Resolve label names to IDs if provided
+            if "tags" in updates and updates["tags"]:
+                label_ids = await self._resolve_label_ids(updates["tags"])
+                if label_ids:
+                    update_input["labelIds"] = label_ids
 
             # Execute update
             result = await self.client.execute_mutation(

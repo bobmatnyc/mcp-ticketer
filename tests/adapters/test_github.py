@@ -5,6 +5,7 @@ import asyncio
 import os
 from datetime import datetime
 
+import pytest
 from dotenv import load_dotenv
 
 from mcp_ticketer.adapters.github import GitHubAdapter
@@ -14,6 +15,7 @@ from mcp_ticketer.core.models import Comment, Priority, SearchQuery, Task, Ticke
 load_dotenv()
 
 
+@pytest.mark.asyncio
 async def test_github_adapter():
     """Test basic GitHub adapter functionality."""
     print("Testing GitHub Adapter Integration")

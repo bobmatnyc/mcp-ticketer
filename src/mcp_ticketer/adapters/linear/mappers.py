@@ -242,9 +242,8 @@ def build_linear_issue_input(task: Task, team_id: str) -> dict[str, Any]:
 
     # Add labels (tags) if provided
     if task.tags:
-        # Note: Linear requires label IDs, not names
-        # This would need to be resolved by the adapter
-        pass
+        # Note: This returns label names, will be resolved to IDs by adapter
+        issue_input["labelIds"] = task.tags  # Temporary - adapter will resolve
 
     # Add Linear-specific metadata
     if task.metadata and "linear" in task.metadata:

@@ -1266,6 +1266,16 @@ def create(
     assignee: Optional[str] = typer.Option(
         None, "--assignee", "-a", help="Assignee username"
     ),
+    project: Optional[str] = typer.Option(
+        None,
+        "--project",
+        help="Parent project/epic ID (synonym for --epic)",
+    ),
+    epic: Optional[str] = typer.Option(
+        None,
+        "--epic",
+        help="Parent epic/project ID (synonym for --project)",
+    ),
     adapter: Optional[AdapterType] = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
@@ -1337,6 +1347,9 @@ def create(
                 # Priority 4: Default
                 adapter_name = "aitrackdown"
 
+    # Resolve project/epic synonym - prefer whichever is provided
+    parent_epic_id = project or epic
+
     # Create task data
     # Import Priority for type checking
     from ..core.models import Priority as PriorityEnum
@@ -1347,6 +1360,7 @@ def create(
         "priority": priority.value if isinstance(priority, PriorityEnum) else priority,
         "tags": tags or [],
         "assignee": assignee,
+        "parent_epic": parent_epic_id,
     }
 
     # WORKAROUND: Use direct operation for Linear adapter to bypass worker subprocess issue
@@ -1377,6 +1391,7 @@ def create(
                 ),
                 tags=task_data.get("tags", []),
                 assignee=task_data.get("assignee"),
+                parent_epic=task_data.get("parent_epic"),
             )
 
             # Create ticket synchronously

@@ -66,7 +66,7 @@ class TestAITrackdownAdapterInit:
         mapping = aitrackdown_adapter._get_state_mapping()
 
         assert mapping[TicketState.OPEN] == "open"
-        assert mapping[TicketState.IN_PROGRESS] == "in-progress"
+        assert mapping[TicketState.IN_PROGRESS] == "in_progress"
         assert mapping[TicketState.READY] == "ready"
         assert mapping[TicketState.TESTED] == "tested"
         assert mapping[TicketState.DONE] == "done"

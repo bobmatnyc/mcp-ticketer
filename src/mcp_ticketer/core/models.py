@@ -260,19 +260,47 @@ class Epic(BaseTicket):
 
 
 class Task(BaseTicket):
-    """Task - individual work item (can be ISSUE or TASK type)."""
+    """Task - individual work item (can be ISSUE or TASK type).
+
+    Note: The `project` field is a synonym for `parent_epic` to provide
+    flexibility in CLI and API usage. Both fields map to the same underlying
+    value (the parent epic/project ID).
+    """
 
     ticket_type: TicketType = Field(
         default=TicketType.ISSUE, description="Ticket type in hierarchy"
     )
     parent_issue: Optional[str] = Field(None, description="Parent issue ID (for tasks)")
-    parent_epic: Optional[str] = Field(None, description="Parent epic ID (for issues)")
+    parent_epic: Optional[str] = Field(
+        None,
+        description="Parent epic/project ID (for issues). Synonym: 'project'",
+    )
     assignee: Optional[str] = Field(None, description="Assigned user")
     children: list[str] = Field(default_factory=list, description="Child task IDs")
 
     # Additional fields common across systems
     estimated_hours: Optional[float] = Field(None, description="Time estimate")
     actual_hours: Optional[float] = Field(None, description="Actual time spent")
+
+    @property
+    def project(self) -> Optional[str]:
+        """Synonym for parent_epic.
+
+        Returns:
+            Parent epic/project ID
+
+        """
+        return self.parent_epic
+
+    @project.setter
+    def project(self, value: Optional[str]) -> None:
+        """Set parent_epic via project synonym.
+
+        Args:
+            value: Parent epic/project ID
+
+        """
+        self.parent_epic = value
 
     def is_epic(self) -> bool:
         """Check if this is an epic (should use Epic class instead)."""
