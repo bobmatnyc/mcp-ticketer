@@ -51,7 +51,8 @@ class LinearGraphQLClient:
 
         try:
             # Create transport with authentication
-            # Note: Linear API keys should be used directly without "Bearer" prefix
+            # Linear API keys are passed directly (no Bearer prefix)
+            # Only OAuth tokens use Bearer scheme
             transport = HTTPXAsyncTransport(
                 url=self._base_url,
                 headers={"Authorization": self.api_key},
