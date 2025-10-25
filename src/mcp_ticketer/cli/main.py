@@ -317,13 +317,161 @@ def get_adapter(
     return AdapterRegistry.get_adapter(adapter_type, adapter_config)
 
 
+def _prompt_for_adapter_selection(console: Console) -> str:
+    """Interactive prompt for adapter selection.
+
+    Args:
+        console: Rich console for output
+
+    Returns:
+        Selected adapter type
+    """
+    console.print("\n[bold blue]🚀 MCP Ticketer Setup[/bold blue]")
+    console.print("Choose which ticket system you want to connect to:\n")
+
+    # Define adapter options with descriptions
+    adapters = [
+        {
+            "name": "linear",
+            "title": "Linear",
+            "description": "Modern project management (linear.app)",
+            "requirements": "API key and team ID"
+        },
+        {
+            "name": "github",
+            "title": "GitHub Issues",
+            "description": "GitHub repository issues",
+            "requirements": "Personal access token, owner, and repo"
+        },
+        {
+            "name": "jira",
+            "title": "JIRA",
+            "description": "Atlassian JIRA project management",
+            "requirements": "Server URL, email, and API token"
+        },
+        {
+            "name": "aitrackdown",
+            "title": "Local Files (AITrackdown)",
+            "description": "Store tickets in local files (no external service)",
+            "requirements": "None - works offline"
+        }
+    ]
+
+    # Display options
+    for i, adapter in enumerate(adapters, 1):
+        console.print(f"[cyan]{i}.[/cyan] [bold]{adapter['title']}[/bold]")
+        console.print(f"   {adapter['description']}")
+        console.print(f"   [dim]Requirements: {adapter['requirements']}[/dim]\n")
+
+    # Get user selection
+    while True:
+        try:
+            choice = typer.prompt(
+                "Select adapter (1-4)",
+                type=int,
+                default=1
+            )
+            if 1 <= choice <= len(adapters):
+                selected_adapter = adapters[choice - 1]
+                console.print(f"\n[green]✓ Selected: {selected_adapter['title']}[/green]")
+                return selected_adapter["name"]
+            else:
+                console.print(f"[red]Please enter a number between 1 and {len(adapters)}[/red]")
+        except (ValueError, typer.Abort):
+            console.print("[yellow]Setup cancelled.[/yellow]")
+            raise typer.Exit(0)
+
+
+@app.command()
+def setup(
+    adapter: Optional[str] = typer.Option(
+        None,
+        "--adapter",
+        "-a",
+        help="Adapter type to use (interactive prompt if not specified)",
+    ),
+    project_path: Optional[str] = typer.Option(
+        None, "--path", help="Project path (default: current directory)"
+    ),
+    global_config: bool = typer.Option(
+        False,
+        "--global",
+        "-g",
+        help="Save to global config instead of project-specific",
+    ),
+    base_path: Optional[str] = typer.Option(
+        None,
+        "--base-path",
+        "-p",
+        help="Base path for ticket storage (AITrackdown only)",
+    ),
+    api_key: Optional[str] = typer.Option(
+        None, "--api-key", help="API key for Linear or API token for JIRA"
+    ),
+    team_id: Optional[str] = typer.Option(
+        None, "--team-id", help="Linear team ID (required for Linear adapter)"
+    ),
+    jira_server: Optional[str] = typer.Option(
+        None,
+        "--jira-server",
+        help="JIRA server URL (e.g., https://company.atlassian.net)",
+    ),
+    jira_email: Optional[str] = typer.Option(
+        None, "--jira-email", help="JIRA user email for authentication"
+    ),
+    jira_project: Optional[str] = typer.Option(
+        None, "--jira-project", help="Default JIRA project key"
+    ),
+    github_owner: Optional[str] = typer.Option(
+        None, "--github-owner", help="GitHub repository owner"
+    ),
+    github_repo: Optional[str] = typer.Option(
+        None, "--github-repo", help="GitHub repository name"
+    ),
+    github_token: Optional[str] = typer.Option(
+        None, "--github-token", help="GitHub Personal Access Token"
+    ),
+) -> None:
+    """Interactive setup wizard for MCP Ticketer (alias for init).
+
+    This command provides a user-friendly setup experience with prompts
+    to guide you through configuring MCP Ticketer for your preferred
+    ticket management system. It's identical to 'init' and 'install'.
+
+    Examples:
+        # Run interactive setup
+        mcp-ticketer setup
+
+        # Setup with specific adapter
+        mcp-ticketer setup --adapter linear
+
+        # Setup for different project
+        mcp-ticketer setup --path /path/to/project
+    """
+    # Call init with all parameters
+    init(
+        adapter=adapter,
+        project_path=project_path,
+        global_config=global_config,
+        base_path=base_path,
+        api_key=api_key,
+        team_id=team_id,
+        jira_server=jira_server,
+        jira_email=jira_email,
+        jira_project=jira_project,
+        github_owner=github_owner,
+        github_repo=github_repo,
+        github_token=github_token,
+    )
+
+
 @app.command()
 def init(
     adapter: Optional[str] = typer.Option(
         None,
         "--adapter",
         "-a",
-        help="Adapter type to use (auto-detected from .env if not specified)",
+        help="Adapter type to use (interactive prompt if not specified)",
     ),
     project_path: Optional[str] = typer.Option(
         None, "--path", help="Project path (default: current directory)"
@@ -369,11 +517,17 @@ def init(
 ) -> None:
     """Initialize mcp-ticketer for the current project.
 
+    This command sets up MCP Ticketer configuration with interactive prompts
+    to guide you through the process. It auto-detects adapter configuration
+    from .env files or prompts for interactive setup if no configuration is found.
+
     Creates .mcp-ticketer/config.json in the current directory with
     auto-detected or specified adapter configuration.
 
+    Note: 'setup' and 'install' are synonyms for this command.
+
     Examples:
-        # Auto-detect from .env.local
+        # Interactive setup (same as 'setup' and 'install')
         mcp-ticketer init
 
         # Force specific adapter
@@ -414,31 +568,59 @@ def init(
         console.print(
             "[cyan]🔍 Auto-discovering configuration from .env files...[/cyan]"
         )
-        discovered = discover_config(proj_path)
 
-        if discovered and discovered.adapters:
-            primary = discovered.get_primary_adapter()
-            if primary:
-                adapter_type = primary.adapter_type
-                console.print(
-                    f"[green]✓ Detected {adapter_type} adapter from environment files[/green]"
-                )
+        # First try our improved .env configuration loader
+        from ..mcp.server import _load_env_configuration
+        env_config = _load_env_configuration()
 
-                # Show what was discovered
-                console.print(
-                    f"\n[dim]Configuration found in: {primary.found_in}[/dim]"
-                )
-                console.print(f"[dim]Confidence: {primary.confidence:.0%}[/dim]")
-            else:
-                adapter_type = "aitrackdown"  # Fallback
-                console.print(
-                    "[yellow]⚠ No credentials found, defaulting to aitrackdown[/yellow]"
-                )
-        else:
-            adapter_type = "aitrackdown"  # Fallback
+        if env_config:
+            adapter_type = env_config["adapter_type"]
             console.print(
-                "[yellow]⚠ No .env files found, defaulting to aitrackdown[/yellow]"
+                f"[green]✓ Detected {adapter_type} adapter from environment files[/green]"
             )
+
+            # Show what was discovered
+            console.print(f"\n[dim]Configuration found in: .env files[/dim]")
+            console.print(f"[dim]Confidence: 100%[/dim]")
+
+            # Ask user to confirm auto-detected adapter
+            if not typer.confirm(
+                f"Use detected {adapter_type} adapter?",
+                default=True,
+            ):
+                adapter_type = None  # Will trigger interactive selection
+        else:
+            # Fallback to old discovery system for backward compatibility
+            discovered = discover_config(proj_path)
+
+            if discovered and discovered.adapters:
+                primary = discovered.get_primary_adapter()
+                if primary:
+                    adapter_type = primary.adapter_type
+                    console.print(
+                        f"[green]✓ Detected {adapter_type} adapter from environment files[/green]"
+                    )
+
+                    # Show what was discovered
+                    console.print(
+                        f"\n[dim]Configuration found in: {primary.found_in}[/dim]"
+                    )
+                    console.print(f"[dim]Confidence: {primary.confidence:.0%}[/dim]")
+
+                    # Ask user to confirm auto-detected adapter
+                    if not typer.confirm(
+                        f"Use detected {adapter_type} adapter?",
+                        default=True,
+                    ):
+                        adapter_type = None  # Will trigger interactive selection
+                else:
+                    adapter_type = None  # Will trigger interactive selection
+            else:
+                adapter_type = None  # Will trigger interactive selection
+
+        # If no adapter determined, show interactive selection
+        if not adapter_type:
+            adapter_type = _prompt_for_adapter_selection(console)
 
     # 2. Create configuration based on adapter type
     config = {"default_adapter": adapter_type, "adapters": {}}
@@ -462,59 +644,99 @@ def init(
         }
 
     elif adapter_type == "linear":
-        # If not auto-discovered, build from CLI params
+        # If not auto-discovered, build from CLI params or prompt
         if adapter_type not in config["adapters"]:
             linear_config = {}
 
-            # Team ID
-            if team_id:
-                linear_config["team_id"] = team_id
-
             # API Key
             linear_api_key = api_key or os.getenv("LINEAR_API_KEY")
-            if linear_api_key:
-                linear_config["api_key"] = linear_api_key
-            elif not discovered:
-                console.print("[yellow]Warning:[/yellow] No Linear API key provided.")
-                console.print(
-                    "Set LINEAR_API_KEY environment variable or use --api-key option"
+            if not linear_api_key and not discovered:
+                console.print("\n[bold]Linear Configuration[/bold]")
+                console.print("You need a Linear API key to connect to Linear.")
+                console.print("[dim]Get your API key at: https://linear.app/settings/api[/dim]\n")
+
+                linear_api_key = typer.prompt(
+                    "Enter your Linear API key",
+                    hide_input=True
                 )
 
-            if linear_config:
-                linear_config["type"] = "linear"
-                config["adapters"]["linear"] = linear_config
+            if linear_api_key:
+                linear_config["api_key"] = linear_api_key
+
+            # Team ID
+            linear_team_id = team_id or os.getenv("LINEAR_TEAM_ID")
+            if not linear_team_id and not discovered:
+                console.print("\nYou need your Linear team ID.")
+                console.print("[dim]Find it in Linear settings or team URL[/dim]\n")
+
+                linear_team_id = typer.prompt("Enter your Linear team ID")
+
+            if linear_team_id:
+                linear_config["team_id"] = linear_team_id
+
+            if not linear_config.get("api_key") or not linear_config.get("team_id"):
+                console.print("[red]Error:[/red] Linear requires both API key and team ID")
+                console.print("Run 'mcp-ticketer init --adapter linear' with proper credentials")
+                raise typer.Exit(1)
+
+            linear_config["type"] = "linear"
+            config["adapters"]["linear"] = linear_config
 
     elif adapter_type == "jira":
-        # If not auto-discovered, build from CLI params
+        # If not auto-discovered, build from CLI params or prompt
         if adapter_type not in config["adapters"]:
             server = jira_server or os.getenv("JIRA_SERVER")
             email = jira_email or os.getenv("JIRA_EMAIL")
             token = api_key or os.getenv("JIRA_API_TOKEN")
             project = jira_project or os.getenv("JIRA_PROJECT_KEY")
 
+            # Interactive prompts for missing values
+            if not server and not discovered:
+                console.print("\n[bold]JIRA Configuration[/bold]")
+                console.print("Enter your JIRA server details.\n")
+
+                server = typer.prompt(
+                    "JIRA server URL (e.g., https://company.atlassian.net)"
+                )
+
+            if not email and not discovered:
+                email = typer.prompt("Your JIRA email address")
+
+            if not token and not discovered:
+                console.print("\nYou need a JIRA API token.")
+                console.print("[dim]Generate one at: https://id.atlassian.com/manage/api-tokens[/dim]\n")
+
+                token = typer.prompt(
+                    "Enter your JIRA API token",
+                    hide_input=True
+                )
+
+            if not project and not discovered:
+                project = typer.prompt(
+                    "Default JIRA project key (optional, press Enter to skip)",
+                    default="",
+                    show_default=False
+                )
+
+            # Validate required fields
             if not server:
                 console.print("[red]Error:[/red] JIRA server URL is required")
-                console.print(
-                    "Use --jira-server or set JIRA_SERVER environment variable"
-                )
                 raise typer.Exit(1)
 
             if not email:
                 console.print("[red]Error:[/red] JIRA email is required")
-                console.print("Use --jira-email or set JIRA_EMAIL environment variable")
                 raise typer.Exit(1)
 
             if not token:
                 console.print("[red]Error:[/red] JIRA API token is required")
-                console.print(
-                    "Use --api-key or set JIRA_API_TOKEN environment variable"
-                )
-                console.print(
-                    "[dim]Generate token at: https://id.atlassian.com/manage/api-tokens[/dim]"
-                )
                 raise typer.Exit(1)
 
-            jira_config = {"server": server, "email": email, "api_token": token}
+            jira_config = {
+                "server": server,
+                "email": email,
+                "api_token": token,
+                "type": "jira"
+            }
 
             if project:
                 jira_config["project_key"] = project
@@ -522,45 +744,50 @@ def init(
             config["adapters"]["jira"] = jira_config
 
     elif adapter_type == "github":
-        # If not auto-discovered, build from CLI params
+        # If not auto-discovered, build from CLI params or prompt
         if adapter_type not in config["adapters"]:
             owner = github_owner or os.getenv("GITHUB_OWNER")
             repo = github_repo or os.getenv("GITHUB_REPO")
             token = github_token or os.getenv("GITHUB_TOKEN")
 
+            # Interactive prompts for missing values
+            if not owner and not discovered:
+                console.print("\n[bold]GitHub Configuration[/bold]")
+                console.print("Enter your GitHub repository details.\n")
+
+                owner = typer.prompt("GitHub repository owner (username or organization)")
+
+            if not repo and not discovered:
+                repo = typer.prompt("GitHub repository name")
+
+            if not token and not discovered:
+                console.print("\nYou need a GitHub Personal Access Token.")
+                console.print("[dim]Create one at: https://github.com/settings/tokens/new[/dim]")
+                console.print("[dim]Required scopes: repo (for private repos) or public_repo (for public repos)[/dim]\n")
+
+                token = typer.prompt(
+                    "Enter your GitHub Personal Access Token",
+                    hide_input=True
+                )
+
+            # Validate required fields
             if not owner:
                 console.print("[red]Error:[/red] GitHub repository owner is required")
-                console.print(
-                    "Use --github-owner or set GITHUB_OWNER environment variable"
-                )
                 raise typer.Exit(1)
 
             if not repo:
                 console.print("[red]Error:[/red] GitHub repository name is required")
-                console.print(
-                    "Use --github-repo or set GITHUB_REPO environment variable"
-                )
                 raise typer.Exit(1)
 
             if not token:
-                console.print(
-                    "[red]Error:[/red] GitHub Personal Access Token is required"
-                )
-                console.print(
-                    "Use --github-token or set GITHUB_TOKEN environment variable"
-                )
-                console.print(
-                    "[dim]Create token at: https://github.com/settings/tokens/new[/dim]"
-                )
-                console.print(
-                    "[dim]Required scopes: repo (for private repos) or public_repo (for public repos)[/dim]"
-                )
+                console.print("[red]Error:[/red] GitHub Personal Access Token is required")
                 raise typer.Exit(1)
 
             config["adapters"]["github"] = {
                 "owner": owner,
                 "repo": repo,
                 "token": token,
+                "type": "github"
             }
 
     # 5. Save to appropriate location
@@ -599,6 +826,48 @@ def init(
             with open(gitignore_path, "w") as f:
                 f.write("# MCP Ticketer\n.mcp-ticketer/\n")
             console.print("[dim]✓ Created .gitignore with .mcp-ticketer/[/dim]")
+
+    # Show next steps
+    _show_next_steps(console, adapter_type, config_file_path)
+
+
+def _show_next_steps(console: Console, adapter_type: str, config_file_path: Path) -> None:
+    """Show helpful next steps after initialization.
+
+    Args:
+        console: Rich console for output
+        adapter_type: Type of adapter that was configured
+        config_file_path: Path to the configuration file
+    """
+    console.print("\n[bold green]🎉 Setup Complete![/bold green]")
+    console.print(f"MCP Ticketer is now configured to use {adapter_type.title()}.\n")
+
+    console.print("[bold]Next Steps:[/bold]")
+    console.print("1. [cyan]Test your configuration:[/cyan]")
+    console.print("   mcp-ticketer diagnose")
+    console.print("\n2. [cyan]Create a test ticket:[/cyan]")
+    console.print("   mcp-ticketer create 'Test ticket from MCP Ticketer'")
+
+    if adapter_type != "aitrackdown":
+        console.print(f"\n3. [cyan]Verify the ticket appears in {adapter_type.title()}[/cyan]")
+
+        if adapter_type == "linear":
+            console.print("   Check your Linear workspace for the new ticket")
+        elif adapter_type == "github":
+            console.print("   Check your GitHub repository's Issues tab")
+        elif adapter_type == "jira":
+            console.print("   Check your JIRA project for the new ticket")
+    else:
+        console.print("\n3. [cyan]Check local ticket storage:[/cyan]")
+        console.print("   ls .aitrackdown/")
+
+    console.print("\n4. [cyan]Configure MCP clients (optional):[/cyan]")
+    console.print("   mcp-ticketer mcp claude    # For Claude Code")
+    console.print("   mcp-ticketer mcp auggie    # For Auggie")
+    console.print("   mcp-ticketer mcp gemini    # For Gemini CLI")
+
+    console.print(f"\n[dim]Configuration saved to: {config_file_path}[/dim]")
+    console.print("[dim]Run 'mcp-ticketer --help' for more commands[/dim]")
 
 
 @app.command()
@@ -653,12 +922,12 @@ def install(
 ) -> None:
     """Initialize mcp-ticketer for the current project (alias for init).
 
-    This command is synonymous with 'init' and provides the same functionality.
-    Creates .mcp-ticketer/config.json in the current directory with
-    auto-detected or specified adapter configuration.
+    This command is synonymous with 'init' and 'setup' - all three provide
+    identical functionality with interactive prompts to guide you through
+    configuring MCP Ticketer for your preferred ticket management system.
 
     Examples:
-        # Auto-detect from .env.local
+        # Interactive setup (same as 'init' and 'setup')
         mcp-ticketer install
 
         # Force specific adapter
@@ -1548,6 +1817,9 @@ def check(queue_id: str = typer.Argument(..., help="Queue ID to check")):
         console.print(f"\nRetry Count: {item.retry_count}")
 
 
+
+
+
 @app.command()
 def serve(
     adapter: Optional[AdapterType] = typer.Option(
@@ -1575,16 +1847,27 @@ def serve(
     # Load configuration (respects project-specific config in cwd)
     config = load_config()
 
-    # Determine adapter type
-    adapter_type = (
-        adapter.value if adapter else config.get("default_adapter", "aitrackdown")
-    )
+    # Determine adapter type with priority: CLI arg > .env files > config > default
+    if adapter:
+        # Priority 1: Command line argument
+        adapter_type = adapter.value
+        # Get base config from config file
+        adapters_config = config.get("adapters", {})
+        adapter_config = adapters_config.get(adapter_type, {})
+    else:
+        # Priority 2: .env files
+        from ..mcp.server import _load_env_configuration
+        env_config = _load_env_configuration()
+        if env_config:
+            adapter_type = env_config["adapter_type"]
+            adapter_config = env_config["adapter_config"]
+        else:
+            # Priority 3: Configuration file
+            adapter_type = config.get("default_adapter", "aitrackdown")
+            adapters_config = config.get("adapters", {})
+            adapter_config = adapters_config.get(adapter_type, {})
 
-    # Get adapter configuration
-    adapters_config = config.get("adapters", {})
-    adapter_config = adapters_config.get(adapter_type, {})
-
-    # Override with command line options if provided
+    # Override with command line options if provided (highest priority)
     if base_path and adapter_type == "aitrackdown":
         adapter_config["base_path"] = base_path
 

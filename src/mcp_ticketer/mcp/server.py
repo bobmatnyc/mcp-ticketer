@@ -1652,54 +1652,189 @@ async def main():
     # Load configuration
     import json
     import logging
+    import os
     from pathlib import Path
 
     logger = logging.getLogger(__name__)
 
-    # ONLY read from project-local config, never from user home
-    config_file = Path.cwd() / ".mcp-ticketer" / "config.json"
-    if config_file.exists():
-        # Validate config is within project
-        try:
-            if not config_file.resolve().is_relative_to(Path.cwd().resolve()):
-                logger.error(
-                    f"Security violation: Config file {config_file} "
-                    "is not within project directory"
-                )
-                raise ValueError(
-                    f"Security violation: Config file {config_file} "
-                    "is not within project directory"
-                )
-        except (ValueError, RuntimeError):
-            # is_relative_to may raise ValueError in some cases
-            pass
+    # Initialize defaults
+    adapter_type = "aitrackdown"
+    adapter_config = {"base_path": ".aitrackdown"}
 
-        try:
-            with open(config_file) as f:
-                config = json.load(f)
-                adapter_type = config.get("default_adapter", "aitrackdown")
-                # Get adapter-specific config
-                adapters_config = config.get("adapters", {})
-                adapter_config = adapters_config.get(adapter_type, {})
-                # Fallback to legacy config format
-                if not adapter_config and "config" in config:
-                    adapter_config = config["config"]
-                logger.info(
-                    f"Loaded MCP configuration from project-local: {config_file}"
-                )
-        except (OSError, json.JSONDecodeError) as e:
-            logger.warning(f"Could not load project config: {e}, using defaults")
+    # Priority 1: Check .env files (highest priority for MCP)
+    env_config = _load_env_configuration()
+    if env_config and env_config.get("adapter_type"):
+        adapter_type = env_config["adapter_type"]
+        adapter_config = env_config["adapter_config"]
+        logger.info(f"Using adapter from .env files: {adapter_type}")
+        logger.info(f"Built adapter config from .env: {list(adapter_config.keys())}")
+    else:
+        # Priority 2: Check project-local config file
+        config_file = Path.cwd() / ".mcp-ticketer" / "config.json"
+        if config_file.exists():
+            # Validate config is within project
+            try:
+                if not config_file.resolve().is_relative_to(Path.cwd().resolve()):
+                    logger.error(
+                        f"Security violation: Config file {config_file} "
+                        "is not within project directory"
+                    )
+                    raise ValueError(
+                        f"Security violation: Config file {config_file} "
+                        "is not within project directory"
+                    )
+            except (ValueError, RuntimeError):
+                # is_relative_to may raise ValueError in some cases
+                pass
+
+            try:
+                with open(config_file) as f:
+                    config = json.load(f)
+                    adapter_type = config.get("default_adapter", "aitrackdown")
+                    # Get adapter-specific config
+                    adapters_config = config.get("adapters", {})
+                    adapter_config = adapters_config.get(adapter_type, {})
+                    # Fallback to legacy config format
+                    if not adapter_config and "config" in config:
+                        adapter_config = config["config"]
+                    logger.info(
+                        f"Loaded MCP configuration from project-local: {config_file}"
+                    )
+            except (OSError, json.JSONDecodeError) as e:
+                logger.warning(f"Could not load project config: {e}, using defaults")
+                adapter_type = "aitrackdown"
+                adapter_config = {"base_path": ".aitrackdown"}
+        else:
+            # Priority 3: Default to aitrackdown
+            logger.info("No configuration found, defaulting to aitrackdown adapter")
             adapter_type = "aitrackdown"
             adapter_config = {"base_path": ".aitrackdown"}
-    else:
-        # Default to aitrackdown with local base path
-        logger.info("No project-local config found, defaulting to aitrackdown adapter")
-        adapter_type = "aitrackdown"
-        adapter_config = {"base_path": ".aitrackdown"}
+
+    # Log final configuration for debugging
+    logger.info(f"Starting MCP server with adapter: {adapter_type}")
+    logger.debug(f"Adapter config keys: {list(adapter_config.keys())}")
 
     # Create and run server
     server = MCPTicketServer(adapter_type, adapter_config)
     await server.run()
+
+
+def _load_env_configuration() -> Optional[dict[str, Any]]:
+    """Load adapter configuration from .env files.
+
+    Checks .env.local first (highest priority), then .env.
+
+    Returns:
+        Dictionary with 'adapter_type' and 'adapter_config' keys, or None if no config found
+    """
+    from pathlib import Path
+
+    # Check for .env files in order of preference
+    env_files = [".env.local", ".env"]
+    env_vars = {}
+
+    for env_file in env_files:
+        env_path = Path.cwd() / env_file
+        if env_path.exists():
+            try:
+                # Parse .env file manually to avoid external dependencies
+                with open(env_path, 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and '=' in line:
+                            key, value = line.split('=', 1)
+                            key = key.strip()
+                            value = value.strip().strip('"').strip("'")
+                            if value:  # Only add non-empty values
+                                env_vars[key] = value
+            except Exception:
+                continue
+
+    if not env_vars:
+        return None
+
+    # Determine adapter type and build config
+    adapter_type = env_vars.get("MCP_TICKETER_ADAPTER")
+    if not adapter_type:
+        # Auto-detect based on available keys
+        if any(key.startswith("LINEAR_") for key in env_vars):
+            adapter_type = "linear"
+        elif any(key.startswith("GITHUB_") for key in env_vars):
+            adapter_type = "github"
+        elif any(key.startswith("JIRA_") for key in env_vars):
+            adapter_type = "jira"
+        else:
+            return None
+
+    # Build adapter-specific configuration
+    adapter_config = _build_adapter_config_from_env_vars(adapter_type, env_vars)
+
+    if not adapter_config:
+        return None
+
+    return {
+        "adapter_type": adapter_type,
+        "adapter_config": adapter_config
+    }
+
+
+def _build_adapter_config_from_env_vars(adapter_type: str, env_vars: dict[str, str]) -> dict[str, Any]:
+    """Build adapter configuration from parsed environment variables.
+
+    Args:
+        adapter_type: Type of adapter to configure
+        env_vars: Dictionary of environment variables from .env files
+
+    Returns:
+        Dictionary of adapter configuration
+    """
+    config = {}
+
+    if adapter_type == "linear":
+        # Linear adapter configuration
+        if env_vars.get("LINEAR_API_KEY"):
+            config["api_key"] = env_vars["LINEAR_API_KEY"]
+        if env_vars.get("LINEAR_TEAM_ID"):
+            config["team_id"] = env_vars["LINEAR_TEAM_ID"]
+        if env_vars.get("LINEAR_TEAM_KEY"):
+            config["team_key"] = env_vars["LINEAR_TEAM_KEY"]
+        if env_vars.get("LINEAR_API_URL"):
+            config["api_url"] = env_vars["LINEAR_API_URL"]
+
+    elif adapter_type == "github":
+        # GitHub adapter configuration
+        if env_vars.get("GITHUB_TOKEN"):
+            config["token"] = env_vars["GITHUB_TOKEN"]
+        if env_vars.get("GITHUB_OWNER"):
+            config["owner"] = env_vars["GITHUB_OWNER"]
+        if env_vars.get("GITHUB_REPO"):
+            config["repo"] = env_vars["GITHUB_REPO"]
+
+    elif adapter_type == "jira":
+        # JIRA adapter configuration
+        if env_vars.get("JIRA_SERVER"):
+            config["server"] = env_vars["JIRA_SERVER"]
+        if env_vars.get("JIRA_EMAIL"):
+            config["email"] = env_vars["JIRA_EMAIL"]
+        if env_vars.get("JIRA_API_TOKEN"):
+            config["api_token"] = env_vars["JIRA_API_TOKEN"]
+        if env_vars.get("JIRA_PROJECT_KEY"):
+            config["project_key"] = env_vars["JIRA_PROJECT_KEY"]
+
+    elif adapter_type == "aitrackdown":
+        # AITrackdown adapter configuration
+        base_path = env_vars.get("MCP_TICKETER_BASE_PATH", ".aitrackdown")
+        config["base_path"] = base_path
+        config["auto_create_dirs"] = True
+
+    # Add any generic overrides
+    if env_vars.get("MCP_TICKETER_API_KEY"):
+        config["api_key"] = env_vars["MCP_TICKETER_API_KEY"]
+
+    return config
+
+
+
 
 
 # Add diagnostic handler methods to MCPTicketServer class
