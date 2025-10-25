@@ -101,7 +101,8 @@ class LinearAdapter(BaseAdapter[Task]):
         if not self.api_key:
             raise ValueError("Linear API key is required (api_key or LINEAR_API_KEY env var)")
 
-        # Clean API key - remove Bearer prefix if present (Linear API keys should be used directly)
+        # Clean API key - remove Bearer prefix if accidentally included in config
+        # (The client will add it back when making requests)
         if self.api_key.startswith("Bearer "):
             self.api_key = self.api_key.replace("Bearer ", "")
 
