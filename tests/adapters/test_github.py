@@ -7,7 +7,13 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 from src.mcp_ticketer.adapters.github import GitHubAdapter
-from src.mcp_ticketer.core.models import Task, Comment, SearchQuery, TicketState, Priority
+from src.mcp_ticketer.core.models import (
+    Task,
+    Comment,
+    SearchQuery,
+    TicketState,
+    Priority,
+)
 
 # Load environment variables
 load_dotenv()
@@ -45,11 +51,11 @@ async def test_github_adapter():
         test_task = Task(
             title="Test Issue from mcp-ticketer",
             description="This is a test issue created by the mcp-ticketer GitHub adapter.\n\n"
-                       "## Features Tested\n"
-                       "- Issue creation\n"
-                       "- State management via labels\n"
-                       "- Priority labeling\n"
-                       "- Tag support",
+            "## Features Tested\n"
+            "- Issue creation\n"
+            "- State management via labels\n"
+            "- Priority labeling\n"
+            "- Tag support",
             priority=Priority.HIGH,
             state=TicketState.OPEN,
             tags=["test", "mcp-ticketer", "automated"],
@@ -92,7 +98,7 @@ async def test_github_adapter():
         comment = Comment(
             ticket_id=created_task.id,
             content="This is a test comment from mcp-ticketer.\n\n"
-                   "The GitHub adapter is working correctly! 🎉",
+            "The GitHub adapter is working correctly! 🎉",
         )
         created_comment = await adapter.add_comment(comment)
         print(f"✓ Added comment (ID: {created_comment.id})")
@@ -126,7 +132,9 @@ async def test_github_adapter():
 
         # Test 8: State transition
         print(f"\n8. Transitioning issue #{created_task.id} to READY...")
-        transitioned = await adapter.transition_state(created_task.id, TicketState.READY)
+        transitioned = await adapter.transition_state(
+            created_task.id, TicketState.READY
+        )
         if transitioned:
             print(f"✓ Transitioned to {transitioned.state}")
         else:
@@ -134,7 +142,9 @@ async def test_github_adapter():
 
         # Test 9: Close the issue
         print(f"\n9. Closing issue #{created_task.id}...")
-        final_update = await adapter.update(created_task.id, {"state": TicketState.CLOSED})
+        final_update = await adapter.update(
+            created_task.id, {"state": TicketState.CLOSED}
+        )
         if final_update and final_update.state == TicketState.CLOSED:
             print(f"✓ Closed issue #{created_task.id}")
         else:
@@ -145,8 +155,10 @@ async def test_github_adapter():
         rate_limit = await adapter.get_rate_limit()
         core_limit = rate_limit.get("resources", {}).get("core", {})
         print(f"✓ Rate Limit Status:")
-        print(f"  Remaining: {core_limit.get('remaining', 'N/A')}/{core_limit.get('limit', 'N/A')}")
-        reset_time = core_limit.get('reset')
+        print(
+            f"  Remaining: {core_limit.get('remaining', 'N/A')}/{core_limit.get('limit', 'N/A')}"
+        )
+        reset_time = core_limit.get("reset")
         if reset_time:
             reset_dt = datetime.fromtimestamp(reset_time)
             print(f"  Resets at: {reset_dt.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -157,11 +169,12 @@ async def test_github_adapter():
     except Exception as e:
         print(f"\n✗ Error during testing: {e}")
         import traceback
+
         traceback.print_exc()
 
     finally:
         # Cleanup
-        if 'adapter' in locals():
+        if "adapter" in locals():
             await adapter.close()
             print("\n✓ Adapter closed")
 

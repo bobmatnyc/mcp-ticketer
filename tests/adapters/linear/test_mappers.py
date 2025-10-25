@@ -25,15 +25,13 @@ class TestLinearIssueMapping:
             "title": "Test Issue",
             "description": "Test description",
             "priority": 2,  # High priority
-            "state": {
-                "type": "started"
-            },
+            "state": {"type": "started"},
             "createdAt": "2023-01-01T00:00:00.000Z",
-            "updatedAt": "2023-01-02T00:00:00.000Z"
+            "updatedAt": "2023-01-02T00:00:00.000Z",
         }
-        
+
         task = map_linear_issue_to_task(issue_data)
-        
+
         assert task.id == "TEST-123"
         assert task.title == "Test Issue"
         assert task.description == "Test description"
@@ -49,18 +47,12 @@ class TestLinearIssueMapping:
             "title": "Test Issue",
             "priority": 3,
             "state": {"type": "unstarted"},
-            "assignee": {
-                "email": "test@example.com",
-                "displayName": "Test User"
-            },
-            "creator": {
-                "email": "creator@example.com",
-                "displayName": "Creator User"
-            }
+            "assignee": {"email": "test@example.com", "displayName": "Test User"},
+            "creator": {"email": "creator@example.com", "displayName": "Creator User"},
         }
-        
+
         task = map_linear_issue_to_task(issue_data)
-        
+
         assert task.assignee == "test@example.com"
         assert task.creator == "creator@example.com"
 
@@ -71,16 +63,11 @@ class TestLinearIssueMapping:
             "title": "Test Issue",
             "priority": 1,
             "state": {"type": "completed"},
-            "labels": {
-                "nodes": [
-                    {"name": "bug"},
-                    {"name": "frontend"}
-                ]
-            }
+            "labels": {"nodes": [{"name": "bug"}, {"name": "frontend"}]},
         }
-        
+
         task = map_linear_issue_to_task(issue_data)
-        
+
         assert task.tags == ["bug", "frontend"]
         assert task.priority == Priority.CRITICAL
         assert task.state == TicketState.DONE
@@ -92,16 +79,12 @@ class TestLinearIssueMapping:
             "title": "Test Issue",
             "priority": 3,
             "state": {"type": "unstarted"},
-            "project": {
-                "id": "project-456"
-            },
-            "parent": {
-                "identifier": "TEST-100"
-            }
+            "project": {"id": "project-456"},
+            "parent": {"identifier": "TEST-100"},
         }
-        
+
         task = map_linear_issue_to_task(issue_data)
-        
+
         assert task.parent_epic == "project-456"
         assert task.parent_issue == "TEST-100"
 
@@ -115,16 +98,19 @@ class TestLinearIssueMapping:
             "dueDate": "2023-12-31T23:59:59.000Z",
             "estimate": 5,
             "branchName": "feature/test-123",
-            "url": "https://linear.app/team/issue/TEST-123"
+            "url": "https://linear.app/team/issue/TEST-123",
         }
-        
+
         task = map_linear_issue_to_task(issue_data)
-        
+
         assert task.metadata is not None
         assert task.metadata["linear"]["due_date"] == "2023-12-31T23:59:59.000Z"
         assert task.metadata["linear"]["estimate"] == 5
         assert task.metadata["linear"]["branch_name"] == "feature/test-123"
-        assert task.metadata["linear"]["linear_url"] == "https://linear.app/team/issue/TEST-123"
+        assert (
+            task.metadata["linear"]["linear_url"]
+            == "https://linear.app/team/issue/TEST-123"
+        )
 
 
 @pytest.mark.unit
@@ -139,11 +125,11 @@ class TestLinearProjectMapping:
             "description": "Test project description",
             "state": "started",
             "createdAt": "2023-01-01T00:00:00.000Z",
-            "updatedAt": "2023-01-02T00:00:00.000Z"
+            "updatedAt": "2023-01-02T00:00:00.000Z",
         }
-        
+
         epic = map_linear_project_to_epic(project_data)
-        
+
         assert epic.id == "project-123"
         assert epic.title == "Test Project"
         assert epic.description == "Test project description"
@@ -158,16 +144,16 @@ class TestLinearProjectMapping:
         project_data = {
             "id": "project-123",
             "name": "Completed Project",
-            "state": "completed"
+            "state": "completed",
         }
         epic = map_linear_project_to_epic(project_data)
         assert epic.state == TicketState.DONE
-        
+
         # Test canceled state
         project_data["state"] = "canceled"
         epic = map_linear_project_to_epic(project_data)
         assert epic.state == TicketState.CLOSED
-        
+
         # Test planned state (default)
         project_data["state"] = "planned"
         epic = map_linear_project_to_epic(project_data)
@@ -182,13 +168,16 @@ class TestLinearProjectMapping:
             "url": "https://linear.app/team/project/project-123",
             "icon": "🚀",
             "color": "#FF6B6B",
-            "targetDate": "2023-12-31T23:59:59.000Z"
+            "targetDate": "2023-12-31T23:59:59.000Z",
         }
-        
+
         epic = map_linear_project_to_epic(project_data)
-        
+
         assert epic.metadata is not None
-        assert epic.metadata["linear"]["linear_url"] == "https://linear.app/team/project/project-123"
+        assert (
+            epic.metadata["linear"]["linear_url"]
+            == "https://linear.app/team/project/project-123"
+        )
         assert epic.metadata["linear"]["icon"] == "🚀"
         assert epic.metadata["linear"]["color"] == "#FF6B6B"
         assert epic.metadata["linear"]["target_date"] == "2023-12-31T23:59:59.000Z"
@@ -205,14 +194,11 @@ class TestLinearCommentMapping:
             "body": "This is a test comment",
             "createdAt": "2023-01-01T00:00:00.000Z",
             "updatedAt": "2023-01-02T00:00:00.000Z",
-            "user": {
-                "email": "test@example.com",
-                "displayName": "Test User"
-            }
+            "user": {"email": "test@example.com", "displayName": "Test User"},
         }
-        
+
         comment = map_linear_comment_to_comment(comment_data, "TEST-123")
-        
+
         assert comment.id == "comment-123"
         assert comment.ticket_id == "TEST-123"
         assert comment.body == "This is a test comment"
@@ -225,11 +211,11 @@ class TestLinearCommentMapping:
         comment_data = {
             "id": "comment-123",
             "body": "System comment",
-            "createdAt": "2023-01-01T00:00:00.000Z"
+            "createdAt": "2023-01-01T00:00:00.000Z",
         }
-        
+
         comment = map_linear_comment_to_comment(comment_data, "TEST-123")
-        
+
         assert comment.author is None
 
 
@@ -240,13 +226,11 @@ class TestLinearInputBuilders:
     def test_build_linear_issue_input_basic(self):
         """Test basic Linear issue input building."""
         task = Task(
-            title="Test Task",
-            description="Test description",
-            priority=Priority.HIGH
+            title="Test Task", description="Test description", priority=Priority.HIGH
         )
-        
+
         issue_input = build_linear_issue_input(task, "team-123")
-        
+
         assert issue_input["title"] == "Test Task"
         assert issue_input["description"] == "Test description"
         assert issue_input["teamId"] == "team-123"
@@ -254,25 +238,20 @@ class TestLinearInputBuilders:
 
     def test_build_linear_issue_input_with_assignee(self):
         """Test Linear issue input with assignee."""
-        task = Task(
-            title="Test Task",
-            assignee="user-456"
-        )
-        
+        task = Task(title="Test Task", assignee="user-456")
+
         issue_input = build_linear_issue_input(task, "team-123")
-        
+
         assert issue_input["assigneeId"] == "user-456"
 
     def test_build_linear_issue_input_with_hierarchy(self):
         """Test Linear issue input with hierarchy."""
         task = Task(
-            title="Test Task",
-            parent_issue="TEST-100",
-            parent_epic="project-456"
+            title="Test Task", parent_issue="TEST-100", parent_epic="project-456"
         )
-        
+
         issue_input = build_linear_issue_input(task, "team-123")
-        
+
         assert issue_input["parentId"] == "TEST-100"
         assert issue_input["projectId"] == "project-456"
 
@@ -284,13 +263,13 @@ class TestLinearInputBuilders:
                 "linear": {
                     "due_date": "2023-12-31T23:59:59.000Z",
                     "cycle_id": "cycle-789",
-                    "estimate": 5
+                    "estimate": 5,
                 }
-            }
+            },
         )
-        
+
         issue_input = build_linear_issue_input(task, "team-123")
-        
+
         assert issue_input["dueDate"] == "2023-12-31T23:59:59.000Z"
         assert issue_input["cycleId"] == "cycle-789"
         assert issue_input["estimate"] == 5
@@ -301,11 +280,11 @@ class TestLinearInputBuilders:
             "title": "Updated Title",
             "description": "Updated description",
             "priority": Priority.CRITICAL,
-            "assignee": "user-789"
+            "assignee": "user-789",
         }
-        
+
         update_input = build_linear_issue_update_input(updates)
-        
+
         assert update_input["title"] == "Updated Title"
         assert update_input["description"] == "Updated description"
         assert update_input["priority"] == 1  # Critical priority
@@ -319,13 +298,13 @@ class TestLinearInputBuilders:
                     "due_date": "2023-12-31T23:59:59.000Z",
                     "cycle_id": "cycle-new",
                     "project_id": "project-new",
-                    "estimate": 8
+                    "estimate": 8,
                 }
             }
         }
-        
+
         update_input = build_linear_issue_update_input(updates)
-        
+
         assert update_input["dueDate"] == "2023-12-31T23:59:59.000Z"
         assert update_input["cycleId"] == "cycle-new"
         assert update_input["projectId"] == "project-new"
@@ -343,31 +322,27 @@ class TestUtilityFunctions:
                 "nodes": [
                     {"identifier": "TEST-124"},
                     {"identifier": "TEST-125"},
-                    {"identifier": "TEST-126"}
+                    {"identifier": "TEST-126"},
                 ]
             }
         }
-        
+
         child_ids = extract_child_issue_ids(issue_data)
-        
+
         assert child_ids == ["TEST-124", "TEST-125", "TEST-126"]
 
     def test_extract_child_issue_ids_empty(self):
         """Test extracting child issue IDs when none exist."""
-        issue_data = {
-            "children": {
-                "nodes": []
-            }
-        }
-        
+        issue_data = {"children": {"nodes": []}}
+
         child_ids = extract_child_issue_ids(issue_data)
-        
+
         assert child_ids == []
 
     def test_extract_child_issue_ids_no_children(self):
         """Test extracting child issue IDs when children field is missing."""
         issue_data = {}
-        
+
         child_ids = extract_child_issue_ids(issue_data)
-        
+
         assert child_ids == []

@@ -47,7 +47,9 @@ class ErrorHandlingTestSuite:
                 result = test_func()
 
             if expected_exception:
-                print(f"    ❌ Expected {expected_exception.__name__} but none was raised")
+                print(
+                    f"    ❌ Expected {expected_exception.__name__} but none was raised"
+                )
                 return False
             else:
                 print(f"    ✅ Passed")
@@ -104,7 +106,9 @@ class ErrorHandlingTestSuite:
             await self.adapter.update(created_task.id, {"state": TicketState.CLOSED})
 
             # Now try to transition from CLOSED (should fail)
-            result = await self.adapter.transition_state(created_task.id, TicketState.OPEN)
+            result = await self.adapter.transition_state(
+                created_task.id, TicketState.OPEN
+            )
             assert result is None, "Should not allow transition from CLOSED state"
 
         self.run_test("Invalid transition from CLOSED", test_closed_transition)
@@ -118,7 +122,9 @@ class ErrorHandlingTestSuite:
             query = SearchQuery(state="invalid_state", limit=10)
             results = await self.adapter.search(query)
             # Should return empty results, not crash
-            assert isinstance(results, list), "Should return list even with invalid state"
+            assert isinstance(
+                results, list
+            ), "Should return list even with invalid state"
 
         self.run_test("Search with invalid state", search_invalid_state)
 
@@ -188,7 +194,9 @@ class ErrorHandlingTestSuite:
             pass  # This will be caught by expected exception
 
         # Note: This should raise a validation error
-        self.run_test("Empty title validation", test_empty_values, expected_exception=Exception)
+        self.run_test(
+            "Empty title validation", test_empty_values, expected_exception=Exception
+        )
 
         # Test very large list operation
         async def test_large_limit():
@@ -211,14 +219,11 @@ class ErrorHandlingTestSuite:
             updates = [
                 {"title": "Update 1"},
                 {"title": "Update 2"},
-                {"title": "Update 3"}
+                {"title": "Update 3"},
             ]
 
             # Run concurrent updates
-            tasks = [
-                self.adapter.update(created_task.id, update)
-                for update in updates
-            ]
+            tasks = [self.adapter.update(created_task.id, update) for update in updates]
 
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -240,7 +245,7 @@ class ErrorHandlingTestSuite:
                     title=f"Memory Test {i}",
                     description="X" * 1000,  # 1KB description
                     priority=Priority.LOW,
-                    tags=[f"memory-{j}" for j in range(20)]  # Many tags
+                    tags=[f"memory-{j}" for j in range(20)],  # Many tags
                 )
                 created = await self.adapter.create(task)
                 large_tasks.append(created.id)
@@ -262,7 +267,7 @@ class ErrorHandlingTestSuite:
                 title="Test with Unicode: 🎯 测试 العربية ñ",
                 description="Unicode description: 🚀 This is a test with émojis and spëcial chars",
                 priority=Priority.HIGH,
-                tags=["unicode", "测试", "🏷️"]
+                tags=["unicode", "测试", "🏷️"],
             )
             created = await self.adapter.create(task)
             assert created is not None, "Should handle Unicode characters"
@@ -278,7 +283,7 @@ class ErrorHandlingTestSuite:
             task = Task(
                 title='Test with "quotes" and \\backslashes\\',
                 description='JSON special chars: {"key": "value", "array": [1,2,3]}',
-                priority=Priority.LOW
+                priority=Priority.LOW,
             )
             created = await self.adapter.create(task)
             assert created is not None, "Should handle JSON special characters"
@@ -337,5 +342,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Error handling tests failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

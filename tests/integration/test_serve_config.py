@@ -24,11 +24,7 @@ def test_serve_command_respects_project_config():
 
         project_config_data = {
             "default_adapter": "aitrackdown",
-            "adapters": {
-                "aitrackdown": {
-                    "base_path": ".aitrackdown-project"
-                }
-            }
+            "adapters": {"aitrackdown": {"base_path": ".aitrackdown-project"}},
         }
 
         with open(project_config_file, "w") as f:
@@ -41,11 +37,7 @@ def test_serve_command_respects_project_config():
 
         global_config_data = {
             "default_adapter": "aitrackdown",
-            "adapters": {
-                "aitrackdown": {
-                    "base_path": ".aitrackdown-global"
-                }
-            }
+            "adapters": {"aitrackdown": {"base_path": ".aitrackdown-global"}},
         }
 
         # Backup existing global config
@@ -61,7 +53,7 @@ def test_serve_command_respects_project_config():
 
             # Simulate what the serve command does
             # It changes working directory based on MCP config
-            with mock.patch('pathlib.Path.cwd', return_value=tmpdir_path):
+            with mock.patch("pathlib.Path.cwd", return_value=tmpdir_path):
                 # Load config as serve command would
                 config = load_config()
 
@@ -71,8 +63,9 @@ def test_serve_command_respects_project_config():
                 adapter_config = adapters_config.get(adapter_type, {})
                 base_path = adapter_config.get("base_path")
 
-                assert base_path == ".aitrackdown-project", \
-                    f"Expected '.aitrackdown-project', got '{base_path}'"
+                assert (
+                    base_path == ".aitrackdown-project"
+                ), f"Expected '.aitrackdown-project', got '{base_path}'"
 
                 print(f"✓ Test passed: serve command would use project config")
                 print(f"  Adapter: {adapter_type}")
@@ -108,11 +101,8 @@ def test_mcp_server_cwd_scenario():
         project_config_data = {
             "default_adapter": "linear",
             "adapters": {
-                "linear": {
-                    "team_key": "PROJ",
-                    "api_key": "project-specific-key"
-                }
-            }
+                "linear": {"team_key": "PROJ", "api_key": "project-specific-key"}
+            },
         }
 
         with open(project_config_file, "w") as f:
@@ -120,15 +110,17 @@ def test_mcp_server_cwd_scenario():
 
         # MCP server starts with cwd set to project_root
         # (as configured in .mcp/config.json)
-        with mock.patch('pathlib.Path.cwd', return_value=project_path):
+        with mock.patch("pathlib.Path.cwd", return_value=project_path):
             # This is what happens inside the serve command
             config = load_config()
 
             # Verify correct config was loaded
-            assert config["default_adapter"] == "linear", \
-                "Expected project's default adapter"
-            assert config["adapters"]["linear"]["team_key"] == "PROJ", \
-                "Expected project-specific team_key"
+            assert (
+                config["default_adapter"] == "linear"
+            ), "Expected project's default adapter"
+            assert (
+                config["adapters"]["linear"]["team_key"] == "PROJ"
+            ), "Expected project-specific team_key"
 
             print("✓ Test passed: MCP server cwd scenario")
             print(f"  Project root: {project_path}")

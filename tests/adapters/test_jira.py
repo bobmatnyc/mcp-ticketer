@@ -85,7 +85,7 @@ async def test_jira_adapter():
             {
                 "title": created_task.title + " [UPDATED]",
                 "priority": Priority.HIGH,
-            }
+            },
         )
         if updated:
             print(f"✅ Task updated successfully")
@@ -117,10 +117,7 @@ async def test_jira_adapter():
 
         # Test 6: Search tasks
         print("🔎 Test 6: Searching tasks...")
-        search_query = SearchQuery(
-            query="test",
-            limit=5
-        )
+        search_query = SearchQuery(query="test", limit=5)
         search_results = await adapter.search(search_query)
         print(f"✅ Found {len(search_results)} matching tasks")
         for i, task in enumerate(search_results[:3], 1):
@@ -131,8 +128,7 @@ async def test_jira_adapter():
         print("🔄 Test 7: Testing state transition...")
         try:
             transitioned = await adapter.transition_state(
-                created_task.id,
-                TicketState.IN_PROGRESS
+                created_task.id, TicketState.IN_PROGRESS
             )
             if transitioned:
                 print(f"✅ Task transitioned to: {transitioned.state}\n")
@@ -164,7 +160,7 @@ async def test_jira_adapter():
         # Optional: Clean up (delete the test task)
         print("🗑️ Cleaning up...")
         cleanup = input("Delete the test task? (y/n): ").strip().lower()
-        if cleanup == 'y':
+        if cleanup == "y":
             deleted = await adapter.delete(created_task.id)
             if deleted:
                 print("✅ Test task deleted\n")
@@ -178,6 +174,7 @@ async def test_jira_adapter():
     except Exception as e:
         print(f"\n❌ Error during testing: {e}")
         import traceback
+
         traceback.print_exc()
 
     finally:
@@ -226,14 +223,15 @@ async def main():
     await test_jira_adapter()
 
     # Additional JQL tests (optional)
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     run_jql = input("\nRun JQL tests? (y/n): ").strip().lower()
-    if run_jql == 'y':
+    if run_jql == "y":
         await test_jira_jql()
 
 
 if __name__ == "__main__":
-    print("""
+    print(
+        """
 ╔══════════════════════════════════════════════╗
 ║        JIRA Adapter Test Suite               ║
 ╚══════════════════════════════════════════════╝
@@ -244,6 +242,7 @@ Make sure you have set the required environment variables:
 - JIRA_EMAIL: Your JIRA email
 - JIRA_API_TOKEN: Your JIRA API token
 - JIRA_PROJECT_KEY: (Optional) Default project key
-    """)
+    """
+    )
 
     asyncio.run(main())

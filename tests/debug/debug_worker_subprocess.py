@@ -11,9 +11,9 @@ from pathlib import Path
 def debug_worker_subprocess():
     """Debug worker subprocess environment."""
     print("🔍 Debugging worker subprocess environment...")
-    
+
     # Create a test script that simulates what the worker does
-    test_script = '''
+    test_script = """
 import os
 import sys
 from pathlib import Path
@@ -62,38 +62,38 @@ except Exception as e:
     print(f"Error loading config: {e}")
     import traceback
     traceback.print_exc()
-'''
-    
+"""
+
     # Write test script to temporary file
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write(test_script)
         script_path = f.name
-    
+
     try:
         print(f"\n🔧 Running test script in subprocess...")
         print(f"   Script: {script_path}")
         print(f"   CWD: {os.getcwd()}")
-        
+
         # Run the script in a subprocess like the worker manager does
         result = subprocess.run(
             [sys.executable, script_path],
             cwd=os.getcwd(),  # Use current directory like worker manager
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=30,
         )
-        
+
         print(f"\n📊 Subprocess Results:")
         print(f"   Return code: {result.returncode}")
         print(f"   STDOUT:")
         for line in result.stdout.splitlines():
             print(f"      {line}")
-        
+
         if result.stderr:
             print(f"   STDERR:")
             for line in result.stderr.splitlines():
                 print(f"      {line}")
-        
+
     except subprocess.TimeoutExpired:
         print(f"   ❌ Subprocess timed out")
     except Exception as e:
@@ -101,7 +101,7 @@ except Exception as e:
     finally:
         # Clean up temporary file
         os.unlink(script_path)
-    
+
     # Also test the actual worker command
     print(f"\n🚀 Testing actual worker command...")
     try:
@@ -109,33 +109,34 @@ except Exception as e:
         cmd = [sys.executable, "-m", "mcp_ticketer.queue.run_worker"]
         print(f"   Command: {' '.join(cmd)}")
         print(f"   CWD: {os.getcwd()}")
-        
+
         # Start the worker process but kill it quickly
         process = subprocess.Popen(
             cmd,
             cwd=os.getcwd(),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
         )
-        
+
         # Let it run for a moment then kill it
         import time
+
         time.sleep(2)
         process.terminate()
-        
+
         stdout, stderr = process.communicate(timeout=5)
-        
+
         print(f"   Return code: {process.returncode}")
         print(f"   STDOUT:")
         for line in stdout.splitlines()[:10]:  # Show first 10 lines
             print(f"      {line}")
-        
+
         if stderr:
             print(f"   STDERR:")
             for line in stderr.splitlines()[:10]:  # Show first 10 lines
                 print(f"      {line}")
-        
+
     except Exception as e:
         print(f"   ❌ Worker command failed: {e}")
 

@@ -7,7 +7,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # Load environment variables
-load_dotenv('.env.local')
+load_dotenv(".env.local")
 
 from src.mcp_ticketer.queue import Queue
 from src.mcp_ticketer.core.models import Priority
@@ -35,7 +35,7 @@ async def test_batch_processing():
         queue_id = queue.add(
             ticket_data=task_data,
             adapter="aitrackdown",  # Local adapter for fast testing
-            operation="create"
+            operation="create",
         )
         tickets.append(queue_id)
         print(f"  Queued: {queue_id}")
@@ -52,7 +52,7 @@ async def test_batch_processing():
     completed = 0
     for queue_id in tickets:
         item = queue.get_item(queue_id)
-        if item and item.status.value == 'completed':
+        if item and item.status.value == "completed":
             completed += 1
             print(f"  ✓ {queue_id}: Completed")
         else:
@@ -88,11 +88,7 @@ async def test_concurrent_adapters():
             "priority": Priority.HIGH.value,
         }
 
-        queue_id = queue.add(
-            ticket_data=task_data,
-            adapter=adapter,
-            operation="create"
-        )
+        queue_id = queue.add(ticket_data=task_data, adapter=adapter, operation="create")
         tickets.append((queue_id, adapter))
         print(f"  Queued {adapter}: {queue_id}")
 
@@ -105,7 +101,7 @@ async def test_concurrent_adapters():
     completed = 0
     for queue_id, adapter in tickets:
         item = queue.get_item(queue_id)
-        if item and item.status.value == 'completed':
+        if item and item.status.value == "completed":
             completed += 1
             print(f"  ✓ {adapter}: Completed")
         else:
@@ -136,6 +132,7 @@ async def test_worker_status():
 
         # Get detailed status from worker
         from src.mcp_ticketer.queue.worker import Worker
+
         queue = Queue()
 
         # Check queue statistics

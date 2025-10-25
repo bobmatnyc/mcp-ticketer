@@ -32,7 +32,7 @@ async def debug_test():
             title="Debug Test Task",
             description="Testing for debug",
             priority=Priority.MEDIUM,
-            tags=["debug", "test"]
+            tags=["debug", "test"],
         )
 
         print(f"✓ Task created: {task}")
@@ -55,6 +55,7 @@ async def debug_test():
 
     except Exception as e:
         import traceback
+
         print(f"❌ Error: {e}")
         print("Traceback:")
         traceback.print_exc()

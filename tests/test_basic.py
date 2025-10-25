@@ -24,7 +24,7 @@ async def test_basic_functionality():
         title="Test Task",
         description="This is a test task",
         priority=Priority.HIGH,
-        tags=["test", "demo"]
+        tags=["test", "demo"],
     )
     print(f"   ✓ Created task: {task.title}")
 

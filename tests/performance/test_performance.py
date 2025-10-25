@@ -48,7 +48,7 @@ class PerformanceTestSuite:
                 title=f"Performance Test Task {i}",
                 description=f"Task {i} for performance testing",
                 priority=Priority.LOW,
-                tags=["performance", f"batch-{i // 10}"]
+                tags=["performance", f"batch-{i // 10}"],
             )
 
             start = time.time()
@@ -115,10 +115,7 @@ class PerformanceTestSuite:
             tasks = await self.adapter.list(limit=limit)
             elapsed = time.time() - start
 
-            list_results[limit] = {
-                "time": elapsed,
-                "count": len(tasks)
-            }
+            list_results[limit] = {"time": elapsed, "count": len(tasks)}
 
             print(f"   Limit {limit}: {elapsed:.4f}s ({len(tasks)} results)")
 
@@ -149,9 +146,13 @@ class PerformanceTestSuite:
         print(f"   Average: {avg_time:.4f}s")
         print(f"   Rate:    {len(queries) / sum(search_times):.1f} queries/sec")
 
-    async def benchmark_concurrent_operations(self, task_ids: List[str], concurrency: int = 10):
+    async def benchmark_concurrent_operations(
+        self, task_ids: List[str], concurrency: int = 10
+    ):
         """Benchmark concurrent read operations."""
-        print(f"\n⚡ Benchmarking concurrent operations (concurrency: {concurrency})...")
+        print(
+            f"\n⚡ Benchmarking concurrent operations (concurrency: {concurrency})..."
+        )
 
         async def read_task(task_id):
             start = time.time()
@@ -159,7 +160,7 @@ class PerformanceTestSuite:
             return time.time() - start
 
         # Select subset of task IDs for concurrent testing
-        selected_ids = task_ids[:min(50, len(task_ids))]
+        selected_ids = task_ids[: min(50, len(task_ids))]
 
         start_total = time.time()
 
@@ -185,7 +186,7 @@ class PerformanceTestSuite:
             "concurrency": concurrency,
             "total_time": total_time,
             "operation_count": len(selected_ids),
-            "throughput": len(selected_ids) / total_time
+            "throughput": len(selected_ids) / total_time,
         }
 
     async def memory_usage_test(self, count: int = 500):
@@ -199,9 +200,10 @@ class PerformanceTestSuite:
         for i in range(count):
             task = Task(
                 title=f"Scale Test {i}",
-                description=f"Large description for scalability testing ticket {i} " * 5,
+                description=f"Large description for scalability testing ticket {i} "
+                * 5,
                 priority=Priority.LOW,
-                tags=[f"scale", f"test-{i}", f"batch-{i // 100}"]
+                tags=[f"scale", f"test-{i}", f"batch-{i // 100}"],
             )
             created = await self.adapter.create(task)
             if created:
@@ -236,7 +238,7 @@ class PerformanceTestSuite:
             "ticket_count": count,
             "create_rate": avg_rate,
             "read_rate_large": read_rate,
-            "total_time": total_time
+            "total_time": total_time,
         }
 
         return task_ids
@@ -255,13 +257,7 @@ class PerformanceTestSuite:
             await self.benchmark_list_operations([10, 25, 50, 100])
 
             # Search benchmark
-            search_queries = [
-                "Performance",
-                "Test",
-                "batch",
-                "Task 50",
-                "nonexistent"
-            ]
+            search_queries = ["Performance", "Test", "batch", "Task 50", "nonexistent"]
             await self.benchmark_search_operations(search_queries)
 
             # Concurrent operations
@@ -283,11 +279,15 @@ class PerformanceTestSuite:
             print(f"Create Rate:     {create_rate:.1f} ops/sec")
             print(f"Read Rate:       {read_rate:.1f} ops/sec")
             print(f"Search Rate:     {search_rate:.1f} queries/sec")
-            print(f"Scalability:     {self.results['scalability']['create_rate']:.1f} creates/sec")
+            print(
+                f"Scalability:     {self.results['scalability']['create_rate']:.1f} creates/sec"
+            )
 
             concurrent_results = self.results.get("concurrent_operations", {})
             if concurrent_results:
-                print(f"Concurrent throughput: {concurrent_results['throughput']:.1f} ops/sec")
+                print(
+                    f"Concurrent throughput: {concurrent_results['throughput']:.1f} ops/sec"
+                )
 
             # Performance rating
             overall_score = (create_rate + read_rate + search_rate) / 3
@@ -323,5 +323,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Performance tests failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

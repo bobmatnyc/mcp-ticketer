@@ -63,10 +63,10 @@ async def test_github_pr_creation():
         print("\nTesting PR linking...")
         link_result = await adapter.link_existing_pull_request(
             ticket_id=created_issue.id,
-            pr_url=pr_result['url'],
+            pr_url=pr_result["url"],
         )
 
-        if link_result['success']:
+        if link_result["success"]:
             print(f"✅ Successfully linked PR to issue")
             print(f"   {link_result['message']}")
         else:
@@ -79,6 +79,7 @@ async def test_github_pr_creation():
     except Exception as e:
         print(f"❌ GitHub test failed: {e}")
         import traceback
+
         traceback.print_exc()
 
 
@@ -139,7 +140,7 @@ async def test_linear_pr_linking():
             pr_url=test_pr_url,
         )
 
-        if link_result['success']:
+        if link_result["success"]:
             print(f"✅ Successfully linked PR to Linear issue")
             print(f"   {link_result['message']}")
             print(f"   Attachment ID: {link_result['attachment_id']}")
@@ -153,6 +154,7 @@ async def test_linear_pr_linking():
     except Exception as e:
         print(f"❌ Linear test failed: {e}")
         import traceback
+
         traceback.print_exc()
 
 
@@ -171,13 +173,12 @@ async def test_mcp_server_pr_tools():
                 "token": os.getenv("GITHUB_TOKEN"),
                 "owner": os.getenv("GITHUB_OWNER", "test-owner"),
                 "repo": os.getenv("GITHUB_REPO", "test-repo"),
-            }
+            },
         )
 
         # Test tools list
         tools_response = await server._handle_tools_list()
-        pr_tools = [t for t in tools_response['tools']
-                   if 'pr' in t['name'].lower()]
+        pr_tools = [t for t in tools_response["tools"] if "pr" in t["name"].lower()]
 
         print(f"✅ Found {len(pr_tools)} PR-related tools:")
         for tool in pr_tools:
@@ -191,13 +192,12 @@ async def test_mcp_server_pr_tools():
             config={
                 "api_key": os.getenv("LINEAR_API_KEY"),
                 "team_key": os.getenv("LINEAR_TEAM_KEY", "ENG"),
-            }
+            },
         )
 
         # Test tools list
         tools_response = await server._handle_tools_list()
-        pr_tools = [t for t in tools_response['tools']
-                   if 'pr' in t['name'].lower()]
+        pr_tools = [t for t in tools_response["tools"] if "pr" in t["name"].lower()]
 
         print(f"✅ Found {len(pr_tools)} PR-related tools:")
         for tool in pr_tools:

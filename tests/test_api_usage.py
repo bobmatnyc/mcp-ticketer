@@ -20,6 +20,7 @@ def test_core_imports():
         from mcp_ticketer.core.models import Task, Epic, Comment, Priority, TicketState
         from mcp_ticketer.core.adapter import BaseAdapter
         from mcp_ticketer.core.registry import AdapterRegistry
+
         print("✓ Core models and adapters imported successfully")
 
         # Test model creation
@@ -30,7 +31,7 @@ def test_core_imports():
             priority=Priority.MEDIUM,
             state=TicketState.OPEN,
             creator="test-user",
-            assignee="test-assignee"
+            assignee="test-assignee",
         )
         print(f"✓ Task model created: {task.title}")
 
@@ -40,7 +41,7 @@ def test_core_imports():
             description="A test epic",
             priority=Priority.HIGH,
             state=TicketState.OPEN,
-            creator="test-user"
+            creator="test-user",
         )
         print(f"✓ Epic model created: {epic.title}")
 
@@ -49,7 +50,7 @@ def test_core_imports():
             ticket_id="test-1",
             content="Test comment",
             author="test-user",
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
         print(f"✓ Comment model created: {comment.content}")
 
@@ -66,15 +67,19 @@ def test_adapter_imports():
 
     try:
         from mcp_ticketer.adapters import AITrackdownAdapter
+
         print("✓ AITrackdown adapter imported")
 
         from mcp_ticketer.adapters.linear import LinearAdapter
+
         print("✓ Linear adapter imported")
 
         from mcp_ticketer.adapters.jira import JiraAdapter
+
         print("✓ Jira adapter imported")
 
         from mcp_ticketer.adapters.github import GitHubAdapter
+
         print("✓ GitHub adapter imported")
 
         return True
@@ -91,6 +96,7 @@ def test_queue_system():
     try:
         # Try importing what's actually available
         from mcp_ticketer.queue.models import QueueItem
+
         print("✓ Queue models imported")
 
         # Test queue item creation
@@ -99,7 +105,7 @@ def test_queue_system():
             operation="create_task",
             adapter="aitrackdown",
             payload={"title": "Test", "description": "Test task"},
-            retry_count=0
+            retry_count=0,
         )
         print(f"✓ Queue item created: {queue_item.operation}")
 
@@ -117,6 +123,7 @@ def test_mcp_server():
     try:
         # Just import what's available without specifics
         import mcp_ticketer.mcp.server
+
         print("✓ MCP server module imported")
 
         return True
@@ -132,6 +139,7 @@ def test_cli_components():
 
     try:
         from mcp_ticketer.cli.main import app
+
         print("✓ CLI main app imported")
 
         return True
@@ -147,6 +155,7 @@ def test_cache_system():
 
     try:
         from mcp_ticketer.cache.memory import MemoryCache
+
         print("✓ Cache system imported")
 
         # Test cache creation
@@ -166,6 +175,7 @@ def test_version_info():
 
     try:
         import mcp_ticketer
+
         version = mcp_ticketer.__version__
         print(f"✓ Package version: {version}")
 
@@ -209,7 +219,7 @@ def main():
         test_cli_components,
         test_cache_system,
         test_version_info,
-        test_utils
+        test_utils,
     ]
 
     results = []

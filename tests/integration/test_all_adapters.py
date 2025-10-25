@@ -13,12 +13,13 @@ from rich.panel import Panel
 from rich import print as rprint
 
 # Load environment variables
-env_path = Path('.env.local')
+env_path = Path(".env.local")
 if env_path.exists():
     load_dotenv(env_path)
     print(f"✓ Loaded environment from {env_path}")
 
 console = Console()
+
 
 async def test_linear():
     """Test Linear adapter with 1m-hyperdev workspace"""
@@ -29,12 +30,12 @@ async def test_linear():
         from src.mcp_ticketer.core.models import Priority
 
         config = {
-            'api_key': os.getenv('LINEAR_API_KEY'),
-            'team_key': 'BTA',  # Corrected team key
-            'workspace': '1m-hyperdev'
+            "api_key": os.getenv("LINEAR_API_KEY"),
+            "team_key": "BTA",  # Corrected team key
+            "workspace": "1m-hyperdev",
         }
 
-        if not config['api_key']:
+        if not config["api_key"]:
             console.print("[red]✗ LINEAR_API_KEY not found in environment[/red]")
             return False
 
@@ -55,11 +56,13 @@ async def test_linear():
                 description="Testing Linear GraphQL integration from mcp-ticketer",
                 state=TicketState.OPEN,
                 priority=Priority.MEDIUM,
-                tags=["test", "mcp-ticketer"]
+                tags=["test", "mcp-ticketer"],
             )
 
             created_task = await adapter.create(test_task)
-            console.print(f"  ✓ Created issue: {created_task.id} - {created_task.title}")
+            console.print(
+                f"  ✓ Created issue: {created_task.id} - {created_task.title}"
+            )
             tests_passed += 1
 
             # 2. Get the issue
@@ -85,12 +88,15 @@ async def test_linear():
         except Exception as e:
             console.print(f"  [red]✗ Error: {e}[/red]")
 
-        console.print(f"\n[green]Linear: {tests_passed}/{tests_total} tests passed[/green]")
+        console.print(
+            f"\n[green]Linear: {tests_passed}/{tests_total} tests passed[/green]"
+        )
         return tests_passed == tests_total
 
     except Exception as e:
         console.print(f"[red]✗ Failed to test Linear: {e}[/red]")
         return False
+
 
 async def test_github():
     """Test GitHub adapter with bobmatnyc/mcp-ticketer repo"""
@@ -101,12 +107,12 @@ async def test_github():
         from src.mcp_ticketer.core.models import Priority, Comment
 
         config = {
-            'api_key': os.getenv('GITHUB_TOKEN'),  # Use api_key for consistency
-            'owner': os.getenv('GITHUB_OWNER', 'bobmatnyc'),
-            'repo': 'mcp-ticketer'  # Using the specified repo
+            "api_key": os.getenv("GITHUB_TOKEN"),  # Use api_key for consistency
+            "owner": os.getenv("GITHUB_OWNER", "bobmatnyc"),
+            "repo": "mcp-ticketer",  # Using the specified repo
         }
 
-        if not config['api_key']:
+        if not config["api_key"]:
             console.print("[red]✗ GITHUB_TOKEN not found in environment[/red]")
             return False
 
@@ -130,12 +136,14 @@ async def test_github():
                 description="This is a test issue created by the mcp-ticketer integration tests. It can be safely deleted.",
                 state=TicketState.OPEN,
                 priority=Priority.MEDIUM,
-                tags=["test", "automation", "mcp-ticketer"]
+                tags=["test", "automation", "mcp-ticketer"],
             )
 
             created_task = await adapter.create(test_task)
             created_issue_number = created_task.id
-            console.print(f"  ✓ Created issue #{created_issue_number}: {created_task.title}")
+            console.print(
+                f"  ✓ Created issue #{created_issue_number}: {created_task.title}"
+            )
             tests_passed += 1
 
             # 2. Get the issue
@@ -151,7 +159,7 @@ async def test_github():
                 id="",
                 ticket_id=created_issue_number,
                 author="test-user",
-                content="This is a test comment from the mcp-ticketer integration tests."
+                content="This is a test comment from the mcp-ticketer integration tests.",
             )
             created_comment = await adapter.add_comment(comment)
             console.print(f"  ✓ Added comment: {created_comment.id}")
@@ -165,9 +173,10 @@ async def test_github():
 
             # 5. Update the issue (add a tag)
             tests_total += 1
-            updated_task = await adapter.update(created_issue_number, {
-                "tags": ["test", "automation", "mcp-ticketer", "updated"]
-            })
+            updated_task = await adapter.update(
+                created_issue_number,
+                {"tags": ["test", "automation", "mcp-ticketer", "updated"]},
+            )
             if updated_task:
                 console.print(f"  ✓ Updated issue with new tags")
                 tests_passed += 1
@@ -184,16 +193,23 @@ async def test_github():
                     console.print(f"  ✓ Closed test issue #{created_issue_number}")
                     tests_passed += 1
                 else:
-                    console.print(f"  [yellow]⚠ Failed to close test issue #{created_issue_number}[/yellow]")
+                    console.print(
+                        f"  [yellow]⚠ Failed to close test issue #{created_issue_number}[/yellow]"
+                    )
             except Exception as e:
                 console.print(f"  [yellow]⚠ Cleanup error: {e}[/yellow]")
 
-        console.print(f"\n[green]GitHub: {tests_passed}/{tests_total} tests passed[/green]")
-        return tests_passed >= (tests_total - 1)  # Allow 1 failure for non-critical cleanup
+        console.print(
+            f"\n[green]GitHub: {tests_passed}/{tests_total} tests passed[/green]"
+        )
+        return tests_passed >= (
+            tests_total - 1
+        )  # Allow 1 failure for non-critical cleanup
 
     except Exception as e:
         console.print(f"[red]✗ Failed to test GitHub: {e}[/red]")
         return False
+
 
 async def test_jira():
     """Test JIRA adapter with 1m-hyperdev.atlassian.net"""
@@ -204,13 +220,13 @@ async def test_jira():
         from src.mcp_ticketer.core.models import Priority, Task, TicketState, Comment
 
         config = {
-            'server': 'https://1m-hyperdev.atlassian.net',
-            'email': os.getenv('JIRA_ACCESS_USER'),
-            'api_token': os.getenv('JIRA_ACCESS_TOKEN'),
-            'project_key': 'SMS'  # Using the SMS project
+            "server": "https://1m-hyperdev.atlassian.net",
+            "email": os.getenv("JIRA_ACCESS_USER"),
+            "api_token": os.getenv("JIRA_ACCESS_TOKEN"),
+            "project_key": "SMS",  # Using the SMS project
         }
 
-        if not config['email'] or not config['api_token']:
+        if not config["email"] or not config["api_token"]:
             console.print("[red]✗ JIRA credentials not found in environment[/red]")
             return False
 
@@ -234,12 +250,14 @@ async def test_jira():
                 description="This is a test issue created by the mcp-ticketer integration tests. It can be safely deleted.",
                 state=TicketState.OPEN,
                 priority=Priority.MEDIUM,
-                tags=["test", "automation"]
+                tags=["test", "automation"],
             )
 
             created_task = await adapter.create(test_task)
             created_issue_key = created_task.id
-            console.print(f"  ✓ Created issue {created_issue_key}: {created_task.title}")
+            console.print(
+                f"  ✓ Created issue {created_issue_key}: {created_task.title}"
+            )
             tests_passed += 1
 
             # 2. Get the issue
@@ -258,6 +276,7 @@ async def test_jira():
             # 4. Search issues
             tests_total += 1
             from src.mcp_ticketer.core.models import SearchQuery
+
             search_query = SearchQuery(query="TEST", limit=5)
             search_results = await adapter.search(search_query)
             console.print(f"  ✓ Search returned {len(search_results)} results")
@@ -265,9 +284,10 @@ async def test_jira():
 
             # 5. Update the issue
             tests_total += 1
-            updated_task = await adapter.update(created_issue_key, {
-                "description": "Updated description from integration tests"
-            })
+            updated_task = await adapter.update(
+                created_issue_key,
+                {"description": "Updated description from integration tests"},
+            )
             if updated_task:
                 console.print(f"  ✓ Updated issue description")
                 tests_passed += 1
@@ -278,7 +298,7 @@ async def test_jira():
                 id="",
                 ticket_id=created_issue_key,
                 author="test-user",
-                content="This is a test comment from the mcp-ticketer integration tests."
+                content="This is a test comment from the mcp-ticketer integration tests.",
             )
             created_comment = await adapter.add_comment(comment)
             console.print(f"  ✓ Added comment: {created_comment.id}")
@@ -287,14 +307,20 @@ async def test_jira():
             # 7. Transition state (if possible)
             tests_total += 1
             try:
-                transitioned_task = await adapter.transition_state(created_issue_key, TicketState.IN_PROGRESS)
+                transitioned_task = await adapter.transition_state(
+                    created_issue_key, TicketState.IN_PROGRESS
+                )
                 if transitioned_task:
                     console.print(f"  ✓ Transitioned issue to In Progress")
                     tests_passed += 1
                 else:
-                    console.print(f"  [yellow]⚠ Could not transition issue state[/yellow]")
+                    console.print(
+                        f"  [yellow]⚠ Could not transition issue state[/yellow]"
+                    )
             except Exception as e:
-                console.print(f"  [yellow]⚠ State transition not available: {e}[/yellow]")
+                console.print(
+                    f"  [yellow]⚠ State transition not available: {e}[/yellow]"
+                )
 
         except Exception as e:
             console.print(f"  [red]✗ Error during operations: {e}[/red]")
@@ -304,21 +330,30 @@ async def test_jira():
             try:
                 tests_total += 1
                 # Try to transition to Done state for cleanup
-                final_task = await adapter.transition_state(created_issue_key, TicketState.DONE)
+                final_task = await adapter.transition_state(
+                    created_issue_key, TicketState.DONE
+                )
                 if final_task:
                     console.print(f"  ✓ Transitioned test issue to Done")
                     tests_passed += 1
                 else:
-                    console.print(f"  [yellow]⚠ Could not transition test issue to Done[/yellow]")
+                    console.print(
+                        f"  [yellow]⚠ Could not transition test issue to Done[/yellow]"
+                    )
             except Exception as e:
                 console.print(f"  [yellow]⚠ Cleanup error: {e}[/yellow]")
 
-        console.print(f"\n[green]JIRA: {tests_passed}/{tests_total} tests passed[/green]")
-        return tests_passed >= (tests_total - 2)  # Allow 2 failures for non-critical operations
+        console.print(
+            f"\n[green]JIRA: {tests_passed}/{tests_total} tests passed[/green]"
+        )
+        return tests_passed >= (
+            tests_total - 2
+        )  # Allow 2 failures for non-critical operations
 
     except Exception as e:
         console.print(f"[red]✗ Failed to test JIRA: {e}[/red]")
         return False
+
 
 async def test_aitrackdown():
     """Test AI-Trackdown adapter (local file-based)"""
@@ -326,19 +361,24 @@ async def test_aitrackdown():
 
     try:
         from src.mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
-        from src.mcp_ticketer.core.models import Priority, Task, TicketState, Comment, Epic, SearchQuery
+        from src.mcp_ticketer.core.models import (
+            Priority,
+            Task,
+            TicketState,
+            Comment,
+            Epic,
+            SearchQuery,
+        )
         import shutil
         import os
 
-        test_project_path = '.test_aitrackdown'
+        test_project_path = ".test_aitrackdown"
 
         # Clean up any existing test data
         if os.path.exists(test_project_path):
             shutil.rmtree(test_project_path)
 
-        config = {
-            'base_path': test_project_path
-        }
+        config = {"base_path": test_project_path}
 
         adapter = AITrackdownAdapter(config)
 
@@ -357,7 +397,7 @@ async def test_aitrackdown():
                 id="",
                 title=f"[TEST] Epic Integration Test - {datetime.now().strftime('%Y-%m-%d %H:%M')}",
                 description="Test epic for integration testing",
-                state=TicketState.OPEN
+                state=TicketState.OPEN,
             )
             created_epic = await adapter.create(epic)
             created_epic_id = created_epic.id
@@ -374,7 +414,7 @@ async def test_aitrackdown():
                     state=TicketState.OPEN,
                     priority=Priority.MEDIUM if i == 0 else Priority.HIGH,
                     tags=["test", "automation", f"batch-{i+1}"],
-                    parent_epic=created_epic_id if i < 2 else None
+                    parent_epic=created_epic_id if i < 2 else None,
                 )
 
                 created_task = await adapter.create(test_task)
@@ -398,10 +438,13 @@ async def test_aitrackdown():
 
             # 5. Update a task
             tests_total += 1
-            updated_task = await adapter.update(created_task_ids[0], {
-                "description": "Updated description from integration tests",
-                "priority": Priority.HIGH
-            })
+            updated_task = await adapter.update(
+                created_task_ids[0],
+                {
+                    "description": "Updated description from integration tests",
+                    "priority": Priority.HIGH,
+                },
+            )
             if updated_task:
                 console.print(f"  ✓ Updated task description and priority")
                 tests_passed += 1
@@ -413,7 +456,7 @@ async def test_aitrackdown():
                     id="",
                     ticket_id=task_id,
                     author="test-user",
-                    content=f"Test comment {i+1} from integration tests"
+                    content=f"Test comment {i+1} from integration tests",
                 )
                 created_comment = await adapter.add_comment(comment)
             console.print(f"  ✓ Added comments to tasks")
@@ -436,7 +479,9 @@ async def test_aitrackdown():
                     transitioned_count += 1
 
             if transitioned_count > 0:
-                console.print(f"  ✓ Transitioned {transitioned_count} tasks to new states")
+                console.print(
+                    f"  ✓ Transitioned {transitioned_count} tasks to new states"
+                )
                 tests_passed += 1
 
             # 9. List epics (same as listing tasks since they're unified in the adapter)
@@ -465,30 +510,45 @@ async def test_aitrackdown():
         except Exception as e:
             console.print(f"  [yellow]⚠ Cleanup error: {e}[/yellow]")
 
-        console.print(f"\n[green]AI-Trackdown: {tests_passed}/{tests_total} tests passed[/green]")
-        return tests_passed >= (tests_total - 1)  # Allow 1 failure for non-critical operations
+        console.print(
+            f"\n[green]AI-Trackdown: {tests_passed}/{tests_total} tests passed[/green]"
+        )
+        return tests_passed >= (
+            tests_total - 1
+        )  # Allow 1 failure for non-critical operations
 
     except Exception as e:
         console.print(f"[red]✗ Failed to test AI-Trackdown: {e}[/red]")
         return False
 
+
 async def main():
     """Run all adapter tests"""
-    console.print(Panel.fit(
-        "[bold]MCP-Ticketer Comprehensive Adapter Test Suite[/bold]\n"
-        "Testing all four adapters (Linear, GitHub, JIRA, AI-Trackdown) with full CRUD operations\n"
-        "Each test includes: create, read, update, delete, list, search, and comments",
-        title="🧪 Integration Test Runner",
-        border_style="cyan"
-    ))
+    console.print(
+        Panel.fit(
+            "[bold]MCP-Ticketer Comprehensive Adapter Test Suite[/bold]\n"
+            "Testing all four adapters (Linear, GitHub, JIRA, AI-Trackdown) with full CRUD operations\n"
+            "Each test includes: create, read, update, delete, list, search, and comments",
+            title="🧪 Integration Test Runner",
+            border_style="cyan",
+        )
+    )
 
     # Show configuration being used
     console.print("\n[bold]Configuration:[/bold]")
-    console.print(f"  Linear API Key: {'✓ Found' if os.getenv('LINEAR_API_KEY') else '✗ Missing'}")
-    console.print(f"  GitHub Token: {'✓ Found' if os.getenv('GITHUB_TOKEN') else '✗ Missing'}")
+    console.print(
+        f"  Linear API Key: {'✓ Found' if os.getenv('LINEAR_API_KEY') else '✗ Missing'}"
+    )
+    console.print(
+        f"  GitHub Token: {'✓ Found' if os.getenv('GITHUB_TOKEN') else '✗ Missing'}"
+    )
     console.print(f"  GitHub Owner: {os.getenv('GITHUB_OWNER', 'Not set')}")
-    console.print(f"  JIRA User: {'✓ Found' if os.getenv('JIRA_ACCESS_USER') else '✗ Missing'}")
-    console.print(f"  JIRA Token: {'✓ Found' if os.getenv('JIRA_ACCESS_TOKEN') else '✗ Missing'}")
+    console.print(
+        f"  JIRA User: {'✓ Found' if os.getenv('JIRA_ACCESS_USER') else '✗ Missing'}"
+    )
+    console.print(
+        f"  JIRA Token: {'✓ Found' if os.getenv('JIRA_ACCESS_TOKEN') else '✗ Missing'}"
+    )
 
     results = []
     start_time = datetime.now()
@@ -514,7 +574,9 @@ async def main():
     # JIRA (if credentials available)
     console.print(f"\n{'='*60}")
     result_jira = await test_jira()
-    results.append(("JIRA", result_jira, "Using 1m-hyperdev.atlassian.net, SMS project"))
+    results.append(
+        ("JIRA", result_jira, "Using 1m-hyperdev.atlassian.net, SMS project")
+    )
 
     # Calculate test duration
     end_time = datetime.now()
@@ -522,11 +584,15 @@ async def main():
 
     # Enhanced summary table
     console.print(f"\n{'='*80}")
-    console.print(Panel.fit(
-        f"[bold]Integration Test Results Summary[/bold]\n"
-        f"Completed in {duration:.1f} seconds",
-        border_style="green" if all(passed for _, passed, _ in results) else "yellow"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold]Integration Test Results Summary[/bold]\n"
+            f"Completed in {duration:.1f} seconds",
+            border_style=(
+                "green" if all(passed for _, passed, _ in results) else "yellow"
+            ),
+        )
+    )
 
     table = Table(show_header=True, header_style="bold magenta")
     table.add_column("Adapter", style="cyan", width=15)
@@ -543,11 +609,7 @@ async def main():
         if passed:
             passed_count += 1
 
-        table.add_row(
-            adapter,
-            f"[{color}]{status}[/{color}]",
-            notes
-        )
+        table.add_row(adapter, f"[{color}]{status}[/{color}]", notes)
 
     console.print(table)
 
@@ -559,14 +621,22 @@ async def main():
     # Overall result with specific recommendations
     if passed_count == total_count:
         console.print("\n[bold green]🎉 ALL ADAPTERS WORKING CORRECTLY![/bold green]")
-        console.print("   All four adapters successfully completed comprehensive CRUD testing.")
+        console.print(
+            "   All four adapters successfully completed comprehensive CRUD testing."
+        )
         console.print("   The mcp-ticketer system is ready for production use.")
     elif passed_count >= 3:
-        console.print(f"\n[bold yellow]⚠ MOSTLY SUCCESSFUL ({passed_count}/{total_count} passed)[/bold yellow]")
+        console.print(
+            f"\n[bold yellow]⚠ MOSTLY SUCCESSFUL ({passed_count}/{total_count} passed)[/bold yellow]"
+        )
         console.print("   Most adapters are working. Check failed adapter credentials.")
     elif passed_count >= 1:
-        console.print(f"\n[bold orange]⚠ PARTIAL SUCCESS ({passed_count}/{total_count} passed)[/bold orange]")
-        console.print("   Some adapters working. Review configurations and credentials.")
+        console.print(
+            f"\n[bold orange]⚠ PARTIAL SUCCESS ({passed_count}/{total_count} passed)[/bold orange]"
+        )
+        console.print(
+            "   Some adapters working. Review configurations and credentials."
+        )
     else:
         console.print("\n[bold red]❌ ALL TESTS FAILED[/bold red]")
         console.print("   Check your environment configuration and credentials.")
@@ -578,11 +648,15 @@ async def main():
         for adapter in failed_adapters:
             if adapter == "Linear":
                 console.print("  • Linear: Verify LINEAR_API_KEY in .env.local")
-                console.print("    - Check API key permissions for 1m-hyperdev workspace")
+                console.print(
+                    "    - Check API key permissions for 1m-hyperdev workspace"
+                )
             elif adapter == "GitHub":
                 console.print("  • GitHub: Verify GITHUB_TOKEN and repository access")
                 console.print("    - Ensure token has 'repo' and 'issues' permissions")
-                console.print("    - Confirm access to bobmatnyc/mcp-ticketer repository")
+                console.print(
+                    "    - Confirm access to bobmatnyc/mcp-ticketer repository"
+                )
             elif adapter == "JIRA":
                 console.print("  • JIRA: Verify JIRA_ACCESS_USER and JIRA_ACCESS_TOKEN")
                 console.print("    - Check access to 1m-hyperdev.atlassian.net")
@@ -592,6 +666,7 @@ async def main():
                 console.print("    - Ensure write access to current directory")
 
     return passed_count == total_count
+
 
 if __name__ == "__main__":
     asyncio.run(main())

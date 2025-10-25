@@ -33,7 +33,7 @@ async def debug_search():
             title="Search Test Task",
             description="Testing search functionality",
             priority=Priority.MEDIUM,
-            tags=["search", "test"]
+            tags=["search", "test"],
         )
 
         # Create task
@@ -52,6 +52,7 @@ async def debug_search():
 
     except Exception as e:
         import traceback
+
         print(f"❌ Error: {e}")
         print("Traceback:")
         traceback.print_exc()

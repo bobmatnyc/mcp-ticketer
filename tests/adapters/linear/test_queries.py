@@ -45,7 +45,9 @@ class TestGraphQLFragments:
 
     def test_workflow_state_fragment_structure(self):
         """Test WORKFLOW_STATE_FRAGMENT contains required fields."""
-        assert "fragment WorkflowStateFields on WorkflowState" in WORKFLOW_STATE_FRAGMENT
+        assert (
+            "fragment WorkflowStateFields on WorkflowState" in WORKFLOW_STATE_FRAGMENT
+        )
         assert "id" in WORKFLOW_STATE_FRAGMENT
         assert "name" in WORKFLOW_STATE_FRAGMENT
         assert "type" in WORKFLOW_STATE_FRAGMENT
@@ -175,7 +177,10 @@ class TestGraphQLQueries:
     def test_workflow_states_query_structure(self):
         """Test WORKFLOW_STATES_QUERY structure."""
         assert "query WorkflowStates($teamId: ID!)" in WORKFLOW_STATES_QUERY
-        assert "workflowStates(filter: { team: { id: { eq: $teamId } } })" in WORKFLOW_STATES_QUERY
+        assert (
+            "workflowStates(filter: { team: { id: { eq: $teamId } } })"
+            in WORKFLOW_STATES_QUERY
+        )
         assert "nodes" in WORKFLOW_STATES_QUERY
         assert "id" in WORKFLOW_STATES_QUERY
         assert "name" in WORKFLOW_STATES_QUERY
@@ -183,7 +188,9 @@ class TestGraphQLQueries:
 
     def test_list_issues_query_structure(self):
         """Test LIST_ISSUES_QUERY structure."""
-        assert "query ListIssues($filter: IssueFilter, $first: Int!)" in LIST_ISSUES_QUERY
+        assert (
+            "query ListIssues($filter: IssueFilter, $first: Int!)" in LIST_ISSUES_QUERY
+        )
         assert "issues(" in LIST_ISSUES_QUERY
         assert "filter: $filter" in LIST_ISSUES_QUERY
         assert "first: $first" in LIST_ISSUES_QUERY
@@ -194,7 +201,10 @@ class TestGraphQLQueries:
 
     def test_search_issues_query_structure(self):
         """Test SEARCH_ISSUES_QUERY structure."""
-        assert "query SearchIssues($filter: IssueFilter, $first: Int!)" in SEARCH_ISSUES_QUERY
+        assert (
+            "query SearchIssues($filter: IssueFilter, $first: Int!)"
+            in SEARCH_ISSUES_QUERY
+        )
         assert "issues(" in SEARCH_ISSUES_QUERY
         assert "filter: $filter" in SEARCH_ISSUES_QUERY
         assert "first: $first" in SEARCH_ISSUES_QUERY
@@ -213,15 +223,24 @@ class TestGraphQLQueries:
 
     def test_search_issue_by_identifier_query_structure(self):
         """Test SEARCH_ISSUE_BY_IDENTIFIER_QUERY structure."""
-        assert "query SearchIssue($identifier: String!)" in SEARCH_ISSUE_BY_IDENTIFIER_QUERY
+        assert (
+            "query SearchIssue($identifier: String!)"
+            in SEARCH_ISSUE_BY_IDENTIFIER_QUERY
+        )
         assert "issue(id: $identifier)" in SEARCH_ISSUE_BY_IDENTIFIER_QUERY
         assert "id" in SEARCH_ISSUE_BY_IDENTIFIER_QUERY
         assert "identifier" in SEARCH_ISSUE_BY_IDENTIFIER_QUERY
 
     def test_list_projects_query_structure(self):
         """Test LIST_PROJECTS_QUERY structure."""
-        assert "query ListProjects($filter: ProjectFilter, $first: Int!)" in LIST_PROJECTS_QUERY
-        assert "projects(filter: $filter, first: $first, orderBy: updatedAt)" in LIST_PROJECTS_QUERY
+        assert (
+            "query ListProjects($filter: ProjectFilter, $first: Int!)"
+            in LIST_PROJECTS_QUERY
+        )
+        assert (
+            "projects(filter: $filter, first: $first, orderBy: updatedAt)"
+            in LIST_PROJECTS_QUERY
+        )
         assert "...ProjectFields" in LIST_PROJECTS_QUERY
 
     def test_get_current_user_query_structure(self):
@@ -237,7 +256,9 @@ class TestGraphQLMutations:
 
     def test_create_issue_mutation_structure(self):
         """Test CREATE_ISSUE_MUTATION structure."""
-        assert "mutation CreateIssue($input: IssueCreateInput!)" in CREATE_ISSUE_MUTATION
+        assert (
+            "mutation CreateIssue($input: IssueCreateInput!)" in CREATE_ISSUE_MUTATION
+        )
         assert "issueCreate(input: $input)" in CREATE_ISSUE_MUTATION
         assert "success" in CREATE_ISSUE_MUTATION
         assert "issue" in CREATE_ISSUE_MUTATION
@@ -247,7 +268,10 @@ class TestGraphQLMutations:
 
     def test_update_issue_mutation_structure(self):
         """Test UPDATE_ISSUE_MUTATION structure."""
-        assert "mutation UpdateIssue($id: String!, $input: IssueUpdateInput!)" in UPDATE_ISSUE_MUTATION
+        assert (
+            "mutation UpdateIssue($id: String!, $input: IssueUpdateInput!)"
+            in UPDATE_ISSUE_MUTATION
+        )
         assert "issueUpdate(id: $id, input: $input)" in UPDATE_ISSUE_MUTATION
         assert "success" in UPDATE_ISSUE_MUTATION
         assert "issue" in UPDATE_ISSUE_MUTATION
@@ -257,7 +281,10 @@ class TestGraphQLMutations:
 
     def test_create_sub_issue_mutation_structure(self):
         """Test CREATE_SUB_ISSUE_MUTATION structure."""
-        assert "mutation CreateSubIssue($input: IssueCreateInput!)" in CREATE_SUB_ISSUE_MUTATION
+        assert (
+            "mutation CreateSubIssue($input: IssueCreateInput!)"
+            in CREATE_SUB_ISSUE_MUTATION
+        )
         assert "issueCreate(input: $input)" in CREATE_SUB_ISSUE_MUTATION
         assert "success" in CREATE_SUB_ISSUE_MUTATION
         assert "issue" in CREATE_SUB_ISSUE_MUTATION
@@ -267,7 +294,10 @@ class TestGraphQLMutations:
 
     def test_update_issue_branch_mutation_structure(self):
         """Test UPDATE_ISSUE_BRANCH_MUTATION structure."""
-        assert "mutation UpdateIssue($id: String!, $input: IssueUpdateInput!)" in UPDATE_ISSUE_BRANCH_MUTATION
+        assert (
+            "mutation UpdateIssue($id: String!, $input: IssueUpdateInput!)"
+            in UPDATE_ISSUE_BRANCH_MUTATION
+        )
         assert "issueUpdate(id: $id, input: $input)" in UPDATE_ISSUE_BRANCH_MUTATION
         assert "issue" in UPDATE_ISSUE_BRANCH_MUTATION
         assert "id" in UPDATE_ISSUE_BRANCH_MUTATION
@@ -294,7 +324,7 @@ class TestQueryValidation:
             ISSUE_COMPACT_FRAGMENT,
             ISSUE_FULL_FRAGMENT,
         ]
-        
+
         for fragment in fragments:
             # Each fragment should start with "fragment" keyword
             assert fragment.strip().startswith("fragment")
@@ -315,7 +345,7 @@ class TestQueryValidation:
             LIST_PROJECTS_QUERY,
             GET_CURRENT_USER_QUERY,
         ]
-        
+
         for query in queries:
             # Each query should start with "query" keyword
             assert query.strip().startswith("query")
@@ -331,7 +361,7 @@ class TestQueryValidation:
             CREATE_SUB_ISSUE_MUTATION,
             UPDATE_ISSUE_BRANCH_MUTATION,
         ]
-        
+
         for mutation in mutations:
             # Each mutation should contain "mutation" keyword
             assert "mutation" in mutation
@@ -343,13 +373,13 @@ class TestQueryValidation:
         """Test that fragment references in queries are valid."""
         # ISSUE_FULL_FRAGMENT should reference ISSUE_COMPACT_FRAGMENT
         assert "...IssueCompactFields" in ISSUE_FULL_FRAGMENT
-        
+
         # PROJECT_FRAGMENT should reference TEAM_FRAGMENT
         assert "...TeamFields" in PROJECT_FRAGMENT
-        
+
         # COMMENT_FRAGMENT should reference USER_FRAGMENT
         assert "...UserFields" in COMMENT_FRAGMENT
-        
+
         # ISSUE_COMPACT_FRAGMENT should reference multiple fragments
         assert "...WorkflowStateFields" in ISSUE_COMPACT_FRAGMENT
         assert "...UserFields" in ISSUE_COMPACT_FRAGMENT
