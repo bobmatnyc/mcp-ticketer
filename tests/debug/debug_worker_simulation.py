@@ -16,10 +16,9 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Import adapters to trigger registration
 import mcp_ticketer.adapters  # noqa: F401
-
-from mcp_ticketer.core.registry import AdapterRegistry
 from mcp_ticketer.cli.main import load_config
-from mcp_ticketer.core.models import Task, Priority
+from mcp_ticketer.core.models import Priority, Task
+from mcp_ticketer.core.registry import AdapterRegistry
 
 
 async def simulate_worker_adapter_creation():
@@ -27,7 +26,7 @@ async def simulate_worker_adapter_creation():
     print("🔍 Simulating worker adapter creation...")
 
     # Step 1: Load configuration exactly like the worker does
-    print(f"\n📋 Step 1: Loading configuration like worker...")
+    print("\n📋 Step 1: Loading configuration like worker...")
     project_path = Path.cwd()
     print(f"   Project path: {project_path}")
 
@@ -41,7 +40,7 @@ async def simulate_worker_adapter_creation():
     print(f"   Config loaded: {config}")
 
     # Step 2: Get adapter config exactly like the worker does
-    print(f"\n🔧 Step 2: Getting adapter config like worker...")
+    print("\n🔧 Step 2: Getting adapter config like worker...")
     adapter_name = "linear"
     adapters_config = config.get("adapters", {})
     adapter_config = adapters_config.get(adapter_name, {})
@@ -55,14 +54,14 @@ async def simulate_worker_adapter_creation():
     print(f"   Final adapter config: {adapter_config}")
 
     # Step 3: Create adapter exactly like the worker does
-    print(f"\n⚙️  Step 3: Creating adapter like worker...")
+    print("\n⚙️  Step 3: Creating adapter like worker...")
     adapter = AdapterRegistry.get_adapter(adapter_name, adapter_config)
     print(f"   Adapter created: {type(adapter)}")
     print(f"   Team ID (config): {getattr(adapter, 'team_id_config', 'Not set')}")
     print(f"   Team Key: {getattr(adapter, 'team_key', 'Not set')}")
 
     # Step 4: Test ticket creation exactly like the worker does
-    print(f"\n🎫 Step 4: Creating ticket like worker...")
+    print("\n🎫 Step 4: Creating ticket like worker...")
     try:
         # Create task exactly like the worker does
         task_data = {
@@ -74,7 +73,7 @@ async def simulate_worker_adapter_creation():
 
         # Create ticket
         result = await adapter.create(task)
-        print(f"   ✅ Ticket created successfully!")
+        print("   ✅ Ticket created successfully!")
         print(f"   Created ticket: {result.id} - {result.title}")
         print(
             f"   Ticket prefix: {result.id.split('-')[0] if '-' in result.id else 'No prefix'}"
@@ -87,10 +86,10 @@ async def simulate_worker_adapter_creation():
         if actual_prefix == expected_prefix:
             print(f"   ✅ Ticket prefix matches expected team key: {expected_prefix}")
         else:
-            print(f"   ⚠️  Ticket prefix mismatch!")
+            print("   ⚠️  Ticket prefix mismatch!")
             print(f"      Expected: {expected_prefix}")
             print(f"      Actual: {actual_prefix}")
-            print(f"      This suggests the ticket was created in a different team")
+            print("      This suggests the ticket was created in a different team")
 
         return result
 

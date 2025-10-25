@@ -9,7 +9,6 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Import adapters to trigger registration
 import mcp_ticketer.adapters  # noqa: F401
-
 from mcp_ticketer.core.registry import AdapterRegistry
 
 
@@ -18,7 +17,7 @@ def debug_adapter_cache():
     print("🔍 Debugging adapter registry caching...")
 
     # Check current registry state
-    print(f"\n📋 Current registry state:")
+    print("\n📋 Current registry state:")
     adapters = AdapterRegistry.list_adapters()
     print(f"   Registered adapters: {list(adapters.keys())}")
 
@@ -28,7 +27,7 @@ def debug_adapter_cache():
 
     if "linear" in instances:
         linear_instance = instances["linear"]
-        print(f"   Linear instance found!")
+        print("   Linear instance found!")
         print(
             f"   Team ID (config): {getattr(linear_instance, 'team_id_config', 'Not set')}"
         )
@@ -36,12 +35,12 @@ def debug_adapter_cache():
         print(f"   Instance ID: {id(linear_instance)}")
 
         # Clear the cache and try again
-        print(f"\n🧹 Clearing adapter cache...")
+        print("\n🧹 Clearing adapter cache...")
         AdapterRegistry._instances.clear()
-        print(f"   Cache cleared!")
+        print("   Cache cleared!")
 
         # Now try to get adapter with correct config
-        print(f"\n🔧 Creating new adapter with correct config...")
+        print("\n🔧 Creating new adapter with correct config...")
         correct_config = {
             "type": "linear",
             "team_id": "b366b0de-2f3f-4641-8100-eea12b6aa5df",
@@ -50,7 +49,7 @@ def debug_adapter_cache():
 
         try:
             new_adapter = AdapterRegistry.get_adapter("linear", correct_config)
-            print(f"   New adapter created!")
+            print("   New adapter created!")
             print(
                 f"   Team ID (config): {getattr(new_adapter, 'team_id_config', 'Not set')}"
             )
@@ -59,14 +58,14 @@ def debug_adapter_cache():
 
             # Check if it's different from the old one
             if id(new_adapter) != id(linear_instance):
-                print(f"   ✅ New instance created (different from cached one)")
+                print("   ✅ New instance created (different from cached one)")
             else:
-                print(f"   ⚠️  Same instance returned (caching issue)")
+                print("   ⚠️  Same instance returned (caching issue)")
 
         except Exception as e:
             print(f"   ❌ Failed to create new adapter: {e}")
     else:
-        print(f"   No Linear instance cached")
+        print("   No Linear instance cached")
 
 
 if __name__ == "__main__":

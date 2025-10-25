@@ -1,7 +1,6 @@
 """Test configuration resolution order for project-specific vs global config."""
 
 import json
-import os
 import tempfile
 from pathlib import Path
 from unittest import mock
@@ -42,7 +41,7 @@ def test_project_specific_config_takes_precedence():
         # Backup existing global config if it exists
         backup_config = None
         if global_config_file.exists():
-            with open(global_config_file, "r") as f:
+            with open(global_config_file) as f:
                 backup_config = f.read()
 
         try:
@@ -96,7 +95,7 @@ def test_global_config_fallback():
         # Backup existing global config if it exists
         backup_config = None
         if global_config_file.exists():
-            with open(global_config_file, "r") as f:
+            with open(global_config_file) as f:
                 backup_config = f.read()
 
         try:
@@ -141,7 +140,7 @@ def test_default_fallback():
         global_config_file = Path.home() / ".mcp-ticketer" / "config.json"
         backup_config = None
         if global_config_file.exists():
-            with open(global_config_file, "r") as f:
+            with open(global_config_file) as f:
                 backup_config = f.read()
             global_config_file.unlink()
 

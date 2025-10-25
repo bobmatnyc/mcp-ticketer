@@ -7,7 +7,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from mcp_ticketer.cli.main import load_config, get_adapter
+from mcp_ticketer.cli.main import get_adapter, load_config
 
 
 def debug_cli_config():
@@ -15,7 +15,7 @@ def debug_cli_config():
     print("🔍 Debugging CLI configuration loading...")
 
     # Load configuration using CLI method
-    print(f"\n📋 Loading configuration using CLI method...")
+    print("\n📋 Loading configuration using CLI method...")
     config = load_config()
     print(f"   Raw config: {config}")
 
@@ -28,10 +28,10 @@ def debug_cli_config():
     print(f"   Linear config: {linear_config}")
 
     # Get adapter using CLI method
-    print(f"\n🔧 Getting adapter using CLI method...")
+    print("\n🔧 Getting adapter using CLI method...")
     try:
         adapter = get_adapter(override_adapter="linear")
-        print(f"   Adapter created successfully!")
+        print("   Adapter created successfully!")
         print(f"   Adapter type: {type(adapter)}")
         print(f"   Team ID (config): {getattr(adapter, 'team_id_config', 'Not set')}")
         print(f"   Team Key: {getattr(adapter, 'team_key', 'Not set')}")

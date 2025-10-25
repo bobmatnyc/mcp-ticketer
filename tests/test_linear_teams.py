@@ -5,8 +5,9 @@ Test script to find the correct Linear team key
 import asyncio
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
-from gql import gql, Client
+from gql import Client, gql
 from gql.transport.httpx import HTTPXAsyncTransport
 
 # Load environment variables
@@ -212,7 +213,7 @@ async def find_teams():
             try:
                 org_meta_result = await client.execute_async(org_meta_query)
                 org_data = org_meta_result.get("organization", {})
-                print(f"🏢 Organization details:")
+                print("🏢 Organization details:")
                 print(f"   Name: {org_data.get('name')}")
                 print(f"   URL Key: {org_data.get('urlKey')}")
                 print(f"   ID: {org_data.get('id')}")
@@ -286,7 +287,7 @@ async def find_teams():
         if hyperdev_teams:
             print(f"✅ Found {len(hyperdev_teams)} team(s) in 1m-hyperdev workspace!")
             team = hyperdev_teams[0]  # Use the first team
-            print(f"✅ Recommended configuration:")
+            print("✅ Recommended configuration:")
             print(f"   Team Key: '{team['key']}'")
             print(f"   Team ID: '{team['id']}'")
             print(f"   Team Name: '{team['name']}'")

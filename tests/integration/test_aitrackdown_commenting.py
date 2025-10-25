@@ -4,21 +4,18 @@ Comprehensive test script for aitrackdown adapter commenting functionality.
 Tests the local file-based adapter for comments, creation, and retrieval.
 """
 
-import os
-import sys
 import asyncio
 import logging
-from pathlib import Path
+import sys
 from datetime import datetime
+from pathlib import Path
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from mcp_ticketer.core.registry import AdapterRegistry
-from mcp_ticketer.core.models import Task, Comment, Priority
-
 # Import adapters to register them
-from mcp_ticketer.adapters import aitrackdown
+from mcp_ticketer.core.models import Comment, Priority, Task
+from mcp_ticketer.core.registry import AdapterRegistry
 
 # Set up logging
 logging.basicConfig(
@@ -47,7 +44,7 @@ class AitrackdownCommentTester:
 
         try:
             self.adapter = AdapterRegistry.get_adapter("aitrackdown", config)
-            print(f"✅ Aitrackdown adapter created successfully")
+            print("✅ Aitrackdown adapter created successfully")
             print(f"📁 Using directory: {test_dir}")
             return True
         except Exception as e:
@@ -112,7 +109,7 @@ class AitrackdownCommentTester:
                     "description": "Markdown formatted comment",
                 },
                 {
-                    "content": f"🔧 Multi-line technical comment\nwith special characters: @#$%^&*()\n\nCode example:\n```python\ndef test():\n    return 'aitrackdown works!'\n```\n\nEnd of comment.",
+                    "content": "🔧 Multi-line technical comment\nwith special characters: @#$%^&*()\n\nCode example:\n```python\ndef test():\n    return 'aitrackdown works!'\n```\n\nEnd of comment.",
                     "description": "Multi-line with code",
                 },
             ]
@@ -174,7 +171,7 @@ class AitrackdownCommentTester:
 
                 if comments:
                     success_count += 1
-                    print(f"    📝 Comment details:")
+                    print("    📝 Comment details:")
 
                     for i, comment in enumerate(comments, 1):
                         print(f"       #{i} ID: {comment.id}")
@@ -184,11 +181,11 @@ class AitrackdownCommentTester:
 
                         # Validate comment structure
                         if not comment.id:
-                            print(f"           ⚠️  Warning: Comment missing ID")
+                            print("           ⚠️  Warning: Comment missing ID")
                         if not comment.content:
-                            print(f"           ⚠️  Warning: Comment missing content")
+                            print("           ⚠️  Warning: Comment missing content")
                 else:
-                    print(f"    ℹ️  No comments found for this ticket")
+                    print("    ℹ️  No comments found for this ticket")
 
             except Exception as e:
                 print(f"    ❌ Failed to retrieve comments: {e}")
@@ -236,7 +233,7 @@ class AitrackdownCommentTester:
 
                 if result.returncode == 0:
                     success_count += 1
-                    print(f"    ✅ CLI comment added successfully")
+                    print("    ✅ CLI comment added successfully")
                     print(f"       Output: {result.stdout.strip()}")
                 else:
                     print(f"    ❌ CLI comment failed: {result.stderr}")
@@ -284,14 +281,14 @@ class AitrackdownCommentTester:
 
                 if result.returncode == 0:
                     success_count += 1
-                    print(f"    ✅ Show with comments successful")
+                    print("    ✅ Show with comments successful")
 
                     # Check if comments are displayed
                     output = result.stdout
                     if "Comments (" in output:
-                        print(f"    ✅ Comments section found in output")
+                        print("    ✅ Comments section found in output")
                     else:
-                        print(f"    ⚠️  No comments section in output")
+                        print("    ⚠️  No comments section in output")
 
                 else:
                     print(f"    ❌ Show command failed: {result.stderr}")
@@ -315,7 +312,7 @@ class AitrackdownCommentTester:
         # Comment addition results
         addition_results = self.test_results.get("comment_addition", {})
         if addition_results:
-            print(f"\n💬 Comment Addition:")
+            print("\n💬 Comment Addition:")
             print(f"    Tickets tested: {addition_results.get('tickets_tested', 0)}")
             print(f"    Successful: {addition_results.get('tickets_successful', 0)}")
             print(
@@ -328,7 +325,7 @@ class AitrackdownCommentTester:
         # Comment retrieval results
         retrieval_results = self.test_results.get("comment_retrieval", {})
         if retrieval_results:
-            print(f"\n📖 Comment Retrieval:")
+            print("\n📖 Comment Retrieval:")
             print(f"    Tickets tested: {retrieval_results.get('tickets_tested', 0)}")
             print(
                 f"    With comments: {retrieval_results.get('tickets_with_comments', 0)}"
@@ -343,7 +340,7 @@ class AitrackdownCommentTester:
         # CLI integration results
         cli_results = self.test_results.get("cli_integration", {})
         if cli_results:
-            print(f"\n🖥️  CLI Integration:")
+            print("\n🖥️  CLI Integration:")
             print(f"    Tickets tested: {cli_results.get('tickets_tested', 0)}")
             print(f"    CLI successful: {cli_results.get('cli_successful', 0)}")
             print(
@@ -355,11 +352,11 @@ class AitrackdownCommentTester:
             result.get("success", False) for result in self.test_results.values()
         )
 
-        print(f"\n🎯 Overall Aitrackdown Commenting Status:")
+        print("\n🎯 Overall Aitrackdown Commenting Status:")
         print(f"    {'✅ FULLY WORKING' if all_success else '⚠️  PARTIAL/FAILED'}")
 
         if all_success:
-            print(f"    🎉 All commenting features work perfectly!")
+            print("    🎉 All commenting features work perfectly!")
         else:
             failed_tests = [
                 name

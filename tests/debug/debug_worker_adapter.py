@@ -2,11 +2,9 @@
 """Debug worker adapter creation directly."""
 
 import asyncio
-import os
 import sys
-from pathlib import Path
 from dataclasses import dataclass
-from datetime import datetime
+from pathlib import Path
 
 # Load environment variables from .env.local
 from dotenv import load_dotenv
@@ -18,9 +16,8 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Import adapters to trigger registration
 import mcp_ticketer.adapters  # noqa: F401
-
+from mcp_ticketer.queue.queue import Queue
 from mcp_ticketer.queue.worker import Worker
-from mcp_ticketer.queue.queue import Queue, QueueItem, QueueStatus
 
 
 @dataclass
@@ -43,22 +40,22 @@ async def debug_worker_adapter():
     # Create a mock queue item
     mock_item = MockQueueItem()
 
-    print(f"\n📋 Mock item details:")
+    print("\n📋 Mock item details:")
     print(f"   Adapter: {mock_item.adapter}")
     print(f"   Project dir: {mock_item.project_dir}")
 
     # Call the worker's _get_adapter method directly
-    print(f"\n🔧 Calling worker._get_adapter()...")
+    print("\n🔧 Calling worker._get_adapter()...")
     try:
         adapter = worker._get_adapter(mock_item)
-        print(f"   ✅ Adapter created successfully!")
+        print("   ✅ Adapter created successfully!")
         print(f"   Adapter type: {type(adapter)}")
         print(f"   Team ID (config): {getattr(adapter, 'team_id_config', 'Not set')}")
         print(f"   Team Key: {getattr(adapter, 'team_key', 'Not set')}")
 
         # Test ticket creation
-        print(f"\n🎫 Testing ticket creation...")
-        from mcp_ticketer.core.models import Task, Priority
+        print("\n🎫 Testing ticket creation...")
+        from mcp_ticketer.core.models import Priority, Task
 
         test_task = Task(
             title="Worker Direct Test",
@@ -67,7 +64,7 @@ async def debug_worker_adapter():
         )
 
         result = await adapter.create(test_task)
-        print(f"   ✅ Ticket created successfully!")
+        print("   ✅ Ticket created successfully!")
         print(f"   Created ticket: {result.id} - {result.title}")
         print(
             f"   Ticket prefix: {result.id.split('-')[0] if '-' in result.id else 'No prefix'}"
@@ -80,11 +77,11 @@ async def debug_worker_adapter():
         if actual_prefix == expected_prefix:
             print(f"   ✅ Ticket prefix matches expected: {expected_prefix}")
         else:
-            print(f"   ⚠️  Ticket prefix mismatch!")
+            print("   ⚠️  Ticket prefix mismatch!")
             print(f"      Expected: {expected_prefix}")
             print(f"      Actual: {actual_prefix}")
             print(
-                f"      This suggests the worker is using a different team configuration"
+                "      This suggests the worker is using a different team configuration"
             )
 
         return result

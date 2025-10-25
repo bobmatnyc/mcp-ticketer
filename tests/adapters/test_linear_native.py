@@ -2,16 +2,15 @@
 
 import asyncio
 import os
-from datetime import datetime, timedelta
-from pprint import pprint
 
 # Add the source directory to the path
 import sys
+from datetime import datetime, timedelta
 
 sys.path.insert(0, "/Users/masa/Projects/managed/mcp-ticketer/src")
 
 from mcp_ticketer.adapters.linear import LinearAdapter
-from mcp_ticketer.core.models import Task, Comment, SearchQuery, TicketState, Priority
+from mcp_ticketer.core.models import Comment, Priority, SearchQuery, Task, TicketState
 
 
 async def test_linear_adapter():
@@ -76,7 +75,7 @@ async def test_linear_adapter():
         print(f"\n2. Reading issue {created_task.id} with full details...")
         read_task = await adapter.read(created_task.id)
         if read_task:
-            print(f"✅ Successfully read issue")
+            print("✅ Successfully read issue")
             print(f"   Team: {read_task.metadata['linear'].get('team_name')}")
             print(f"   State: {read_task.metadata['linear'].get('state_name')}")
             print(
@@ -121,7 +120,7 @@ async def test_linear_adapter():
         }
         updated_task = await adapter.update(created_task.id, updates)
         if updated_task:
-            print(f"✅ Updated issue successfully")
+            print("✅ Updated issue successfully")
             print(f"   New Title: {updated_task.title}")
             print(f"   New Priority: {updated_task.priority}")
             print(f"   New State: {updated_task.state}")
@@ -187,14 +186,14 @@ async def test_linear_adapter():
 
         # Test 11: Add to cycle (if there are active cycles)
         if cycles:
-            print(f"\n11. Adding issue to cycle...")
+            print("\n11. Adding issue to cycle...")
             cycle_id = cycles[0]["id"]
             success = await adapter.add_to_cycle(created_task.id, cycle_id)
             if success:
                 print(f"✅ Added issue to cycle: {cycles[0].get('name')}")
 
         # Test 12: Set due date
-        print(f"\n12. Setting due date for issue...")
+        print("\n12. Setting due date for issue...")
         due_date = datetime.now() + timedelta(days=14)
         success = await adapter.set_due_date(created_task.id, due_date.date())
         if success:
@@ -202,13 +201,13 @@ async def test_linear_adapter():
 
         # Test 13: Add reaction to comment
         if comments:
-            print(f"\n13. Adding reaction to comment...")
+            print("\n13. Adding reaction to comment...")
             success = await adapter.add_reaction(comments[0].id, "👍")
             if success:
-                print(f"✅ Added 👍 reaction to comment")
+                print("✅ Added 👍 reaction to comment")
 
         # Test 14: Transition states
-        print(f"\n14. Testing state transitions...")
+        print("\n14. Testing state transitions...")
         transitions = [
             (TicketState.TESTED, "Moving to tested"),
             (TicketState.DONE, "Marking as done"),
@@ -221,7 +220,7 @@ async def test_linear_adapter():
                 print(f"   ✅ Successfully transitioned to {transitioned.state}")
 
         # Test 15: Archive (soft delete) the test issues
-        print(f"\n15. Archiving test issues...")
+        print("\n15. Archiving test issues...")
         archived1 = await adapter.delete(created_task.id)
         if archived1:
             print(f"✅ Archived main issue: {created_task.id}")

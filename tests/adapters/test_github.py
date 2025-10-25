@@ -4,15 +4,16 @@
 import asyncio
 import os
 from datetime import datetime
+
 from dotenv import load_dotenv
 
 from src.mcp_ticketer.adapters.github import GitHubAdapter
 from src.mcp_ticketer.core.models import (
-    Task,
     Comment,
-    SearchQuery,
-    TicketState,
     Priority,
+    SearchQuery,
+    Task,
+    TicketState,
 )
 
 # Load environment variables
@@ -36,7 +37,7 @@ async def test_github_adapter():
         print("Please set: export GITHUB_TOKEN=your_github_pat")
         return
 
-    print(f"\nConfiguration:")
+    print("\nConfiguration:")
     print(f"  Owner: {config['owner']}")
     print(f"  Repo: {config['repo']}")
     print(f"  Token: {'*' * 10}...")
@@ -154,7 +155,7 @@ async def test_github_adapter():
         print("\n10. Checking rate limits...")
         rate_limit = await adapter.get_rate_limit()
         core_limit = rate_limit.get("resources", {}).get("core", {})
-        print(f"✓ Rate Limit Status:")
+        print("✓ Rate Limit Status:")
         print(
             f"  Remaining: {core_limit.get('remaining', 'N/A')}/{core_limit.get('limit', 'N/A')}"
         )

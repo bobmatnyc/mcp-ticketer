@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from mcp_ticketer.adapters.github import GitHubAdapter
 from mcp_ticketer.adapters.linear import LinearAdapter
-from mcp_ticketer.core.models import Task, TicketState, Priority
+from mcp_ticketer.core.models import Priority, Task, TicketState
 
 
 async def test_github_pr_creation():
@@ -67,7 +67,7 @@ async def test_github_pr_creation():
         )
 
         if link_result["success"]:
-            print(f"✅ Successfully linked PR to issue")
+            print("✅ Successfully linked PR to issue")
             print(f"   {link_result['message']}")
         else:
             print(f"❌ Failed to link PR: {link_result.get('error', 'Unknown error')}")
@@ -127,7 +127,7 @@ async def test_linear_pr_linking():
             github_config=github_config,
         )
 
-        print(f"✅ Prepared issue for PR:")
+        print("✅ Prepared issue for PR:")
         print(f"   Branch name: {pr_metadata['branch_name']}")
         print(f"   {pr_metadata['message']}")
 
@@ -141,7 +141,7 @@ async def test_linear_pr_linking():
         )
 
         if link_result["success"]:
-            print(f"✅ Successfully linked PR to Linear issue")
+            print("✅ Successfully linked PR to Linear issue")
             print(f"   {link_result['message']}")
             print(f"   Attachment ID: {link_result['attachment_id']}")
         else:

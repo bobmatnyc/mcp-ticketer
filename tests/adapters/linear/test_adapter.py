@@ -1,18 +1,11 @@
 """Unit tests for Linear adapter main class."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime
+from unittest.mock import patch
 
-from mcp_ticketer.core.models import (
-    Comment,
-    Epic,
-    Priority,
-    SearchQuery,
-    Task,
-    TicketState,
-)
+import pytest
+
 from mcp_ticketer.adapters.linear.adapter import LinearAdapter
+from mcp_ticketer.core.models import TicketState
 
 
 @pytest.mark.unit

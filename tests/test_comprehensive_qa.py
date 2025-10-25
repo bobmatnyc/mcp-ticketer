@@ -2,10 +2,9 @@
 """Comprehensive QA test for mcp-ticketer across all adapters."""
 
 import asyncio
-import os
 import time
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Any, Dict
 
 # Test configuration
 TEST_CONFIG = {
@@ -98,7 +97,7 @@ class ComprehensiveQATest:
 
     async def test_create_ticket(self, adapter_name: str) -> str:
         """Test ticket creation."""
-        print(f"  🎫 Creating test ticket...")
+        print("  🎫 Creating test ticket...")
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         title = f"QA Test Ticket - {adapter_name.upper()} - {timestamp}"
@@ -153,10 +152,10 @@ class ComprehensiveQATest:
                             print(f"    ✅ Ticket created: {ticket_id}")
                             return ticket_id
                         else:
-                            print(f"    ❌ Failed to get ticket ID from queue")
+                            print("    ❌ Failed to get ticket ID from queue")
                             return None
 
-                print(f"    ❌ Could not extract queue ID from output")
+                print("    ❌ Could not extract queue ID from output")
                 return None
             else:
                 error_msg = f"Create failed: {result.stderr}"
@@ -200,7 +199,7 @@ class ComprehensiveQATest:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
 
             if result.returncode == 0:
-                print(f"    ✅ Successfully read ticket")
+                print("    ✅ Successfully read ticket")
                 return True
             else:
                 error_msg = f"Read failed: {result.stderr}"
@@ -231,7 +230,7 @@ class ComprehensiveQATest:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
 
             if result.returncode == 0:
-                print(f"    ✅ Successfully updated ticket")
+                print("    ✅ Successfully updated ticket")
                 return True
             else:
                 error_msg = f"Update failed: {result.stderr}"
@@ -261,7 +260,7 @@ class ComprehensiveQATest:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
 
             if result.returncode == 0:
-                print(f"    ✅ Successfully transitioned to in_progress")
+                print("    ✅ Successfully transitioned to in_progress")
                 return True
             else:
                 error_msg = f"Transition failed: {result.stderr}"
@@ -292,7 +291,7 @@ class ComprehensiveQATest:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
 
             if result.returncode == 0:
-                print(f"    ✅ Successfully added comment")
+                print("    ✅ Successfully added comment")
                 return True
             else:
                 error_msg = f"Comment failed: {result.stderr}"
@@ -307,7 +306,7 @@ class ComprehensiveQATest:
 
     async def test_list_tickets(self, adapter_name: str) -> bool:
         """Test listing tickets."""
-        print(f"  📋 Listing tickets...")
+        print("  📋 Listing tickets...")
         try:
             import subprocess
 
@@ -315,7 +314,7 @@ class ComprehensiveQATest:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
 
             if result.returncode == 0:
-                print(f"    ✅ Successfully listed tickets")
+                print("    ✅ Successfully listed tickets")
                 return True
             else:
                 error_msg = f"List failed: {result.stderr}"
@@ -330,7 +329,7 @@ class ComprehensiveQATest:
 
     async def test_search_tickets(self, adapter_name: str) -> bool:
         """Test searching tickets."""
-        print(f"  🔍 Searching tickets...")
+        print("  🔍 Searching tickets...")
         try:
             import subprocess
 
@@ -338,7 +337,7 @@ class ComprehensiveQATest:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
 
             if result.returncode == 0:
-                print(f"    ✅ Successfully searched tickets")
+                print("    ✅ Successfully searched tickets")
                 return True
             else:
                 error_msg = f"Search failed: {result.stderr}"
@@ -388,7 +387,7 @@ class ComprehensiveQATest:
             )
 
             if results["errors"]:
-                print(f"  Errors:")
+                print("  Errors:")
                 for error in results["errors"]:
                     print(f"    • {error}")
 

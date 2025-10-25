@@ -2,17 +2,17 @@
 """Error handling and edge case testing for mcp-ticketer."""
 
 import asyncio
+import shutil
 import sys
 import tempfile
-import shutil
 from pathlib import Path
 
 # Add src to path for testing
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from mcp_ticketer.core import Task, Priority, TicketState
-from mcp_ticketer.core.models import SearchQuery
 from mcp_ticketer.adapters import AITrackdownAdapter
+from mcp_ticketer.core import Priority, Task, TicketState
+from mcp_ticketer.core.models import SearchQuery
 
 
 class ErrorHandlingTestSuite:
@@ -52,7 +52,7 @@ class ErrorHandlingTestSuite:
                 )
                 return False
             else:
-                print(f"    ✅ Passed")
+                print("    ✅ Passed")
                 self.tests_passed += 1
                 return True
 

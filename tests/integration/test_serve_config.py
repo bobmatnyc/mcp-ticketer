@@ -4,7 +4,6 @@ import json
 import tempfile
 from pathlib import Path
 from unittest import mock
-import sys
 
 # Import the necessary modules
 from src.mcp_ticketer.cli.main import load_config
@@ -43,7 +42,7 @@ def test_serve_command_respects_project_config():
         # Backup existing global config
         backup_config = None
         if global_config_file.exists():
-            with open(global_config_file, "r") as f:
+            with open(global_config_file) as f:
                 backup_config = f.read()
 
         try:
@@ -67,7 +66,7 @@ def test_serve_command_respects_project_config():
                     base_path == ".aitrackdown-project"
                 ), f"Expected '.aitrackdown-project', got '{base_path}'"
 
-                print(f"✓ Test passed: serve command would use project config")
+                print("✓ Test passed: serve command would use project config")
                 print(f"  Adapter: {adapter_type}")
                 print(f"  Base path: {base_path}")
                 print(f"  Config loaded from: {project_config_file}")

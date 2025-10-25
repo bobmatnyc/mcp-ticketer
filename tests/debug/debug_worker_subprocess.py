@@ -5,7 +5,6 @@ import os
 import subprocess
 import sys
 import tempfile
-from pathlib import Path
 
 
 def debug_worker_subprocess():
@@ -70,7 +69,7 @@ except Exception as e:
         script_path = f.name
 
     try:
-        print(f"\n🔧 Running test script in subprocess...")
+        print("\n🔧 Running test script in subprocess...")
         print(f"   Script: {script_path}")
         print(f"   CWD: {os.getcwd()}")
 
@@ -83,19 +82,19 @@ except Exception as e:
             timeout=30,
         )
 
-        print(f"\n📊 Subprocess Results:")
+        print("\n📊 Subprocess Results:")
         print(f"   Return code: {result.returncode}")
-        print(f"   STDOUT:")
+        print("   STDOUT:")
         for line in result.stdout.splitlines():
             print(f"      {line}")
 
         if result.stderr:
-            print(f"   STDERR:")
+            print("   STDERR:")
             for line in result.stderr.splitlines():
                 print(f"      {line}")
 
     except subprocess.TimeoutExpired:
-        print(f"   ❌ Subprocess timed out")
+        print("   ❌ Subprocess timed out")
     except Exception as e:
         print(f"   ❌ Subprocess failed: {e}")
     finally:
@@ -103,7 +102,7 @@ except Exception as e:
         os.unlink(script_path)
 
     # Also test the actual worker command
-    print(f"\n🚀 Testing actual worker command...")
+    print("\n🚀 Testing actual worker command...")
     try:
         # This is the exact command the worker manager uses
         cmd = [sys.executable, "-m", "mcp_ticketer.queue.run_worker"]
@@ -128,12 +127,12 @@ except Exception as e:
         stdout, stderr = process.communicate(timeout=5)
 
         print(f"   Return code: {process.returncode}")
-        print(f"   STDOUT:")
+        print("   STDOUT:")
         for line in stdout.splitlines()[:10]:  # Show first 10 lines
             print(f"      {line}")
 
         if stderr:
-            print(f"   STDERR:")
+            print("   STDERR:")
             for line in stderr.splitlines()[:10]:  # Show first 10 lines
                 print(f"      {line}")
 

@@ -4,11 +4,9 @@ Test actual worker execution to trace where CLU team issue occurs.
 This will create a real ticket but with detailed tracing.
 """
 
-import os
-import sys
-import json
 import asyncio
 import logging
+import sys
 from pathlib import Path
 
 # Add src to path for imports
@@ -16,7 +14,6 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from mcp_ticketer.queue.queue import Queue, QueueStatus
 from mcp_ticketer.queue.worker import Worker
-
 
 # Set up detailed logging
 logging.basicConfig(
@@ -63,7 +60,7 @@ async def test_actual_worker_execution():
         if not item:
             raise Exception("Queue item not found")
 
-        print(f"📋 Queue item details:")
+        print("📋 Queue item details:")
         print(f"  Adapter: {item.adapter}")
         print(f"  Operation: {item.operation}")
         print(f"  Project dir: {item.project_dir}")
@@ -75,15 +72,15 @@ async def test_actual_worker_execution():
         # Mark as processing
         queue.update_status(queue_id, QueueStatus.PROCESSING)
 
-        print(f"\n🔧 Starting worker processing...")
-        print(f"📊 Check worker_execution_trace.log for detailed logs")
+        print("\n🔧 Starting worker processing...")
+        print("📊 Check worker_execution_trace.log for detailed logs")
 
         try:
             # Process the item - this will create the actual ticket
             result = await worker._process_item(item)
 
-            print(f"\n✅ Worker processing completed!")
-            print(f"📋 Result details:")
+            print("\n✅ Worker processing completed!")
+            print("📋 Result details:")
 
             if result and hasattr(result, "id"):
                 ticket_id = result.id
@@ -94,11 +91,11 @@ async def test_actual_worker_execution():
 
                 # Analyze the ticket prefix
                 if ticket_id.startswith("1M-"):
-                    print(f"  ✅ SUCCESS: Ticket has correct 1M- prefix!")
+                    print("  ✅ SUCCESS: Ticket has correct 1M- prefix!")
                 elif ticket_id.startswith("CLU-"):
-                    print(f"  ❌ PROBLEM: Ticket has CLU- prefix!")
+                    print("  ❌ PROBLEM: Ticket has CLU- prefix!")
                     print(
-                        f"     This confirms the issue occurs during actual worker execution"
+                        "     This confirms the issue occurs during actual worker execution"
                     )
                 else:
                     prefix = ticket_id.split("-")[0] if "-" in ticket_id else ticket_id
@@ -112,7 +109,7 @@ async def test_actual_worker_execution():
                     print(f"  🆔 Team ID: {linear_meta.get('team_id', 'N/A')}")
 
             else:
-                print(f"  ❌ No result returned from worker")
+                print("  ❌ No result returned from worker")
 
             queue.update_status(queue_id, QueueStatus.COMPLETED)
 
@@ -161,18 +158,18 @@ async def analyze_log_file():
         ):
             config_loads.append(f"Line {i+1}: {line}")
 
-    print(f"\n🔍 Log Analysis Results:")
+    print("\n🔍 Log Analysis Results:")
     print(f"  📡 API Calls: {len(api_calls)}")
     print(f"  🏢 Team References: {len(team_references)}")
     print(f"  ⚙️  Config Operations: {len(config_loads)}")
 
     if team_references:
-        print(f"\n🏢 Team References Found:")
+        print("\n🏢 Team References Found:")
         for ref in team_references[-10:]:  # Show last 10
             print(f"    {ref}")
 
     if api_calls:
-        print(f"\n📡 Recent API Calls:")
+        print("\n📡 Recent API Calls:")
         for call in api_calls[-5:]:  # Show last 5
             print(f"    {call}")
 
@@ -182,8 +179,8 @@ async def main():
     await test_actual_worker_execution()
     await analyze_log_file()
 
-    print(f"\n🎯 Test complete!")
-    print(f"📄 Check worker_execution_trace.log for detailed execution trace")
+    print("\n🎯 Test complete!")
+    print("📄 Check worker_execution_trace.log for detailed execution trace")
 
 
 if __name__ == "__main__":

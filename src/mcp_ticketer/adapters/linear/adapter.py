@@ -13,13 +13,7 @@ except ImportError:
     TransportQueryError = Exception
 
 from ...core.adapter import BaseAdapter
-from ...core.models import (
-    Comment,
-    Epic,
-    SearchQuery,
-    Task,
-    TicketState,
-)
+from ...core.models import Comment, Epic, SearchQuery, Task, TicketState
 from ...core.registry import AdapterRegistry
 from .client import LinearGraphQLClient
 from .mappers import (

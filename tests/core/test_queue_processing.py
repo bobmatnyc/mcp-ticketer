@@ -4,22 +4,20 @@ Test script to simulate actual queue processing and identify where the CLU team 
 This will trace the exact execution path that leads to CLU tickets being created.
 """
 
+import asyncio
+import json
 import os
 import sys
-import json
-import asyncio
-import subprocess
 from pathlib import Path
-from typing import Dict, Any, Optional
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from mcp_ticketer.cli.main import load_config
-from mcp_ticketer.queue.queue import Queue, QueueItem, QueueStatus
-from mcp_ticketer.queue.worker import Worker
+from mcp_ticketer.core.models import Priority, Task
 from mcp_ticketer.core.registry import AdapterRegistry
-from mcp_ticketer.core.models import Task, Priority
+from mcp_ticketer.queue.queue import Queue, QueueStatus
+from mcp_ticketer.queue.worker import Worker
 
 
 class QueueProcessingDiagnostics:
@@ -49,7 +47,7 @@ class QueueProcessingDiagnostics:
                 "config_used": linear_config,
             }
 
-            print(f"  ✅ Direct adapter creation successful")
+            print("  ✅ Direct adapter creation successful")
             print(f"    API Key: {result['api_key']}")
             print(f"    Team ID: {result['team_id']}")
             print(f"    Team Key: {result['team_key']}")
@@ -97,7 +95,7 @@ class QueueProcessingDiagnostics:
                 },
             }
 
-            print(f"  ✅ Queue item creation successful")
+            print("  ✅ Queue item creation successful")
             print(f"    Queue ID: {queue_id}")
             print(f"    Adapter: {result['item_data']['adapter']}")
             print(f"    Project Dir: {result['item_data']['project_dir']}")
@@ -153,7 +151,7 @@ class QueueProcessingDiagnostics:
                 config = load_config()
                 adapter_config = config.get("adapters", {}).get(item.adapter, {})
 
-                print(f"    Config loaded from worker context:")
+                print("    Config loaded from worker context:")
                 print(
                     f"      Default adapter: {config.get('default_adapter', 'NOT_SET')}"
                 )
@@ -172,7 +170,7 @@ class QueueProcessingDiagnostics:
                 # Create adapter in worker context
                 adapter = AdapterRegistry.get_adapter(item.adapter, adapter_config)
 
-                print(f"    Adapter created in worker context:")
+                print("    Adapter created in worker context:")
                 print(f"      API key: {adapter.api_key[:20]}...")
                 print(f"      Team ID: {getattr(adapter, 'team_id_config', 'NOT_SET')}")
                 print(f"      Team key: {getattr(adapter, 'team_key', 'NOT_SET')}")
@@ -190,7 +188,7 @@ class QueueProcessingDiagnostics:
                     assignee=item.ticket_data.get("assignee"),
                 )
 
-                print(f"    Task object created:")
+                print("    Task object created:")
                 print(f"      Title: {task.title}")
                 print(f"      Priority: {task.priority}")
 
@@ -223,7 +221,7 @@ class QueueProcessingDiagnostics:
                 # Restore original working directory
                 os.chdir(original_cwd)
 
-            print(f"  ✅ Worker processing simulation successful")
+            print("  ✅ Worker processing simulation successful")
 
         except Exception as e:
             result = {"success": False, "error": str(e)}
@@ -260,8 +258,8 @@ class QueueProcessingDiagnostics:
             worker = Worker()
 
             # Process the item (this will actually try to create a ticket)
-            print(f"    ⚠️  WARNING: This will attempt to create an actual ticket!")
-            print(f"    Processing queue item...")
+            print("    ⚠️  WARNING: This will attempt to create an actual ticket!")
+            print("    Processing queue item...")
 
             # Get the item and process it
             item = queue.get_item(queue_id)
@@ -273,7 +271,7 @@ class QueueProcessingDiagnostics:
                     # This is where the actual processing happens
                     result = await worker._process_item(item)
 
-                    print(f"    ✅ Worker processing completed")
+                    print("    ✅ Worker processing completed")
                     print(f"    Result: {result}")
 
                     # Check what ticket was created
@@ -283,11 +281,11 @@ class QueueProcessingDiagnostics:
 
                         # This is the key - what prefix does the ticket have?
                         if result.id.startswith("1M-"):
-                            print(f"    ✅ CORRECT: Ticket has 1M- prefix")
+                            print("    ✅ CORRECT: Ticket has 1M- prefix")
                         elif result.id.startswith("CLU-"):
-                            print(f"    ❌ PROBLEM: Ticket has CLU- prefix")
+                            print("    ❌ PROBLEM: Ticket has CLU- prefix")
                         else:
-                            print(f"    ❓ UNKNOWN: Ticket has unexpected prefix")
+                            print("    ❓ UNKNOWN: Ticket has unexpected prefix")
 
                     queue.update_status(queue_id, QueueStatus.COMPLETED)
 
@@ -330,7 +328,7 @@ class QueueProcessingDiagnostics:
         await self.test_worker_processing_simulation()
 
         # Test 4: Actual worker execution (creates real ticket)
-        print(f"\n⚠️  WARNING: The next test will create an actual Linear ticket!")
+        print("\n⚠️  WARNING: The next test will create an actual Linear ticket!")
         response = input("Do you want to proceed? (y/N): ")
         if response.lower() == "y":
             await self.test_actual_worker_execution()

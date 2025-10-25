@@ -4,21 +4,16 @@ Test script to diagnose environment handoff issues between main process and work
 This will help us understand why the worker is using different configuration/environment.
 """
 
-import os
-import sys
 import json
-import asyncio
+import os
 import subprocess
+import sys
 from pathlib import Path
-from typing import Dict, Any, Optional
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from mcp_ticketer.cli.main import load_config
-from mcp_ticketer.queue.queue import Queue
-from mcp_ticketer.queue.manager import WorkerManager
-from mcp_ticketer.core.registry import AdapterRegistry
 
 
 class EnvironmentDiagnostics:
@@ -226,7 +221,7 @@ except Exception as e:
                     print(f"Raw output: {worker_env_json}")
                     self.worker_env = {"error": f"JSON parse error: {e}"}
             else:
-                print(f"❌ Worker environment markers not found in output")
+                print("❌ Worker environment markers not found in output")
                 print(f"stdout: {result.stdout}")
                 print(f"stderr: {result.stderr}")
                 self.worker_env = {
@@ -308,13 +303,13 @@ except Exception as e:
             print(f"  ❌ Worker adapter creation failed: {worker_adapter['error']}")
             differences.append("adapter_creation_failed")
         else:
-            print(f"  ✅ Worker adapter created successfully")
+            print("  ✅ Worker adapter created successfully")
             print(f"    API Key: {worker_adapter.get('api_key_used', 'NOT_SET')}")
             print(f"    Team ID: {worker_adapter.get('team_id', 'NOT_SET')}")
             print(f"    Team Key: {worker_adapter.get('team_key', 'NOT_SET')}")
 
         # Summary
-        print(f"\n📊 SUMMARY:")
+        print("\n📊 SUMMARY:")
         if differences:
             print(f"  ❌ Found {len(differences)} differences:")
             for diff in differences:

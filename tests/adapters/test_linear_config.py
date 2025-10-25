@@ -33,7 +33,7 @@ async def test_linear_config():
     config_manager = ConfigurationManager()
     config = config_manager.get_config()
 
-    print(f"📋 Configuration loaded:")
+    print("📋 Configuration loaded:")
     print(f"   Default adapter: {config.default_adapter}")
 
     linear_config = config.adapters.get("linear", {})
@@ -44,7 +44,7 @@ async def test_linear_config():
         return
 
     # Create Linear adapter
-    print(f"\n🔧 Creating Linear adapter...")
+    print("\n🔧 Creating Linear adapter...")
     # Convert Pydantic model to dict for adapter
     linear_config_dict = {
         "type": "linear",
@@ -59,11 +59,11 @@ async def test_linear_config():
     print(f"   Team ID (cached): {getattr(adapter, '_team_id', 'Not cached yet')}")
 
     # Test API connection
-    print(f"\n🌐 Testing API connection...")
+    print("\n🌐 Testing API connection...")
     try:
         # Try to list one ticket to verify connection and team
         tickets = await adapter.list(limit=1)
-        print(f"✅ API connection successful!")
+        print("✅ API connection successful!")
         print(f"   Found {len(tickets)} ticket(s)")
 
         if tickets:
@@ -78,9 +78,9 @@ async def test_linear_config():
         return
 
     # Test ticket creation to see what team it goes to
-    print(f"\n🎫 Testing ticket creation...")
+    print("\n🎫 Testing ticket creation...")
     try:
-        from mcp_ticketer.core.models import Task, Priority
+        from mcp_ticketer.core.models import Priority, Task
 
         test_task = Task(
             title="Linear Config Test",
@@ -89,7 +89,7 @@ async def test_linear_config():
         )
 
         created_ticket = await adapter.create(test_task)
-        print(f"✅ Ticket created successfully!")
+        print("✅ Ticket created successfully!")
         print(f"   Created ticket: {created_ticket.id} - {created_ticket.title}")
         print(
             f"   Ticket prefix: {created_ticket.id.split('-')[0] if '-' in created_ticket.id else 'No prefix'}"
@@ -104,10 +104,10 @@ async def test_linear_config():
         if actual_prefix == expected_prefix:
             print(f"✅ Ticket prefix matches expected team key: {expected_prefix}")
         else:
-            print(f"⚠️  Ticket prefix mismatch!")
+            print("⚠️  Ticket prefix mismatch!")
             print(f"   Expected: {expected_prefix}")
             print(f"   Actual: {actual_prefix}")
-            print(f"   This suggests the ticket was created in a different team")
+            print("   This suggests the ticket was created in a different team")
 
     except Exception as e:
         print(f"❌ Ticket creation failed: {e}")

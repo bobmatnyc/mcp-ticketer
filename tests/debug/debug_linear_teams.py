@@ -72,12 +72,12 @@ async def debug_linear_teams():
 
             # Check if this is our configured team
             if team["id"] == "b366b0de-2f3f-4641-8100-eea12b6aa5df":
-                print(f"   ✅ This is our configured team (1M)!")
+                print("   ✅ This is our configured team (1M)!")
             elif team["key"] == "CLU":
-                print(f"   ⚠️  This is the CLU team (wrong team)!")
+                print("   ⚠️  This is the CLU team (wrong team)!")
 
         # Check which team would be used by default
-        print(f"\n🎯 Team Analysis:")
+        print("\n🎯 Team Analysis:")
         target_team_id = "b366b0de-2f3f-4641-8100-eea12b6aa5df"
         target_team = next((t for t in teams if t["id"] == target_team_id), None)
 
@@ -91,10 +91,10 @@ async def debug_linear_teams():
         clu_team = next((t for t in teams if t["key"] == "CLU"), None)
         if clu_team:
             print(f"⚠️  CLU team found: {clu_team['name']} ({clu_team['id']})")
-            print(f"   This might be the default team being used")
+            print("   This might be the default team being used")
 
         # Test creating a ticket with explicit team ID
-        print(f"\n🎫 Testing ticket creation with explicit team ID...")
+        print("\n🎫 Testing ticket creation with explicit team ID...")
 
         if target_team:
             create_query = gql(
@@ -142,7 +142,7 @@ async def debug_linear_teams():
                 else:
                     print(f"   ❌ Wrong prefix: {prefix} (expected 1M)")
             else:
-                print(f"❌ Failed to create ticket")
+                print("❌ Failed to create ticket")
 
     except Exception as e:
         print(f"❌ Error: {e}")

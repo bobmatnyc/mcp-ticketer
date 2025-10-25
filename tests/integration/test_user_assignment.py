@@ -4,23 +4,18 @@ Comprehensive test for user assignment functionality across all adapters.
 Tests user assignment, reassignment, and user lookup capabilities.
 """
 
-import os
-import sys
 import asyncio
 import logging
+import sys
 from pathlib import Path
-from datetime import datetime
-from typing import Dict, List, Any, Optional
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from mcp_ticketer.core.registry import AdapterRegistry
-from mcp_ticketer.core.env_loader import load_adapter_config
-from mcp_ticketer.core.models import Epic, Task, Priority, TicketState, SearchQuery
-
 # Import adapters to register them
-from mcp_ticketer.adapters import linear, github, jira, aitrackdown
+from mcp_ticketer.core.env_loader import load_adapter_config
+from mcp_ticketer.core.models import Priority, SearchQuery, Task
+from mcp_ticketer.core.registry import AdapterRegistry
 
 # Set up logging
 logging.basicConfig(
@@ -92,7 +87,7 @@ class UserAssignmentTester:
                                     f"    ✅ Using current user: {current_user.get('name', 'Unknown')}"
                                 )
                     else:
-                        print(f"    ⚠️  No team member discovery method available")
+                        print("    ⚠️  No team member discovery method available")
 
                 elif adapter_name == "github":
                     # GitHub: Get repository collaborators
@@ -116,7 +111,7 @@ class UserAssignmentTester:
                                     f"    ✅ Using current user: {current_user.get('login', 'Unknown')}"
                                 )
                     else:
-                        print(f"    ⚠️  No collaborator discovery method available")
+                        print("    ⚠️  No collaborator discovery method available")
 
                 elif adapter_name == "jira":
                     # JIRA: Get project users
@@ -140,7 +135,7 @@ class UserAssignmentTester:
                                     f"    ✅ Using current user: {current_user.get('displayName', 'Unknown')}"
                                 )
                     else:
-                        print(f"    ⚠️  No project user discovery method available")
+                        print("    ⚠️  No project user discovery method available")
 
                 elif adapter_name == "aitrackdown":
                     # Aitrackdown: Use predefined test users
@@ -161,7 +156,7 @@ class UserAssignmentTester:
                             "id": "test-user-3",
                         },
                     ]
-                    print(f"    ✅ Using predefined test users for local adapter")
+                    print("    ✅ Using predefined test users for local adapter")
                     for user in self.test_users[adapter_name]:
                         print(f"       - {user['name']} ({user['email']})")
 
@@ -190,7 +185,7 @@ class UserAssignmentTester:
 
                 if not users:
                     print(
-                        f"    ⚠️  No users available - testing unassigned ticket creation"
+                        "    ⚠️  No users available - testing unassigned ticket creation"
                     )
                     # Test creating unassigned ticket
                     task_data = {
@@ -317,7 +312,7 @@ class UserAssignmentTester:
                     )
 
                     if updated_ticket:
-                        print(f"    ✅ Ticket reassigned successfully")
+                        print("    ✅ Ticket reassigned successfully")
                         print(
                             f"       New assignee: {getattr(updated_ticket, 'assignee', 'None')}"
                         )
@@ -329,16 +324,16 @@ class UserAssignmentTester:
                         )
 
                         if unassigned_ticket:
-                            print(f"    ✅ Ticket unassigned successfully")
+                            print("    ✅ Ticket unassigned successfully")
                             print(
                                 f"       Assignee: {getattr(unassigned_ticket, 'assignee', 'None')}"
                             )
                         else:
                             print(
-                                f"    ⚠️  Unassignment may not be reflected immediately"
+                                "    ⚠️  Unassignment may not be reflected immediately"
                             )
                     else:
-                        print(f"    ⚠️  Reassignment may not be reflected immediately")
+                        print("    ⚠️  Reassignment may not be reflected immediately")
 
                 elif "unassigned" in tickets and len(users) > 0:
                     # Test assigning an unassigned ticket
@@ -369,15 +364,15 @@ class UserAssignmentTester:
                     )
 
                     if updated_ticket:
-                        print(f"    ✅ Ticket assigned successfully")
+                        print("    ✅ Ticket assigned successfully")
                         print(
                             f"       New assignee: {getattr(updated_ticket, 'assignee', 'None')}"
                         )
                     else:
-                        print(f"    ⚠️  Assignment may not be reflected immediately")
+                        print("    ⚠️  Assignment may not be reflected immediately")
                 else:
                     print(
-                        f"    ⏭️  No suitable tickets or users for reassignment testing"
+                        "    ⏭️  No suitable tickets or users for reassignment testing"
                     )
 
                 self.test_results[f"{adapter_name}_reassignment"] = {
@@ -442,7 +437,7 @@ class UserAssignmentTester:
                         )
 
                 else:
-                    print(f"    ⏭️  No users available for assignment search testing")
+                    print("    ⏭️  No users available for assignment search testing")
 
                 self.test_results[f"{adapter_name}_assignment_search"] = {
                     "success": True,
@@ -463,7 +458,7 @@ class UserAssignmentTester:
         print("=" * 100)
 
         # Adapter status overview
-        print(f"\n🔧 Adapter Setup:")
+        print("\n🔧 Adapter Setup:")
         for adapter_name in ["linear", "github", "jira", "aitrackdown"]:
             status = "✅ Ready" if adapter_name in self.adapters else "❌ Failed"
             user_count = len(self.test_users.get(adapter_name, []))
@@ -472,7 +467,7 @@ class UserAssignmentTester:
             )
 
         # Assignment creation results
-        print(f"\n👤 Assignment Creation Results:")
+        print("\n👤 Assignment Creation Results:")
         for adapter_name in self.adapters.keys():
             result = self.test_results.get(f"{adapter_name}_assignment", {})
             if result.get("success"):
@@ -487,7 +482,7 @@ class UserAssignmentTester:
                 )
 
         # Reassignment results
-        print(f"\n🔄 Reassignment Results:")
+        print("\n🔄 Reassignment Results:")
         for adapter_name in self.adapters.keys():
             result = self.test_results.get(f"{adapter_name}_reassignment", {})
             if result.get("success"):
@@ -499,7 +494,7 @@ class UserAssignmentTester:
                 )
 
         # Assignment search results
-        print(f"\n🔍 Assignment Search Results:")
+        print("\n🔍 Assignment Search Results:")
         for adapter_name in self.adapters.keys():
             result = self.test_results.get(f"{adapter_name}_assignment_search", {})
             if result.get("success"):
@@ -517,7 +512,7 @@ class UserAssignmentTester:
             [k for k, v in self.test_results.items() if v.get("success")]
         )
 
-        print(f"\n🎯 Overall Assessment:")
+        print("\n🎯 Overall Assessment:")
         print(f"    Total tests: {total_tests}")
         print(f"    Successful: {successful_tests}")
         print(
@@ -527,13 +522,13 @@ class UserAssignmentTester:
         )
 
         if successful_tests == total_tests:
-            print(f"    🎉 ALL USER ASSIGNMENT FEATURES WORKING PERFECTLY!")
+            print("    🎉 ALL USER ASSIGNMENT FEATURES WORKING PERFECTLY!")
         elif successful_tests > total_tests * 0.8:
             print(
-                f"    ✅ Most assignment features working well - minor issues to address"
+                "    ✅ Most assignment features working well - minor issues to address"
             )
         else:
-            print(f"    ⚠️  Significant assignment issues found - needs attention")
+            print("    ⚠️  Significant assignment issues found - needs attention")
 
     async def run_comprehensive_test(self):
         """Run all user assignment tests."""

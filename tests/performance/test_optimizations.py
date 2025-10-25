@@ -3,14 +3,14 @@
 
 import asyncio
 import time
-from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv(".env.local")
 
-from src.mcp_ticketer.queue import Queue
 from src.mcp_ticketer.core.models import Priority
+from src.mcp_ticketer.queue import Queue
 
 
 async def test_batch_processing():
@@ -60,7 +60,7 @@ async def test_batch_processing():
             print(f"  ✗ {queue_id}: {status}")
 
     total_time = time.time() - start_time
-    print(f"\nBatch Processing Results:")
+    print("\nBatch Processing Results:")
     print(f"  Completed: {completed}/5")
     print(f"  Total time: {total_time:.3f} seconds")
     print(f"  Average per ticket: {total_time/5:.3f} seconds")
@@ -109,7 +109,7 @@ async def test_concurrent_adapters():
             print(f"  ✗ {adapter}: {status}")
 
     total_time = time.time() - start_time
-    print(f"\nConcurrent Processing Results:")
+    print("\nConcurrent Processing Results:")
     print(f"  Completed: {completed}/{len(tickets)}")
     print(f"  Total time: {total_time:.3f} seconds")
     print(f"  Speedup: {len(tickets) / max(total_time, 0.1):.1f}x")
@@ -131,13 +131,12 @@ async def test_worker_status():
         print(f"✓ Worker is running (PID: {status.get('pid')})")
 
         # Get detailed status from worker
-        from src.mcp_ticketer.queue.worker import Worker
 
         queue = Queue()
 
         # Check queue statistics
         stats = queue.get_stats()
-        print(f"\nQueue Statistics:")
+        print("\nQueue Statistics:")
         print(f"  Pending: {stats.get('pending', 0)}")
         print(f"  Processing: {stats.get('processing', 0)}")
         print(f"  Completed: {stats.get('completed', 0)}")

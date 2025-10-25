@@ -1,16 +1,12 @@
 """End-to-end tests for complete ticket workflow including hierarchy, state transitions, and MCP integration."""
 
 import asyncio
-import json
-import pytest
-from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict
 
-from mcp_ticketer.core import AdapterRegistry, Priority, TicketState
-from mcp_ticketer.core.models import Epic, Task, Comment, TicketType
+import pytest
+
 from mcp_ticketer.mcp.server import MCPTicketServer
-from mcp_ticketer.queue import Queue, QueueStatus, WorkerManager
-from mcp_ticketer.queue.health_monitor import QueueHealthMonitor
+from mcp_ticketer.queue import Queue
 from mcp_ticketer.queue.ticket_registry import TicketRegistry
 
 

@@ -2,28 +2,25 @@
 """Comprehensive test suite for mcp-ticketer."""
 
 import asyncio
-import json
-import sys
-import time
-import tempfile
 import shutil
+import sys
+import tempfile
+import time
 from pathlib import Path
-from datetime import datetime
-from typing import Dict, Any
 
 # Add src to path for testing
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from mcp_ticketer.core import (
-    Task,
-    Epic,
-    Comment,
-    TicketState,
-    Priority,
-    AdapterRegistry,
-)
 from mcp_ticketer.adapters import AITrackdownAdapter
 from mcp_ticketer.cache import MemoryCache
+from mcp_ticketer.core import (
+    AdapterRegistry,
+    Comment,
+    Epic,
+    Priority,
+    Task,
+    TicketState,
+)
 
 
 class TestResults:
