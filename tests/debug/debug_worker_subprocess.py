@@ -43,20 +43,20 @@ print(f"LINEAR_API_KEY: {'Found' if linear_api_key else 'Not found'}")
 # Load configuration like the worker does
 try:
     from mcp_ticketer.cli.main import load_config
-    
+
     config = load_config()
     print(f"Config loaded: {config}")
-    
+
     adapters_config = config.get("adapters", {})
     linear_config = adapters_config.get("linear", {})
     print(f"Linear config: {linear_config}")
-    
+
     # Add API key like worker does
     if not linear_config.get("api_key"):
         linear_config["api_key"] = os.getenv("LINEAR_API_KEY")
-    
+
     print(f"Final linear config: {linear_config}")
-    
+
 except Exception as e:
     print(f"Error loading config: {e}")
     import traceback

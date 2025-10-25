@@ -147,7 +147,7 @@ def test_cache_system():
         print("✓ Cache system imported")
 
         # Test cache creation
-        cache = MemoryCache()
+        MemoryCache()
         print("✓ Cache instance created")
 
         return True

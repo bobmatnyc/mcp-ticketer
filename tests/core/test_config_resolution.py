@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 # Import the function we're testing
-from src.mcp_ticketer.cli.main import load_config
+from mcp_ticketer.cli.main import load_config
 
 
 def test_project_specific_config_takes_precedence():

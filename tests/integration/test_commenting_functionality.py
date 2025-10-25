@@ -222,7 +222,7 @@ class CommentingTester:
                             author="format-tester",
                         )
 
-                        result = await adapter.add_comment(comment)
+                        await adapter.add_comment(comment)
                         print(f"    ✅ {test_case['name']}: Added successfully")
 
                     except Exception as e:

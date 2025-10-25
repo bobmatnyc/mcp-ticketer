@@ -1,7 +1,7 @@
 """Adapter diagnostics and configuration validation."""
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from rich.console import Console
 from rich.table import Table
@@ -350,7 +350,7 @@ def _provide_recommendations(console: Console) -> None:
     console.print("• List tickets: [cyan]mcp-ticketer list[/cyan]")
 
 
-def get_adapter_status() -> Dict[str, Any]:
+def get_adapter_status() -> dict[str, Any]:
     """Get current adapter status for programmatic use.
 
     Returns:

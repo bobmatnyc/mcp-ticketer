@@ -4,7 +4,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import psutil
 
@@ -30,7 +30,7 @@ class HealthAlert:
         self,
         level: HealthStatus,
         message: str,
-        details: Optional[Dict[str, Any]] = None,
+        details: Optional[dict[str, Any]] = None,
         timestamp: Optional[datetime] = None,
     ):
         self.level = level
@@ -62,9 +62,9 @@ class QueueHealthMonitor:
         self.queue = queue or Queue()
         self.manager = WorkerManager()
         self.last_check = datetime.now()
-        self.alerts: List[HealthAlert] = []
+        self.alerts: list[HealthAlert] = []
 
-    def check_health(self) -> Dict[str, Any]:
+    def check_health(self) -> dict[str, Any]:
         """Perform comprehensive health check.
 
         Returns:
@@ -110,7 +110,7 @@ class QueueHealthMonitor:
         self.last_check = datetime.now()
         return health_report
 
-    def _check_worker_health(self) -> Dict[str, Any]:
+    def _check_worker_health(self) -> dict[str, Any]:
         """Check worker process health."""
         worker_status = self.manager.get_status()
 
@@ -145,7 +145,7 @@ class QueueHealthMonitor:
             pid = worker_status.get("pid")
             if pid:
                 try:
-                    process = psutil.Process(pid)
+                    psutil.Process(pid)
                     # Check if worker has been idle too long with pending items
                     pending_count = self.queue.get_pending_count()
                     if pending_count > 0:
@@ -173,7 +173,7 @@ class QueueHealthMonitor:
 
         return metrics
 
-    def _check_queue_health(self) -> Dict[str, Any]:
+    def _check_queue_health(self) -> dict[str, Any]:
         """Check queue status and backlog."""
         stats = self.queue.get_stats()
 
@@ -220,7 +220,7 @@ class QueueHealthMonitor:
 
         return metrics
 
-    def _check_stuck_items(self) -> Dict[str, Any]:
+    def _check_stuck_items(self) -> dict[str, Any]:
         """Check for items stuck in processing state."""
         # Reset stuck items first
         self.queue.reset_stuck_items(timeout_minutes=5)  # 5 minute timeout
@@ -247,7 +247,7 @@ class QueueHealthMonitor:
 
         return metrics
 
-    def _check_failure_rates(self) -> Dict[str, Any]:
+    def _check_failure_rates(self) -> dict[str, Any]:
         """Check recent failure rates."""
         stats = self.queue.get_stats()
 
@@ -288,21 +288,21 @@ class QueueHealthMonitor:
 
         return HealthStatus.HEALTHY
 
-    def _get_old_pending_items(self) -> List:
+    def _get_old_pending_items(self) -> list:
         """Get items that have been pending for too long."""
         cutoff_time = datetime.now() - timedelta(seconds=self.WORKER_TIMEOUT_SECONDS)
 
         items = self.queue.list_items(status=QueueStatus.PENDING, limit=100)
         return [item for item in items if item.created_at < cutoff_time]
 
-    def _get_stuck_processing_items(self) -> List:
+    def _get_stuck_processing_items(self) -> list:
         """Get items stuck in processing state."""
         cutoff_time = datetime.now() - timedelta(seconds=self.STUCK_ITEM_THRESHOLD)
 
         items = self.queue.list_items(status=QueueStatus.PROCESSING, limit=100)
         return [item for item in items if item.created_at < cutoff_time]
 
-    def get_immediate_alerts(self) -> List[HealthAlert]:
+    def get_immediate_alerts(self) -> list[HealthAlert]:
         """Get alerts that require immediate attention."""
         return [
             alert
@@ -310,12 +310,12 @@ class QueueHealthMonitor:
             if alert.level in [HealthStatus.CRITICAL, HealthStatus.FAILED]
         ]
 
-    def auto_repair(self) -> Dict[str, Any]:
+    def auto_repair(self) -> dict[str, Any]:
         """Attempt automatic repair of detected issues."""
         repair_actions = []
 
         # Check health first
-        health = self.check_health()
+        self.check_health()
 
         for alert in self.alerts:
             action = alert.details.get("action")

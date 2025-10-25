@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict
+from typing import Any
 
 from mcp_ticketer.core.models import Priority, TicketState
 
@@ -12,14 +12,14 @@ class LinearPriorityMapping:
     """Mapping between universal Priority and Linear priority values."""
 
     # Linear uses numeric priorities: 0=No priority, 1=Urgent, 2=High, 3=Medium, 4=Low
-    TO_LINEAR: Dict[Priority, int] = {
+    TO_LINEAR: dict[Priority, int] = {
         Priority.CRITICAL: 1,  # Urgent
         Priority.HIGH: 2,  # High
         Priority.MEDIUM: 3,  # Medium
         Priority.LOW: 4,  # Low
     }
 
-    FROM_LINEAR: Dict[int, Priority] = {
+    FROM_LINEAR: dict[int, Priority] = {
         0: Priority.LOW,  # No priority -> Low
         1: Priority.CRITICAL,  # Urgent -> Critical
         2: Priority.HIGH,  # High -> High
@@ -32,7 +32,7 @@ class LinearStateMapping:
     """Mapping between universal TicketState and Linear workflow state types."""
 
     # Linear workflow state types
-    TO_LINEAR: Dict[TicketState, str] = {
+    TO_LINEAR: dict[TicketState, str] = {
         TicketState.OPEN: "unstarted",
         TicketState.IN_PROGRESS: "started",
         TicketState.READY: "unstarted",  # No direct equivalent, use unstarted
@@ -43,7 +43,7 @@ class LinearStateMapping:
         TicketState.BLOCKED: "unstarted",
     }
 
-    FROM_LINEAR: Dict[str, TicketState] = {
+    FROM_LINEAR: dict[str, TicketState] = {
         "backlog": TicketState.OPEN,
         "unstarted": TicketState.OPEN,
         "started": TicketState.IN_PROGRESS,
@@ -152,7 +152,7 @@ def build_issue_filter(
     updated_after: str | None = None,
     due_before: str | None = None,
     include_archived: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Build a Linear issue filter from parameters.
 
     Args:
@@ -171,7 +171,7 @@ def build_issue_filter(
         Linear GraphQL filter object
 
     """
-    issue_filter: Dict[str, Any] = {}
+    issue_filter: dict[str, Any] = {}
 
     # Team filter (required for most operations)
     if team_id:
@@ -218,7 +218,7 @@ def build_project_filter(
     state: str | None = None,
     team_id: str | None = None,
     include_completed: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Build a Linear project filter from parameters.
 
     Args:
@@ -230,7 +230,7 @@ def build_project_filter(
         Linear GraphQL filter object
 
     """
-    project_filter: Dict[str, Any] = {}
+    project_filter: dict[str, Any] = {}
 
     # Team filter
     if team_id:
@@ -246,7 +246,7 @@ def build_project_filter(
     return project_filter
 
 
-def extract_linear_metadata(issue_data: Dict[str, Any]) -> Dict[str, Any]:
+def extract_linear_metadata(issue_data: dict[str, Any]) -> dict[str, Any]:
     """Extract Linear-specific metadata from issue data.
 
     Args:

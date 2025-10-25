@@ -109,10 +109,10 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 try:
     from mcp_ticketer.cli.main import load_config
     from mcp_ticketer.adapters.linear import LinearAdapter
-    
+
     # Capture worker environment
     worker_env = {}
-    
+
     # 1. Environment variables
     worker_env["env_vars"] = {
         "LINEAR_API_KEY": os.getenv("LINEAR_API_KEY", "NOT_SET")[:20] + "..." if os.getenv("LINEAR_API_KEY") else "NOT_SET",
@@ -124,7 +124,7 @@ try:
         "PWD": os.getenv("PWD", "NOT_SET"),
         "PATH": os.getenv("PATH", "NOT_SET")[:100] + "..." if os.getenv("PATH") else "NOT_SET",
     }
-    
+
     # 2. Configuration loading
     try:
         config = load_config()
@@ -133,7 +133,7 @@ try:
             "adapters": config.get("adapters", {}),
             "config_source": "loaded_successfully"
         }
-        
+
         # Focus on Linear adapter config
         linear_config = config.get("adapters", {}).get("linear", {})
         worker_env["linear_config"] = {
@@ -142,7 +142,7 @@ try:
             "team_key": linear_config.get("team_key", "NOT_SET"),
             "type": linear_config.get("type", "NOT_SET"),
         }
-        
+
         # 3. Try to create Linear adapter
         try:
             adapter = LinearAdapter(linear_config)
@@ -154,12 +154,12 @@ try:
             }
         except Exception as e:
             worker_env["adapter_creation"] = {"error": str(e)}
-            
+
     except Exception as e:
         worker_env["config"] = {"error": str(e)}
         worker_env["linear_config"] = {"error": str(e)}
         worker_env["adapter_creation"] = {"error": str(e)}
-    
+
     # 3. Working directory and paths
     worker_env["paths"] = {
         "cwd": str(Path.cwd()),
@@ -168,19 +168,19 @@ try:
         "env_local_exists": Path(".env.local").exists(),
         "global_config_exists": Path.home().joinpath(".mcp-ticketer/config.json").exists(),
     }
-    
+
     # 4. Python environment
     worker_env["python"] = {
         "executable": sys.executable,
         "version": sys.version,
         "path": sys.path[:5],  # First 5 entries
     }
-    
+
     # Output results
     print("WORKER_ENV_START")
     print(json.dumps(worker_env, indent=2, default=str))
     print("WORKER_ENV_END")
-    
+
 except Exception as e:
     print("WORKER_ENV_START")
     print(json.dumps({"error": str(e), "traceback": str(e.__traceback__)}, indent=2))

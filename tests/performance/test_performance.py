@@ -8,7 +8,6 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import List
 
 # Add src to path for testing
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -76,7 +75,7 @@ class PerformanceTestSuite:
 
         return [task.id for task in tasks if task]
 
-    async def benchmark_read_operations(self, task_ids: List[str]):
+    async def benchmark_read_operations(self, task_ids: list[str]):
         """Benchmark ticket read operations."""
         print(f"\n📖 Benchmarking {len(task_ids)} read operations...")
 
@@ -84,7 +83,7 @@ class PerformanceTestSuite:
 
         for i, task_id in enumerate(task_ids):
             start = time.time()
-            task = await self.adapter.read(task_id)
+            await self.adapter.read(task_id)
             elapsed = time.time() - start
 
             times.append(elapsed)
@@ -103,8 +102,10 @@ class PerformanceTestSuite:
         print(f"   Max:     {max(times):.4f}s")
         print(f"   Rate:    {len(task_ids) / sum(times):.1f} ops/sec")
 
-    async def benchmark_list_operations(self, limits: List[int] = [10, 50, 100]):
+    async def benchmark_list_operations(self, limits: list[int] = None):
         """Benchmark list operations with different limits."""
+        if limits is None:
+            limits = [10, 50, 100]
         print("\n📋 Benchmarking list operations...")
 
         list_results = {}
@@ -120,7 +121,7 @@ class PerformanceTestSuite:
 
         self.results["list_operations"] = list_results
 
-    async def benchmark_search_operations(self, queries: List[str]):
+    async def benchmark_search_operations(self, queries: list[str]):
         """Benchmark search operations."""
         print(f"\n🔍 Benchmarking {len(queries)} search operations...")
 
@@ -146,7 +147,7 @@ class PerformanceTestSuite:
         print(f"   Rate:    {len(queries) / sum(search_times):.1f} queries/sec")
 
     async def benchmark_concurrent_operations(
-        self, task_ids: List[str], concurrency: int = 10
+        self, task_ids: list[str], concurrency: int = 10
     ):
         """Benchmark concurrent read operations."""
         print(
@@ -155,7 +156,7 @@ class PerformanceTestSuite:
 
         async def read_task(task_id):
             start = time.time()
-            task = await self.adapter.read(task_id)
+            await self.adapter.read(task_id)
             return time.time() - start
 
         # Select subset of task IDs for concurrent testing
@@ -264,7 +265,7 @@ class PerformanceTestSuite:
             await self.benchmark_concurrent_operations(task_ids, concurrency=15)
 
             # Scalability test
-            scale_task_ids = await self.memory_usage_test(500)
+            await self.memory_usage_test(500)
 
             print("\n" + "=" * 50)
             print("📈 PERFORMANCE SUMMARY")

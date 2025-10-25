@@ -40,6 +40,7 @@ class TestLinearAdapterInit:
 
         assert adapter.api_key == "test-api-key"
 
+    @patch.dict("os.environ", {}, clear=True)
     def test_init_missing_api_key(self):
         """Test initialization without API key."""
         config = {"team_id": "team-123"}
@@ -96,7 +97,6 @@ class TestLinearAdapterValidation:
 
     def test_validate_credentials_missing_api_key(self):
         """Test credential validation with missing API key."""
-        config = {"team_id": "team-123"}
 
         # Create adapter with missing API key by bypassing __init__ validation
         adapter = LinearAdapter.__new__(LinearAdapter)
@@ -111,7 +111,6 @@ class TestLinearAdapterValidation:
 
     def test_validate_credentials_missing_team_info(self):
         """Test credential validation with missing team info."""
-        config = {"api_key": "test-api-key"}
 
         # Create adapter with missing team info by bypassing __init__ validation
         adapter = LinearAdapter.__new__(LinearAdapter)
@@ -226,7 +225,6 @@ class TestLinearAdapterTeamResolution:
     @pytest.mark.asyncio
     async def test_ensure_team_id_missing_team_key(self):
         """Test team ID resolution without team key or ID."""
-        config = {"api_key": "test-api-key"}
 
         # Create adapter bypassing validation
         adapter = LinearAdapter.__new__(LinearAdapter)

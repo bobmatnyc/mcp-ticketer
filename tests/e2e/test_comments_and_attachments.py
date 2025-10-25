@@ -3,6 +3,7 @@
 import asyncio
 
 import pytest
+import pytest_asyncio
 
 from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
 from mcp_ticketer.core.models import Comment, Epic, Priority, Task
@@ -13,7 +14,7 @@ from mcp_ticketer.core.models import Comment, Epic, Priority, Task
 class TestCommentsAndAttachments:
     """Test comment threading, attachments, and metadata management."""
 
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def adapter(self, tmp_path):
         """Create AITrackdown adapter for testing."""
         config = {
@@ -21,9 +22,7 @@ class TestCommentsAndAttachments:
             "auto_create_dirs": True,
         }
         adapter = AITrackdownAdapter(config)
-        await adapter.initialize()
         yield adapter
-        await adapter.close()
 
     @pytest.mark.asyncio
     async def test_comment_threading_and_conversation(self, adapter):
@@ -86,7 +85,7 @@ class TestCommentsAndAttachments:
         for comment_data in comments_data:
             comment = Comment(
                 ticket_id=created_task.id,
-                body=comment_data["body"],
+                content=comment_data["body"],
                 author=comment_data["author"],
             )
             created_comment = await adapter.add_comment(comment)
@@ -104,7 +103,7 @@ class TestCommentsAndAttachments:
         assert comment_times == sorted(comment_times)
 
         # Verify comment content and authors
-        comment_bodies = [c.body for c in all_comments]
+        comment_bodies = [c.content for c in all_comments]
         comment_authors = [c.author for c in all_comments]
 
         assert any("Starting work" in body for body in comment_bodies)
@@ -141,13 +140,13 @@ class TestCommentsAndAttachments:
         for i in range(num_comments):
             comment = Comment(
                 ticket_id=created_task.id,
-                body=f"Comment number {i+1} - testing pagination functionality",
+                content=f"Comment number {i+1} - testing pagination functionality",
                 author=f"user{i % 5}@example.com",  # Rotate between 5 users
             )
             await adapter.add_comment(comment)
 
-        # Test retrieving all comments
-        all_comments = await adapter.get_comments(created_task.id)
+        # Test retrieving all comments (use high limit to get all)
+        all_comments = await adapter.get_comments(created_task.id, limit=100)
         assert len(all_comments) >= num_comments
 
         # Test retrieving with limit
@@ -181,13 +180,13 @@ class TestCommentsAndAttachments:
         # Create initial comment
         original_comment = Comment(
             ticket_id=created_task.id,
-            body="This is the original comment text that will be edited.",
+            content="This is the original comment text that will be edited.",
             author="editor@example.com",
         )
 
         created_comment = await adapter.add_comment(original_comment)
         assert (
-            created_comment.body
+            created_comment.content
             == "This is the original comment text that will be edited."
         )
 
@@ -197,7 +196,7 @@ class TestCommentsAndAttachments:
 
         correction_comment = Comment(
             ticket_id=created_task.id,
-            body="CORRECTION: The previous comment should have mentioned that we're using React, not Angular.",
+            content="CORRECTION: The previous comment should have mentioned that we're using React, not Angular.",
             author="editor@example.com",
         )
 
@@ -207,7 +206,7 @@ class TestCommentsAndAttachments:
         comments = await adapter.get_comments(created_task.id)
         assert len(comments) >= 2
 
-        comment_bodies = [c.body for c in comments]
+        comment_bodies = [c.content for c in comments]
         assert any("original comment text" in body for body in comment_bodies)
         assert any("CORRECTION:" in body for body in comment_bodies)
 
@@ -356,22 +355,22 @@ class TestCommentsAndAttachments:
         cross_ref_comments = [
             {
                 "ticket_id": created_task1.id,
-                "body": f"This task depends on completion of {created_task2.id} (Authorization Task)",
+                "content": f"This task depends on completion of {created_task2.id} (Authorization Task)",
                 "author": "auth-dev@example.com",
             },
             {
                 "ticket_id": created_task2.id,
-                "body": f"This task blocks {created_task1.id} (Authentication Task) - prioritizing accordingly",
+                "content": f"This task blocks {created_task1.id} (Authentication Task) - prioritizing accordingly",
                 "author": "auth-dev@example.com",
             },
             {
                 "ticket_id": created_epic.id,
-                "body": f"Epic progress: {created_task1.id} and {created_task2.id} are in progress",
+                "content": f"Epic progress: {created_task1.id} and {created_task2.id} are in progress",
                 "author": "pm@example.com",
             },
             {
                 "ticket_id": created_task1.id,
-                "body": f"Update: {created_task2.id} is complete, can now proceed with authentication",
+                "content": f"Update: {created_task2.id} is complete, can now proceed with authentication",
                 "author": "auth-dev@example.com",
             },
         ]
@@ -386,9 +385,9 @@ class TestCommentsAndAttachments:
         epic_comments = await adapter.get_comments(created_epic.id)
 
         # Check for cross-references in comments
-        task1_bodies = [c.body for c in task1_comments]
-        task2_bodies = [c.body for c in task2_comments]
-        epic_bodies = [c.body for c in epic_comments]
+        task1_bodies = [c.content for c in task1_comments]
+        task2_bodies = [c.content for c in task2_comments]
+        epic_bodies = [c.content for c in epic_comments]
 
         assert any(created_task2.id in body for body in task1_bodies)
         assert any(created_task1.id in body for body in task2_bodies)
@@ -424,7 +423,7 @@ class TestCommentsAndAttachments:
             for j, comment_text in enumerate(comments):
                 comment = Comment(
                     ticket_id=created_task.id,
-                    body=comment_text,
+                    content=comment_text,
                     author=f"user{j}@example.com",
                 )
                 await adapter.add_comment(comment)
@@ -441,8 +440,8 @@ class TestCommentsAndAttachments:
         assert len(all_comments) >= 12  # 3 tasks × 4 comments each
 
         # Verify searchable content exists
-        all_comment_bodies = [c.body for c in all_comments]
-        assert any("feature X" in body.lower() for body in all_comment_bodies)
+        all_comment_bodies = [c.content for c in all_comments]
+        assert any("feature x" in body.lower() for body in all_comment_bodies)
         assert any("bug found" in body.lower() for body in all_comment_bodies)
         assert any("testing complete" in body.lower() for body in all_comment_bodies)
         assert any("deployment" in body.lower() for body in all_comment_bodies)

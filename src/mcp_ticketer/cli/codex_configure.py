@@ -6,7 +6,7 @@ Unlike Claude Code and Gemini CLI, there is no project-level configuration suppo
 
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -36,7 +36,7 @@ def find_codex_config() -> Path:
     return config_path
 
 
-def load_codex_config(config_path: Path) -> Dict[str, Any]:
+def load_codex_config(config_path: Path) -> dict[str, Any]:
     """Load existing Codex configuration or return empty structure.
 
     Args:
@@ -61,7 +61,7 @@ def load_codex_config(config_path: Path) -> Dict[str, Any]:
     return {"mcp_servers": {}}
 
 
-def save_codex_config(config_path: Path, config: Dict[str, Any]) -> None:
+def save_codex_config(config_path: Path, config: dict[str, Any]) -> None:
     """Save Codex configuration to TOML file.
 
     Args:
@@ -79,7 +79,7 @@ def save_codex_config(config_path: Path, config: Dict[str, Any]) -> None:
 
 def create_codex_server_config(
     binary_path: str, project_config: dict, cwd: Optional[str] = None
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create Codex MCP server configuration for mcp-ticketer.
 
     Args:
@@ -97,7 +97,7 @@ def create_codex_server_config(
     adapter_config = adapters_config.get(adapter, {})
 
     # Build environment variables
-    env_vars: Dict[str, str] = {}
+    env_vars: dict[str, str] = {}
 
     # Add PYTHONPATH if running from development environment
     if cwd:
@@ -142,7 +142,7 @@ def create_codex_server_config(
 
     # Create server configuration with Codex-specific structure
     # NOTE: Codex uses nested dict structure for env vars
-    config: Dict[str, Any] = {
+    config: dict[str, Any] = {
         "command": binary_path,
         "args": ["serve"],
         "env": env_vars,

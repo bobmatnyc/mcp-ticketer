@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv(".env.local")
 
-from src.mcp_ticketer.core.models import Priority
-from src.mcp_ticketer.queue import Queue
+from mcp_ticketer.core.models import Priority
+from mcp_ticketer.queue import Queue
 
 
 async def test_batch_processing():
@@ -122,7 +122,7 @@ async def test_worker_status():
     print("\n\nTesting Worker Status Reporting")
     print("=" * 40)
 
-    from src.mcp_ticketer.queue.manager import WorkerManager
+    from mcp_ticketer.queue.manager import WorkerManager
 
     manager = WorkerManager()
     status = manager.get_status()

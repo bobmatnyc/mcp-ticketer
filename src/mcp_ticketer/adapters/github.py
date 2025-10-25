@@ -3,7 +3,7 @@
 import builtins
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import httpx
 
@@ -603,7 +603,7 @@ class GitHubAdapter(BaseAdapter[Task]):
             labels_to_update = update_data.get("labels", current_labels)
             all_priority_labels = []
             for labels in GitHubStateMapping.PRIORITY_LABELS.values():
-                all_priority_labels.extend([l.lower() for l in labels])
+                all_priority_labels.extend([label.lower() for label in labels])
 
             labels_to_update = [
                 label
@@ -1334,7 +1334,7 @@ Fixes #{issue_number}
             "message": f"Successfully linked PR #{pr_number} to issue #{issue_number}",
         }
 
-    async def get_collaborators(self) -> List[Dict[str, Any]]:
+    async def get_collaborators(self) -> builtins.list[dict[str, Any]]:
         """Get repository collaborators."""
         response = await self.client.get(
             f"/repos/{self.owner}/{self.repo}/collaborators"
@@ -1342,7 +1342,7 @@ Fixes #{issue_number}
         response.raise_for_status()
         return response.json()
 
-    async def get_current_user(self) -> Optional[Dict[str, Any]]:
+    async def get_current_user(self) -> Optional[dict[str, Any]]:
         """Get current authenticated user information."""
         response = await self.client.get("/user")
         response.raise_for_status()

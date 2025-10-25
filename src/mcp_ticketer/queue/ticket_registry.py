@@ -5,7 +5,7 @@ import sqlite3
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 class TicketRegistry:
@@ -91,7 +91,7 @@ class TicketRegistry:
         adapter: str,
         operation: str,
         title: str,
-        ticket_data: Dict[str, Any],
+        ticket_data: dict[str, Any],
     ) -> None:
         """Register a new ticket operation.
 
@@ -131,7 +131,7 @@ class TicketRegistry:
         queue_id: str,
         status: str,
         ticket_id: Optional[str] = None,
-        result_data: Optional[Dict[str, Any]] = None,
+        result_data: Optional[dict[str, Any]] = None,
         error_message: Optional[str] = None,
         retry_count: Optional[int] = None,
     ) -> None:
@@ -179,7 +179,7 @@ class TicketRegistry:
                 )
                 conn.commit()
 
-    def get_ticket_info(self, queue_id: str) -> Optional[Dict[str, Any]]:
+    def get_ticket_info(self, queue_id: str) -> Optional[dict[str, Any]]:
         """Get ticket information by queue ID.
 
         Args:
@@ -212,7 +212,7 @@ class TicketRegistry:
 
             return ticket_info
 
-    def find_tickets_by_id(self, ticket_id: str) -> List[Dict[str, Any]]:
+    def find_tickets_by_id(self, ticket_id: str) -> list[dict[str, Any]]:
         """Find all operations for a specific ticket ID.
 
         Args:
@@ -225,7 +225,7 @@ class TicketRegistry:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
                 """
-                SELECT * FROM ticket_registry 
+                SELECT * FROM ticket_registry
                 WHERE ticket_id = ?
                 ORDER BY created_at DESC
             """,
@@ -248,7 +248,7 @@ class TicketRegistry:
 
             return results
 
-    def get_failed_operations(self, limit: int = 50) -> List[Dict[str, Any]]:
+    def get_failed_operations(self, limit: int = 50) -> list[dict[str, Any]]:
         """Get failed operations that might need recovery.
 
         Args:
@@ -261,7 +261,7 @@ class TicketRegistry:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
                 """
-                SELECT * FROM ticket_registry 
+                SELECT * FROM ticket_registry
                 WHERE status = 'failed'
                 ORDER BY updated_at DESC
                 LIMIT ?
@@ -285,7 +285,7 @@ class TicketRegistry:
 
             return results
 
-    def get_orphaned_tickets(self) -> List[Dict[str, Any]]:
+    def get_orphaned_tickets(self) -> list[dict[str, Any]]:
         """Get tickets that were created but queue operation failed.
 
         Returns:
@@ -295,8 +295,8 @@ class TicketRegistry:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
                 """
-                SELECT * FROM ticket_registry 
-                WHERE ticket_id IS NOT NULL 
+                SELECT * FROM ticket_registry
+                WHERE ticket_id IS NOT NULL
                 AND status IN ('processing', 'failed')
                 ORDER BY updated_at DESC
             """
@@ -318,7 +318,7 @@ class TicketRegistry:
 
             return results
 
-    def attempt_recovery(self, queue_id: str, recovery_type: str) -> Dict[str, Any]:
+    def attempt_recovery(self, queue_id: str, recovery_type: str) -> dict[str, Any]:
         """Attempt to recover a failed operation.
 
         Args:
@@ -390,7 +390,7 @@ class TicketRegistry:
         self,
         queue_id: str,
         recovery_type: str,
-        recovery_data: Dict[str, Any],
+        recovery_data: dict[str, Any],
         success: bool,
     ) -> None:
         """Log recovery attempt."""
@@ -412,7 +412,7 @@ class TicketRegistry:
                 )
                 conn.commit()
 
-    def get_recovery_history(self, queue_id: str) -> List[Dict[str, Any]]:
+    def get_recovery_history(self, queue_id: str) -> list[dict[str, Any]]:
         """Get recovery history for a queue operation.
 
         Args:
@@ -425,7 +425,7 @@ class TicketRegistry:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
                 """
-                SELECT * FROM recovery_log 
+                SELECT * FROM recovery_log
                 WHERE queue_id = ?
                 ORDER BY timestamp DESC
             """,

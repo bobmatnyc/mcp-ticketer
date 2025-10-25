@@ -507,7 +507,7 @@ class UserAssignmentTester:
                 )
 
         # Overall assessment
-        total_tests = len([k for k in self.test_results.keys()])
+        total_tests = len(list(self.test_results.keys()))
         successful_tests = len(
             [k for k, v in self.test_results.items() if v.get("success")]
         )

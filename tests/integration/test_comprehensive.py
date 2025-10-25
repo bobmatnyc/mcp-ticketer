@@ -101,7 +101,7 @@ class ComprehensiveTestSuite:
 
             # Test invalid data
             try:
-                invalid_task = Task(title="", priority="invalid")
+                Task(title="", priority="invalid")
                 self.results.fail_test("Should have failed validation")
             except Exception:
                 self.results.pass_test("Invalid data correctly rejected")
@@ -114,7 +114,7 @@ class ComprehensiveTestSuite:
         self.results.start_test("Testing state transitions")
 
         try:
-            task = Task(title="State Test Task")
+            Task(title="State Test Task")
 
             # Test valid transition
             valid_transitions = TicketState.valid_transitions()
@@ -460,7 +460,7 @@ class ComprehensiveTestSuite:
 
             # Test adapter with default configuration
             try:
-                default_adapter = AITrackdownAdapter({})  # Uses default path
+                AITrackdownAdapter({})  # Uses default path
                 self.results.pass_test("Handles default configuration gracefully")
             except Exception as e:
                 self.results.fail_test(f"Should handle default configuration: {e}")

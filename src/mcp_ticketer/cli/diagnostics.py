@@ -5,7 +5,7 @@ import logging
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import typer
 from rich.console import Console
@@ -108,7 +108,7 @@ class SystemDiagnostics:
             self.queue_available = False
             console.print(f"⚠️  Could not initialize worker manager: {e}")
 
-    async def run_full_diagnosis(self) -> Dict[str, Any]:
+    async def run_full_diagnosis(self) -> dict[str, Any]:
         """Run complete system diagnosis and return detailed report."""
         console.print("\n🔍 [bold blue]MCP Ticketer System Diagnosis[/bold blue]")
         console.print("=" * 60)
@@ -137,7 +137,7 @@ class SystemDiagnostics:
         except ImportError:
             return "unknown"
 
-    def _get_system_info(self) -> Dict[str, Any]:
+    def _get_system_info(self) -> dict[str, Any]:
         """Gather system information."""
         return {
             "python_version": sys.version,
@@ -150,7 +150,7 @@ class SystemDiagnostics:
             ),
         }
 
-    async def _diagnose_configuration(self) -> Dict[str, Any]:
+    async def _diagnose_configuration(self) -> dict[str, Any]:
         """Diagnose configuration issues."""
         console.print("\n📋 [yellow]Configuration Analysis[/yellow]")
 
@@ -220,7 +220,7 @@ class SystemDiagnostics:
                 console.print(f"✅ {len(adapters_config)} adapter(s) configured")
 
             # Check each adapter configuration
-            for name, adapter_config in adapters_config.items():
+            for name, _adapter_config in adapters_config.items():
                 try:
                     # Use the same adapter creation approach as working commands
                     adapter = CommonPatterns.get_adapter(override_adapter=name)
@@ -256,7 +256,7 @@ class SystemDiagnostics:
 
         return config_status
 
-    async def _diagnose_adapters(self) -> Dict[str, Any]:
+    async def _diagnose_adapters(self) -> dict[str, Any]:
         """Diagnose adapter functionality."""
         console.print("\n🔌 [yellow]Adapter Diagnosis[/yellow]")
 
@@ -277,7 +277,6 @@ class SystemDiagnostics:
 
             for name, adapter_config in adapters_config.items():
                 adapter_type = adapter_config.get("type", name)
-                config_dict = adapter_config
 
                 details = {
                     "type": adapter_type,
@@ -327,7 +326,7 @@ class SystemDiagnostics:
 
         return adapter_status
 
-    async def _diagnose_queue_system(self) -> Dict[str, Any]:
+    async def _diagnose_queue_system(self) -> dict[str, Any]:
         """Diagnose queue system health with active testing."""
         console.print("\n⚡ [yellow]Queue System Diagnosis[/yellow]")
 
@@ -454,7 +453,7 @@ class SystemDiagnostics:
 
         return queue_status
 
-    async def _test_worker_startup(self) -> Dict[str, Any]:
+    async def _test_worker_startup(self) -> dict[str, Any]:
         """Test starting a queue worker."""
         test_result = {
             "attempted": True,
@@ -496,7 +495,7 @@ class SystemDiagnostics:
 
         return test_result
 
-    async def _test_queue_operations(self) -> Dict[str, Any]:
+    async def _test_queue_operations(self) -> dict[str, Any]:
         """Test basic queue operations."""
         test_result = {
             "attempted": True,
@@ -531,7 +530,7 @@ class SystemDiagnostics:
 
         return test_result
 
-    async def _test_basic_queue_functionality(self) -> Dict[str, Any]:
+    async def _test_basic_queue_functionality(self) -> dict[str, Any]:
         """Test basic queue functionality in fallback mode."""
         test_result = {
             "attempted": True,
@@ -572,7 +571,7 @@ class SystemDiagnostics:
 
         return test_result
 
-    async def _analyze_recent_logs(self) -> Dict[str, Any]:
+    async def _analyze_recent_logs(self) -> dict[str, Any]:
         """Analyze recent log entries for issues."""
         console.print("\n📝 [yellow]Recent Log Analysis[/yellow]")
 
@@ -611,7 +610,7 @@ class SystemDiagnostics:
         return log_analysis
 
     async def _analyze_log_directory(
-        self, log_path: Path, log_analysis: Dict[str, Any]
+        self, log_path: Path, log_analysis: dict[str, Any]
     ):
         """Analyze logs in a specific directory."""
         try:
@@ -624,7 +623,7 @@ class SystemDiagnostics:
         except Exception as e:
             self.warnings.append(f"Could not analyze logs in {log_path}: {str(e)}")
 
-    async def _parse_log_file(self, log_file: Path, log_analysis: Dict[str, Any]):
+    async def _parse_log_file(self, log_file: Path, log_analysis: dict[str, Any]):
         """Parse individual log file for issues."""
         try:
             with open(log_file) as f:
@@ -639,7 +638,7 @@ class SystemDiagnostics:
         except Exception as e:
             self.warnings.append(f"Could not parse {log_file}: {str(e)}")
 
-    async def _analyze_performance(self) -> Dict[str, Any]:
+    async def _analyze_performance(self) -> dict[str, Any]:
         """Analyze system performance metrics."""
         console.print("\n⚡ [yellow]Performance Analysis[/yellow]")
 
@@ -651,7 +650,7 @@ class SystemDiagnostics:
 
         try:
             # Test basic operations performance
-            start_time = datetime.now()
+            datetime.now()
 
             # Test configuration loading
             config_start = datetime.now()
@@ -671,7 +670,7 @@ class SystemDiagnostics:
 
         return performance
 
-    def _generate_recommendations(self) -> List[str]:
+    def _generate_recommendations(self) -> list[str]:
         """Generate actionable recommendations based on diagnosis."""
         recommendations = []
 
@@ -706,7 +705,7 @@ class SystemDiagnostics:
 
         return recommendations
 
-    def _display_diagnosis_summary(self, report: Dict[str, Any]):
+    def _display_diagnosis_summary(self, report: dict[str, Any]):
         """Display a comprehensive diagnosis summary."""
         console.print("\n" + "=" * 60)
         console.print("📋 [bold green]DIAGNOSIS SUMMARY[/bold green]")

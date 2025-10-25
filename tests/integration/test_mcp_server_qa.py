@@ -7,7 +7,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -26,7 +26,7 @@ class QATestResults:
         self,
         test_name: str,
         status: str,
-        details: Dict[str, Any],
+        details: dict[str, Any],
         error: Optional[str] = None,
     ):
         """Add a test result."""
@@ -40,7 +40,7 @@ class QATestResults:
             }
         )
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get test summary."""
         total = len(self.tests)
         passed = len([t for t in self.tests if t["status"] == "PASS"])
@@ -136,7 +136,7 @@ async def test_ticket_creation_response(results: QATestResults):
 
         # Poll for completion
         max_polls = 20
-        for i in range(max_polls):
+        for _i in range(max_polls):
             status_result = await server._handle_queue_status({"queue_id": queue_id})
             if status_result.get("status") == "completed":
                 print(

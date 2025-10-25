@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, Optional
+from typing import Any
 
 try:
     from gql import Client, gql
@@ -74,9 +74,9 @@ class LinearGraphQLClient:
     async def execute_query(
         self,
         query_string: str,
-        variables: Optional[Dict[str, Any]] = None,
+        variables: dict[str, Any] | None = None,
         retries: int = 3,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Execute a GraphQL query with error handling and retries.
 
         Args:
@@ -161,9 +161,9 @@ class LinearGraphQLClient:
     async def execute_mutation(
         self,
         mutation_string: str,
-        variables: Optional[Dict[str, Any]] = None,
+        variables: dict[str, Any] | None = None,
         retries: int = 3,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Execute a GraphQL mutation with error handling.
 
         Args:
@@ -206,7 +206,7 @@ class LinearGraphQLClient:
         except Exception:
             return False
 
-    async def get_team_info(self, team_id: str) -> Optional[Dict[str, Any]]:
+    async def get_team_info(self, team_id: str) -> dict[str, Any] | None:
         """Get team information by ID.
 
         Args:
@@ -234,7 +234,7 @@ class LinearGraphQLClient:
         except Exception:
             return None
 
-    async def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+    async def get_user_by_email(self, email: str) -> dict[str, Any] | None:
         """Get user information by email.
 
         Args:

@@ -116,12 +116,12 @@ build: clean-build ## Build distribution packages
 	@python3 scripts/manage_version.py track-build
 	@echo "Build complete! Packages in dist/"
 
-publish-test: check-release build ## Build and publish to TestPyPI
+publish-test: check-release format lint test test-e2e build ## Build and publish to TestPyPI
 	@echo "Publishing to TestPyPI..."
 	twine upload --repository testpypi dist/*
 	@echo "Published to TestPyPI!"
 
-publish-prod: check-release build ## Build and publish to PyPI
+publish-prod: check-release format lint test test-e2e build ## Build and publish to PyPI
 	@echo "Publishing to PyPI..."
 	twine upload dist/*
 	@echo "Published successfully!"

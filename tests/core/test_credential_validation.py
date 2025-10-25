@@ -21,7 +21,7 @@ print("=" * 60)
 print("\n1. Testing LinearAdapter without LINEAR_API_KEY:")
 print("-" * 60)
 try:
-    from src.mcp_ticketer.adapters.linear import LinearAdapter
+    from mcp_ticketer.adapters.linear import LinearAdapter
 
     # Create adapter without API key
     config = {"team_key": "TEST"}
@@ -42,7 +42,7 @@ except Exception as e:
 print("\n2. Testing LinearAdapter with API key but no team_key:")
 print("-" * 60)
 try:
-    from src.mcp_ticketer.adapters.linear import LinearAdapter
+    from mcp_ticketer.adapters.linear import LinearAdapter
 
     # Create adapter with API key but no team_key
     config = {"api_key": "test_key_12345"}
@@ -63,7 +63,7 @@ except Exception as e:
 print("\n3. Testing GitHubAdapter without GITHUB_TOKEN:")
 print("-" * 60)
 try:
-    from src.mcp_ticketer.adapters.github import GitHubAdapter
+    from mcp_ticketer.adapters.github import GitHubAdapter
 
     # Create adapter without credentials
     config = {"owner": "test", "repo": "test"}
@@ -84,7 +84,7 @@ except Exception as e:
 print("\n4. Testing JiraAdapter without JIRA credentials:")
 print("-" * 60)
 try:
-    from src.mcp_ticketer.adapters.jira import JiraAdapter
+    from mcp_ticketer.adapters.jira import JiraAdapter
 
     # Create adapter without credentials
     config = {"server": "https://test.atlassian.net"}
@@ -105,7 +105,7 @@ except Exception as e:
 print("\n5. Testing AITrackdownAdapter (file-based, no credentials needed):")
 print("-" * 60)
 try:
-    from src.mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
+    from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
 
     # Create adapter
     config = {"base_path": ".aitrackdown"}

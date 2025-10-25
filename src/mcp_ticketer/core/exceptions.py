@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from .models import TicketState
 
@@ -20,7 +20,7 @@ class AdapterError(MCPTicketerError):
         self,
         message: str,
         adapter_name: str,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """Initialize adapter error.
 
@@ -55,8 +55,8 @@ class RateLimitError(AdapterError):
         self,
         message: str,
         adapter_name: str,
-        retry_after: Optional[int] = None,
-        original_error: Optional[Exception] = None,
+        retry_after: int | None = None,
+        original_error: Exception | None = None,
     ):
         """Initialize rate limit error.
 
@@ -74,7 +74,7 @@ class RateLimitError(AdapterError):
 class ValidationError(MCPTicketerError):
     """Data validation error."""
 
-    def __init__(self, message: str, field: Optional[str] = None, value: Any = None):
+    def __init__(self, message: str, field: str | None = None, value: Any = None):
         """Initialize validation error.
 
         Args:

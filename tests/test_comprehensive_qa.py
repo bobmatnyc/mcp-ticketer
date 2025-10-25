@@ -4,7 +4,7 @@
 import asyncio
 import time
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 # Test configuration
 TEST_CONFIG = {
@@ -47,7 +47,7 @@ class ComprehensiveQATest:
         # Print summary
         self.print_summary()
 
-    async def test_adapter(self, adapter_name: str, config: Dict[str, Any]):
+    async def test_adapter(self, adapter_name: str, config: dict[str, Any]):
         """Test a specific adapter with full workflow."""
         self.test_results[adapter_name] = {
             "create": False,
@@ -103,12 +103,12 @@ class ComprehensiveQATest:
         title = f"QA Test Ticket - {adapter_name.upper()} - {timestamp}"
         description = f"""
         This is a comprehensive QA test ticket for the {adapter_name} adapter.
-        
+
         **Test Details:**
         - Adapter: {adapter_name}
         - Created: {datetime.now().isoformat()}
         - Purpose: Verify full workflow functionality
-        
+
         **Expected Tests:**
         1. ✅ Create ticket
         2. ⏳ Read ticket details

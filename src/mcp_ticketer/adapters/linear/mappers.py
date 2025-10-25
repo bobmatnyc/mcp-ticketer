@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 from ...core.models import Comment, Epic, Priority, Task, TicketState
 from .types import extract_linear_metadata, get_universal_priority, get_universal_state
 
 
-def map_linear_issue_to_task(issue_data: Dict[str, Any]) -> Task:
+def map_linear_issue_to_task(issue_data: dict[str, Any]) -> Task:
     """Convert Linear issue data to universal Task model.
 
     Args:
@@ -94,7 +94,7 @@ def map_linear_issue_to_task(issue_data: Dict[str, Any]) -> Task:
     )
 
 
-def map_linear_project_to_epic(project_data: Dict[str, Any]) -> Epic:
+def map_linear_project_to_epic(project_data: dict[str, Any]) -> Epic:
     """Convert Linear project data to universal Epic model.
 
     Args:
@@ -157,7 +157,7 @@ def map_linear_project_to_epic(project_data: Dict[str, Any]) -> Epic:
 
 
 def map_linear_comment_to_comment(
-    comment_data: Dict[str, Any], ticket_id: str
+    comment_data: dict[str, Any], ticket_id: str
 ) -> Comment:
     """Convert Linear comment data to universal Comment model.
 
@@ -202,7 +202,7 @@ def map_linear_comment_to_comment(
     )
 
 
-def build_linear_issue_input(task: Task, team_id: str) -> Dict[str, Any]:
+def build_linear_issue_input(task: Task, team_id: str) -> dict[str, Any]:
     """Build Linear issue input from universal Task model.
 
     Args:
@@ -259,7 +259,7 @@ def build_linear_issue_input(task: Task, team_id: str) -> Dict[str, Any]:
     return issue_input
 
 
-def build_linear_issue_update_input(updates: Dict[str, Any]) -> Dict[str, Any]:
+def build_linear_issue_update_input(updates: dict[str, Any]) -> dict[str, Any]:
     """Build Linear issue update input from update dictionary.
 
     Args:
@@ -311,7 +311,7 @@ def build_linear_issue_update_input(updates: Dict[str, Any]) -> Dict[str, Any]:
     return update_input
 
 
-def extract_child_issue_ids(issue_data: Dict[str, Any]) -> List[str]:
+def extract_child_issue_ids(issue_data: dict[str, Any]) -> list[str]:
     """Extract child issue IDs from Linear issue data.
 
     Args:

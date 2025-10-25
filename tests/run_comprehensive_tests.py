@@ -5,13 +5,12 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
-def run_command(cmd: List[str], description: str) -> Tuple[bool, str]:
+def run_command(cmd: list[str], description: str) -> tuple[bool, str]:
     """Run a command and return success status and output."""
     print(f"\n🔄 {description}")
     print(f"Command: {' '.join(cmd)}")
@@ -208,7 +207,7 @@ def main():
     ]
 
     # Results tracking
-    results: Dict[str, Tuple[bool, str]] = {}
+    results: dict[str, tuple[bool, str]] = {}
     start_time = time.time()
 
     # Run each test category

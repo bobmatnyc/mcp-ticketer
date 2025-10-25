@@ -35,6 +35,7 @@ class QueueItem:
     retry_count: int = 0
     result: Optional[dict[str, Any]] = None
     project_dir: Optional[str] = None
+    adapter_config: Optional[dict[str, Any]] = None  # Adapter configuration
 
     def to_dict(self) -> dict:
         """Convert to dictionary for storage."""
@@ -59,6 +60,7 @@ class QueueItem:
             retry_count=row[8],
             result=json.loads(row[9]) if row[9] else None,
             project_dir=row[10] if len(row) > 10 else None,
+            adapter_config=json.loads(row[11]) if len(row) > 11 and row[11] else None,
         )
 
 
@@ -127,6 +129,8 @@ class Queue:
             columns = [row[1] for row in cursor.fetchall()]
             if "project_dir" not in columns:
                 conn.execute("ALTER TABLE queue ADD COLUMN project_dir TEXT")
+            if "adapter_config" not in columns:
+                conn.execute("ALTER TABLE queue ADD COLUMN adapter_config TEXT")
 
             conn.commit()
 
@@ -136,6 +140,7 @@ class Queue:
         adapter: str,
         operation: str,
         project_dir: Optional[str] = None,
+        adapter_config: Optional[dict[str, Any]] = None,
     ) -> str:
         """Add item to queue.
 
@@ -144,6 +149,7 @@ class Queue:
             adapter: Name of the adapter to use
             operation: Operation to perform (create, update, delete, etc.)
             project_dir: Project directory for config resolution (defaults to current directory)
+            adapter_config: Adapter configuration to use (optional, for explicit config passing)
 
         Returns:
             Queue ID for tracking
@@ -161,8 +167,8 @@ class Queue:
                     """
                     INSERT INTO queue (
                         id, ticket_data, adapter, operation,
-                        status, created_at, retry_count, project_dir
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        status, created_at, retry_count, project_dir, adapter_config
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                     (
                         queue_id,
@@ -173,6 +179,7 @@ class Queue:
                         datetime.now().isoformat(),
                         0,
                         project_dir,
+                        json.dumps(adapter_config) if adapter_config else None,
                     ),
                 )
                 conn.commit()

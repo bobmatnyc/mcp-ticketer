@@ -3,7 +3,7 @@
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from rich.console import Console
 
@@ -149,7 +149,7 @@ def simple_health_check() -> int:
         return 1
 
 
-def simple_diagnose() -> Dict[str, Any]:
+def simple_diagnose() -> dict[str, Any]:
     """Simple diagnosis that works without full config system."""
     console.print("\n🔍 [bold blue]MCP Ticketer Simple Diagnosis[/bold blue]")
     console.print("=" * 60)
@@ -168,14 +168,9 @@ def simple_diagnose() -> Dict[str, Any]:
     console.print("\n📋 [yellow]Basic System Check[/yellow]")
 
     # Python version
-    if sys.version_info < (3, 9):
-        issue = f"Python {sys.version_info.major}.{sys.version_info.minor} is too old (requires 3.9+)"
-        report["issues"].append(issue)
-        console.print(f"❌ {issue}")
-    else:
-        console.print(
-            f"✅ Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-        )
+    console.print(
+        f"✅ Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    )
 
     # Installation check
     try:

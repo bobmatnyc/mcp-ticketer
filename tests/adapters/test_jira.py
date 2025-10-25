@@ -7,9 +7,9 @@ from datetime import datetime
 
 from dotenv import load_dotenv
 
-from src.mcp_ticketer.adapters.jira import JiraAdapter
-from src.mcp_ticketer.core import Comment, Priority, Task, TicketState
-from src.mcp_ticketer.core.models import SearchQuery
+from mcp_ticketer.adapters.jira import JiraAdapter
+from mcp_ticketer.core import Comment, Priority, Task, TicketState
+from mcp_ticketer.core.models import SearchQuery
 
 # Load environment variables
 load_dotenv()

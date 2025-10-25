@@ -81,11 +81,21 @@ class WorkerManager:
         # Try to start worker
         return self.start()
 
-    def start(self) -> bool:
+    def start(self, timeout: float = 30.0) -> bool:
         """Start the worker process.
+
+        Args:
+            timeout: Maximum seconds to wait for worker to become fully operational (default: 30)
 
         Returns:
             True if started successfully, False otherwise
+
+        Raises:
+            TimeoutError: If worker doesn't start within timeout period
+
+        Note:
+            If timeout occurs, a worker may already be running in another process.
+            Check for stale lock files or processes using `get_status()`.
 
         """
         # Check if already running
@@ -96,7 +106,19 @@ class WorkerManager:
         # Try to acquire lock
         if not self._acquire_lock():
             logger.warning("Could not acquire lock - another worker may be running")
-            return False
+            # Wait briefly to see if worker becomes operational
+            start_time = time.time()
+            while time.time() - start_time < timeout:
+                if self.is_running():
+                    logger.info("Worker started by another process")
+                    return True
+                time.sleep(1)
+
+            raise TimeoutError(
+                f"Worker start timed out after {timeout}s. "
+                f"Lock is held but worker is not running. "
+                f"Check for stale lock files or zombie processes."
+            )
 
         try:
             # Start worker in subprocess using the same Python executable as the CLI
@@ -133,20 +155,42 @@ class WorkerManager:
             # Save PID
             self.pid_file.write_text(str(process.pid))
 
-            # Give the process a moment to start
-            import time
+            # Wait for worker to become fully operational with timeout
+            start_time = time.time()
+            while time.time() - start_time < timeout:
+                # Check if process exists
+                if not psutil.pid_exists(process.pid):
+                    logger.error("Worker process died during startup")
+                    self._cleanup()
+                    return False
 
-            time.sleep(0.5)
+                # Check if worker is fully running (not just process exists)
+                if self.is_running():
+                    elapsed = time.time() - start_time
+                    logger.info(
+                        f"Worker started successfully in {elapsed:.1f}s with PID {process.pid}"
+                    )
+                    return True
 
-            # Verify process is running
-            if not psutil.pid_exists(process.pid):
-                logger.error("Worker process died immediately after starting")
-                self._cleanup()
-                return False
+                # Log progress for long startups
+                elapsed = time.time() - start_time
+                if elapsed > 5 and int(elapsed) % 5 == 0:
+                    logger.debug(
+                        f"Waiting for worker to start, elapsed: {elapsed:.1f}s"
+                    )
 
-            logger.info(f"Started worker process with PID {process.pid}")
-            return True
+                time.sleep(0.5)
 
+            # Timeout reached
+            raise TimeoutError(
+                f"Worker start timed out after {timeout}s. "
+                f"Process spawned (PID {process.pid}) but worker did not become operational. "
+                f"Check worker logs for startup errors."
+            )
+
+        except TimeoutError:
+            # Re-raise timeout errors with context preserved
+            raise
         except Exception as e:
             logger.error(f"Failed to start worker: {e}")
             self._release_lock()

@@ -6,7 +6,7 @@ import logging
 import re
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 import httpx
 from httpx import AsyncClient, HTTPStatusError, TimeoutException
@@ -47,7 +47,7 @@ def parse_jira_datetime(date_str: str) -> Optional[datetime]:
         return None
 
 
-def extract_text_from_adf(adf_content: Union[str, Dict[str, Any]]) -> str:
+def extract_text_from_adf(adf_content: Union[str, dict[str, Any]]) -> str:
     """Extract plain text from Atlassian Document Format (ADF).
 
     Args:
@@ -63,7 +63,7 @@ def extract_text_from_adf(adf_content: Union[str, Dict[str, Any]]) -> str:
     if not isinstance(adf_content, dict):
         return str(adf_content) if adf_content else ""
 
-    def extract_text_recursive(node: Dict[str, Any]) -> str:
+    def extract_text_recursive(node: dict[str, Any]) -> str:
         """Recursively extract text from ADF nodes."""
         if not isinstance(node, dict):
             return ""
@@ -940,7 +940,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
         return sprints_data.get("values", [])
 
-    async def get_project_users(self) -> List[Dict[str, Any]]:
+    async def get_project_users(self) -> builtins.list[dict[str, Any]]:
         """Get users who have access to the project."""
         if not self.project_key:
             return []
@@ -954,7 +954,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             # Get users from project roles
             users = []
             if "roles" in project_data:
-                for role_name, role_url in project_data["roles"].items():
+                for _role_name, role_url in project_data["roles"].items():
                     # Extract role ID from URL
                     role_id = role_url.split("/")[-1]
                     try:
@@ -992,7 +992,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             except Exception:
                 return []
 
-    async def get_current_user(self) -> Optional[Dict[str, Any]]:
+    async def get_current_user(self) -> Optional[dict[str, Any]]:
         """Get current authenticated user information."""
         try:
             return await self._make_request("GET", "myself")

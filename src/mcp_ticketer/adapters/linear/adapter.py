@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 try:
     from gql import gql
@@ -11,6 +11,8 @@ try:
 except ImportError:
     gql = None
     TransportQueryError = Exception
+
+import builtins
 
 from ...core.adapter import BaseAdapter
 from ...core.models import Comment, Epic, SearchQuery, Task, TicketState
@@ -58,7 +60,7 @@ class LinearAdapter(BaseAdapter[Task]):
     - mappers.py: Data transformation logic
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """Initialize Linear adapter.
 
         Args:
@@ -75,10 +77,10 @@ class LinearAdapter(BaseAdapter[Task]):
         """
         # Initialize instance variables before calling super().__init__
         # because parent constructor calls _get_state_mapping()
-        self._team_data: Optional[Dict[str, Any]] = None
-        self._workflow_states: Optional[Dict[str, Dict[str, Any]]] = None
-        self._labels_cache: Optional[List[Dict[str, Any]]] = None
-        self._users_cache: Optional[Dict[str, Dict[str, Any]]] = None
+        self._team_data: dict[str, Any] | None = None
+        self._workflow_states: dict[str, dict[str, Any]] | None = None
+        self._labels_cache: list[dict[str, Any]] | None = None
+        self._users_cache: dict[str, dict[str, Any]] | None = None
         self._initialized = False
 
         super().__init__(config)
@@ -214,7 +216,7 @@ class LinearAdapter(BaseAdapter[Task]):
         except Exception as e:
             raise ValueError(f"Failed to load workflow states: {e}")
 
-    def _get_state_mapping(self) -> Dict[TicketState, str]:
+    def _get_state_mapping(self) -> dict[TicketState, str]:
         """Get mapping from universal states to Linear workflow state IDs.
 
         Returns:
@@ -245,7 +247,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         return mapping
 
-    async def _get_user_id(self, user_identifier: str) -> Optional[str]:
+    async def _get_user_id(self, user_identifier: str) -> str | None:
         """Get Linear user ID from email or display name.
 
         Args:
@@ -266,7 +268,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
     # CRUD Operations
 
-    async def create(self, ticket: Union[Epic, Task]) -> Union[Epic, Task]:
+    async def create(self, ticket: Epic | Task) -> Epic | Task:
         """Create a new Linear issue or project with full field support.
 
         Args:
@@ -394,7 +396,7 @@ class LinearAdapter(BaseAdapter[Task]):
         except Exception as e:
             raise ValueError(f"Failed to create Linear project: {e}")
 
-    async def read(self, ticket_id: str) -> Optional[Task]:
+    async def read(self, ticket_id: str) -> Task | None:
         """Read a Linear issue by identifier with full details.
 
         Args:
@@ -432,7 +434,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         return None
 
-    async def update(self, ticket_id: str, updates: Dict[str, Any]) -> Optional[Task]:
+    async def update(self, ticket_id: str, updates: dict[str, Any]) -> Task | None:
         """Update a Linear issue with comprehensive field support.
 
         Args:
@@ -519,8 +521,8 @@ class LinearAdapter(BaseAdapter[Task]):
             return False
 
     async def list(
-        self, limit: int = 10, offset: int = 0, filters: Optional[Dict[str, Any]] = None
-    ) -> List[Task]:
+        self, limit: int = 10, offset: int = 0, filters: dict[str, Any] | None = None
+    ) -> builtins.list[Task]:
         """List Linear issues with optional filtering.
 
         Args:
@@ -578,7 +580,7 @@ class LinearAdapter(BaseAdapter[Task]):
         except Exception as e:
             raise ValueError(f"Failed to list Linear issues: {e}")
 
-    async def search(self, query: SearchQuery) -> List[Task]:
+    async def search(self, query: SearchQuery) -> builtins.list[Task]:
         """Search Linear issues using comprehensive filters.
 
         Args:
@@ -644,7 +646,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
     async def transition_state(
         self, ticket_id: str, target_state: TicketState
-    ) -> Optional[Task]:
+    ) -> Task | None:
         """Transition Linear issue to new state with workflow validation.
 
         Args:
@@ -749,7 +751,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
     async def get_comments(
         self, ticket_id: str, limit: int = 10, offset: int = 0
-    ) -> List[Comment]:
+    ) -> builtins.list[Comment]:
         """Get comments for a Linear issue.
 
         Args:

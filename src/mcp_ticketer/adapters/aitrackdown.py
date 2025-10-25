@@ -35,14 +35,17 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         super().__init__(config)
         self.base_path = Path(config.get("base_path", ".aitrackdown"))
         self.tickets_dir = self.base_path / "tickets"
+        self._comment_counter = 0  # Counter for unique comment IDs
 
         # Initialize AI-Trackdown if available
+        # Always create tickets directory (needed for both modes)
+        self.tickets_dir.mkdir(parents=True, exist_ok=True)
+
         if HAS_AITRACKDOWN:
             self.tracker = AITrackdown(str(self.base_path))
         else:
             # Fallback to direct file operations
             self.tracker = None
-            self.tickets_dir.mkdir(parents=True, exist_ok=True)
 
     def validate_credentials(self) -> tuple[bool, str]:
         """Validate that required credentials are present.
@@ -60,10 +63,15 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         return True, ""
 
     def _get_state_mapping(self) -> dict[TicketState, str]:
-        """Map universal states to AI-Trackdown states."""
+        """Map universal states to AI-Trackdown states.
+
+        Note: We use the exact enum values (snake_case) to match what
+        Pydantic's use_enum_values=True produces. This ensures consistency
+        between what's written to files and what's read back.
+        """
         return {
             TicketState.OPEN: "open",
-            TicketState.IN_PROGRESS: "in-progress",
+            TicketState.IN_PROGRESS: "in_progress",  # snake_case, not kebab-case
             TicketState.READY: "ready",
             TicketState.TESTED: "tested",
             TicketState.DONE: "done",
@@ -87,6 +95,18 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
     def _task_from_ai_ticket(self, ai_ticket: dict[str, Any]) -> Task:
         """Convert AI-Trackdown ticket to universal Task."""
+        # Get user metadata from ticket file
+        user_metadata = ai_ticket.get("metadata", {})
+
+        # Create adapter metadata
+        adapter_metadata = {
+            "ai_ticket_id": ai_ticket.get("id"),
+            "source": "aitrackdown",
+        }
+
+        # Merge user metadata with adapter metadata (user takes priority)
+        combined_metadata = {**adapter_metadata, **user_metadata}
+
         return Task(
             id=ai_ticket.get("id"),
             title=ai_ticket.get("title", ""),
@@ -107,11 +127,23 @@ class AITrackdownAdapter(BaseAdapter[Task]):
                 if "updated_at" in ai_ticket
                 else None
             ),
-            metadata={"ai_trackdown": ai_ticket},
+            metadata=combined_metadata,  # Use merged metadata
         )
 
     def _epic_from_ai_ticket(self, ai_ticket: dict[str, Any]) -> Epic:
         """Convert AI-Trackdown ticket to universal Epic."""
+        # Get user metadata from ticket file
+        user_metadata = ai_ticket.get("metadata", {})
+
+        # Create adapter metadata
+        adapter_metadata = {
+            "ai_ticket_id": ai_ticket.get("id"),
+            "source": "aitrackdown",
+        }
+
+        # Merge user metadata with adapter metadata (user takes priority)
+        combined_metadata = {**adapter_metadata, **user_metadata}
+
         return Epic(
             id=ai_ticket.get("id"),
             title=ai_ticket.get("title", ""),
@@ -130,20 +162,20 @@ class AITrackdownAdapter(BaseAdapter[Task]):
                 if "updated_at" in ai_ticket and ai_ticket["updated_at"]
                 else None
             ),
-            metadata={"ai_trackdown": ai_ticket},
+            metadata=combined_metadata,  # Use merged metadata
         )
 
     def _task_to_ai_ticket(self, task: Task) -> dict[str, Any]:
         """Convert universal Task to AI-Trackdown ticket."""
         # Handle enum values that may be stored as strings due to use_enum_values=True
+        # Note: task.state is always a string due to ConfigDict(use_enum_values=True)
         state_value = task.state
         if isinstance(task.state, TicketState):
             state_value = self._get_state_mapping()[task.state]
         elif isinstance(task.state, str):
-            # Already a string, map to AI-Trackdown format if needed
-            state_value = task.state.replace(
-                "_", "-"
-            )  # Convert snake_case to kebab-case
+            # Already a string - keep as-is (don't convert to kebab-case)
+            # The state is already in snake_case format from the enum value
+            state_value = task.state
 
         return {
             "id": task.id,
@@ -157,20 +189,21 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             "assignee": task.assignee,
             "created_at": task.created_at.isoformat() if task.created_at else None,
             "updated_at": task.updated_at.isoformat() if task.updated_at else None,
+            "metadata": task.metadata or {},  # Serialize user metadata
             "type": "task",
         }
 
     def _epic_to_ai_ticket(self, epic: Epic) -> dict[str, Any]:
         """Convert universal Epic to AI-Trackdown ticket."""
         # Handle enum values that may be stored as strings due to use_enum_values=True
+        # Note: epic.state is always a string due to ConfigDict(use_enum_values=True)
         state_value = epic.state
         if isinstance(epic.state, TicketState):
             state_value = self._get_state_mapping()[epic.state]
         elif isinstance(epic.state, str):
-            # Already a string, map to AI-Trackdown format if needed
-            state_value = epic.state.replace(
-                "_", "-"
-            )  # Convert snake_case to kebab-case
+            # Already a string - keep as-is (don't convert to kebab-case)
+            # The state is already in snake_case format from the enum value
+            state_value = epic.state
 
         return {
             "id": epic.id,
@@ -182,6 +215,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             "child_issues": epic.child_issues,
             "created_at": epic.created_at.isoformat() if epic.created_at else None,
             "updated_at": epic.updated_at.isoformat() if epic.updated_at else None,
+            "metadata": epic.metadata or {},  # Serialize user metadata
             "type": "epic",
         }
 
@@ -307,8 +341,20 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
     async def update(
         self, ticket_id: str, updates: Union[dict[str, Any], Task]
-    ) -> Optional[Task]:
-        """Update a task."""
+    ) -> Optional[Union[Task, Epic]]:
+        """Update a task or epic.
+
+        Args:
+            ticket_id: ID of ticket to update
+            updates: Dictionary of updates or Task object with new values
+
+        Returns:
+            Updated Task or Epic, or None if ticket not found
+
+        Raises:
+            AttributeError: If update fails due to invalid fields
+
+        """
         # Read existing ticket
         existing = await self.read(ticket_id)
         if not existing:
@@ -332,8 +378,12 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
         existing.updated_at = datetime.now()
 
-        # Write back
-        ai_ticket = self._task_to_ai_ticket(existing)
+        # Write back - use appropriate converter based on ticket type
+        if isinstance(existing, Epic):
+            ai_ticket = self._epic_to_ai_ticket(existing)
+        else:
+            ai_ticket = self._task_to_ai_ticket(existing)
+
         if self.tracker:
             self.tracker.update_ticket(ticket_id, **updates)
         else:
@@ -448,10 +498,11 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
     async def add_comment(self, comment: Comment) -> Comment:
         """Add comment to a task."""
-        # Generate ID
+        # Generate ID with counter to ensure uniqueness
         if not comment.id:
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
-            comment.id = f"comment-{timestamp}"
+            self._comment_counter += 1
+            comment.id = f"comment-{timestamp}-{self._comment_counter:04d}"
 
         comment.created_at = datetime.now()
 
@@ -472,14 +523,94 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         comments_dir = self.base_path / "comments"
 
         if comments_dir.exists():
+            # Get all comment files and filter by ticket_id first
             comment_files = sorted(comments_dir.glob("*.json"))
-            for comment_file in comment_files[offset : offset + limit]:
+            for comment_file in comment_files:
                 with open(comment_file) as f:
                     data = json.load(f)
                     if data.get("ticket_id") == ticket_id:
                         comments.append(Comment(**data))
 
-        return comments[:limit]
+        # Apply limit and offset AFTER filtering
+        return comments[offset : offset + limit]
+
+    async def get_epic(self, epic_id: str) -> Optional[Epic]:
+        """Get epic by ID.
+
+        Args:
+            epic_id: Epic ID to retrieve
+
+        Returns:
+            Epic if found, None otherwise
+
+        """
+        ticket = await self.read(epic_id)
+        if ticket:
+            # Check if it's an Epic (can be Epic instance or have epic ticket_type)
+            if isinstance(ticket, Epic):
+                return ticket
+            # Check ticket_type (may be string or enum)
+            ticket_type_str = (
+                str(ticket.ticket_type).lower()
+                if hasattr(ticket, "ticket_type")
+                else None
+            )
+            if ticket_type_str and "epic" in ticket_type_str:
+                return Epic(**ticket.model_dump())
+        return None
+
+    async def list_epics(self, limit: int = 10, offset: int = 0) -> builtins.list[Epic]:
+        """List all epics.
+
+        Args:
+            limit: Maximum number of epics to return
+            offset: Number of epics to skip
+
+        Returns:
+            List of epics
+
+        """
+        all_tickets = await self.list(limit=100, offset=0, filters={"type": "epic"})
+        epics = []
+        for ticket in all_tickets:
+            if ticket.ticket_type == "epic":
+                epics.append(Epic(**ticket.model_dump()))
+        return epics[offset : offset + limit]
+
+    async def list_issues_by_epic(self, epic_id: str) -> builtins.list[Task]:
+        """List all issues belonging to an epic.
+
+        Args:
+            epic_id: Epic ID to get issues for
+
+        Returns:
+            List of issues (tasks with parent_epic set)
+
+        """
+        all_tickets = await self.list(limit=1000, offset=0, filters={})
+        issues = []
+        for ticket in all_tickets:
+            if hasattr(ticket, "parent_epic") and ticket.parent_epic == epic_id:
+                issues.append(ticket)
+        return issues
+
+    async def list_tasks_by_issue(self, issue_id: str) -> builtins.list[Task]:
+        """List all tasks belonging to an issue.
+
+        Args:
+            issue_id: Issue ID (parent task) to get child tasks for
+
+        Returns:
+            List of tasks
+
+        """
+        all_tickets = await self.list(limit=1000, offset=0, filters={})
+        tasks = []
+        for ticket in all_tickets:
+            # Check if this ticket has parent_issue matching the issue
+            if hasattr(ticket, "parent_issue") and ticket.parent_issue == issue_id:
+                tasks.append(ticket)
+        return tasks
 
 
 # Register the adapter

@@ -204,13 +204,9 @@ $RECYCLE.BIN/
 *.sublime-project
 *.sublime-workspace
 *.temp
-.claude-mpm/*.log
-.claude-mpm/cache/
-.claude-mpm/logs/
-.claude-mpm/sessions/
-.claude-mpm/tmp/
-.claude/cache/
-.claude/sessions/
+# Claude Code and Claude MPM directories
+.claude/
+.claude-mpm/
 .conda/
 .env.*
 .kuzu-memory/

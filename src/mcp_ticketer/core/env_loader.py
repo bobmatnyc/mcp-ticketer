@@ -12,7 +12,7 @@ import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class EnvKeyConfig:
     """Configuration for environment variable key aliases."""
 
     primary_key: str
-    aliases: List[str]
+    aliases: list[str]
     description: str
     required: bool = False
     default: Optional[str] = None
@@ -113,7 +113,7 @@ class UnifiedEnvLoader:
 
         """
         self.project_root = project_root or self._find_project_root()
-        self._env_cache: Dict[str, str] = {}
+        self._env_cache: dict[str, str] = {}
         self._load_env_files()
 
     def _find_project_root(self) -> Path:
@@ -148,7 +148,7 @@ class UnifiedEnvLoader:
         """Load variables from a single .env file."""
         try:
             with open(env_file) as f:
-                for line_num, line in enumerate(f, 1):
+                for _line_num, line in enumerate(f, 1):
                     line = line.strip()
 
                     # Skip empty lines and comments
@@ -177,7 +177,7 @@ class UnifiedEnvLoader:
             logger.warning(f"Failed to load {env_file}: {e}")
 
     def get_value(
-        self, config_key: str, config: Optional[Dict[str, Any]] = None
+        self, config_key: str, config: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         """Get a configuration value using the key alias system.
 
@@ -230,8 +230,8 @@ class UnifiedEnvLoader:
         return None
 
     def get_adapter_config(
-        self, adapter_name: str, base_config: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, adapter_name: str, base_config: Optional[dict[str, Any]] = None
+    ) -> dict[str, Any]:
         """Get complete configuration for an adapter with environment variable resolution.
 
         Args:
@@ -264,8 +264,8 @@ class UnifiedEnvLoader:
         return config
 
     def validate_adapter_config(
-        self, adapter_name: str, config: Dict[str, Any]
-    ) -> List[str]:
+        self, adapter_name: str, config: dict[str, Any]
+    ) -> list[str]:
         """Validate that all required configuration is present for an adapter.
 
         Args:
@@ -292,7 +292,7 @@ class UnifiedEnvLoader:
 
         return missing_keys
 
-    def get_debug_info(self) -> Dict[str, Any]:
+    def get_debug_info(self) -> dict[str, Any]:
         """Get debug information about environment loading."""
         return {
             "project_root": str(self.project_root),
@@ -319,8 +319,8 @@ def get_env_loader() -> UnifiedEnvLoader:
 
 
 def load_adapter_config(
-    adapter_name: str, base_config: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+    adapter_name: str, base_config: Optional[dict[str, Any]] = None
+) -> dict[str, Any]:
     """Convenience function to load adapter configuration with environment variables.
 
     Args:
@@ -334,7 +334,7 @@ def load_adapter_config(
     return get_env_loader().get_adapter_config(adapter_name, base_config)
 
 
-def validate_adapter_config(adapter_name: str, config: Dict[str, Any]) -> List[str]:
+def validate_adapter_config(adapter_name: str, config: dict[str, Any]) -> list[str]:
     """Convenience function to validate adapter configuration.
 
     Args:

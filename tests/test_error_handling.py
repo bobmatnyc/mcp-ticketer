@@ -189,7 +189,7 @@ class ErrorHandlingTestSuite:
 
         # Test empty string values
         def test_empty_values():
-            task = Task(title="", description="")
+            Task(title="", description="")
             # Title should fail validation due to min_length=1
             pass  # This will be caught by expected exception
 

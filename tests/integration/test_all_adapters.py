@@ -26,8 +26,8 @@ async def test_linear():
     console.print("\n[bold cyan]Testing Linear Adapter[/bold cyan]")
 
     try:
-        from src.mcp_ticketer.adapters.linear import LinearAdapter
-        from src.mcp_ticketer.core.models import Priority
+        from mcp_ticketer.adapters.linear import LinearAdapter
+        from mcp_ticketer.core.models import Priority
 
         config = {
             "api_key": os.getenv("LINEAR_API_KEY"),
@@ -48,7 +48,7 @@ async def test_linear():
         # 1. Create a task
         tests_total += 1
         try:
-            from src.mcp_ticketer.core.models import Task, TicketState
+            from mcp_ticketer.core.models import Task, TicketState
 
             test_task = Task(
                 id="",
@@ -103,8 +103,8 @@ async def test_github():
     console.print("\n[bold cyan]Testing GitHub Adapter[/bold cyan]")
 
     try:
-        from src.mcp_ticketer.adapters.github import GitHubAdapter
-        from src.mcp_ticketer.core.models import Comment, Priority
+        from mcp_ticketer.adapters.github import GitHubAdapter
+        from mcp_ticketer.core.models import Comment, Priority
 
         config = {
             "api_key": os.getenv("GITHUB_TOKEN"),  # Use api_key for consistency
@@ -128,7 +128,7 @@ async def test_github():
         try:
             # 1. Create an issue
             tests_total += 1
-            from src.mcp_ticketer.core.models import Task, TicketState
+            from mcp_ticketer.core.models import Task, TicketState
 
             test_task = Task(
                 id="",  # Will be assigned
@@ -216,8 +216,8 @@ async def test_jira():
     console.print("\n[bold cyan]Testing JIRA Adapter[/bold cyan]")
 
     try:
-        from src.mcp_ticketer.adapters.jira import JiraAdapter
-        from src.mcp_ticketer.core.models import Comment, Priority, Task, TicketState
+        from mcp_ticketer.adapters.jira import JiraAdapter
+        from mcp_ticketer.core.models import Comment, Priority, Task, TicketState
 
         config = {
             "server": "https://1m-hyperdev.atlassian.net",
@@ -275,7 +275,7 @@ async def test_jira():
 
             # 4. Search issues
             tests_total += 1
-            from src.mcp_ticketer.core.models import SearchQuery
+            from mcp_ticketer.core.models import SearchQuery
 
             search_query = SearchQuery(query="TEST", limit=5)
             search_results = await adapter.search(search_query)
@@ -363,8 +363,8 @@ async def test_aitrackdown():
         import os
         import shutil
 
-        from src.mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
-        from src.mcp_ticketer.core.models import (
+        from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
+        from mcp_ticketer.core.models import (
             Comment,
             Epic,
             Priority,
@@ -459,7 +459,7 @@ async def test_aitrackdown():
                     author="test-user",
                     content=f"Test comment {i+1} from integration tests",
                 )
-                created_comment = await adapter.add_comment(comment)
+                await adapter.add_comment(comment)
             console.print("  ✓ Added comments to tasks")
             tests_passed += 1
 

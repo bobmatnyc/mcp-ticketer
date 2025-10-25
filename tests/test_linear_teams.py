@@ -89,7 +89,7 @@ async def find_teams():
     )
 
     # Query to get all teams (this should get teams from all accessible workspaces)
-    all_teams_query = gql(
+    gql(
         """
         query GetAllTeams {
             teams {
@@ -135,7 +135,7 @@ async def find_teams():
     )
 
     # Try to query for organizations directly
-    organizations_query = gql(
+    gql(
         """
         query GetOrganizations {
             organizations {
@@ -150,7 +150,7 @@ async def find_teams():
     )
 
     # Try alternative approach with issues to see if we can find other workspaces
-    issues_query = gql(
+    gql(
         """
         query GetRecentIssues {
             issues(first: 10) {

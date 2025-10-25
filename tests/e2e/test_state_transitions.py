@@ -1,6 +1,7 @@
 """End-to-end tests for all ticket state transitions and workflow states."""
 
 import pytest
+import pytest_asyncio
 
 from mcp_ticketer.mcp.server import MCPTicketServer
 
@@ -8,14 +9,14 @@ from mcp_ticketer.mcp.server import MCPTicketServer
 class TestStateTransitions:
     """Test all possible state transitions in the ticket workflow."""
 
-    @pytest.fixture
-    async def mcp_server(self):
+    @pytest_asyncio.fixture
+    async def mcp_server(self, tmp_path):
         """Create MCP server for testing."""
         server = MCPTicketServer(
-            adapter_type="aitrackdown", config={"base_path": "/tmp/test_states"}
+            adapter_type="aitrackdown",
+            config={"base_path": str(tmp_path / "test_states")},
         )
         yield server
-        await server.adapter.close()
 
     @pytest.mark.asyncio
     async def test_complete_workflow_states(self, mcp_server: MCPTicketServer):
@@ -92,7 +93,7 @@ class TestStateTransitions:
             ("tested", "Cannot test without being ready first"),
         ]
 
-        for invalid_state, reason in invalid_transitions:
+        for invalid_state, _reason in invalid_transitions:
             # Attempt invalid transition
             transition_request = {
                 "method": "ticket/transition",
@@ -102,16 +103,11 @@ class TestStateTransitions:
 
             response = await mcp_server.handle_request(transition_request)
 
-            # Should either queue and fail, or reject immediately
-            if response["result"]["status"] == "queued":
-                queue_id = response["result"]["queue_id"]
-                final_status = await self._wait_for_completion(mcp_server, queue_id)
-                # May fail or succeed depending on adapter implementation
-                # The key is that it's handled gracefully
-                assert final_status in ["completed", "failed"]
-            else:
-                # Immediate rejection is also acceptable
-                assert "error" in response["result"]
+            # Should either complete, fail, or reject immediately
+            result_status = response["result"]["status"]
+            # May fail or succeed depending on adapter implementation
+            # The key is that it's handled gracefully
+            assert result_status in ["completed", "failed", "error"]
 
     @pytest.mark.asyncio
     async def test_state_history_tracking(self, mcp_server: MCPTicketServer):
@@ -119,8 +115,16 @@ class TestStateTransitions:
 
         task_id = await self._create_test_task(mcp_server)
 
-        # Perform several state transitions
-        state_sequence = ["in_progress", "blocked", "in_progress", "ready", "done"]
+        # Perform several state transitions (following valid state machine)
+        # Valid path: OPEN -> IN_PROGRESS -> BLOCKED -> IN_PROGRESS -> READY -> TESTED -> DONE
+        state_sequence = [
+            "in_progress",
+            "blocked",
+            "in_progress",
+            "ready",
+            "tested",
+            "done",
+        ]
 
         for state in state_sequence:
             await self._transition_state(mcp_server, task_id, state)
@@ -138,7 +142,7 @@ class TestStateTransitions:
         }
 
         read_response = await mcp_server.handle_request(read_request)
-        ticket = read_response["result"]
+        ticket = read_response["result"]["ticket"]
 
         # Verify final state
         assert ticket["state"].upper() == "DONE"
@@ -174,12 +178,8 @@ class TestStateTransitions:
         }
 
         bulk_response = await mcp_server.handle_request(bulk_update_request)
-        assert bulk_response["result"]["status"] == "queued"
-        assert len(bulk_response["result"]["queue_ids"]) == 3
-
-        # Wait for all updates to complete
-        for queue_id in bulk_response["result"]["queue_ids"]:
-            await self._wait_for_completion(mcp_server, queue_id)
+        assert bulk_response["result"]["status"] == "completed"
+        assert len(bulk_response["result"]["results"]) == 3
 
         # Verify all tasks are in IN_PROGRESS state
         for task_id in task_ids:
@@ -213,10 +213,7 @@ class TestStateTransitions:
             }
 
             comment_response = await mcp_server.handle_request(comment_request)
-            assert comment_response["result"]["status"] == "queued"
-
-            queue_id = comment_response["result"]["queue_id"]
-            await self._wait_for_completion(mcp_server, queue_id)
+            assert comment_response["result"]["status"] == "completed"
 
     @pytest.mark.asyncio
     async def test_concurrent_state_transitions(self, mcp_server: MCPTicketServer):
@@ -264,11 +261,7 @@ class TestStateTransitions:
         }
 
         response = await mcp_server.handle_request(task_request)
-        queue_id = response["result"]["queue_id"]
-        await self._wait_for_completion(mcp_server, queue_id)
-
-        task_status = await self._get_queue_result(mcp_server, queue_id)
-        return task_status["result"]["id"]
+        return response["result"]["ticket"]["id"]
 
     async def _create_test_epic(self, mcp_server: MCPTicketServer) -> str:
         """Helper to create a test epic."""
@@ -282,11 +275,7 @@ class TestStateTransitions:
         }
 
         response = await mcp_server.handle_request(epic_request)
-        queue_id = response["result"]["queue_id"]
-        await self._wait_for_completion(mcp_server, queue_id)
-
-        epic_status = await self._get_queue_result(mcp_server, queue_id)
-        return epic_status["result"]["id"]
+        return response["result"]["ticket"]["id"]
 
     async def _create_test_issue(
         self, mcp_server: MCPTicketServer, epic_id: str
@@ -303,11 +292,7 @@ class TestStateTransitions:
         }
 
         response = await mcp_server.handle_request(issue_request)
-        queue_id = response["result"]["queue_id"]
-        await self._wait_for_completion(mcp_server, queue_id)
-
-        issue_status = await self._get_queue_result(mcp_server, queue_id)
-        return issue_status["result"]["id"]
+        return response["result"]["ticket"]["id"]
 
     async def _transition_state(
         self, mcp_server: MCPTicketServer, ticket_id: str, target_state: str
@@ -320,9 +305,8 @@ class TestStateTransitions:
         }
 
         response = await mcp_server.handle_request(transition_request)
-        if response["result"]["status"] == "queued":
-            queue_id = response["result"]["queue_id"]
-            await self._wait_for_completion(mcp_server, queue_id)
+        # Response is immediate with synchronous server
+        return response
 
     async def _get_ticket_state(
         self, mcp_server: MCPTicketServer, ticket_id: str
@@ -335,39 +319,5 @@ class TestStateTransitions:
         }
 
         response = await mcp_server.handle_request(read_request)
-        return response["result"]["state"]
-
-    async def _wait_for_completion(
-        self, mcp_server: MCPTicketServer, queue_id: str, timeout: int = 10
-    ):
-        """Wait for queue operation to complete."""
-        import asyncio
-
-        for _ in range(timeout * 2):
-            status_request = {
-                "method": "ticket/status",
-                "params": {"queue_id": queue_id},
-                "id": 994,
-            }
-
-            status_response = await mcp_server.handle_request(status_request)
-            status = status_response["result"]["status"]
-
-            if status in ["completed", "failed"]:
-                return status
-
-            await asyncio.sleep(0.5)
-
-        raise TimeoutError(
-            f"Queue operation {queue_id} did not complete within {timeout} seconds"
-        )
-
-    async def _get_queue_result(self, mcp_server: MCPTicketServer, queue_id: str):
-        """Get the result of a completed queue operation."""
-        status_request = {
-            "method": "ticket/status",
-            "params": {"queue_id": queue_id},
-            "id": 993,
-        }
-
-        return await mcp_server.handle_request(status_request)
+        ticket = response["result"]["ticket"]
+        return ticket["state"]

@@ -373,24 +373,31 @@ class Worker:
 
         from ..cli.main import load_config
 
-        # Use item's project_dir if available, otherwise use current directory
-        project_path = Path(item.project_dir) if item.project_dir else None
+        # PRIORITY 1: Use adapter_config from queue item if available (explicit config)
+        if item.adapter_config:
+            logger.info("Worker using explicit adapter_config from queue item")
+            adapter_config = item.adapter_config
+            logger.info(f"Worker adapter config for {item.adapter}: {adapter_config}")
+        else:
+            # PRIORITY 2: Load from project config file
+            # Use item's project_dir if available, otherwise use current directory
+            project_path = Path(item.project_dir) if item.project_dir else None
 
-        # Load environment variables from project directory's .env.local if it exists
-        if project_path:
-            env_file = project_path / ".env.local"
-            if env_file.exists():
-                logger.info(f"Worker loading environment from {env_file}")
-                load_dotenv(env_file)
+            # Load environment variables from project directory's .env.local if it exists
+            if project_path:
+                env_file = project_path / ".env.local"
+                if env_file.exists():
+                    logger.info(f"Worker loading environment from {env_file}")
+                    load_dotenv(env_file)
 
-        logger.info(f"Worker project_path: {project_path}")
-        logger.info(f"Worker current working directory: {os.getcwd()}")
+            logger.info(f"Worker project_path: {project_path}")
+            logger.info(f"Worker current working directory: {os.getcwd()}")
 
-        config = load_config(project_dir=project_path)
-        logger.info(f"Worker loaded config: {config}")
-        adapters_config = config.get("adapters", {})
-        adapter_config = adapters_config.get(item.adapter, {})
-        logger.info(f"Worker adapter config for {item.adapter}: {adapter_config}")
+            config = load_config(project_dir=project_path)
+            logger.info(f"Worker loaded config: {config}")
+            adapters_config = config.get("adapters", {})
+            adapter_config = adapters_config.get(item.adapter, {})
+            logger.info(f"Worker adapter config for {item.adapter}: {adapter_config}")
 
         # Add environment variables for authentication
         if item.adapter == "linear":

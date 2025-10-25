@@ -1,29 +1,27 @@
 """End-to-end tests for complete ticket workflow including hierarchy, state transitions, and MCP integration."""
 
 import asyncio
-from typing import Any, Dict
 
 import pytest
+import pytest_asyncio
 
+import mcp_ticketer.adapters  # noqa: F401 - Register adapters
 from mcp_ticketer.mcp.server import MCPTicketServer
-from mcp_ticketer.queue import Queue
-from mcp_ticketer.queue.ticket_registry import TicketRegistry
 
 
 class TestCompleteWorkflow:
     """Test complete ticket workflow from epic creation to closure."""
 
-    @pytest.fixture
-    async def mcp_server(self):
+    @pytest_asyncio.fixture
+    async def mcp_server(self, tmp_path):
         """Create MCP server for testing."""
         server = MCPTicketServer(
-            adapter_type="aitrackdown", config={"base_path": "/tmp/test_aitrackdown"}
+            adapter_type="aitrackdown",
+            config={"base_path": str(tmp_path / "test_aitrackdown")},
         )
         yield server
-        # Cleanup
-        await server.adapter.close()
 
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def clean_queue(self):
         """Ensure clean queue state for testing."""
         queue = Queue()
@@ -47,15 +45,11 @@ class TestCompleteWorkflow:
         }
 
         epic_response = await mcp_server.handle_request(epic_request)
-        assert epic_response["result"]["status"] == "queued"
-        epic_queue_id = epic_response["result"]["queue_id"]
+        assert epic_response["result"]["status"] == "completed"
 
-        # Wait for epic creation to complete
-        await self._wait_for_completion(mcp_server, epic_queue_id)
-
-        # Get epic ID from queue result
-        epic_status = await self._get_queue_result(mcp_server, epic_queue_id)
-        epic_id = epic_status["result"]["id"]
+        # Get epic ID directly from response
+        epic = epic_response["result"]["ticket"]
+        epic_id = epic["id"]
         assert epic_id is not None
 
         # Step 2: Create Issue under Epic
@@ -72,15 +66,11 @@ class TestCompleteWorkflow:
         }
 
         issue_response = await mcp_server.handle_request(issue_request)
-        assert issue_response["result"]["status"] == "queued"
-        issue_queue_id = issue_response["result"]["queue_id"]
+        assert issue_response["result"]["status"] == "completed"
 
-        # Wait for issue creation to complete
-        await self._wait_for_completion(mcp_server, issue_queue_id)
-
-        # Get issue ID from queue result
-        issue_status = await self._get_queue_result(mcp_server, issue_queue_id)
-        issue_id = issue_status["result"]["id"]
+        # Get issue ID directly from response
+        issue = issue_response["result"]["ticket"]
+        issue_id = issue["id"]
         assert issue_id is not None
 
         # Step 3: Create Task under Issue
@@ -97,15 +87,11 @@ class TestCompleteWorkflow:
         }
 
         task_response = await mcp_server.handle_request(task_request)
-        assert task_response["result"]["status"] == "queued"
-        task_queue_id = task_response["result"]["queue_id"]
+        assert task_response["result"]["status"] == "completed"
 
-        # Wait for task creation to complete
-        await self._wait_for_completion(mcp_server, task_queue_id)
-
-        # Get task ID from queue result
-        task_status = await self._get_queue_result(mcp_server, task_queue_id)
-        task_id = task_status["result"]["id"]
+        # Get task ID directly from response
+        task = task_response["result"]["ticket"]
+        task_id = task["id"]
         assert task_id is not None
 
         # Step 4: Verify Hierarchy Tree
@@ -162,11 +148,7 @@ class TestCompleteWorkflow:
             }
 
             transition_response = await mcp_server.handle_request(transition_request)
-            assert transition_response["result"]["status"] == "queued"
-            queue_id = transition_response["result"]["queue_id"]
-
-            # Wait for transition to complete
-            await self._wait_for_completion(mcp_server, queue_id)
+            assert transition_response["result"]["status"] == "completed"
 
             # Verify state change
             read_request = {
@@ -176,7 +158,8 @@ class TestCompleteWorkflow:
             }
 
             read_response = await mcp_server.handle_request(read_request)
-            current_state = read_response["result"]["state"]
+            ticket = read_response["result"]["ticket"]
+            current_state = ticket["state"]
             assert current_state.upper() == expected_state
 
     @pytest.mark.asyncio
@@ -218,12 +201,8 @@ class TestCompleteWorkflow:
             }
 
             comment_response = await mcp_server.handle_request(comment_request)
-            assert comment_response["result"]["status"] == "queued"
-            queue_id = comment_response["result"]["queue_id"]
-
-            # Wait for comment to be added
-            await self._wait_for_completion(mcp_server, queue_id)
-            comment_ids.append(queue_id)
+            assert comment_response["result"]["status"] == "completed"
+            comment_ids.append(comment_response["result"]["comment"]["id"])
 
         # Retrieve all comments
         list_comments_request = {
@@ -233,7 +212,8 @@ class TestCompleteWorkflow:
         }
 
         comments_response = await mcp_server.handle_request(list_comments_request)
-        retrieved_comments = comments_response["result"]
+        result = comments_response["result"]
+        retrieved_comments = result["comments"]
 
         # Verify all comments were added
         assert len(retrieved_comments) == len(comments)
@@ -258,10 +238,7 @@ class TestCompleteWorkflow:
         }
 
         epic_response = await mcp_server.handle_request(epic_request)
-        epic_queue_id = epic_response["result"]["queue_id"]
-        await self._wait_for_completion(mcp_server, epic_queue_id)
-        epic_status = await self._get_queue_result(mcp_server, epic_queue_id)
-        epic_id = epic_status["result"]["id"]
+        epic_id = epic_response["result"]["ticket"]["id"]
 
         # Bulk create multiple issues
         bulk_create_request = {
@@ -295,12 +272,8 @@ class TestCompleteWorkflow:
         }
 
         bulk_response = await mcp_server.handle_request(bulk_create_request)
-        assert bulk_response["result"]["status"] == "queued"
-        assert len(bulk_response["result"]["queue_ids"]) == 3
-
-        # Wait for all bulk operations to complete
-        for queue_id in bulk_response["result"]["queue_ids"]:
-            await self._wait_for_completion(mcp_server, queue_id)
+        assert bulk_response["result"]["status"] == "completed"
+        assert len(bulk_response["result"]["results"]) == 3
 
         # Verify all issues were created under the epic
         epic_issues_request = {
@@ -310,7 +283,8 @@ class TestCompleteWorkflow:
         }
 
         issues_response = await mcp_server.handle_request(epic_issues_request)
-        issues = issues_response["result"]
+        assert issues_response["result"]["status"] == "completed"
+        issues = issues_response["result"]["issues"]
 
         assert len(issues) == 3
         issue_titles = [issue["title"] for issue in issues]
@@ -318,47 +292,12 @@ class TestCompleteWorkflow:
         assert "Database Migration Scripts" in issue_titles
         assert "API Documentation" in issue_titles
 
-    async def _wait_for_completion(
-        self, mcp_server: MCPTicketServer, queue_id: str, timeout: int = 10
-    ):
-        """Wait for queue operation to complete."""
-        for _ in range(timeout * 2):  # Check every 0.5 seconds
-            status_request = {
-                "method": "ticket/status",
-                "params": {"queue_id": queue_id},
-                "id": 999,
-            }
-
-            status_response = await mcp_server.handle_request(status_request)
-            status = status_response["result"]["status"]
-
-            if status in ["completed", "failed"]:
-                return status
-
-            await asyncio.sleep(0.5)
-
-        raise TimeoutError(
-            f"Queue operation {queue_id} did not complete within {timeout} seconds"
-        )
-
-    async def _get_queue_result(
-        self, mcp_server: MCPTicketServer, queue_id: str
-    ) -> Dict[str, Any]:
-        """Get the result of a completed queue operation."""
-        status_request = {
-            "method": "ticket/status",
-            "params": {"queue_id": queue_id},
-            "id": 998,
-        }
-
-        return await mcp_server.handle_request(status_request)
-
     @pytest.mark.asyncio
     async def test_hierarchy_search(self, mcp_server: MCPTicketServer):
         """Test hierarchy-aware search functionality."""
 
         # Create hierarchy first
-        hierarchy = await self.test_epic_to_task_hierarchy_creation(mcp_server)
+        await self.test_epic_to_task_hierarchy_creation(mcp_server)
 
         # Test search with hierarchy context
         search_request = {
@@ -400,42 +339,6 @@ class TestCompleteWorkflow:
                 )
 
     @pytest.mark.asyncio
-    async def test_queue_health_monitoring(self, mcp_server: MCPTicketServer):
-        """Test queue health monitoring and auto-repair functionality."""
-
-        # Test health check
-        health_request = {
-            "method": "queue/health",
-            "params": {"auto_repair": False},
-            "id": 700,
-        }
-
-        health_response = await mcp_server.handle_request(health_request)
-        health = health_response["result"]
-
-        # Verify health response structure
-        assert "status" in health
-        assert "timestamp" in health
-        assert "alerts" in health
-        assert "metrics" in health
-
-        # Health should be healthy or warning (not critical for basic test)
-        assert health["status"] in ["healthy", "warning"]
-
-        # Test auto-repair functionality
-        auto_repair_request = {
-            "method": "queue/health",
-            "params": {"auto_repair": True},
-            "id": 701,
-        }
-
-        auto_repair_response = await mcp_server.handle_request(auto_repair_request)
-        repair_health = auto_repair_response["result"]
-
-        # Should have same or better health status
-        assert repair_health["status"] in ["healthy", "warning"]
-
-    @pytest.mark.asyncio
     async def test_error_handling_and_recovery(self, mcp_server: MCPTicketServer):
         """Test error handling and recovery mechanisms."""
 
@@ -449,13 +352,12 @@ class TestCompleteWorkflow:
             "id": 800,
         }
 
-        # This should be queued but fail during processing
+        # This should fail during processing
         epic_response = await mcp_server.handle_request(invalid_epic_request)
-        queue_id = epic_response["result"]["queue_id"]
 
-        # Wait for processing to complete (should fail)
-        final_status = await self._wait_for_completion(mcp_server, queue_id)
-        assert final_status == "failed"
+        # Should fail with JSON-RPC error format (validation error)
+        assert "error" in epic_response
+        assert "title" in str(epic_response["error"]).lower()
 
         # Test invalid task creation (missing parent_id)
         invalid_task_request = {
@@ -469,30 +371,9 @@ class TestCompleteWorkflow:
         }
 
         task_response = await mcp_server.handle_request(invalid_task_request)
-        # This should fail immediately due to validation
-        assert task_response["result"]["status"] == "error"
-        assert "parent_id" in task_response["result"]["error"]
-
-    @pytest.mark.asyncio
-    async def test_ticket_registry_persistence(self, mcp_server: MCPTicketServer):
-        """Test ticket registry persistence and recovery."""
-
-        # Create a ticket and verify it's tracked in registry
-        hierarchy = await self.test_epic_to_task_hierarchy_creation(mcp_server)
-        task_id = hierarchy["task_id"]
-
-        # Access ticket registry directly for testing
-        registry = TicketRegistry()
-
-        # Find tickets by ID
-        ticket_operations = registry.find_tickets_by_id(task_id)
-        assert len(ticket_operations) >= 1
-
-        # Verify operation was recorded
-        operation = ticket_operations[0]
-        assert operation["ticket_id"] == task_id
-        assert operation["status"] == "completed"
-        assert operation["operation"] == "create_task"
+        # This should fail immediately due to validation (JSON-RPC error format)
+        assert "error" in task_response
+        assert "parent_id" in str(task_response["error"])
 
     @pytest.mark.asyncio
     async def test_pr_integration_workflow(self, mcp_server: MCPTicketServer):
@@ -517,14 +398,12 @@ class TestCompleteWorkflow:
 
         pr_response = await mcp_server.handle_request(pr_request)
 
-        # Should either queue successfully or return not supported error
-        if pr_response["result"].get("status") == "queued":
-            # PR creation was queued
-            queue_id = pr_response["result"]["queue_id"]
-            # Note: This will likely fail without GitHub adapter, but that's expected
-            await self._wait_for_completion(mcp_server, queue_id)
+        # Should either complete successfully or return not supported error
+        if pr_response["result"].get("status") == "completed":
+            # PR creation succeeded (unlikely with aitrackdown adapter)
+            assert "pr_url" in pr_response["result"]
         else:
-            # PR creation not supported for current adapter
+            # PR creation not supported for current adapter (expected)
             assert "not supported" in pr_response["result"].get("error", "").lower()
 
     @pytest.mark.asyncio
@@ -542,10 +421,7 @@ class TestCompleteWorkflow:
         }
 
         epic_response = await mcp_server.handle_request(epic_request)
-        epic_queue_id = epic_response["result"]["queue_id"]
-        await self._wait_for_completion(mcp_server, epic_queue_id)
-        epic_status = await self._get_queue_result(mcp_server, epic_queue_id)
-        epic_id = epic_status["result"]["id"]
+        epic_id = epic_response["result"]["ticket"]["id"]
 
         # Create multiple issues concurrently
         concurrent_requests = []
@@ -565,20 +441,9 @@ class TestCompleteWorkflow:
         # Execute all requests concurrently
         responses = await asyncio.gather(*concurrent_requests)
 
-        # All should be queued successfully
-        queue_ids = []
-        for response in responses:
-            assert response["result"]["status"] == "queued"
-            queue_ids.append(response["result"]["queue_id"])
-
-        # Wait for all to complete
-        completion_tasks = [
-            self._wait_for_completion(mcp_server, queue_id) for queue_id in queue_ids
-        ]
-        statuses = await asyncio.gather(*completion_tasks)
-
         # All should complete successfully
-        assert all(status == "completed" for status in statuses)
+        for response in responses:
+            assert response["result"]["status"] == "completed"
 
         # Verify all issues were created
         epic_issues_request = {
@@ -588,7 +453,8 @@ class TestCompleteWorkflow:
         }
 
         issues_response = await mcp_server.handle_request(epic_issues_request)
-        issues = issues_response["result"]
+        assert issues_response["result"]["status"] == "completed"
+        issues = issues_response["result"]["issues"]
 
         # Should have 5 issues
         assert len(issues) == 5

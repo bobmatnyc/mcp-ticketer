@@ -1,6 +1,7 @@
 """End-to-end tests for complete ticket workflow across all adapters."""
 
 import pytest
+import pytest_asyncio
 
 from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
 from mcp_ticketer.core.models import (
@@ -18,14 +19,12 @@ from mcp_ticketer.core.models import (
 class TestCompleteTicketWorkflow:
     """Test complete ticket workflow from creation to closure."""
 
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def adapter(self, tmp_path):
         """Create AITrackdown adapter for testing."""
         config = {"base_path": str(tmp_path / "test_tickets"), "auto_create_dirs": True}
         adapter = AITrackdownAdapter(config)
-        await adapter.initialize()
         yield adapter
-        await adapter.close()
 
     @pytest.mark.asyncio
     async def test_epic_to_task_complete_workflow(self, adapter):
@@ -95,7 +94,7 @@ class TestCompleteTicketWorkflow:
             created_children.append(created_child)
 
         # Step 4: Test complete state transition workflow
-        for i, child in enumerate(created_children):
+        for _i, child in enumerate(created_children):
             # OPEN → IN_PROGRESS
             updated = await adapter.transition_state(child.id, TicketState.IN_PROGRESS)
             assert updated.state == TicketState.IN_PROGRESS
@@ -103,7 +102,7 @@ class TestCompleteTicketWorkflow:
             # Add progress comment
             progress_comment = Comment(
                 ticket_id=child.id,
-                body=f"Started working on {child.title}",
+                content=f"Started working on {child.title}",
                 author=child.assignee,
             )
             await adapter.add_comment(progress_comment)
@@ -115,7 +114,7 @@ class TestCompleteTicketWorkflow:
             # Add ready comment
             ready_comment = Comment(
                 ticket_id=child.id,
-                body="Ready for review - implementation complete",
+                content="Ready for review - implementation complete",
                 author=child.assignee,
             )
             await adapter.add_comment(ready_comment)
@@ -127,7 +126,7 @@ class TestCompleteTicketWorkflow:
             # Add testing comment
             test_comment = Comment(
                 ticket_id=child.id,
-                body="Testing complete - all tests passing",
+                content="Testing complete - all tests passing",
                 author="qa@example.com",
             )
             await adapter.add_comment(test_comment)
@@ -139,16 +138,27 @@ class TestCompleteTicketWorkflow:
             # Add completion comment
             done_comment = Comment(
                 ticket_id=child.id,
-                body="Task completed successfully",
+                content="Task completed successfully",
                 author="pm@example.com",
             )
             await adapter.add_comment(done_comment)
 
         # Step 5: Transition parent Issue when all children are done
+        # Follow proper state machine: OPEN → IN_PROGRESS → READY → TESTED → DONE
         updated_parent = await adapter.transition_state(
             created_parent.id, TicketState.IN_PROGRESS
         )
         assert updated_parent.state == TicketState.IN_PROGRESS
+
+        updated_parent = await adapter.transition_state(
+            created_parent.id, TicketState.READY
+        )
+        assert updated_parent.state == TicketState.READY
+
+        updated_parent = await adapter.transition_state(
+            created_parent.id, TicketState.TESTED
+        )
+        assert updated_parent.state == TicketState.TESTED
 
         updated_parent = await adapter.transition_state(
             created_parent.id, TicketState.DONE
@@ -156,10 +166,21 @@ class TestCompleteTicketWorkflow:
         assert updated_parent.state == TicketState.DONE
 
         # Step 6: Transition Epic when parent Issue is done
+        # Follow proper state machine: OPEN → IN_PROGRESS → READY → TESTED → DONE
         updated_epic = await adapter.transition_state(
             created_epic.id, TicketState.IN_PROGRESS
         )
         assert updated_epic.state == TicketState.IN_PROGRESS
+
+        updated_epic = await adapter.transition_state(
+            created_epic.id, TicketState.READY
+        )
+        assert updated_epic.state == TicketState.READY
+
+        updated_epic = await adapter.transition_state(
+            created_epic.id, TicketState.TESTED
+        )
+        assert updated_epic.state == TicketState.TESTED
 
         updated_epic = await adapter.transition_state(created_epic.id, TicketState.DONE)
         assert updated_epic.state == TicketState.DONE
@@ -180,7 +201,7 @@ class TestCompleteTicketWorkflow:
             assert len(comments) >= 4  # Progress, ready, test, done comments
 
             # Verify comment content
-            comment_bodies = [c.body for c in comments]
+            comment_bodies = [c.content for c in comments]
             assert any("Started working" in body for body in comment_bodies)
             assert any("Ready for review" in body for body in comment_bodies)
             assert any("Testing complete" in body for body in comment_bodies)
@@ -248,19 +269,25 @@ class TestCompleteTicketWorkflow:
         # Add blocking comment
         block_comment = Comment(
             ticket_id=created_task.id,
-            body="Blocked waiting for external API documentation",
+            content="Blocked waiting for external API documentation",
             author="developer@example.com",
         )
         await adapter.add_comment(block_comment)
 
-        # Move to waiting state
+        # Resume from blocked, then move to waiting state
+        # (BLOCKED -> WAITING is not valid, must go through IN_PROGRESS)
+        unblocked = await adapter.transition_state(
+            created_task.id, TicketState.IN_PROGRESS
+        )
+        assert unblocked.state == TicketState.IN_PROGRESS
+
         waiting = await adapter.transition_state(created_task.id, TicketState.WAITING)
         assert waiting.state == TicketState.WAITING
 
         # Add waiting comment
         wait_comment = Comment(
             ticket_id=created_task.id,
-            body="Waiting for API team to provide documentation",
+            content="Waiting for API team to provide documentation",
             author="developer@example.com",
         )
         await adapter.add_comment(wait_comment)
@@ -274,12 +301,18 @@ class TestCompleteTicketWorkflow:
         # Add resume comment
         resume_comment = Comment(
             ticket_id=created_task.id,
-            body="API documentation received, resuming work",
+            content="API documentation received, resuming work",
             author="developer@example.com",
         )
         await adapter.add_comment(resume_comment)
 
-        # Complete the task
+        # Complete the task (following valid state machine: IN_PROGRESS -> READY -> TESTED -> DONE)
+        ready = await adapter.transition_state(created_task.id, TicketState.READY)
+        assert ready.state == TicketState.READY
+
+        tested = await adapter.transition_state(created_task.id, TicketState.TESTED)
+        assert tested.state == TicketState.TESTED
+
         completed = await adapter.transition_state(created_task.id, TicketState.DONE)
         assert completed.state == TicketState.DONE
 
@@ -287,7 +320,7 @@ class TestCompleteTicketWorkflow:
         comments = await adapter.get_comments(created_task.id)
         assert len(comments) >= 3
 
-        comment_bodies = [c.body for c in comments]
+        comment_bodies = [c.content for c in comments]
         assert any("Blocked waiting" in body for body in comment_bodies)
         assert any("Waiting for API team" in body for body in comment_bodies)
         assert any("resuming work" in body for body in comment_bodies)

@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 # Import the necessary modules
-from src.mcp_ticketer.cli.main import load_config
+from mcp_ticketer.cli.main import load_config
 
 
 def test_serve_command_respects_project_config():
