@@ -185,6 +185,7 @@ async def test_jira_adapter():
         await adapter.close()
 
 
+@pytest.mark.asyncio
 async def test_jira_jql():
     """Test JIRA JQL queries."""
     print("\n=== JIRA JQL Test ===\n")
