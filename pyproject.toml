@@ -151,7 +151,7 @@ extend-exclude = '''
 '''
 
 [tool.ruff]
-target-version = "py39"
+target-version = "0.3.3"
 line-length = 88
 
 [tool.ruff.lint]
