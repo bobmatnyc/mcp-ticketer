@@ -5,6 +5,7 @@ import asyncio
 import os
 from datetime import datetime
 
+import pytest
 from dotenv import load_dotenv
 
 from mcp_ticketer.adapters.jira import JiraAdapter
@@ -26,6 +27,7 @@ def get_test_config():
     }
 
 
+@pytest.mark.asyncio
 async def test_jira_adapter():
     """Test basic JIRA adapter operations."""
     print("\n=== JIRA Adapter Test ===\n")
