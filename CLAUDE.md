@@ -10,10 +10,11 @@
 ## PRIORITY INDEX
 
 ### 🔴 CRITICAL - Read First
-1. [Single-Path Principle](#-critical-single-path-principle)
-2. [Core Architecture](#-critical-core-architecture)
-3. [Quick Commands](#-critical-quick-commands)
-4. [DO NOT](#-critical-do-not)
+1. [Environment Variables](#-critical-environment-variables)
+2. [Single-Path Principle](#-critical-single-path-principle)
+3. [Core Architecture](#-critical-core-architecture)
+4. [Quick Commands](#-critical-quick-commands)
+5. [DO NOT](#-critical-do-not)
 
 ### 🟡 IMPORTANT - Core Operations
 5. [Development Workflow](#-important-development-workflow)
@@ -30,6 +31,51 @@
 12. [Custom Extensions](#-optional-custom-extensions)
 13. [AI Agent Integration](#-optional-ai-agent-integration)
 14. [Memory System](#-optional-memory-system)
+
+---
+
+## 🔴 CRITICAL: Environment Variables
+
+### THE ONLY PLACE TO LOOK FOR CREDENTIALS
+
+**ALL API keys, tokens, and credentials are stored in `.env.local` - ALWAYS check there FIRST!**
+
+```bash
+# Location: .env.local (in project root)
+# This file contains ALL credentials for:
+
+LINEAR_API_KEY=xxx                 # Linear API authentication
+LINEAR_TEAM_ID=xxx                 # Linear team identifier
+LINEAR_TEAM_KEY=xxx               # Linear team key
+
+GITHUB_TOKEN=xxx                   # GitHub personal access token
+GITHUB_OWNER=xxx                  # GitHub repository owner
+
+JIRA_ACCESS_USER=xxx              # JIRA user email
+JIRA_ACCESS_TOKEN=xxx             # JIRA API token
+JIRA_ORGANIZATION_ID=xxx          # JIRA organization ID
+
+PYPI_TOKEN=xxx                    # PyPI API token for publishing
+```
+
+**CRITICAL RULES:**
+1. **ALWAYS** check `.env.local` for credentials BEFORE asking user
+2. **NEVER** ask "where is the PyPI token?" - it's in `.env.local`
+3. **NEVER** ask "how do I authenticate?" - credentials are in `.env.local`
+4. **ALWAYS** use environment variables from `.env.local` for publishing
+5. `.env.local` is gitignored - safe for secrets
+
+**Publishing to PyPI - THE ONLY WAY:**
+```bash
+# Load credentials from .env.local
+source .env.local
+
+# Publish using token from environment
+TWINE_USERNAME=__token__ TWINE_PASSWORD=$PYPI_TOKEN python3 -m twine upload dist/*
+
+# OR use the make target (sources .env.local automatically)
+make publish-prod
+```
 
 ---
 
