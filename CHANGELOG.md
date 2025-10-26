@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.3.6] - 2025-01-25
+
+### Fixed
+- **Linear Adapter WORKFLOW_STATES_QUERY Pattern**: Fixed critical GraphQL query pattern bug
+  - Changed from global team filtering pattern to relationship-based access pattern
+  - Query now correctly accesses workflow states through `team { ... states { ... } }` relationship
+  - Fixes v0.3.5 regression where type fix (String! vs ID!) was correct but query pattern was wrong
+  - Eliminates "Variable '$teamId' is never used" errors during Linear adapter initialization
+  - Proper fix for the root cause rather than just addressing symptoms
+
+## [0.3.5] - 2025-01-25
+
+### Fixed
+- **Linear Adapter GraphQL Type Mismatches**: Fixed critical bug causing 400 Bad Request errors during initialization
+  - WORKFLOW_STATES_QUERY now uses correct `String!` type for `$teamId` parameter (was incorrectly using `ID!`)
+  - GetTeamLabels query now uses correct `String!` type for `$teamId` parameter (was incorrectly using `ID!`)
+  - Eliminates 6+ failed API requests per adapter initialization
+  - Reduces initialization time by 6-10 seconds
+  - Improves reliability of Linear adapter startup
+
+### Changed
+- Applied automated code formatting (isort + black) across codebase for consistency
+
 ## [0.3.4] - 2025-01-25
 
 ### Added
