@@ -861,6 +861,44 @@ class MCPTicketServer:
                         "required": ["title"],
                     },
                 },
+                {
+                    "name": "ticket_comment",
+                    "description": "Add or list comments on a ticket",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "operation": {
+                                "type": "string",
+                                "enum": ["add", "list"],
+                                "description": "Operation to perform: 'add' to create a comment, 'list' to retrieve comments",
+                                "default": "add",
+                            },
+                            "ticket_id": {
+                                "type": "string",
+                                "description": "Ticket ID to comment on",
+                            },
+                            "content": {
+                                "type": "string",
+                                "description": "Comment content (required for 'add' operation)",
+                            },
+                            "author": {
+                                "type": "string",
+                                "description": "Comment author (optional for 'add' operation)",
+                            },
+                            "limit": {
+                                "type": "integer",
+                                "default": 10,
+                                "description": "Maximum number of comments to return (for 'list' operation)",
+                            },
+                            "offset": {
+                                "type": "integer",
+                                "default": 0,
+                                "description": "Number of comments to skip (for 'list' operation)",
+                            },
+                        },
+                        "required": ["ticket_id"],
+                    },
+                },
             ]
         }
 
@@ -913,6 +951,8 @@ class MCPTicketServer:
                 result = await self._handle_transition(arguments)
             elif tool_name == "ticket_search":
                 result = await self._handle_search(arguments)
+            elif tool_name == "ticket_comment":
+                result = await self._handle_comment(arguments)
             # PR integration
             elif tool_name == "ticket_create_pr":
                 result = await self._handle_create_pr(arguments)

@@ -1102,6 +1102,22 @@ mcp-ticketer transition TASK-456 closed
   "target_state": "in_progress"
 }
 
+// ticket/comment - Add or list comments
+{
+  "operation": "add",
+  "ticket_id": "TASK-123",
+  "content": "Fixed the authentication issue",
+  "author": "john.doe"  // optional
+}
+
+// ticket/comment - List comments
+{
+  "operation": "list",
+  "ticket_id": "TASK-123",
+  "limit": 10,
+  "offset": 0
+}
+
 // ticket/status - Check queue job status
 {
   "queue_id": "job-uuid-here"

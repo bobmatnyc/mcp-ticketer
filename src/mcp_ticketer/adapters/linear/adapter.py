@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import os
 from typing import Any
 
@@ -18,15 +20,27 @@ from ...core.adapter import BaseAdapter
 from ...core.models import Comment, Epic, SearchQuery, Task, TicketState
 from ...core.registry import AdapterRegistry
 from .client import LinearGraphQLClient
-from .mappers import (build_linear_issue_input,
-                      build_linear_issue_update_input,
-                      map_linear_comment_to_comment, map_linear_issue_to_task,
-                      map_linear_project_to_epic)
-from .queries import (ALL_FRAGMENTS, CREATE_ISSUE_MUTATION, LIST_ISSUES_QUERY,
-                      SEARCH_ISSUES_QUERY, UPDATE_ISSUE_MUTATION,
-                      WORKFLOW_STATES_QUERY)
-from .types import (LinearStateMapping, build_issue_filter,
-                    get_linear_priority, get_linear_state_type)
+from .mappers import (
+    build_linear_issue_input,
+    build_linear_issue_update_input,
+    map_linear_comment_to_comment,
+    map_linear_issue_to_task,
+    map_linear_project_to_epic,
+)
+from .queries import (
+    ALL_FRAGMENTS,
+    CREATE_ISSUE_MUTATION,
+    LIST_ISSUES_QUERY,
+    SEARCH_ISSUES_QUERY,
+    UPDATE_ISSUE_MUTATION,
+    WORKFLOW_STATES_QUERY,
+)
+from .types import (
+    LinearStateMapping,
+    build_issue_filter,
+    get_linear_priority,
+    get_linear_state_type,
+)
 
 
 class LinearAdapter(BaseAdapter[Task]):
@@ -206,12 +220,14 @@ class LinearAdapter(BaseAdapter[Task]):
             raise ValueError(f"Failed to load workflow states: {e}")
 
     async def _load_team_labels(self, team_id: str) -> None:
-        """Load and cache labels for the team.
+        """Load and cache labels for the team with retry logic.
 
         Args:
             team_id: Linear team ID
 
         """
+        logger = logging.getLogger(__name__)
+
         query = """
             query GetTeamLabels($teamId: String!) {
                 team(id: $teamId) {
@@ -227,15 +243,32 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """
 
-        try:
-            result = await self.client.execute_query(query, {"teamId": team_id})
-            self._labels_cache = result["team"]["labels"]["nodes"]
-        except Exception:
-            # Log error but don't fail - labels are optional
-            self._labels_cache = []
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                result = await self.client.execute_query(query, {"teamId": team_id})
+                labels = result.get("team", {}).get("labels", {}).get("nodes", [])
+                self._labels_cache = labels
+                logger.info(f"Loaded {len(labels)} labels for team {team_id}")
+                return  # Success
+
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    wait_time = 2**attempt
+                    logger.warning(
+                        f"Failed to load labels (attempt {attempt + 1}/{max_retries}): {e}. "
+                        f"Retrying in {wait_time}s..."
+                    )
+                    await asyncio.sleep(wait_time)
+                else:
+                    logger.error(
+                        f"Failed to load team labels after {max_retries} attempts: {e}",
+                        exc_info=True,
+                    )
+                    self._labels_cache = []  # Explicitly empty on failure
 
     async def _resolve_label_ids(self, label_names: list[str]) -> list[str]:
-        """Resolve label names to Linear label IDs.
+        """Resolve label names to Linear label IDs with proper None vs empty list handling.
 
         Args:
             label_names: List of label names
@@ -244,16 +277,25 @@ class LinearAdapter(BaseAdapter[Task]):
             List of Linear label IDs that exist
 
         """
-        import logging
-
         logger = logging.getLogger(__name__)
 
-        if not self._labels_cache:
+        # None = not loaded yet, [] = loaded but empty or failed
+        if self._labels_cache is None:
             team_id = await self._ensure_team_id()
             await self._load_team_labels(team_id)
 
+        if self._labels_cache is None:
+            # Still None after load attempt - should not happen
+            logger.error(
+                "Label cache is None after load attempt. Tags will be skipped."
+            )
+            return []
+
         if not self._labels_cache:
-            logger.warning("No labels found in team cache")
+            # Empty list - either no labels in team or load failed
+            logger.warning(
+                f"Team has no labels available. Cannot resolve tags: {label_names}"
+            )
             return []
 
         # Create name -> ID mapping (case-insensitive)
@@ -823,7 +865,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
             comment_input = {
                 "issueId": linear_id,
-                "body": comment.body,
+                "body": comment.content,
             }
 
             result = await self.client.execute_mutation(
