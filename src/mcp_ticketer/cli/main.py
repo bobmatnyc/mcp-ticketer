@@ -24,9 +24,10 @@ from ..queue.ticket_registry import TicketRegistry
 from .configure import configure_wizard, set_adapter_config, show_current_config
 from .diagnostics import run_diagnostics
 from .discover import app as discover_app
-from .linear_commands import app as linear_app
 from .migrate_config import migrate_config_command
+from .platform_commands import app as platform_app
 from .queue_commands import app as queue_app
+from .ticket_commands import app as ticket_app
 
 # Load environment variables from .env files
 # Priority: .env.local (highest) > .env (base)
@@ -1142,9 +1143,14 @@ def migrate_config(
     migrate_config_command(dry_run=dry_run)
 
 
-@app.command("status")
-def status_command():
-    """Show queue and worker status."""
+@app.command("queue-status", deprecated=True, hidden=True)
+def old_queue_status_command():
+    """Show queue and worker status.
+
+    DEPRECATED: Use 'mcp-ticketer queue status' instead.
+    """
+    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer queue status' instead.[/yellow]\n")
+
     queue = Queue()
     manager = WorkerManager()
 
@@ -1169,12 +1175,12 @@ def status_command():
         console.print("\n[red]○ Worker is not running[/red]")
         if pending > 0:
             console.print(
-                "[yellow]Note: There are pending items. Start worker with 'mcp-ticketer worker start'[/yellow]"
+                "[yellow]Note: There are pending items. Start worker with 'mcp-ticketer queue worker start'[/yellow]"
             )
 
 
-@app.command()
-def health(
+@app.command("queue-health", deprecated=True, hidden=True)
+def old_queue_health_command(
     auto_repair: bool = typer.Option(
         False, "--auto-repair", help="Attempt automatic repair of issues"
     ),
@@ -1182,7 +1188,11 @@ def health(
         False, "--verbose", "-v", help="Show detailed health information"
     ),
 ) -> None:
-    """Check queue system health and detect issues immediately."""
+    """Check queue system health and detect issues immediately.
+
+    DEPRECATED: Use 'mcp-ticketer queue health' instead.
+    """
+    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer queue health' instead.[/yellow]\n")
     health_monitor = QueueHealthMonitor()
     health = health_monitor.check_health()
 
@@ -1251,7 +1261,7 @@ def health(
         raise typer.Exit(2)
 
 
-@app.command()
+@app.command(deprecated=True, hidden=True)
 def create(
     title: str = typer.Argument(..., help="Ticket title"),
     description: Optional[str] = typer.Option(
@@ -1280,7 +1290,12 @@ def create(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
-    """Create a new ticket with comprehensive health checks."""
+    """Create a new ticket with comprehensive health checks.
+
+    DEPRECATED: Use 'mcp-ticketer ticket create' instead.
+    """
+    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket create' instead.[/yellow]\n")
+
     # IMMEDIATE HEALTH CHECK - Critical for reliability
     health_monitor = QueueHealthMonitor()
     health = health_monitor.check_health()
@@ -1476,7 +1491,7 @@ def create(
             )
 
 
-@app.command("list")
+@app.command("list", deprecated=True, hidden=True)
 def list_tickets(
     state: Optional[TicketState] = typer.Option(
         None, "--state", "-s", help="Filter by state"
@@ -1489,7 +1504,11 @@ def list_tickets(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
-    """List tickets with optional filters."""
+    """List tickets with optional filters.
+
+    DEPRECATED: Use 'mcp-ticketer ticket list' instead.
+    """
+    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket list' instead.[/yellow]\n")
 
     async def _list():
         adapter_instance = get_adapter(
@@ -1531,7 +1550,7 @@ def list_tickets(
     console.print(table)
 
 
-@app.command()
+@app.command(deprecated=True, hidden=True)
 def show(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
     comments: bool = typer.Option(False, "--comments", "-c", help="Show comments"),
@@ -1539,7 +1558,11 @@ def show(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
-    """Show detailed ticket information."""
+    """Show detailed ticket information.
+
+    DEPRECATED: Use 'mcp-ticketer ticket show' instead.
+    """
+    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket show' instead.[/yellow]\n")
 
     async def _show():
         adapter_instance = get_adapter(
@@ -1581,7 +1604,7 @@ def show(
             console.print(comment.content)
 
 
-@app.command()
+@app.command(deprecated=True, hidden=True)
 def comment(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
     content: str = typer.Argument(..., help="Comment content"),
@@ -1589,7 +1612,11 @@ def comment(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
-    """Add a comment to a ticket."""
+    """Add a comment to a ticket.
+
+    DEPRECATED: Use 'mcp-ticketer ticket comment' instead.
+    """
+    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket comment' instead.[/yellow]\n")
 
     async def _comment():
         adapter_instance = get_adapter(
@@ -1617,7 +1644,7 @@ def comment(
         raise typer.Exit(1)
 
 
-@app.command()
+@app.command(deprecated=True, hidden=True)
 def update(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
     title: Optional[str] = typer.Option(None, "--title", help="New title"),
@@ -1634,7 +1661,11 @@ def update(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
-    """Update ticket fields."""
+    """Update ticket fields.
+
+    DEPRECATED: Use 'mcp-ticketer ticket update' instead.
+    """
+    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket update' instead.[/yellow]\n")
     updates = {}
     if title:
         updates["title"] = title
@@ -1681,7 +1712,7 @@ def update(
         console.print("[dim]Worker started to process request[/dim]")
 
 
-@app.command()
+@app.command(deprecated=True, hidden=True)
 def transition(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
     state_positional: Optional[TicketState] = typer.Argument(
@@ -1696,15 +1727,19 @@ def transition(
 ) -> None:
     """Change ticket state with validation.
 
+    DEPRECATED: Use 'mcp-ticketer ticket transition' instead.
+
     Examples:
         # Recommended syntax with flag:
-        mcp-ticketer transition BTA-215 --state done
-        mcp-ticketer transition BTA-215 -s in_progress
+        mcp-ticketer ticket transition BTA-215 --state done
+        mcp-ticketer ticket transition BTA-215 -s in_progress
 
         # Legacy positional syntax (still supported):
-        mcp-ticketer transition BTA-215 done
+        mcp-ticketer ticket transition BTA-215 done
 
     """
+    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket transition' instead.[/yellow]\n")
+
     # Determine which state to use (prefer flag over positional)
     target_state = state if state is not None else state_positional
 
@@ -1747,7 +1782,7 @@ def transition(
         console.print("[dim]Worker started to process request[/dim]")
 
 
-@app.command()
+@app.command(deprecated=True, hidden=True)
 def search(
     query: Optional[str] = typer.Argument(None, help="Search query"),
     state: Optional[TicketState] = typer.Option(None, "--state", "-s"),
@@ -1758,7 +1793,11 @@ def search(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
-    """Search tickets with advanced query."""
+    """Search tickets with advanced query.
+
+    DEPRECATED: Use 'mcp-ticketer ticket search' instead.
+    """
+    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket search' instead.[/yellow]\n")
 
     async def _search():
         adapter_instance = get_adapter(
@@ -1790,6 +1829,12 @@ def search(
         console.print()
 
 
+# Add ticket command group to main app
+app.add_typer(ticket_app, name="ticket")
+
+# Add platform command group to main app
+app.add_typer(platform_app, name="platform")
+
 # Add queue command to main app
 app.add_typer(queue_app, name="queue")
 
@@ -1798,8 +1843,8 @@ app.add_typer(discover_app, name="discover")
 
 
 # Add diagnostics command
-@app.command()
-def diagnose(
+@app.command("diagnose")
+def diagnose_command(
     output_file: Optional[str] = typer.Option(
         None, "--output", "-o", help="Save full report to file"
     ),
@@ -1810,7 +1855,7 @@ def diagnose(
         False, "--simple", help="Use simple diagnostics (no heavy dependencies)"
     ),
 ) -> None:
-    """Run comprehensive system diagnostics and health check."""
+    """Run comprehensive system diagnostics and health check (alias: doctor)."""
     if simple:
         from .simple_health import simple_diagnose
 
@@ -1845,9 +1890,36 @@ def diagnose(
                 raise typer.Exit(1)
 
 
-@app.command()
-def health() -> None:
-    """Quick health check - shows system status summary."""
+@app.command("doctor")
+def doctor_alias(
+    output_file: Optional[str] = typer.Option(
+        None, "--output", "-o", help="Save full report to file"
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", help="Output report in JSON format"
+    ),
+    simple: bool = typer.Option(
+        False, "--simple", help="Use simple diagnostics (no heavy dependencies)"
+    ),
+) -> None:
+    """Run comprehensive system diagnostics and health check (alias for diagnose)."""
+    # Call the diagnose_command function with the same parameters
+    diagnose_command(output_file=output_file, json_output=json_output, simple=simple)
+
+
+@app.command("status")
+def status_command() -> None:
+    """Quick health check - shows system status summary (alias: health)."""
+    from .simple_health import simple_health_check
+
+    result = simple_health_check()
+    if result != 0:
+        raise typer.Exit(result)
+
+
+@app.command("health")
+def health_alias() -> None:
+    """Quick health check - shows system status summary (alias for status)."""
     from .simple_health import simple_health_check
 
     result = simple_health_check()
@@ -1863,9 +1935,13 @@ mcp_app = typer.Typer(
 )
 
 
-@app.command()
+@app.command(deprecated=True, hidden=True)
 def check(queue_id: str = typer.Argument(..., help="Queue ID to check")):
-    """Check status of a queued operation."""
+    """Check status of a queued operation.
+
+    DEPRECATED: Use 'mcp-ticketer ticket check' instead.
+    """
+    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket check' instead.[/yellow]\n")
     queue = Queue()
     item = queue.get_item(queue_id)
 
@@ -2141,7 +2217,6 @@ def mcp_auggie(
 
 
 # Add command groups to main app (must be after all subcommands are defined)
-app.add_typer(linear_app, name="linear")
 app.add_typer(mcp_app, name="mcp")
 
 
