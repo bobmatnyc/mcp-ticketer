@@ -326,12 +326,14 @@ class TestLinearAdapterInitialization:
         adapter = LinearAdapter(config)
 
         mock_result = {
-            "workflowStates": {
-                "nodes": [
-                    {"id": "state-1", "type": "unstarted", "position": 1},
-                    {"id": "state-2", "type": "started", "position": 1},
-                    {"id": "state-3", "type": "completed", "position": 1},
-                ]
+            "team": {
+                "states": {
+                    "nodes": [
+                        {"id": "state-1", "type": "unstarted", "position": 1},
+                        {"id": "state-2", "type": "started", "position": 1},
+                        {"id": "state-3", "type": "completed", "position": 1},
+                    ]
+                }
             }
         }
 
