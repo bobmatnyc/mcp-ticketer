@@ -234,3 +234,12 @@ virtualenv/
 
 # Gemini CLI
 .gemini/
+
+# Added by Claude MPM /mpm-init
+.claude-mpm/*.log
+.claude-mpm/cache/
+.claude-mpm/logs/
+.claude-mpm/sessions/
+.claude-mpm/tmp/
+.claude/cache/
+.claude/sessions/
