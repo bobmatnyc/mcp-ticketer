@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Optional, Union
 
 from ..core.adapter import BaseAdapter
-from ..core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
+from ..core.models import Attachment, Comment, Epic, Priority, SearchQuery, Task, TicketState
 from ..core.registry import AdapterRegistry
 
 # Import ai-trackdown-pytools when available
@@ -611,6 +611,212 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             if hasattr(ticket, "parent_issue") and ticket.parent_issue == issue_id:
                 tasks.append(ticket)
         return tasks
+
+    def _sanitize_filename(self, filename: str) -> str:
+        """Sanitize filename to prevent security issues.
+
+        Args:
+            filename: Original filename
+
+        Returns:
+            Sanitized filename safe for filesystem
+
+        """
+        # Remove path separators and other dangerous characters
+        safe_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._- ")
+        sanitized = "".join(c if c in safe_chars else "_" for c in filename)
+
+        # Ensure filename is not empty
+        if not sanitized.strip():
+            return "unnamed_file"
+
+        return sanitized.strip()
+
+    def _guess_content_type(self, file_path: Path) -> str:
+        """Guess MIME type from file extension.
+
+        Args:
+            file_path: Path to file
+
+        Returns:
+            MIME type string
+
+        """
+        import mimetypes
+
+        content_type, _ = mimetypes.guess_type(str(file_path))
+        return content_type or "application/octet-stream"
+
+    def _calculate_checksum(self, file_path: Path) -> str:
+        """Calculate SHA256 checksum of file.
+
+        Args:
+            file_path: Path to file
+
+        Returns:
+            Hexadecimal checksum string
+
+        """
+        import hashlib
+
+        sha256 = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            # Read in chunks to handle large files
+            for chunk in iter(lambda: f.read(4096), b""):
+                sha256.update(chunk)
+
+        return sha256.hexdigest()
+
+    async def add_attachment(
+        self,
+        ticket_id: str,
+        file_path: str,
+        description: Optional[str] = None,
+    ) -> Attachment:
+        """Attach a file to a ticket (local filesystem storage).
+
+        Args:
+            ticket_id: Ticket identifier
+            file_path: Local file path to attach
+            description: Optional attachment description
+
+        Returns:
+            Attachment metadata
+
+        Raises:
+            ValueError: If ticket doesn't exist
+            FileNotFoundError: If file doesn't exist
+
+        """
+        import shutil
+
+        # Validate ticket exists
+        ticket = await self.read(ticket_id)
+        if not ticket:
+            raise ValueError(f"Ticket {ticket_id} not found")
+
+        # Validate file exists
+        source_path = Path(file_path).resolve()
+        if not source_path.exists():
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        # Check file size (max 100MB for local storage)
+        size_mb = source_path.stat().st_size / (1024 * 1024)
+        if size_mb > 100:
+            raise ValueError(f"File too large: {size_mb:.2f}MB (max: 100MB)")
+
+        # Create attachments directory for this ticket
+        attachments_dir = self.base_path / "attachments" / ticket_id
+        attachments_dir.mkdir(parents=True, exist_ok=True)
+
+        # Generate unique filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
+        safe_filename = self._sanitize_filename(source_path.name)
+        attachment_id = f"{timestamp}-{safe_filename}"
+        dest_path = attachments_dir / attachment_id
+
+        # Copy file to attachments directory
+        shutil.copy2(source_path, dest_path)
+
+        # Create attachment metadata
+        attachment = Attachment(
+            id=attachment_id,
+            ticket_id=ticket_id,
+            filename=source_path.name,
+            url=f"file://{dest_path.absolute()}",
+            content_type=self._guess_content_type(source_path),
+            size_bytes=source_path.stat().st_size,
+            created_at=datetime.now(),
+            description=description,
+            metadata={
+                "original_path": str(source_path),
+                "storage_path": str(dest_path),
+                "checksum": self._calculate_checksum(dest_path),
+            },
+        )
+
+        # Save metadata to JSON file
+        metadata_file = attachments_dir / f"{attachment_id}.json"
+        with open(metadata_file, "w") as f:
+            # Convert to dict and handle datetime serialization
+            data = attachment.model_dump()
+            json.dump(data, f, indent=2, default=str)
+
+        return attachment
+
+    async def get_attachments(self, ticket_id: str) -> builtins.list[Attachment]:
+        """Get all attachments for a ticket.
+
+        Args:
+            ticket_id: Ticket identifier
+
+        Returns:
+            List of attachments (empty if none)
+
+        """
+        attachments_dir = self.base_path / "attachments" / ticket_id
+        if not attachments_dir.exists():
+            return []
+
+        attachments = []
+        for metadata_file in attachments_dir.glob("*.json"):
+            try:
+                with open(metadata_file) as f:
+                    data = json.load(f)
+                    # Convert ISO datetime strings back to datetime objects
+                    if isinstance(data.get("created_at"), str):
+                        data["created_at"] = datetime.fromisoformat(
+                            data["created_at"].replace("Z", "+00:00")
+                        )
+                    attachment = Attachment(**data)
+                    attachments.append(attachment)
+            except (json.JSONDecodeError, ValueError) as e:
+                # Log error but continue processing other attachments
+                print(
+                    f"Warning: Failed to load attachment metadata from {metadata_file}: {e}"
+                )
+                continue
+
+        # Sort by creation time (newest first)
+        return sorted(
+            attachments,
+            key=lambda a: a.created_at or datetime.min,
+            reverse=True,
+        )
+
+    async def delete_attachment(
+        self,
+        ticket_id: str,
+        attachment_id: str,
+    ) -> bool:
+        """Delete an attachment and its metadata.
+
+        Args:
+            ticket_id: Ticket identifier
+            attachment_id: Attachment identifier
+
+        Returns:
+            True if deleted, False if not found
+
+        """
+        attachments_dir = self.base_path / "attachments" / ticket_id
+        if not attachments_dir.exists():
+            return False
+
+        # Delete attachment file
+        attachment_file = attachments_dir / attachment_id
+        metadata_file = attachments_dir / f"{attachment_id}.json"
+
+        deleted = False
+        if attachment_file.exists():
+            attachment_file.unlink()
+            deleted = True
+
+        if metadata_file.exists():
+            metadata_file.unlink()
+            deleted = True
+
+        return deleted
 
 
 # Register the adapter

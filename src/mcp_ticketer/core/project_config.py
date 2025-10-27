@@ -582,6 +582,12 @@ class ConfigResolver:
                 overrides["team_id"] = os.getenv("MCP_TICKETER_LINEAR_TEAM_ID")
             if os.getenv("LINEAR_API_KEY"):
                 overrides["api_key"] = os.getenv("LINEAR_API_KEY")
+            if os.getenv("LINEAR_TEAM_ID"):
+                overrides["team_id"] = os.getenv("LINEAR_TEAM_ID")
+            if os.getenv("LINEAR_TEAM_KEY"):
+                overrides["team_key"] = os.getenv("LINEAR_TEAM_KEY")
+            if os.getenv("MCP_TICKETER_LINEAR_TEAM_KEY"):
+                overrides["team_key"] = os.getenv("MCP_TICKETER_LINEAR_TEAM_KEY")
 
         elif adapter_type == AdapterType.GITHUB.value:
             if os.getenv("MCP_TICKETER_GITHUB_TOKEN"):

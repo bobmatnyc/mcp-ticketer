@@ -172,7 +172,9 @@ def remove_codex_mcp(dry_run: bool = False) -> None:
 
     # Step 2: Check if config file exists
     if not codex_config_path.exists():
-        console.print(f"[yellow]⚠ No configuration found at {codex_config_path}[/yellow]")
+        console.print(
+            f"[yellow]⚠ No configuration found at {codex_config_path}[/yellow]"
+        )
         console.print("[dim]mcp-ticketer is not configured for Codex CLI[/dim]")
         return
 

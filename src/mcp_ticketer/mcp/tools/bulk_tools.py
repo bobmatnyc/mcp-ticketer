@@ -6,8 +6,8 @@ efficiency when working with multiple items.
 
 from typing import Any
 
-from ..server_sdk import get_adapter, mcp
 from ...core.models import Priority, Task, TicketState, TicketType
+from ..server_sdk import get_adapter, mcp
 
 
 @mcp.tool()

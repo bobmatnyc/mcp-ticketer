@@ -77,9 +77,13 @@ make init-aitrackdown
 ```bash
 # Set environment variables
 export LINEAR_API_KEY="lin_api_your_key_here"
-export LINEAR_TEAM_ID="your_team_id"
 
-# Initialize Linear adapter
+# Option 1: Use team key (recommended)
+export LINEAR_TEAM_KEY="ENG"
+mcp-ticketer init --adapter linear --team-key $LINEAR_TEAM_KEY
+
+# Option 2: Use team ID
+export LINEAR_TEAM_ID="your_team_id"
 mcp-ticketer init --adapter linear --team-id $LINEAR_TEAM_ID
 
 # Or using Make
@@ -87,6 +91,8 @@ make init-linear
 ```
 
 **Get API Key**: https://linear.app/settings/api
+
+**Find Team Key**: Go to Linear Settings → Teams → Your Team → "Key" field (e.g., "ENG", "DESIGN")
 
 ### Option C: JIRA (Requires JIRA Account)
 
@@ -244,6 +250,56 @@ mcp-ticketer search "authentication" --state open --priority high
 # Using Make
 make search QUERY="login bug"
 ```
+
+### Work with Attachments (AITrackdown only)
+
+```bash
+# Add a file attachment (via Python)
+python -c "
+import asyncio
+from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
+
+async def main():
+    adapter = AITrackdownAdapter({'base_path': '.aitrackdown'})
+    attachment = await adapter.add_attachment(
+        ticket_id='task-123',
+        file_path='./specs/design.pdf',
+        description='Final design document'
+    )
+    print(f'Attached: {attachment.filename}')
+
+asyncio.run(main())
+"
+
+# List ticket attachments (via Python)
+python -c "
+import asyncio
+from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
+
+async def main():
+    adapter = AITrackdownAdapter({'base_path': '.aitrackdown'})
+    attachments = await adapter.get_attachments('task-123')
+    for att in attachments:
+        print(f'{att.filename}: {att.size_bytes} bytes')
+
+asyncio.run(main())
+"
+
+# Delete attachment (via Python)
+python -c "
+import asyncio
+from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
+
+async def main():
+    adapter = AITrackdownAdapter({'base_path': '.aitrackdown'})
+    await adapter.delete_attachment('task-123', 'attachment_id')
+    print('Attachment deleted')
+
+asyncio.run(main())
+"
+```
+
+**Note**: Attachment support is currently available for AITrackdown adapter. See [Attachments Guide](ATTACHMENTS.md) for detailed documentation.
 
 ---
 
@@ -595,9 +651,11 @@ make test
 # Adapter Selection
 export MCP_TICKETER_ADAPTER=linear
 
-# Linear
+# Linear (choose team key OR team ID)
 export LINEAR_API_KEY=lin_api_xxx
-export LINEAR_TEAM_ID=team_xxx
+export LINEAR_TEAM_KEY=ENG           # Recommended: short team identifier
+# OR
+export LINEAR_TEAM_ID=team_xxx       # Alternative: UUID-based team ID
 
 # JIRA
 export JIRA_SERVER=https://company.atlassian.net
@@ -612,6 +670,8 @@ export GITHUB_REPO=owner/repo
 export MCP_TICKETER_DEBUG=1
 export MCP_TICKETER_LOG_LEVEL=DEBUG
 ```
+
+**Linear Configuration Note**: LINEAR_TEAM_KEY is now the recommended option. Find it in Linear Settings → Teams → Your Team → "Key" field.
 
 ---
 

@@ -1,10 +1,15 @@
 """Base adapter abstract class for ticket systems."""
 
+from __future__ import annotations
+
 import builtins
 from abc import ABC, abstractmethod
-from typing import Any, Generic, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar
 
 from .models import Comment, Epic, SearchQuery, Task, TicketState, TicketType
+
+if TYPE_CHECKING:
+    from .models import Attachment
 
 # Generic type for tickets
 T = TypeVar("T", Epic, Task)
@@ -374,6 +379,67 @@ class BaseAdapter(ABC, Generic[T]):
         filters = {"parent_issue": issue_id, "ticket_type": TicketType.TASK}
         results = await self.list(filters=filters)
         return [r for r in results if isinstance(r, Task) and r.is_task()]
+
+    # Attachment methods
+    async def add_attachment(
+        self,
+        ticket_id: str,
+        file_path: str,
+        description: Optional[str] = None,
+    ) -> "Attachment":
+        """Attach a file to a ticket.
+
+        Args:
+            ticket_id: Ticket identifier
+            file_path: Local file path to upload
+            description: Optional attachment description
+
+        Returns:
+            Created Attachment with metadata
+
+        Raises:
+            NotImplementedError: If adapter doesn't support attachments
+            FileNotFoundError: If file doesn't exist
+            ValueError: If ticket doesn't exist or upload fails
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support file attachments. "
+            "Use comments to reference external files instead."
+        )
+
+    async def get_attachments(self, ticket_id: str) -> list["Attachment"]:
+        """Get all attachments for a ticket.
+
+        Args:
+            ticket_id: Ticket identifier
+
+        Returns:
+            List of attachments (empty if none or not supported)
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support file attachments."
+        )
+
+    async def delete_attachment(
+        self,
+        ticket_id: str,
+        attachment_id: str,
+    ) -> bool:
+        """Delete an attachment (optional implementation).
+
+        Args:
+            ticket_id: Ticket identifier
+            attachment_id: Attachment identifier
+
+        Returns:
+            True if deleted, False otherwise
+
+        Raises:
+            NotImplementedError: If adapter doesn't support deletion
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support attachment deletion."
+        )
 
     async def close(self) -> None:
         """Close adapter and cleanup resources."""

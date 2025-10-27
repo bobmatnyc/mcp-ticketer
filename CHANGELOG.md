@@ -4,7 +4,78 @@ All notable changes to MCP Ticketer will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.3] - 2025-10-27
+
+### Added
+- **LINEAR_TEAM_KEY Environment Variable**: Easier Linear configuration with team keys
+  - Added `LINEAR_TEAM_KEY` support as primary configuration option
+  - Team key (e.g., "ENG", "DESIGN") now recommended over team ID (UUID)
+  - Automatic resolution of team key to team ID in Linear adapter
+  - Updated `.env.example` with LINEAR_TEAM_KEY as default option
+  - CLI `init` command now prompts for team key by default
+- **Command Synonyms**: Init, install, and setup commands are now fully synonymous
+  - `mcp-ticketer init` - Initialize configuration
+  - `mcp-ticketer install` - Install and configure (same as init)
+  - `mcp-ticketer setup` - Setup (same as init)
+  - All three commands accept identical parameters and behave identically
+- **Attachment Model**: Universal file attachment support
+  - New `Attachment` model in core models for cross-adapter attachment representation
+  - Fields: id, ticket_id, filename, url, content_type, size_bytes, created_at, created_by, description, metadata
+  - Full documentation in new `docs/ATTACHMENTS.md` guide
+- **AITrackdown Attachment Support**: Complete file attachment implementation
+  - `add_attachment()` - Upload files to local filesystem with security features
+  - `get_attachments()` - List all attachments for a ticket
+  - `delete_attachment()` - Remove specific attachments
+  - Local filesystem storage in `.aitrackdown/attachments/<ticket-id>/` directories
+  - Automatic filename sanitization to prevent security issues
+  - SHA256 checksumming for file integrity verification
+  - MIME type detection based on file extension
+  - Size validation with configurable limits (default 100MB)
+  - Organized per-ticket storage structure
+- **MCP Attachment Tools**: AI agent attachment support with fallback
+  - `ticket_attach` - Add file attachments via MCP
+  - `ticket_attachments` - List attachments via MCP
+  - `ticket_delete_attachment` - Delete attachments via MCP
+  - Automatic fallback to comments for adapters without attachment support
+  - Graceful degradation for Linear, Jira, and GitHub adapters
+
+### Changed
+- **Linear Configuration**: LINEAR_TEAM_KEY is now the primary/recommended option
+  - Team ID (LINEAR_TEAM_ID) still supported for backward compatibility
+  - CLI init flow updated to prompt for team key first
+  - Documentation updated across README, QUICK_START, and setup guides
+- **Environment Variable Priority**: LINEAR_TEAM_KEY takes precedence over LINEAR_TEAM_ID
+  - When both are present, LINEAR_TEAM_KEY is used
+  - Adapter automatically resolves team key to team ID via GraphQL
+- **Documentation Structure**: New comprehensive attachment documentation
+  - Created `docs/ATTACHMENTS.md` (400+ lines)
+  - Updated README.md with attachment examples and LINEAR_TEAM_KEY info
+  - Updated QUICK_START.md with attachment usage and Linear team key setup
+  - Updated API_REFERENCE.md with complete Attachment model specification
+  - Added configuration section to README with Linear setup details
+
+### Fixed
+- **LINEAR_TEAM_KEY Environment Loading**: Proper loading from .env files
+  - Fixed `project_config.py` to check all LINEAR_* environment variables
+  - Environment variable discovery now detects LINEAR_TEAM_KEY
+  - Resolves issues where LINEAR_TEAM_KEY wasn't being recognized
+
+### Documentation
+- **New Files**:
+  - `docs/ATTACHMENTS.md` - Comprehensive attachment guide with examples, security notes, and roadmap
+- **Updated Files**:
+  - `README.md` - Added attachment features, LINEAR_TEAM_KEY configuration, and command synonyms
+  - `docs/QUICK_START.md` - Added attachment examples and LINEAR_TEAM_KEY setup instructions
+  - `docs/API_REFERENCE.md` - Added Attachment model specification and adapter methods
+  - `.env.example` - Updated with LINEAR_TEAM_KEY as primary option with clear instructions
+
+### Security
+- **Attachment Security Features**:
+  - Filename sanitization prevents path traversal and injection attacks
+  - Path resolution validates files stay within allowed directories
+  - File size limits prevent disk exhaustion
+  - SHA256 checksums enable integrity verification
+  - Isolated per-ticket storage prevents cross-ticket access
 
 ## [0.3.6] - 2025-01-25
 

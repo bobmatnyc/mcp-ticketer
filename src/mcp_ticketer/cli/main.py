@@ -519,7 +519,7 @@ def init(
         None, "--github-token", help="GitHub Personal Access Token"
     ),
 ) -> None:
-    """Initialize mcp-ticketer for the current project.
+    """Initialize mcp-ticketer for the current project (synonymous with 'install' and 'setup').
 
     This command sets up MCP Ticketer configuration with interactive prompts
     to guide you through the process. It auto-detects adapter configuration
@@ -528,11 +528,13 @@ def init(
     Creates .mcp-ticketer/config.json in the current directory with
     auto-detected or specified adapter configuration.
 
-    Note: 'setup' and 'install' are synonyms for this command.
+    Note: 'init', 'install', and 'setup' are all synonyms - use whichever feels natural.
 
     Examples:
-        # Interactive setup (same as 'setup' and 'install')
+        # Interactive setup (all three commands are identical)
         mcp-ticketer init
+        mcp-ticketer install
+        mcp-ticketer setup
 
         # Force specific adapter
         mcp-ticketer init --adapter linear
@@ -669,20 +671,40 @@ def init(
             if linear_api_key:
                 linear_config["api_key"] = linear_api_key
 
-            # Team ID
+            # Team ID or Team Key
+            # Try environment variables first
+            linear_team_key = os.getenv("LINEAR_TEAM_KEY")
             linear_team_id = team_id or os.getenv("LINEAR_TEAM_ID")
-            if not linear_team_id and not discovered:
-                console.print("\nYou need your Linear team ID.")
-                console.print("[dim]Find it in Linear settings or team URL[/dim]\n")
 
-                linear_team_id = typer.prompt("Enter your Linear team ID")
+            if not linear_team_key and not linear_team_id and not discovered:
+                console.print("\n[bold]Linear Team Configuration[/bold]")
+                console.print("You can identify your team using either:")
+                console.print("  • Team key (e.g., 'ENG') - recommended, easier to remember")
+                console.print("  • Team ID (UUID) - for advanced use cases")
+                console.print("[dim]Find both in: Linear Settings → Teams → Your Team[/dim]\n")
 
+                # Offer user-friendly choice
+                use_key = typer.confirm(
+                    "Use team key (like 'ENG') instead of team ID?",
+                    default=True
+                )
+
+                if use_key:
+                    console.print("\n[dim]Enter your team key (e.g., ENG, DESIGN, PRODUCT)[/dim]")
+                    linear_team_key = typer.prompt("Team key")
+                else:
+                    console.print("\n[dim]Enter your team UUID[/dim]")
+                    linear_team_id = typer.prompt("Team ID")
+
+            # Save whichever was provided
+            if linear_team_key:
+                linear_config["team_key"] = linear_team_key
             if linear_team_id:
                 linear_config["team_id"] = linear_team_id
 
-            if not linear_config.get("api_key") or not linear_config.get("team_id"):
+            if not linear_config.get("api_key") or (not linear_config.get("team_id") and not linear_config.get("team_key")):
                 console.print(
-                    "[red]Error:[/red] Linear requires both API key and team ID"
+                    "[red]Error:[/red] Linear requires both API key and team ID/key"
                 )
                 console.print(
                     "Run 'mcp-ticketer init --adapter linear' with proper credentials"
@@ -891,80 +913,6 @@ def _show_next_steps(
     console.print("[dim]Run 'mcp-ticketer --help' for more commands[/dim]")
 
 
-# Keep the old install command as deprecated alias to init
-@app.command(deprecated=True, hidden=True)
-def install(
-    adapter: Optional[str] = typer.Option(
-        None,
-        "--adapter",
-        "-a",
-        help="Adapter type to use (auto-detected from .env if not specified)",
-    ),
-    project_path: Optional[str] = typer.Option(
-        None, "--path", help="Project path (default: current directory)"
-    ),
-    global_config: bool = typer.Option(
-        False,
-        "--global",
-        "-g",
-        help="Save to global config instead of project-specific",
-    ),
-    base_path: Optional[str] = typer.Option(
-        None,
-        "--base-path",
-        "-p",
-        help="Base path for ticket storage (AITrackdown only)",
-    ),
-    api_key: Optional[str] = typer.Option(
-        None, "--api-key", help="API key for Linear or API token for JIRA"
-    ),
-    team_id: Optional[str] = typer.Option(
-        None, "--team-id", help="Linear team ID (required for Linear adapter)"
-    ),
-    jira_server: Optional[str] = typer.Option(
-        None,
-        "--jira-server",
-        help="JIRA server URL (e.g., https://company.atlassian.net)",
-    ),
-    jira_email: Optional[str] = typer.Option(
-        None, "--jira-email", help="JIRA user email for authentication"
-    ),
-    jira_project: Optional[str] = typer.Option(
-        None, "--jira-project", help="Default JIRA project key"
-    ),
-    github_owner: Optional[str] = typer.Option(
-        None, "--github-owner", help="GitHub repository owner"
-    ),
-    github_repo: Optional[str] = typer.Option(
-        None, "--github-repo", help="GitHub repository name"
-    ),
-    github_token: Optional[str] = typer.Option(
-        None, "--github-token", help="GitHub Personal Access Token"
-    ),
-) -> None:
-    """DEPRECATED: Use 'mcp-ticketer init' instead.
-
-    This command is deprecated. Use 'mcp-ticketer init' for project initialization.
-
-    """
-    console.print(
-        "[yellow]⚠️  'install' is deprecated. Use 'mcp-ticketer init' instead.[/yellow]\n"
-    )
-    # Call init with all parameters
-    init(
-        adapter=adapter,
-        project_path=project_path,
-        global_config=global_config,
-        base_path=base_path,
-        api_key=api_key,
-        team_id=team_id,
-        jira_server=jira_server,
-        jira_email=jira_email,
-        jira_project=jira_project,
-        github_owner=github_owner,
-        github_repo=github_repo,
-        github_token=github_token,
-    )
 
 
 @app.command("set")
@@ -1941,115 +1889,163 @@ mcp_app = typer.Typer(
     add_completion=False,
 )
 
+
 @app.command()
 def install(
-    platform: Optional[str] = typer.Argument(
-        None, help="Platform to install (claude-code, claude-desktop, auggie, gemini, codex)"
+    adapter: Optional[str] = typer.Option(
+        None,
+        "--adapter",
+        "-a",
+        help="Adapter type to use (interactive prompt if not specified)",
+    ),
+    project_path: Optional[str] = typer.Option(
+        None, "--path", help="Project path (default: current directory)"
+    ),
+    global_config: bool = typer.Option(
+        False,
+        "--global",
+        "-g",
+        help="Save to global config instead of project-specific",
+    ),
+    base_path: Optional[str] = typer.Option(
+        None,
+        "--base-path",
+        "-p",
+        help="Base path for ticket storage (AITrackdown only)",
+    ),
+    api_key: Optional[str] = typer.Option(
+        None, "--api-key", help="API key for Linear or API token for JIRA"
+    ),
+    team_id: Optional[str] = typer.Option(
+        None, "--team-id", help="Linear team ID (required for Linear adapter)"
+    ),
+    jira_server: Optional[str] = typer.Option(
+        None,
+        "--jira-server",
+        help="JIRA server URL (e.g., https://company.atlassian.net)",
+    ),
+    jira_email: Optional[str] = typer.Option(
+        None, "--jira-email", help="JIRA user email for authentication"
+    ),
+    jira_project: Optional[str] = typer.Option(
+        None, "--jira-project", help="Default JIRA project key"
+    ),
+    github_owner: Optional[str] = typer.Option(
+        None, "--github-owner", help="GitHub repository owner"
+    ),
+    github_repo: Optional[str] = typer.Option(
+        None, "--github-repo", help="GitHub repository name"
+    ),
+    github_token: Optional[str] = typer.Option(
+        None, "--github-token", help="GitHub Personal Access Token"
+    ),
+    platform: Optional[str] = typer.Option(
+        None,
+        "--platform",
+        help="Platform to configure MCP for (claude-code, claude-desktop, auggie, gemini, codex)",
     ),
     dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be done without making changes"
+        False, "--dry-run", help="Show what would be done without making changes (for platform installation)"
     ),
 ) -> None:
-    """Install mcp-ticketer for AI platforms.
+    """Install and initialize mcp-ticketer (synonymous with 'init' and 'setup').
 
-    Without arguments, shows installation status and available platforms.
-    With a platform argument, installs MCP configuration for that platform.
+    Without arguments, runs interactive setup wizard to configure your ticket adapter.
+    With --platform, installs MCP configuration for AI platforms.
 
-    Each platform gets the right configuration automatically:
-      - claude-code: Project-level MCP server
-      - claude-desktop: Global MCP server
-      - auggie: Project-level MCP server
-      - gemini: Project-level MCP server
-      - codex: Project-level MCP server
+    This command serves two purposes:
+    1. Adapter initialization (same as 'init' and 'setup')
+    2. Platform MCP configuration (when using --platform flag)
 
     Examples:
-        # Show status and available platforms
+        # Interactive setup (same as 'init' and 'setup')
         mcp-ticketer install
 
-        # Install for Claude Code (project-level)
-        mcp-ticketer install claude-code
+        # Setup with specific adapter
+        mcp-ticketer install --adapter linear
 
-        # Install for Claude Desktop (global)
-        mcp-ticketer install claude-desktop
+        # Install MCP for Claude Code
+        mcp-ticketer install --platform claude-code
 
-        # Install for Auggie
-        mcp-ticketer install auggie
-
-        # Dry run to preview changes
-        mcp-ticketer install claude-code --dry-run
+        # Install MCP for Claude Desktop
+        mcp-ticketer install --platform claude-desktop
 
     """
-    # If no platform specified, show help message
-    if platform is None:
-        console.print(
-            "[green]✓[/green] mcp-ticketer CLI is already installed.\n"
-        )
-        console.print(
-            "[bold]To configure MCP for a specific platform, use:[/bold]\n"
-            "  mcp-ticketer install <platform>\n"
-        )
-        console.print("[bold]Available platforms:[/bold]")
-        console.print("  • claude-code     - Claude Code (project-level)")
-        console.print("  • claude-desktop  - Claude Desktop (global)")
-        console.print("  • auggie          - Auggie (project-level)")
-        console.print("  • gemini          - Gemini CLI (project-level)")
-        console.print("  • codex           - Codex (project-level)")
+    # If platform flag is provided, handle MCP platform installation
+    if platform is not None:
+        # Import configuration functions
+        from .auggie_configure import configure_auggie_mcp
+        from .codex_configure import configure_codex_mcp
+        from .gemini_configure import configure_gemini_mcp
+        from .mcp_configure import configure_claude_mcp
+
+        # Map platform names to configuration functions
+        platform_mapping = {
+            "claude-code": {
+                "func": lambda: configure_claude_mcp(global_config=False, force=True),
+                "name": "Claude Code",
+            },
+            "claude-desktop": {
+                "func": lambda: configure_claude_mcp(global_config=True, force=True),
+                "name": "Claude Desktop",
+            },
+            "auggie": {
+                "func": lambda: configure_auggie_mcp(force=True),
+                "name": "Auggie",
+            },
+            "gemini": {
+                "func": lambda: configure_gemini_mcp(scope="project", force=True),
+                "name": "Gemini CLI",
+            },
+            "codex": {
+                "func": lambda: configure_codex_mcp(force=True),
+                "name": "Codex",
+            },
+        }
+
+        if platform not in platform_mapping:
+            console.print(f"[red]Unknown platform: {platform}[/red]")
+            console.print("\n[bold]Available platforms:[/bold]")
+            for p in platform_mapping.keys():
+                console.print(f"  • {p}")
+            raise typer.Exit(1)
+
+        config = platform_mapping[platform]
+
+        if dry_run:
+            console.print(f"[cyan]DRY RUN - Would install for {config['name']}[/cyan]")
+            return
+
+        try:
+            config["func"]()
+        except Exception as e:
+            console.print(f"[red]Installation failed: {e}[/red]")
+            raise typer.Exit(1)
         return
 
-    # Import configuration functions
-    from .auggie_configure import configure_auggie_mcp
-    from .codex_configure import configure_codex_mcp
-    from .gemini_configure import configure_gemini_mcp
-    from .mcp_configure import configure_claude_mcp
-
-    # Map platform names to configuration functions
-    platform_mapping = {
-        "claude-code": {
-            "func": lambda: configure_claude_mcp(global_config=False, force=True),
-            "name": "Claude Code",
-        },
-        "claude-desktop": {
-            "func": lambda: configure_claude_mcp(global_config=True, force=True),
-            "name": "Claude Desktop",
-        },
-        "auggie": {
-            "func": lambda: configure_auggie_mcp(force=True),
-            "name": "Auggie",
-        },
-        "gemini": {
-            "func": lambda: configure_gemini_mcp(scope="project", force=True),
-            "name": "Gemini CLI",
-        },
-        "codex": {
-            "func": lambda: configure_codex_mcp(force=True),
-            "name": "Codex",
-        },
-    }
-
-    if platform not in platform_mapping:
-        console.print(f"[red]Unknown platform: {platform}[/red]")
-        console.print("\n[bold]Available platforms:[/bold]")
-        for p in platform_mapping.keys():
-            console.print(f"  • {p}")
-        raise typer.Exit(1)
-
-    config = platform_mapping[platform]
-
-    if dry_run:
-        console.print(f"[cyan]DRY RUN - Would install for {config['name']}[/cyan]")
-        return
-
-    try:
-        config["func"]()
-    except Exception as e:
-        console.print(f"[red]Installation failed: {e}[/red]")
-        raise typer.Exit(1)
+    # Otherwise, delegate to init for adapter initialization
+    # This makes 'install' and 'init' synonymous when called without --platform
+    init(
+        adapter=adapter,
+        project_path=project_path,
+        global_config=global_config,
+        base_path=base_path,
+        api_key=api_key,
+        team_id=team_id,
+        jira_server=jira_server,
+        jira_email=jira_email,
+        jira_project=jira_project,
+        github_owner=github_owner,
+        github_repo=github_repo,
+        github_token=github_token,
+    )
 
 
 @app.command()
 def remove(
     platform: Optional[str] = typer.Argument(
-        None, help="Platform to remove (claude-code, claude-desktop, auggie, gemini, codex)"
+        None,
+        help="Platform to remove (claude-code, claude-desktop, auggie, gemini, codex)",
     ),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be done without making changes"
@@ -2076,12 +2072,8 @@ def remove(
     """
     # If no platform specified, show help message
     if platform is None:
-        console.print(
-            "[bold]Remove mcp-ticketer from AI platforms[/bold]\n"
-        )
-        console.print(
-            "Usage: mcp-ticketer remove <platform>\n"
-        )
+        console.print("[bold]Remove mcp-ticketer from AI platforms[/bold]\n")
+        console.print("Usage: mcp-ticketer remove <platform>\n")
         console.print("[bold]Available platforms:[/bold]")
         console.print("  • claude-code     - Claude Code (project-level)")
         console.print("  • claude-desktop  - Claude Desktop (global)")
@@ -2139,7 +2131,8 @@ def remove(
 @app.command()
 def uninstall(
     platform: Optional[str] = typer.Argument(
-        None, help="Platform to uninstall (claude-code, claude-desktop, auggie, gemini, codex)"
+        None,
+        help="Platform to uninstall (claude-code, claude-desktop, auggie, gemini, codex)",
     ),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be done without making changes"
@@ -2240,7 +2233,8 @@ def mcp_serve(
       2. Global: ~/.mcp-ticketer/config.json
       3. Default: aitrackdown adapter with .aitrackdown base path
     """
-    from ..mcp.server_sdk import configure_adapter, main as sdk_main
+    from ..mcp.server_sdk import configure_adapter
+    from ..mcp.server_sdk import main as sdk_main
 
     # Load configuration (respects project-specific config in cwd)
     config = load_config()
@@ -2281,7 +2275,9 @@ def mcp_serve(
     if sys.stderr.isatty():
         # Only print if stderr is a terminal (not redirected)
         console.file = sys.stderr
-        console.print(f"[green]Starting MCP SDK server[/green] with {adapter_type} adapter")
+        console.print(
+            f"[green]Starting MCP SDK server[/green] with {adapter_type} adapter"
+        )
         console.print(
             "[dim]Server running on stdio. Send JSON-RPC requests via stdin.[/dim]"
         )

@@ -5,8 +5,9 @@ attachment information. Note that file attachment functionality may not be
 available in all adapters.
 """
 
-from typing import Any, Optional
+from typing import Any
 
+from ...core.models import Attachment, Comment
 from ..server_sdk import get_adapter, mcp
 
 
@@ -15,7 +16,7 @@ async def ticket_attach(
     ticket_id: str,
     file_path: str,
     description: str = "",
-) -> dict[str, Any]:
+) -> dict[str, Any]:  # Keep as dict for MCP compatibility
     """Attach a file to a ticket.
 
     Uploads a file and associates it with the specified ticket. This
@@ -63,8 +64,6 @@ async def ticket_attach(
 
     except AttributeError:
         # Fallback: Add file reference as comment
-        from ...core.models import Comment
-
         comment_text = f"Attachment: {file_path}"
         if description:
             comment_text += f"\nDescription: {description}"
@@ -102,7 +101,7 @@ async def ticket_attach(
 @mcp.tool()
 async def ticket_attachments(
     ticket_id: str,
-) -> dict[str, Any]:
+) -> dict[str, Any]:  # Keep as dict for MCP compatibility
     """Get all attachments for a ticket.
 
     Retrieves a list of all files attached to the specified ticket.

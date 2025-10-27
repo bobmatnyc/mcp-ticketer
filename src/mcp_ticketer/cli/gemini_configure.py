@@ -166,7 +166,9 @@ def remove_gemini_mcp(
 
     # Step 2: Check if config file exists
     if not gemini_config_path.exists():
-        console.print(f"[yellow]⚠ No configuration found at {gemini_config_path}[/yellow]")
+        console.print(
+            f"[yellow]⚠ No configuration found at {gemini_config_path}[/yellow]"
+        )
         console.print("[dim]mcp-ticketer is not configured for Gemini CLI[/dim]")
         return
 

@@ -19,6 +19,7 @@ Universal ticket management interface for AI agents with MCP (Model Context Prot
 - **🎨 Rich CLI**: Beautiful terminal interface with colors and tables
 - **📊 State Machine**: Built-in state transitions with validation
 - **🔍 Advanced Search**: Full-text search with multiple filters
+- **📎 File Attachments**: Upload, list, and manage ticket attachments (AITrackdown adapter)
 - **📦 Easy Installation**: Available on PyPI with simple pip install
 
 ## 📦 Installation
@@ -98,6 +99,10 @@ mcp-ticketer install
 mcp-ticketer init --adapter aitrackdown
 
 # For Linear (requires API key)
+# Option 1: Using team key (recommended)
+mcp-ticketer init --adapter linear --team-key ENG
+
+# Option 2: Using team ID
 mcp-ticketer init --adapter linear --team-id YOUR_TEAM_ID
 
 # For JIRA (requires server and credentials)
@@ -108,6 +113,11 @@ mcp-ticketer init --adapter jira \
 # For GitHub Issues
 mcp-ticketer init --adapter github --repo owner/repo
 ```
+
+**Note:** The following commands are synonymous and can be used interchangeably:
+- `mcp-ticketer init` - Initialize configuration
+- `mcp-ticketer install` - Install and configure (same as init)
+- `mcp-ticketer setup` - Setup (same as init)
 
 ### 2. Create Your First Ticket
 
@@ -136,6 +146,24 @@ mcp-ticketer transition TICKET-123 in_progress
 # Search tickets
 mcp-ticketer search "login bug" --state open
 ```
+
+### 4. Working with Attachments (AITrackdown)
+
+```bash
+# Add attachment via MCP tools
+mcp-ticketer mcp call ticket_attach '{
+  "ticket_id": "task-123",
+  "file_path": "/path/to/document.pdf",
+  "description": "Project specification"
+}'
+
+# List attachments
+mcp-ticketer mcp call ticket_attachments '{
+  "ticket_id": "task-123"
+}'
+```
+
+For programmatic access, see the [Attachments Guide](docs/ATTACHMENTS.md).
 
 ## 🤖 MCP Server Integration
 
@@ -180,6 +208,37 @@ mcp-ticketer uninstall auggie        # Alias for remove
 ```
 
 **See [AI Client Integration Guide](docs/AI_CLIENT_INTEGRATION.md) for client-specific details.**
+
+## ⚙️ Configuration
+
+### Linear Configuration
+
+Configure Linear using either a team **key** (recommended) or team **ID**:
+
+**Option 1: Team Key** (Recommended)
+```bash
+# In .env or environment
+LINEAR_API_KEY=lin_api_...
+LINEAR_TEAM_KEY=ENG
+```
+
+**Option 2: Team ID**
+```bash
+# In .env or environment
+LINEAR_API_KEY=lin_api_...
+LINEAR_TEAM_ID=02d15669-7351-4451-9719-807576c16049
+```
+
+**Finding your team key in Linear:**
+1. Go to Linear Settings → Teams
+2. Select your team
+3. Look for the "Key" field (e.g., "ENG", "DESIGN", "PRODUCT")
+
+The team key is a short, human-readable identifier that's easier to use than the UUID-based team ID.
+
+### Environment Variables
+
+See [.env.example](.env.example) for a complete list of supported environment variables for all adapters.
 
 ## 📚 Documentation
 

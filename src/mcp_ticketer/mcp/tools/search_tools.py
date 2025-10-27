@@ -6,8 +6,8 @@ various filters and criteria.
 
 from typing import Any, Optional
 
-from ..server_sdk import get_adapter, mcp
 from ...core.models import Priority, SearchQuery, TicketState
+from ..server_sdk import get_adapter, mcp
 
 
 @mcp.tool()
@@ -145,7 +145,9 @@ async def ticket_search_hierarchy(
                 try:
                     parent_epic = await adapter.read(parent_epic_id)
                     if parent_epic:
-                        ticket_data["hierarchy"]["parent_epic"] = parent_epic.model_dump()
+                        ticket_data["hierarchy"][
+                            "parent_epic"
+                        ] = parent_epic.model_dump()
                 except Exception:
                     pass  # Parent not found, continue
 
@@ -155,9 +157,9 @@ async def ticket_search_hierarchy(
                 try:
                     parent_issue = await adapter.read(parent_issue_id)
                     if parent_issue:
-                        ticket_data["hierarchy"]["parent_issue"] = (
-                            parent_issue.model_dump()
-                        )
+                        ticket_data["hierarchy"][
+                            "parent_issue"
+                        ] = parent_issue.model_dump()
                 except Exception:
                     pass  # Parent not found, continue
 

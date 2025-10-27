@@ -355,6 +355,44 @@ class Comment(BaseModel):
     )
 
 
+class Attachment(BaseModel):
+    """File attachment metadata for tickets.
+
+    Represents a file attached to a ticket across all adapters.
+    Each adapter maps its native attachment format to this model.
+    """
+
+    model_config = ConfigDict(use_enum_values=True)
+
+    id: Optional[str] = Field(None, description="Attachment unique identifier")
+    ticket_id: str = Field(..., description="Parent ticket identifier")
+    filename: str = Field(..., description="Original filename")
+    url: Optional[str] = Field(None, description="Download URL or file path")
+    content_type: Optional[str] = Field(
+        None,
+        description="MIME type (e.g., 'application/pdf', 'image/png')"
+    )
+    size_bytes: Optional[int] = Field(None, description="File size in bytes")
+    created_at: Optional[datetime] = Field(None, description="Upload timestamp")
+    created_by: Optional[str] = Field(
+        None,
+        description="User who uploaded the attachment"
+    )
+    description: Optional[str] = Field(
+        None,
+        description="Attachment description or notes"
+    )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Adapter-specific attachment metadata"
+    )
+
+    def __str__(self) -> str:
+        """String representation showing filename and size."""
+        size_str = f" ({self.size_bytes} bytes)" if self.size_bytes else ""
+        return f"Attachment({self.filename}{size_str})"
+
+
 class SearchQuery(BaseModel):
     """Search query parameters."""
 

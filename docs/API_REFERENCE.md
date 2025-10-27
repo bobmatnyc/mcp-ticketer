@@ -166,6 +166,71 @@ comment = Comment(
 )
 ```
 
+### Attachment
+
+File attachments associated with tickets.
+
+```python
+class Attachment(BaseModel):
+    """File attachment metadata for tickets."""
+
+    id: Optional[str] = None
+    ticket_id: str
+    filename: str
+    url: Optional[str] = None
+    content_type: Optional[str] = None
+    size_bytes: Optional[int] = None
+    created_at: Optional[datetime] = None
+    created_by: Optional[str] = None
+    description: Optional[str] = None
+    metadata: Dict[str, Any] = {}
+```
+
+**Fields:**
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `id` | `Optional[str]` | `None` | Attachment unique identifier |
+| `ticket_id` | `str` | *Required* | Parent ticket identifier |
+| `filename` | `str` | *Required* | Original filename |
+| `url` | `Optional[str]` | `None` | Download URL or file:// path |
+| `content_type` | `Optional[str]` | `None` | MIME type (e.g., 'application/pdf') |
+| `size_bytes` | `Optional[int]` | `None` | File size in bytes |
+| `created_at` | `Optional[datetime]` | `None` | Upload timestamp |
+| `created_by` | `Optional[str]` | `None` | User who uploaded the attachment |
+| `description` | `Optional[str]` | `None` | Attachment description or notes |
+| `metadata` | `Dict[str, Any]` | `{}` | Adapter-specific attachment metadata |
+
+**Example:**
+```python
+from datetime import datetime
+
+attachment = Attachment(
+    id='20250127143000-document.pdf',
+    ticket_id='task-123',
+    filename='document.pdf',
+    url='file:///project/.aitrackdown/attachments/task-123/document.pdf',
+    content_type='application/pdf',
+    size_bytes=1048576,
+    created_at=datetime.now(),
+    created_by='user@example.com',
+    description='Project specification document',
+    metadata={
+        'checksum': 'a3c7f8d2e1b4c5f6...',
+        'sanitized_filename': 'document.pdf'
+    }
+)
+```
+
+**Adapter Support:**
+
+| Adapter | Support | Notes |
+|---------|---------|-------|
+| AITrackdown | ✅ Full | Local filesystem storage with security features |
+| Jira | ❌ Planned | REST API v3 integration coming soon |
+| Linear | ❌ Planned | GraphQL mutation support coming soon |
+| GitHub | ❌ Not supported | GitHub Issues doesn't support direct attachments |
+
 ### SearchQuery
 
 Query parameters for searching tickets.
@@ -363,6 +428,44 @@ class BaseAdapter(ABC, Generic[T]):
     ) -> List[Comment]:
         """Get comments for a ticket."""
         pass
+
+    # Attachment Operations
+    async def add_attachment(
+        self,
+        ticket_id: str,
+        file_path: str,
+        description: Optional[str] = None
+    ) -> Attachment:
+        """Add a file attachment to a ticket.
+
+        Default implementation raises NotImplementedError.
+        Adapters should override to provide attachment support.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support attachments"
+        )
+
+    async def get_attachments(self, ticket_id: str) -> List[Attachment]:
+        """Get all attachments for a ticket.
+
+        Default implementation returns empty list.
+        Adapters should override to provide attachment support.
+        """
+        return []
+
+    async def delete_attachment(
+        self,
+        ticket_id: str,
+        attachment_id: str
+    ) -> bool:
+        """Delete a specific attachment.
+
+        Default implementation raises NotImplementedError.
+        Adapters should override to provide attachment support.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support attachment deletion"
+        )
 
     # State Mapping Utilities
     def map_state_to_system(self, state: TicketState) -> str:
