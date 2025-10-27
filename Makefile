@@ -118,12 +118,26 @@ build: clean-build ## Build distribution packages
 
 publish-test: check-release format lint test test-e2e build ## Build and publish to TestPyPI
 	@echo "Publishing to TestPyPI..."
-	twine upload --repository testpypi dist/*
+	@if [ -f .env.local ]; then \
+		echo "Loading PyPI credentials from .env.local..."; \
+		export $$(grep -E '^(TWINE_USERNAME|TWINE_PASSWORD)=' .env.local | xargs) && \
+		twine upload --repository testpypi dist/*; \
+	else \
+		echo "No .env.local found, using default credentials (~/.pypirc or environment)..."; \
+		twine upload --repository testpypi dist/*; \
+	fi
 	@echo "Published to TestPyPI!"
 
 publish-prod: check-release format lint test test-e2e build ## Build and publish to PyPI
 	@echo "Publishing to PyPI..."
-	twine upload dist/*
+	@if [ -f .env.local ]; then \
+		echo "Loading PyPI credentials from .env.local..."; \
+		export $$(grep -E '^(TWINE_USERNAME|TWINE_PASSWORD)=' .env.local | xargs) && \
+		twine upload dist/*; \
+	else \
+		echo "No .env.local found, using default credentials (~/.pypirc or environment)..."; \
+		twine upload dist/*; \
+	fi
 	@echo "Published successfully!"
 
 publish: publish-prod ## Alias for publish-prod
