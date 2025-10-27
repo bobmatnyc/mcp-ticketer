@@ -4,14 +4,9 @@ Codex CLI only supports global configuration at ~/.codex/config.toml.
 Unlike Claude Code and Gemini CLI, there is no project-level configuration support.
 """
 
-import sys
+import tomllib
 from pathlib import Path
 from typing import Any
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 import tomli_w
 from rich.console import Console
@@ -290,7 +285,9 @@ def configure_codex_mcp(force: bool = False) -> None:
     # For global config, include current working directory for context
     project_path = str(Path.cwd())
     server_config = create_codex_server_config(
-        python_path=python_path, project_config=project_config, project_path=project_path
+        python_path=python_path,
+        project_config=project_config,
+        project_path=project_path,
     )
 
     # Step 7: Update Codex configuration
@@ -310,7 +307,7 @@ def configure_codex_mcp(force: bool = False) -> None:
         console.print("  Server name: mcp-ticketer")
         console.print(f"  Adapter: {adapter}")
         console.print(f"  Python: {python_path}")
-        console.print(f"  Command: python -m mcp_ticketer.mcp.server")
+        console.print("  Command: python -m mcp_ticketer.mcp.server")
         console.print("  Scope: global (Codex only supports global config)")
         console.print(f"  Project path: {project_path}")
         if "env" in server_config:

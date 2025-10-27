@@ -276,7 +276,9 @@ def configure_auggie_mcp(force: bool = False) -> None:
     # Step 6: Create mcp-ticketer server config
     project_path = str(Path.cwd())
     server_config = create_auggie_server_config(
-        python_path=python_path, project_config=project_config, project_path=project_path
+        python_path=python_path,
+        project_config=project_config,
+        project_path=project_path,
     )
 
     # Step 7: Update Auggie configuration
@@ -296,7 +298,7 @@ def configure_auggie_mcp(force: bool = False) -> None:
         console.print("  Server name: mcp-ticketer")
         console.print(f"  Adapter: {adapter}")
         console.print(f"  Python: {python_path}")
-        console.print(f"  Command: python -m mcp_ticketer.mcp.server")
+        console.print("  Command: python -m mcp_ticketer.mcp.server")
         console.print("  Scope: Global (affects all projects)")
         console.print(f"  Project path: {project_path}")
         if "env" in server_config:

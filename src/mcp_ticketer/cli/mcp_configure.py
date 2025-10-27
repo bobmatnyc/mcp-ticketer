@@ -2,7 +2,6 @@
 
 import json
 import os
-import shutil
 import sys
 from pathlib import Path
 
@@ -364,7 +363,9 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
     # Step 6: Create mcp-ticketer server config
     project_path = str(Path.cwd()) if not global_config else None
     server_config = create_mcp_server_config(
-        python_path=python_path, project_config=project_config, project_path=project_path
+        python_path=python_path,
+        project_config=project_config,
+        project_path=project_path,
     )
 
     # Step 7: Update MCP configuration
@@ -384,7 +385,7 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
         console.print("  Server name: mcp-ticketer")
         console.print(f"  Adapter: {adapter}")
         console.print(f"  Python: {python_path}")
-        console.print(f"  Command: python -m mcp_ticketer.mcp.server")
+        console.print("  Command: python -m mcp_ticketer.mcp.server")
         if project_path:
             console.print(f"  Project path: {project_path}")
         if "env" in server_config:

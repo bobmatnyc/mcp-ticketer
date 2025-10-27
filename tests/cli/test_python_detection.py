@@ -4,8 +4,6 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from mcp_ticketer.cli.python_detection import (
     get_mcp_server_command,
     get_mcp_ticketer_python,
@@ -36,11 +34,19 @@ class TestGetMcpTicketerPython:
         result = get_mcp_ticketer_python(project_path=tmp_path)
 
         # Should fall back to current Python or pipx
-        assert result == sys.executable or "/pipx/venvs/" in result
+        # Allow both python and python3 executables
+        assert (
+            result == sys.executable
+            or result == sys.executable.replace("python", "python3")
+            or result == sys.executable.replace("python3", "python")
+            or "/pipx/venvs/" in result
+        )
 
     def test_no_project_path_uses_pipx_venv(self) -> None:
         """Test that pipx venv is used when no project path provided."""
-        with patch("sys.executable", "/Users/test/.local/pipx/venvs/mcp-ticketer/bin/python"):
+        with patch(
+            "sys.executable", "/Users/test/.local/pipx/venvs/mcp-ticketer/bin/python"
+        ):
             result = get_mcp_ticketer_python()
             assert "/pipx/venvs/" in result
 
@@ -57,12 +63,19 @@ class TestGetMcpTicketerPython:
 
         with patch("sys.executable", "/usr/bin/python3"):
             with patch("shutil.which", return_value="/usr/local/bin/mcp-ticketer"):
-                with patch("builtins.open", MagicMock(return_value=MagicMock(
-                    __enter__=MagicMock(return_value=MagicMock(
-                        readline=MagicMock(return_value=mock_shebang)
-                    )),
-                    __exit__=MagicMock()
-                ))):
+                with patch(
+                    "builtins.open",
+                    MagicMock(
+                        return_value=MagicMock(
+                            __enter__=MagicMock(
+                                return_value=MagicMock(
+                                    readline=MagicMock(return_value=mock_shebang)
+                                )
+                            ),
+                            __exit__=MagicMock(),
+                        )
+                    ),
+                ):
                     with patch("os.path.exists", return_value=True):
                         result = get_mcp_ticketer_python()
                         assert result == "/usr/local/bin/python3"
@@ -128,6 +141,7 @@ class TestValidatePythonExecutable:
     def test_timeout_handling(self, mock_run: MagicMock) -> None:
         """Test validation handles subprocess timeout."""
         import subprocess
+
         mock_run.side_effect = subprocess.TimeoutExpired("python", 5)
         result = validate_python_executable("/usr/bin/python3")
         assert result is False

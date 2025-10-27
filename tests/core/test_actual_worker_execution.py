@@ -9,6 +9,8 @@ import logging
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
@@ -30,6 +32,7 @@ logging.getLogger("httpx").setLevel(logging.DEBUG)
 logging.getLogger("mcp_ticketer").setLevel(logging.DEBUG)
 
 
+@pytest.mark.asyncio
 async def test_actual_worker_execution():
     """Test actual worker execution with detailed tracing."""
     print("🚀 Testing actual worker execution with detailed tracing...")

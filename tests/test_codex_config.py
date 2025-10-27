@@ -7,17 +7,10 @@ without requiring full mcp-ticketer installation.
 
 import sys
 import tempfile
-from pathlib import Path
 
 # Test TOML reading/writing
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    try:
-        import tomli as tomllib
-    except ImportError:
-        print("❌ tomli not installed. Run: pip install tomli")
-        sys.exit(1)
+import tomllib
+from pathlib import Path
 
 try:
     import tomli_w

@@ -202,7 +202,7 @@ class TicketRegistry:
                 return None
 
             columns = [desc[0] for desc in cursor.description]
-            ticket_info = dict(zip(columns, row))
+            ticket_info = dict(zip(columns, row, strict=False))
 
             # Parse JSON fields
             if ticket_info.get("ticket_data"):
@@ -236,7 +236,7 @@ class TicketRegistry:
             columns = [desc[0] for desc in cursor.description]
 
             for row in cursor.fetchall():
-                ticket_info = dict(zip(columns, row))
+                ticket_info = dict(zip(columns, row, strict=False))
 
                 # Parse JSON fields
                 if ticket_info.get("ticket_data"):
@@ -273,7 +273,7 @@ class TicketRegistry:
             columns = [desc[0] for desc in cursor.description]
 
             for row in cursor.fetchall():
-                ticket_info = dict(zip(columns, row))
+                ticket_info = dict(zip(columns, row, strict=False))
 
                 # Parse JSON fields
                 if ticket_info.get("ticket_data"):
@@ -306,7 +306,7 @@ class TicketRegistry:
             columns = [desc[0] for desc in cursor.description]
 
             for row in cursor.fetchall():
-                ticket_info = dict(zip(columns, row))
+                ticket_info = dict(zip(columns, row, strict=False))
 
                 # Parse JSON fields
                 if ticket_info.get("ticket_data"):
@@ -436,7 +436,7 @@ class TicketRegistry:
             columns = [desc[0] for desc in cursor.description]
 
             for row in cursor.fetchall():
-                recovery_info = dict(zip(columns, row))
+                recovery_info = dict(zip(columns, row, strict=False))
                 if recovery_info.get("recovery_data"):
                     recovery_info["recovery_data"] = json.loads(
                         recovery_info["recovery_data"]

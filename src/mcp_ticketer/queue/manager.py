@@ -4,15 +4,14 @@ import fcntl
 import logging
 import os
 import subprocess
-import sys
 import time
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import psutil
 
-from ..cli.python_detection import get_mcp_ticketer_python
-from .queue import Queue
+if TYPE_CHECKING:
+    from .queue import Queue
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +21,9 @@ class WorkerManager:
 
     def __init__(self):
         """Initialize worker manager."""
+        # Lazy import to avoid circular dependency
+        from .queue import Queue
+
         self.lock_file = Path.home() / ".mcp-ticketer" / "worker.lock"
         self.pid_file = Path.home() / ".mcp-ticketer" / "worker.pid"
         self.lock_file.parent.mkdir(parents=True, exist_ok=True)
@@ -124,6 +126,9 @@ class WorkerManager:
         try:
             # Start worker in subprocess using the same Python executable as the CLI
             # This ensures the worker can import mcp_ticketer modules
+            # Lazy import to avoid circular dependency
+            from ..cli.python_detection import get_mcp_ticketer_python
+
             python_executable = get_mcp_ticketer_python()
             cmd = [python_executable, "-m", "mcp_ticketer.queue.run_worker"]
 

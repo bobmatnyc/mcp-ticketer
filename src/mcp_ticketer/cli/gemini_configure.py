@@ -278,7 +278,9 @@ def configure_gemini_mcp(
     # Step 6: Create mcp-ticketer server config
     project_path = str(Path.cwd()) if scope == "project" else None
     server_config = create_gemini_server_config(
-        python_path=python_path, project_config=project_config, project_path=project_path
+        python_path=python_path,
+        project_config=project_config,
+        project_path=project_path,
     )
 
     # Step 7: Update Gemini configuration
@@ -298,7 +300,7 @@ def configure_gemini_mcp(
         console.print("  Server name: mcp-ticketer")
         console.print(f"  Adapter: {adapter}")
         console.print(f"  Python: {python_path}")
-        console.print(f"  Command: python -m mcp_ticketer.mcp.server")
+        console.print("  Command: python -m mcp_ticketer.mcp.server")
         console.print(f"  Timeout: {server_config['timeout']}ms")
         console.print(f"  Trust: {server_config['trust']}")
         if project_path:

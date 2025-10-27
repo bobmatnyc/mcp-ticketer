@@ -13,10 +13,9 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from typing import Optional
 
 
-def get_mcp_ticketer_python(project_path: Optional[Path] = None) -> str:
+def get_mcp_ticketer_python(project_path: Path | None = None) -> str:
     """Get the correct Python executable for mcp-ticketer MCP server.
 
     This function follows the mcp-vector-search pattern of using project-specific
@@ -42,6 +41,7 @@ def get_mcp_ticketer_python(project_path: Optional[Path] = None) -> str:
         >>> # Without project path (fallback to pipx)
         >>> python_path = get_mcp_ticketer_python()
         >>> # Returns: "/Users/user/.local/pipx/venvs/mcp-ticketer/bin/python"
+
     """
     # Priority 1: Check for project-local venv
     if project_path:
@@ -86,6 +86,7 @@ def get_mcp_server_command(project_path: str | None = None) -> tuple[str, list[s
         >>> python, args = get_mcp_server_command("/home/user/project")
         >>> # python: "/home/user/project/.venv/bin/python" (if .venv exists)
         >>> # args: ["-m", "mcp_ticketer.mcp.server", "/home/user/project"]
+
     """
     # Convert project_path to Path object for venv detection
     project_path_obj = Path(project_path) if project_path else None
@@ -110,6 +111,7 @@ def validate_python_executable(python_path: str) -> bool:
     Examples:
         >>> is_valid = validate_python_executable("/usr/bin/python3")
         >>> # Returns: False (system Python doesn't have mcp_ticketer)
+
     """
     try:
         import subprocess

@@ -28,5 +28,6 @@ def __getattr__(name: str):
     """
     if name == "MCPTicketServer":
         from .server import MCPTicketServer
+
         return MCPTicketServer
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

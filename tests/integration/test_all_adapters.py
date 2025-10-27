@@ -7,6 +7,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+import pytest
 from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
@@ -21,6 +22,7 @@ if env_path.exists():
 console = Console()
 
 
+@pytest.mark.asyncio
 async def test_linear():
     """Test Linear adapter with 1m-hyperdev workspace"""
     console.print("\n[bold cyan]Testing Linear Adapter[/bold cyan]")
@@ -98,6 +100,7 @@ async def test_linear():
         return False
 
 
+@pytest.mark.asyncio
 async def test_github():
     """Test GitHub adapter with bobmatnyc/mcp-ticketer repo"""
     console.print("\n[bold cyan]Testing GitHub Adapter[/bold cyan]")
@@ -211,6 +214,7 @@ async def test_github():
         return False
 
 
+@pytest.mark.asyncio
 async def test_jira():
     """Test JIRA adapter with 1m-hyperdev.atlassian.net"""
     console.print("\n[bold cyan]Testing JIRA Adapter[/bold cyan]")
@@ -355,6 +359,7 @@ async def test_jira():
         return False
 
 
+@pytest.mark.asyncio
 async def test_aitrackdown():
     """Test AI-Trackdown adapter (local file-based)"""
     console.print("\n[bold cyan]Testing AI-Trackdown Adapter[/bold cyan]")
