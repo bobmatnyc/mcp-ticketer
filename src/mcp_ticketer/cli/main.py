@@ -893,10 +893,11 @@ def _show_next_steps(
         console.print("\n3. [cyan]Check local ticket storage:[/cyan]")
         console.print("   ls .aitrackdown/")
 
-    console.print("\n4. [cyan]Configure MCP clients (optional):[/cyan]")
-    console.print("   mcp-ticketer mcp claude    # For Claude Code")
-    console.print("   mcp-ticketer mcp auggie    # For Auggie")
-    console.print("   mcp-ticketer mcp gemini    # For Gemini CLI")
+    console.print("\n4. [cyan]Install MCP for AI clients (optional):[/cyan]")
+    console.print("   mcp-ticketer install claude-code     # For Claude Code")
+    console.print("   mcp-ticketer install claude-desktop  # For Claude Desktop")
+    console.print("   mcp-ticketer install auggie          # For Auggie")
+    console.print("   mcp-ticketer install gemini          # For Gemini CLI")
 
     console.print(f"\n[dim]Configuration saved to: {config_file_path}[/dim]")
     console.print("[dim]Run 'mcp-ticketer --help' for more commands[/dim]")
@@ -1871,6 +1872,10 @@ mcp_app = typer.Typer(
 
 @app.command()
 def install(
+    platform: str | None = typer.Argument(
+        None,
+        help="Platform to install (claude-code, claude-desktop, gemini, codex, auggie)",
+    ),
     adapter: str | None = typer.Option(
         None,
         "--adapter",
@@ -1918,41 +1923,31 @@ def install(
     github_token: str | None = typer.Option(
         None, "--github-token", help="GitHub Personal Access Token"
     ),
-    platform: str | None = typer.Option(
-        None,
-        "--platform",
-        help="Platform to configure MCP for (claude-code, claude-desktop, auggie, gemini, codex)",
-    ),
     dry_run: bool = typer.Option(
         False,
         "--dry-run",
         help="Show what would be done without making changes (for platform installation)",
     ),
 ) -> None:
-    """Install and initialize mcp-ticketer (synonymous with 'init' and 'setup').
+    """Install MCP for AI platforms OR initialize adapter setup.
 
-    Without arguments, runs interactive setup wizard to configure your ticket adapter.
-    With --platform, installs MCP configuration for AI platforms.
+    With platform argument (new syntax): Install MCP configuration for AI platforms
+    Without platform argument (legacy): Run adapter setup wizard (same as 'init' and 'setup')
 
-    This command serves two purposes:
-    1. Adapter initialization (same as 'init' and 'setup')
-    2. Platform MCP configuration (when using --platform flag)
+    New Command Structure:
+        # Install MCP for AI platforms
+        mcp-ticketer install claude-code     # Claude Code (project-level)
+        mcp-ticketer install claude-desktop  # Claude Desktop (global)
+        mcp-ticketer install gemini          # Gemini CLI
+        mcp-ticketer install codex           # Codex
+        mcp-ticketer install auggie          # Auggie
 
-    Examples:
-        # Interactive setup (same as 'init' and 'setup')
-        mcp-ticketer install
-
-        # Setup with specific adapter
+    Legacy Adapter Setup (still supported):
+        mcp-ticketer install                 # Interactive setup wizard
         mcp-ticketer install --adapter linear
 
-        # Install MCP for Claude Code
-        mcp-ticketer install --platform claude-code
-
-        # Install MCP for Claude Desktop
-        mcp-ticketer install --platform claude-desktop
-
     """
-    # If platform flag is provided, handle MCP platform installation
+    # If platform argument is provided, handle MCP platform installation (NEW SYNTAX)
     if platform is not None:
         # Import configuration functions
         from .auggie_configure import configure_auggie_mcp
@@ -2004,8 +1999,8 @@ def install(
             raise typer.Exit(1)
         return
 
-    # Otherwise, delegate to init for adapter initialization
-    # This makes 'install' and 'init' synonymous when called without --platform
+    # Otherwise, delegate to init for adapter initialization (LEGACY BEHAVIOR)
+    # This makes 'install' and 'init' synonymous when called without platform argument
     init(
         adapter=adapter,
         project_path=project_path,
@@ -2427,6 +2422,139 @@ def mcp_auggie(
     except Exception as e:
         console.print(f"[red]✗ Configuration failed:[/red] {e}")
         raise typer.Exit(1)
+
+
+@mcp_app.command(name="status")
+def mcp_status():
+    """Check MCP server status.
+
+    Shows whether the MCP server is configured and running for various platforms.
+
+    Examples:
+        mcp-ticketer mcp status
+
+    """
+    import json
+    from pathlib import Path
+
+    console.print("[bold]MCP Server Status[/bold]\n")
+
+    # Check project-level configuration
+    project_config = Path.cwd() / ".mcp-ticketer" / "config.json"
+    if project_config.exists():
+        console.print(
+            f"[green]✓[/green] Project config found: {project_config}"
+        )
+        try:
+            with open(project_config) as f:
+                config = json.load(f)
+                adapter = config.get("default_adapter", "aitrackdown")
+                console.print(f"  Default adapter: [cyan]{adapter}[/cyan]")
+        except Exception as e:
+            console.print(f"  [yellow]Warning: Could not read config: {e}[/yellow]")
+    else:
+        console.print(
+            "[yellow]○[/yellow] No project config found"
+        )
+
+    # Check Claude Code configuration
+    claude_code_config = Path.cwd() / ".mcp" / "config.json"
+    if claude_code_config.exists():
+        console.print(
+            f"\n[green]✓[/green] Claude Code configured: {claude_code_config}"
+        )
+    else:
+        console.print(
+            "\n[yellow]○[/yellow] Claude Code not configured"
+        )
+
+    # Check Claude Desktop configuration
+    claude_desktop_config = Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
+    if claude_desktop_config.exists():
+        try:
+            with open(claude_desktop_config) as f:
+                config = json.load(f)
+                if "mcpServers" in config and "mcp-ticketer" in config["mcpServers"]:
+                    console.print(
+                        f"[green]✓[/green] Claude Desktop configured: {claude_desktop_config}"
+                    )
+                else:
+                    console.print(
+                        "[yellow]○[/yellow] Claude Desktop config exists but mcp-ticketer not found"
+                    )
+        except Exception:
+            console.print(
+                "[yellow]○[/yellow] Claude Desktop config exists but could not be read"
+            )
+    else:
+        console.print(
+            "[yellow]○[/yellow] Claude Desktop not configured"
+        )
+
+    # Check Gemini configuration
+    gemini_project_config = Path.cwd() / ".gemini" / "settings.json"
+    gemini_user_config = Path.home() / ".gemini" / "settings.json"
+    if gemini_project_config.exists():
+        console.print(
+            f"\n[green]✓[/green] Gemini (project) configured: {gemini_project_config}"
+        )
+    elif gemini_user_config.exists():
+        console.print(
+            f"\n[green]✓[/green] Gemini (user) configured: {gemini_user_config}"
+        )
+    else:
+        console.print(
+            "\n[yellow]○[/yellow] Gemini not configured"
+        )
+
+    # Check Codex configuration
+    codex_config = Path.home() / ".codex" / "config.toml"
+    if codex_config.exists():
+        console.print(
+            f"[green]✓[/green] Codex configured: {codex_config}"
+        )
+    else:
+        console.print(
+            "[yellow]○[/yellow] Codex not configured"
+        )
+
+    # Check Auggie configuration
+    auggie_config = Path.home() / ".augment" / "settings.json"
+    if auggie_config.exists():
+        console.print(
+            f"[green]✓[/green] Auggie configured: {auggie_config}"
+        )
+    else:
+        console.print(
+            "[yellow]○[/yellow] Auggie not configured"
+        )
+
+    console.print(
+        "\n[dim]Run 'mcp-ticketer install <platform>' to configure a platform[/dim]"
+    )
+
+
+@mcp_app.command(name="stop")
+def mcp_stop():
+    """Stop MCP server (placeholder - MCP runs on-demand via stdio).
+
+    Note: The MCP server runs on-demand when AI clients connect via stdio.
+    It doesn't run as a persistent background service, so there's nothing to stop.
+    This command is provided for consistency but has no effect.
+
+    Examples:
+        mcp-ticketer mcp stop
+
+    """
+    console.print(
+        "[yellow]ℹ[/yellow]  MCP server runs on-demand via stdio (not as a background service)"
+    )
+    console.print(
+        "There is no persistent server process to stop."
+    )
+    console.print(
+        "\n[dim]The server starts automatically when AI clients connect and stops when they disconnect.[/dim]"
+    )
 
 
 # Add command groups to main app (must be after all subcommands are defined)
