@@ -2,17 +2,15 @@
 
 import pytest
 
-from mcp_ticketer.adapters.linear.types import (
-    LinearPriorityMapping,
-    LinearStateMapping,
-    build_issue_filter,
-    build_project_filter,
-    extract_linear_metadata,
-    get_linear_priority,
-    get_linear_state_type,
-    get_universal_priority,
-    get_universal_state,
-)
+from mcp_ticketer.adapters.linear.types import (LinearPriorityMapping,
+                                                LinearStateMapping,
+                                                build_issue_filter,
+                                                build_project_filter,
+                                                extract_linear_metadata,
+                                                get_linear_priority,
+                                                get_linear_state_type,
+                                                get_universal_priority,
+                                                get_universal_state)
 from mcp_ticketer.core.models import Priority, TicketState
 
 
