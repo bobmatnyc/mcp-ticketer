@@ -2,12 +2,16 @@
 
 import builtins
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from ..core.adapter import BaseAdapter
-from ..core.models import Attachment, Comment, Epic, Priority, SearchQuery, Task, TicketState
+
+logger = logging.getLogger(__name__)
+from ..core.models import (Attachment, Comment, Epic, Priority, SearchQuery,
+                           Task, TicketState)
 from ..core.registry import AdapterRegistry
 
 # Import ai-trackdown-pytools when available
@@ -80,7 +84,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             TicketState.CLOSED: "closed",
         }
 
-    def _priority_to_ai(self, priority: Union[Priority, str]) -> str:
+    def _priority_to_ai(self, priority: Priority | str) -> str:
         """Convert universal priority to AI-Trackdown priority."""
         if isinstance(priority, Priority):
             return priority.value
@@ -219,7 +223,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             "type": "epic",
         }
 
-    def _read_ticket_file(self, ticket_id: str) -> Optional[dict[str, Any]]:
+    def _read_ticket_file(self, ticket_id: str) -> dict[str, Any] | None:
         """Read ticket from file system."""
         ticket_file = self.tickets_dir / f"{ticket_id}.json"
         if ticket_file.exists():
@@ -233,7 +237,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         with open(ticket_file, "w") as f:
             json.dump(data, f, indent=2, default=str)
 
-    async def create(self, ticket: Union[Task, Epic]) -> Union[Task, Epic]:
+    async def create(self, ticket: Task | Epic) -> Task | Epic:
         """Create a new task."""
         # Generate ID if not provided
         if not ticket.id:
@@ -324,7 +328,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         )
         return await self.create(task)
 
-    async def read(self, ticket_id: str) -> Optional[Union[Task, Epic]]:
+    async def read(self, ticket_id: str) -> Task | Epic | None:
         """Read a task by ID."""
         if self.tracker:
             ai_ticket = self.tracker.get_ticket(ticket_id)
@@ -340,8 +344,8 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         return None
 
     async def update(
-        self, ticket_id: str, updates: Union[dict[str, Any], Task]
-    ) -> Optional[Union[Task, Epic]]:
+        self, ticket_id: str, updates: dict[str, Any] | Task
+    ) -> Task | Epic | None:
         """Update a task or epic.
 
         Args:
@@ -403,7 +407,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         return False
 
     async def list(
-        self, limit: int = 10, offset: int = 0, filters: Optional[dict[str, Any]] = None
+        self, limit: int = 10, offset: int = 0, filters: dict[str, Any] | None = None
     ) -> list[Task]:
         """List tasks with pagination."""
         tasks = []
@@ -487,7 +491,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
     async def transition_state(
         self, ticket_id: str, target_state: TicketState
-    ) -> Optional[Task]:
+    ) -> Task | None:
         """Transition task to new state."""
         # Validate transition
         if not await self.validate_transition(ticket_id, target_state):
@@ -534,7 +538,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         # Apply limit and offset AFTER filtering
         return comments[offset : offset + limit]
 
-    async def get_epic(self, epic_id: str) -> Optional[Epic]:
+    async def get_epic(self, epic_id: str) -> Epic | None:
         """Get epic by ID.
 
         Args:
@@ -623,7 +627,9 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
         """
         # Remove path separators and other dangerous characters
-        safe_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._- ")
+        safe_chars = set(
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._- "
+        )
         sanitized = "".join(c if c in safe_chars else "_" for c in filename)
 
         # Ensure filename is not empty
@@ -671,7 +677,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         self,
         ticket_id: str,
         file_path: str,
-        description: Optional[str] = None,
+        description: str | None = None,
     ) -> Attachment:
         """Attach a file to a ticket (local filesystem storage).
 
@@ -745,7 +751,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         return attachment
 
     async def get_attachments(self, ticket_id: str) -> builtins.list[Attachment]:
-        """Get all attachments for a ticket.
+        """Get all attachments for a ticket with path traversal protection.
 
         Args:
             ticket_id: Ticket identifier
@@ -754,7 +760,14 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             List of attachments (empty if none)
 
         """
-        attachments_dir = self.base_path / "attachments" / ticket_id
+        # Resolve and validate attachments directory
+        attachments_dir = (self.base_path / "attachments" / ticket_id).resolve()
+
+        # CRITICAL SECURITY CHECK: Ensure ticket directory is within base attachments
+        base_attachments = (self.base_path / "attachments").resolve()
+        if not str(attachments_dir).startswith(str(base_attachments)):
+            raise ValueError(f"Invalid ticket_id: path traversal detected")
+
         if not attachments_dir.exists():
             return []
 
@@ -772,8 +785,10 @@ class AITrackdownAdapter(BaseAdapter[Task]):
                     attachments.append(attachment)
             except (json.JSONDecodeError, ValueError) as e:
                 # Log error but continue processing other attachments
-                print(
-                    f"Warning: Failed to load attachment metadata from {metadata_file}: {e}"
+                logger.warning(
+                    "Failed to load attachment metadata from %s: %s",
+                    metadata_file,
+                    e,
                 )
                 continue
 
@@ -789,7 +804,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         ticket_id: str,
         attachment_id: str,
     ) -> bool:
-        """Delete an attachment and its metadata.
+        """Delete an attachment and its metadata with path traversal protection.
 
         Args:
             ticket_id: Ticket identifier
@@ -799,14 +814,25 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             True if deleted, False if not found
 
         """
-        attachments_dir = self.base_path / "attachments" / ticket_id
+        # Resolve base directory
+        attachments_dir = (self.base_path / "attachments" / ticket_id).resolve()
+
+        # Validate attachments directory exists
         if not attachments_dir.exists():
             return False
 
-        # Delete attachment file
-        attachment_file = attachments_dir / attachment_id
-        metadata_file = attachments_dir / f"{attachment_id}.json"
+        # Resolve file paths
+        attachment_file = (attachments_dir / attachment_id).resolve()
+        metadata_file = (attachments_dir / f"{attachment_id}.json").resolve()
 
+        # CRITICAL SECURITY CHECK: Ensure paths are within attachments_dir
+        base_resolved = attachments_dir.resolve()
+        if not str(attachment_file).startswith(str(base_resolved)):
+            raise ValueError(f"Invalid attachment path: path traversal detected in attachment_id")
+        if not str(metadata_file).startswith(str(base_resolved)):
+            raise ValueError(f"Invalid attachment path: path traversal detected in attachment_id")
+
+        # Delete files if they exist
         deleted = False
         if attachment_file.exists():
             attachment_file.unlink()
