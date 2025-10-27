@@ -52,7 +52,9 @@ def load_config(project_dir: Optional[Path] = None) -> dict:
                 return config
         except (OSError, json.JSONDecodeError) as e:
             logger.warning(f"Could not load project config: {e}, using defaults")
-            console.print(f"[yellow]Warning: Could not load project config: {e}[/yellow]")
+            console.print(
+                f"[yellow]Warning: Could not load project config: {e}[/yellow]"
+            )
 
     logger.info("No project-local config found, defaulting to aitrackdown adapter")
     return {"adapter": "aitrackdown", "config": {"base_path": ".aitrackdown"}}
@@ -70,7 +72,9 @@ def save_config(config: dict) -> None:
     logger.info(f"Saved configuration to: {project_config}")
 
 
-def get_adapter(override_adapter: Optional[str] = None, override_config: Optional[dict] = None):
+def get_adapter(
+    override_adapter: Optional[str] = None, override_config: Optional[dict] = None
+):
     """Get configured adapter instance."""
     config = load_config()
 
@@ -369,7 +373,9 @@ def create(
     console.print(f"  Title: {title}")
     console.print(f"  Priority: {priority}")
     console.print(f"  Adapter: {adapter_name}")
-    console.print("[dim]Use 'mcp-ticketer ticket check {queue_id}' to check progress[/dim]")
+    console.print(
+        "[dim]Use 'mcp-ticketer ticket check {queue_id}' to check progress[/dim]"
+    )
 
     # Start worker if needed with immediate feedback
     manager = WorkerManager()
@@ -606,7 +612,9 @@ def update(
     for key, value in updates.items():
         if key != "ticket_id":
             console.print(f"  {key}: {value}")
-    console.print("[dim]Use 'mcp-ticketer ticket check {queue_id}' to check progress[/dim]")
+    console.print(
+        "[dim]Use 'mcp-ticketer ticket check {queue_id}' to check progress[/dim]"
+    )
 
     # Start worker if needed
     manager = WorkerManager()
@@ -672,7 +680,9 @@ def transition(
 
     console.print(f"[green]✓[/green] Queued state transition: {queue_id}")
     console.print(f"  Ticket: {ticket_id} → {target_state}")
-    console.print("[dim]Use 'mcp-ticketer ticket check {queue_id}' to check progress[/dim]")
+    console.print(
+        "[dim]Use 'mcp-ticketer ticket check {queue_id}' to check progress[/dim]"
+    )
 
     # Start worker if needed
     manager = WorkerManager()

@@ -29,9 +29,7 @@ def jira_list_projects():
     from rich.console import Console
 
     console = Console()
-    console.print(
-        "[yellow]JIRA platform commands are not yet implemented.[/yellow]"
-    )
+    console.print("[yellow]JIRA platform commands are not yet implemented.[/yellow]")
     console.print(
         "Use the generic ticket commands for JIRA operations:\n"
         "  mcp-ticketer ticket create 'My ticket'\n"
@@ -45,12 +43,8 @@ def jira_configure():
     from rich.console import Console
 
     console = Console()
-    console.print(
-        "[yellow]JIRA platform commands are not yet implemented.[/yellow]"
-    )
-    console.print(
-        "Use 'mcp-ticketer init --adapter jira' to configure JIRA adapter."
-    )
+    console.print("[yellow]JIRA platform commands are not yet implemented.[/yellow]")
+    console.print("Use 'mcp-ticketer init --adapter jira' to configure JIRA adapter.")
 
 
 # GitHub platform commands (placeholder)
@@ -66,9 +60,7 @@ def github_list_repos():
     from rich.console import Console
 
     console = Console()
-    console.print(
-        "[yellow]GitHub platform commands are not yet implemented.[/yellow]"
-    )
+    console.print("[yellow]GitHub platform commands are not yet implemented.[/yellow]")
     console.print(
         "Use the generic ticket commands for GitHub operations:\n"
         "  mcp-ticketer ticket create 'My issue'\n"
@@ -82,9 +74,7 @@ def github_configure():
     from rich.console import Console
 
     console = Console()
-    console.print(
-        "[yellow]GitHub platform commands are not yet implemented.[/yellow]"
-    )
+    console.print("[yellow]GitHub platform commands are not yet implemented.[/yellow]")
     console.print(
         "Use 'mcp-ticketer init --adapter github' to configure GitHub adapter."
     )

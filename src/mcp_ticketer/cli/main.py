@@ -947,7 +947,9 @@ def install(
     This command is deprecated. Use 'mcp-ticketer init' for project initialization.
 
     """
-    console.print("[yellow]⚠️  'install' is deprecated. Use 'mcp-ticketer init' instead.[/yellow]\n")
+    console.print(
+        "[yellow]⚠️  'install' is deprecated. Use 'mcp-ticketer init' instead.[/yellow]\n"
+    )
     # Call init with all parameters
     init(
         adapter=adapter,
@@ -1136,7 +1138,9 @@ def old_queue_status_command():
 
     DEPRECATED: Use 'mcp-ticketer queue status' instead.
     """
-    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer queue status' instead.[/yellow]\n")
+    console.print(
+        "[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer queue status' instead.[/yellow]\n"
+    )
 
     queue = Queue()
     manager = WorkerManager()
@@ -1179,7 +1183,9 @@ def old_queue_health_command(
 
     DEPRECATED: Use 'mcp-ticketer queue health' instead.
     """
-    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer queue health' instead.[/yellow]\n")
+    console.print(
+        "[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer queue health' instead.[/yellow]\n"
+    )
     health_monitor = QueueHealthMonitor()
     health = health_monitor.check_health()
 
@@ -1281,7 +1287,9 @@ def create(
 
     DEPRECATED: Use 'mcp-ticketer ticket create' instead.
     """
-    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket create' instead.[/yellow]\n")
+    console.print(
+        "[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket create' instead.[/yellow]\n"
+    )
 
     # IMMEDIATE HEALTH CHECK - Critical for reliability
     health_monitor = QueueHealthMonitor()
@@ -1495,7 +1503,9 @@ def list_tickets(
 
     DEPRECATED: Use 'mcp-ticketer ticket list' instead.
     """
-    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket list' instead.[/yellow]\n")
+    console.print(
+        "[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket list' instead.[/yellow]\n"
+    )
 
     async def _list():
         adapter_instance = get_adapter(
@@ -1549,7 +1559,9 @@ def show(
 
     DEPRECATED: Use 'mcp-ticketer ticket show' instead.
     """
-    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket show' instead.[/yellow]\n")
+    console.print(
+        "[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket show' instead.[/yellow]\n"
+    )
 
     async def _show():
         adapter_instance = get_adapter(
@@ -1603,7 +1615,9 @@ def comment(
 
     DEPRECATED: Use 'mcp-ticketer ticket comment' instead.
     """
-    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket comment' instead.[/yellow]\n")
+    console.print(
+        "[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket comment' instead.[/yellow]\n"
+    )
 
     async def _comment():
         adapter_instance = get_adapter(
@@ -1652,7 +1666,9 @@ def update(
 
     DEPRECATED: Use 'mcp-ticketer ticket update' instead.
     """
-    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket update' instead.[/yellow]\n")
+    console.print(
+        "[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket update' instead.[/yellow]\n"
+    )
     updates = {}
     if title:
         updates["title"] = title
@@ -1725,7 +1741,9 @@ def transition(
         mcp-ticketer ticket transition BTA-215 done
 
     """
-    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket transition' instead.[/yellow]\n")
+    console.print(
+        "[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket transition' instead.[/yellow]\n"
+    )
 
     # Determine which state to use (prefer flag over positional)
     target_state = state if state is not None else state_positional
@@ -1784,7 +1802,9 @@ def search(
 
     DEPRECATED: Use 'mcp-ticketer ticket search' instead.
     """
-    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket search' instead.[/yellow]\n")
+    console.print(
+        "[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket search' instead.[/yellow]\n"
+    )
 
     async def _search():
         adapter_instance = get_adapter(
@@ -1931,16 +1951,16 @@ install_app = typer.Typer(
 
 @install_app.command(name="add")
 def install_add(
-    platform: str = typer.Argument(..., help="Platform to install (claude-code, claude-desktop, etc.)"),
+    platform: str = typer.Argument(
+        ..., help="Platform to install (claude-code, claude-desktop, etc.)"
+    ),
     project_path: Optional[str] = typer.Option(
         None, "--project", help="Project directory"
     ),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be done without making changes"
     ),
-    verbose: bool = typer.Option(
-        False, "--verbose", help="Enable verbose output"
-    ),
+    verbose: bool = typer.Option(False, "--verbose", help="Enable verbose output"),
 ) -> None:
     """Install mcp-ticketer integration for an AI platform.
 
@@ -1993,7 +2013,9 @@ def check(queue_id: str = typer.Argument(..., help="Queue ID to check")):
 
     DEPRECATED: Use 'mcp-ticketer ticket check' instead.
     """
-    console.print("[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket check' instead.[/yellow]\n")
+    console.print(
+        "[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket check' instead.[/yellow]\n"
+    )
     queue = Queue()
     item = queue.get_item(queue_id)
 
