@@ -6,7 +6,8 @@ from typing import Literal
 
 from rich.console import Console
 
-from .mcp_configure import find_mcp_ticketer_binary, load_project_config
+from .mcp_configure import load_project_config
+from .python_detection import get_mcp_ticketer_python
 
 console = Console()
 
@@ -73,14 +74,14 @@ def save_gemini_config(config_path: Path, config: dict) -> None:
 
 
 def create_gemini_server_config(
-    binary_path: str, project_config: dict, cwd: str | None = None
+    python_path: str, project_config: dict, project_path: str | None = None
 ) -> dict:
     """Create Gemini MCP server configuration for mcp-ticketer.
 
     Args:
-        binary_path: Path to mcp-ticketer binary
+        python_path: Path to Python executable in mcp-ticketer venv
         project_config: Project configuration from .mcp-ticketer/config.json
-        cwd: Working directory for server (optional)
+        project_path: Project directory path (optional)
 
     Returns:
         Gemini MCP server configuration dict
@@ -94,9 +95,9 @@ def create_gemini_server_config(
     # Build environment variables
     env_vars = {}
 
-    # Add PYTHONPATH if running from development environment
-    if cwd:
-        env_vars["PYTHONPATH"] = str(Path(cwd) / "src")
+    # Add PYTHONPATH for project context
+    if project_path:
+        env_vars["PYTHONPATH"] = project_path
 
     # Add adapter type
     env_vars["MCP_TICKETER_ADAPTER"] = adapter
@@ -105,9 +106,9 @@ def create_gemini_server_config(
     if adapter == "aitrackdown":
         # Set base path for local adapter
         base_path = adapter_config.get("base_path", ".aitrackdown")
-        if cwd:
-            # Use absolute path if cwd is provided
-            env_vars["MCP_TICKETER_BASE_PATH"] = str(Path(cwd) / base_path)
+        if project_path:
+            # Use absolute path if project_path is provided
+            env_vars["MCP_TICKETER_BASE_PATH"] = str(Path(project_path) / base_path)
         else:
             env_vars["MCP_TICKETER_BASE_PATH"] = base_path
 
@@ -135,10 +136,15 @@ def create_gemini_server_config(
         if "project_key" in adapter_config:
             env_vars["JIRA_PROJECT_KEY"] = adapter_config["project_key"]
 
+    # Use module invocation pattern: python -m mcp_ticketer.mcp.server
+    args = ["-m", "mcp_ticketer.mcp.server"]
+    if project_path:
+        args.append(project_path)
+
     # Create server configuration with Gemini-specific options
     config = {
-        "command": binary_path,
-        "args": ["serve"],
+        "command": python_path,
+        "args": args,
         "env": env_vars,
         "timeout": 15000,  # 15 seconds timeout
         "trust": False,  # Don't trust by default (security)
@@ -223,18 +229,22 @@ def configure_gemini_mcp(
         force: Overwrite existing configuration
 
     Raises:
-        FileNotFoundError: If binary or project config not found
+        FileNotFoundError: If Python executable or project config not found
         ValueError: If configuration is invalid
 
     """
-    # Step 1: Find mcp-ticketer binary
-    console.print("[cyan]🔍 Finding mcp-ticketer binary...[/cyan]")
+    # Step 1: Find Python executable
+    console.print("[cyan]🔍 Finding mcp-ticketer Python executable...[/cyan]")
     try:
-        binary_path = find_mcp_ticketer_binary()
-        console.print(f"[green]✓[/green] Found: {binary_path}")
-    except FileNotFoundError as e:
-        console.print(f"[red]✗[/red] {e}")
-        raise
+        python_path = get_mcp_ticketer_python()
+        console.print(f"[green]✓[/green] Found: {python_path}")
+    except Exception as e:
+        console.print(f"[red]✗[/red] Could not find Python executable: {e}")
+        raise FileNotFoundError(
+            "Could not find mcp-ticketer Python executable. "
+            "Please ensure mcp-ticketer is installed.\n"
+            "Install with: pip install mcp-ticketer or pipx install mcp-ticketer"
+        )
 
     # Step 2: Load project configuration
     console.print("\n[cyan]📖 Reading project configuration...[/cyan]")
@@ -266,9 +276,9 @@ def configure_gemini_mcp(
             console.print("[yellow]⚠ Overwriting existing configuration[/yellow]")
 
     # Step 6: Create mcp-ticketer server config
-    cwd = str(Path.cwd()) if scope == "project" else None
+    project_path = str(Path.cwd()) if scope == "project" else None
     server_config = create_gemini_server_config(
-        binary_path=binary_path, project_config=project_config, cwd=cwd
+        python_path=python_path, project_config=project_config, project_path=project_path
     )
 
     # Step 7: Update Gemini configuration
@@ -287,11 +297,12 @@ def configure_gemini_mcp(
         console.print("\n[bold]Configuration Details:[/bold]")
         console.print("  Server name: mcp-ticketer")
         console.print(f"  Adapter: {adapter}")
-        console.print(f"  Binary: {binary_path}")
+        console.print(f"  Python: {python_path}")
+        console.print(f"  Command: python -m mcp_ticketer.mcp.server")
         console.print(f"  Timeout: {server_config['timeout']}ms")
         console.print(f"  Trust: {server_config['trust']}")
-        if cwd:
-            console.print(f"  Working directory: {cwd}")
+        if project_path:
+            console.print(f"  Project path: {project_path}")
         if "env" in server_config:
             console.print(
                 f"  Environment variables: {list(server_config['env'].keys())}"
