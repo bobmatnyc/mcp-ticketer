@@ -217,6 +217,66 @@ def create_mcp_server_config(
     return config
 
 
+def remove_claude_mcp(global_config: bool = False, dry_run: bool = False) -> None:
+    """Remove mcp-ticketer from Claude Code/Desktop configuration.
+
+    Args:
+        global_config: Remove from Claude Desktop instead of project-level
+        dry_run: Show what would be removed without making changes
+
+    """
+    # Step 1: Find Claude MCP config location
+    config_type = "Claude Desktop" if global_config else "project-level"
+    console.print(f"[cyan]🔍 Removing {config_type} MCP configuration...[/cyan]")
+
+    mcp_config_path = find_claude_mcp_config(global_config)
+    console.print(f"[dim]Config location: {mcp_config_path}[/dim]")
+
+    # Step 2: Check if config file exists
+    if not mcp_config_path.exists():
+        console.print(f"[yellow]⚠ No configuration found at {mcp_config_path}[/yellow]")
+        console.print("[dim]mcp-ticketer is not configured for this platform[/dim]")
+        return
+
+    # Step 3: Load existing MCP configuration
+    mcp_config = load_claude_mcp_config(mcp_config_path)
+
+    # Step 4: Check if mcp-ticketer is configured
+    if "mcp-ticketer" not in mcp_config.get("mcpServers", {}):
+        console.print("[yellow]⚠ mcp-ticketer is not configured[/yellow]")
+        console.print(f"[dim]No mcp-ticketer entry found in {mcp_config_path}[/dim]")
+        return
+
+    # Step 5: Show what would be removed (dry run or actual removal)
+    if dry_run:
+        console.print("\n[cyan]DRY RUN - Would remove:[/cyan]")
+        console.print("  Server name: mcp-ticketer")
+        console.print(f"  From: {mcp_config_path}")
+        return
+
+    # Step 6: Remove mcp-ticketer from configuration
+    del mcp_config["mcpServers"]["mcp-ticketer"]
+
+    # Step 7: Save updated configuration
+    try:
+        save_claude_mcp_config(mcp_config_path, mcp_config)
+        console.print("\n[green]✓ Successfully removed mcp-ticketer[/green]")
+        console.print(f"[dim]Configuration updated: {mcp_config_path}[/dim]")
+
+        # Next steps
+        console.print("\n[bold cyan]Next Steps:[/bold cyan]")
+        if global_config:
+            console.print("1. Restart Claude Desktop")
+            console.print("2. mcp-ticketer will no longer be available in MCP menu")
+        else:
+            console.print("1. Restart Claude Code")
+            console.print("2. mcp-ticketer will no longer be available in this project")
+
+    except Exception as e:
+        console.print(f"\n[red]✗ Failed to update configuration:[/red] {e}")
+        raise
+
+
 def configure_claude_mcp(global_config: bool = False, force: bool = False) -> None:
     """Configure Claude Code to use mcp-ticketer.
 

@@ -147,6 +147,70 @@ def create_gemini_server_config(
     return config
 
 
+def remove_gemini_mcp(
+    scope: Literal["project", "user"] = "project", dry_run: bool = False
+) -> None:
+    """Remove mcp-ticketer from Gemini CLI configuration.
+
+    Args:
+        scope: Configuration scope - "project" or "user"
+        dry_run: Show what would be removed without making changes
+
+    """
+    # Step 1: Find Gemini config location
+    config_type = "user-level" if scope == "user" else "project-level"
+    console.print(f"[cyan]🔍 Removing {config_type} Gemini CLI configuration...[/cyan]")
+
+    gemini_config_path = find_gemini_config(scope)
+    console.print(f"[dim]Config location: {gemini_config_path}[/dim]")
+
+    # Step 2: Check if config file exists
+    if not gemini_config_path.exists():
+        console.print(f"[yellow]⚠ No configuration found at {gemini_config_path}[/yellow]")
+        console.print("[dim]mcp-ticketer is not configured for Gemini CLI[/dim]")
+        return
+
+    # Step 3: Load existing Gemini configuration
+    gemini_config = load_gemini_config(gemini_config_path)
+
+    # Step 4: Check if mcp-ticketer is configured
+    if "mcp-ticketer" not in gemini_config.get("mcpServers", {}):
+        console.print("[yellow]⚠ mcp-ticketer is not configured[/yellow]")
+        console.print(f"[dim]No mcp-ticketer entry found in {gemini_config_path}[/dim]")
+        return
+
+    # Step 5: Show what would be removed (dry run or actual removal)
+    if dry_run:
+        console.print("\n[cyan]DRY RUN - Would remove:[/cyan]")
+        console.print("  Server name: mcp-ticketer")
+        console.print(f"  From: {gemini_config_path}")
+        console.print(f"  Scope: {config_type}")
+        return
+
+    # Step 6: Remove mcp-ticketer from configuration
+    del gemini_config["mcpServers"]["mcp-ticketer"]
+
+    # Step 7: Save updated configuration
+    try:
+        save_gemini_config(gemini_config_path, gemini_config)
+        console.print("\n[green]✓ Successfully removed mcp-ticketer[/green]")
+        console.print(f"[dim]Configuration updated: {gemini_config_path}[/dim]")
+
+        # Next steps
+        console.print("\n[bold cyan]Next Steps:[/bold cyan]")
+        if scope == "user":
+            console.print("1. Gemini CLI global configuration updated")
+            console.print("2. mcp-ticketer will no longer be available in any project")
+        else:
+            console.print("1. Gemini CLI project configuration updated")
+            console.print("2. mcp-ticketer will no longer be available in this project")
+        console.print("3. Restart Gemini CLI if currently running")
+
+    except Exception as e:
+        console.print(f"\n[red]✗ Failed to update configuration:[/red] {e}")
+        raise
+
+
 def configure_gemini_mcp(
     scope: Literal["project", "user"] = "project", force: bool = False
 ) -> None:

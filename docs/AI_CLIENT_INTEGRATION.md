@@ -77,11 +77,12 @@ Before integrating with any AI client, ensure you have:
 pip install mcp-ticketer
 mcp-ticketer init --adapter aitrackdown
 
-# 2. Configure your AI client (choose ONE)
-mcp-ticketer mcp claude  # Claude Code (recommended)
-mcp-ticketer mcp gemini  # Gemini CLI
-mcp-ticketer mcp codex   # Codex CLI
-mcp-ticketer mcp auggie  # Auggie
+# 2. Install MCP configuration for your AI client (choose ONE)
+mcp-ticketer install claude-code     # Claude Code (project-level, recommended)
+mcp-ticketer install claude-desktop  # Claude Desktop (global)
+mcp-ticketer install gemini          # Gemini CLI
+mcp-ticketer install codex           # Codex CLI
+mcp-ticketer install auggie          # Auggie
 ```
 
 ---
@@ -135,14 +136,14 @@ mcp-ticketer init --adapter github --repo owner/repo
 #### Step 3: Configure MCP Integration
 
 ```bash
-# Project-level configuration (recommended)
-mcp-ticketer mcp claude
+# Project-level configuration (recommended for Claude Code)
+mcp-ticketer install claude-code
 
-# Global configuration (Claude Desktop)
-mcp-ticketer mcp claude --global
+# Global configuration (for Claude Desktop)
+mcp-ticketer install claude-desktop
 
-# Force overwrite existing configuration
-mcp-ticketer mcp claude --force
+# Preview changes without applying them
+mcp-ticketer install claude-code --dry-run
 ```
 
 #### Step 4: Verify Configuration
@@ -274,14 +275,11 @@ mcp-ticketer init --adapter aitrackdown
 #### Step 3: Configure MCP Integration
 
 ```bash
-# Project-level configuration (recommended)
-mcp-ticketer mcp gemini --scope project
+# Install Gemini CLI configuration (project-level by default)
+mcp-ticketer install gemini
 
-# User-level configuration (global)
-mcp-ticketer mcp gemini --scope user
-
-# Force overwrite
-mcp-ticketer mcp gemini --scope project --force
+# Preview changes without applying them
+mcp-ticketer install gemini --dry-run
 ```
 
 #### Step 4: Verify Configuration
@@ -399,11 +397,11 @@ mcp-ticketer init --adapter aitrackdown
 #### Step 3: Configure MCP Integration
 
 ```bash
-# Configure Codex (global-only)
-mcp-ticketer mcp codex
+# Install Codex CLI configuration (global-only)
+mcp-ticketer install codex
 
-# Force overwrite
-mcp-ticketer mcp codex --force
+# Preview changes without applying them
+mcp-ticketer install codex --dry-run
 ```
 
 ⚠️ **IMPORTANT:** Codex CLI does NOT support project-level configuration.
@@ -500,11 +498,11 @@ mcp-ticketer init --adapter aitrackdown
 #### Step 3: Configure MCP Integration
 
 ```bash
-# Configure Auggie (global-only)
-mcp-ticketer mcp auggie
+# Install Auggie configuration (global-only)
+mcp-ticketer install auggie
 
-# Force overwrite
-mcp-ticketer mcp auggie --force
+# Preview changes without applying them
+mcp-ticketer install auggie --dry-run
 ```
 
 #### Step 4: Restart Auggie
@@ -711,8 +709,9 @@ This ensures tickets are accessible across all projects when using Auggie.
 # Find the binary path
 which mcp-ticketer
 
-# Update config with absolute path
-mcp-ticketer mcp claude --force
+# Reinstall configuration
+mcp-ticketer remove claude-code
+mcp-ticketer install claude-code
 ```
 
 #### 2. "Adapter not configured"
@@ -753,8 +752,9 @@ cat .gemini/settings.json
 # Verify .gitignore
 cat .gitignore | grep .gemini
 
-# Reconfigure
-mcp-ticketer mcp gemini --scope project --force
+# Reinstall configuration
+mcp-ticketer remove gemini
+mcp-ticketer install gemini
 ```
 
 #### 5. "Server not responding" (Codex CLI)
@@ -817,8 +817,8 @@ python -c "import tomli; print(tomli.load(open('~/.codex/config.toml', 'rb')))"
 # 1. Your adapter config is already compatible
 # No changes needed to .mcp-ticketer/config.json
 
-# 2. Configure Gemini CLI
-mcp-ticketer mcp gemini --scope project
+# 2. Install Gemini CLI configuration
+mcp-ticketer install gemini
 
 # 3. Both clients can now use the same adapter
 # No data migration required
@@ -831,8 +831,8 @@ mcp-ticketer mcp gemini --scope project
 cd /path/to/project
 mcp-ticketer init --adapter aitrackdown
 
-# 2. Configure new client
-mcp-ticketer mcp claude  # or: mcp-ticketer mcp gemini
+# 2. Install configuration for new client
+mcp-ticketer install claude-code  # or: mcp-ticketer install gemini
 
 # 3. Migrate tickets (optional)
 # Copy tickets from global storage to project storage
@@ -846,8 +846,8 @@ cp -r ~/.mcp-ticketer/.aitrackdown/* .aitrackdown/
 mkdir -p ~/.mcp-ticketer
 cp .mcp-ticketer/config.json ~/.mcp-ticketer/
 
-# 2. Configure global client
-mcp-ticketer mcp codex  # or: mcp-ticketer mcp auggie
+# 2. Install configuration for global client
+mcp-ticketer install codex  # or: mcp-ticketer install auggie
 
 # 3. Update paths in global config
 # Edit ~/.codex/config.toml or ~/.augment/settings.json
@@ -888,7 +888,8 @@ MCP_TICKETER_ADAPTER = "aitrackdown"
 **Conversion script:**
 ```bash
 # Use mcp-ticketer's built-in conversion
-mcp-ticketer mcp codex --force
+mcp-ticketer remove codex
+mcp-ticketer install codex
 ```
 
 ---

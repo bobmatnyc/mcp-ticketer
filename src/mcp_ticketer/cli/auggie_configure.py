@@ -138,6 +138,70 @@ def create_auggie_server_config(
     return config
 
 
+def remove_auggie_mcp(dry_run: bool = False) -> None:
+    """Remove mcp-ticketer from Auggie CLI configuration.
+
+    IMPORTANT: Auggie CLI ONLY supports global configuration.
+    This will remove mcp-ticketer from ~/.augment/settings.json.
+
+    Args:
+        dry_run: Show what would be removed without making changes
+
+    """
+    # Step 1: Find Auggie config location
+    console.print("[cyan]🔍 Removing Auggie CLI global configuration...[/cyan]")
+    console.print(
+        "[yellow]⚠ NOTE: Auggie only supports global configuration (affects all projects)[/yellow]"
+    )
+
+    auggie_config_path = find_auggie_config()
+    console.print(f"[dim]Config location: {auggie_config_path}[/dim]")
+
+    # Step 2: Check if config file exists
+    if not auggie_config_path.exists():
+        console.print(f"[yellow]⚠ No configuration found at {auggie_config_path}[/yellow]")
+        console.print("[dim]mcp-ticketer is not configured for Auggie[/dim]")
+        return
+
+    # Step 3: Load existing Auggie configuration
+    auggie_config = load_auggie_config(auggie_config_path)
+
+    # Step 4: Check if mcp-ticketer is configured
+    if "mcp-ticketer" not in auggie_config.get("mcpServers", {}):
+        console.print("[yellow]⚠ mcp-ticketer is not configured[/yellow]")
+        console.print(f"[dim]No mcp-ticketer entry found in {auggie_config_path}[/dim]")
+        return
+
+    # Step 5: Show what would be removed (dry run or actual removal)
+    if dry_run:
+        console.print("\n[cyan]DRY RUN - Would remove:[/cyan]")
+        console.print("  Server name: mcp-ticketer")
+        console.print(f"  From: {auggie_config_path}")
+        console.print("  Scope: Global (all projects)")
+        return
+
+    # Step 6: Remove mcp-ticketer from configuration
+    del auggie_config["mcpServers"]["mcp-ticketer"]
+
+    # Step 7: Save updated configuration
+    try:
+        save_auggie_config(auggie_config_path, auggie_config)
+        console.print("\n[green]✓ Successfully removed mcp-ticketer[/green]")
+        console.print(f"[dim]Configuration updated: {auggie_config_path}[/dim]")
+
+        # Next steps
+        console.print("\n[bold cyan]Next Steps:[/bold cyan]")
+        console.print("1. Restart Auggie CLI for changes to take effect")
+        console.print("2. mcp-ticketer will no longer be available via MCP")
+        console.print(
+            "\n[yellow]⚠ Note: This removes global configuration affecting all projects[/yellow]"
+        )
+
+    except Exception as e:
+        console.print(f"\n[red]✗ Failed to update configuration:[/red] {e}")
+        raise
+
+
 def configure_auggie_mcp(force: bool = False) -> None:
     """Configure Auggie CLI to use mcp-ticketer.
 

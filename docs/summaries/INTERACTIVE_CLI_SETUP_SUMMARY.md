@@ -132,9 +132,10 @@ Next Steps:
    Check your Linear workspace for the new ticket
 
 4. Configure MCP clients (optional):
-   mcp-ticketer mcp claude    # For Claude Code
-   mcp-ticketer mcp auggie    # For Auggie
-   mcp-ticketer mcp gemini    # For Gemini CLI
+   mcp-ticketer install claude-code     # For Claude Code
+   mcp-ticketer install claude-desktop  # For Claude Desktop
+   mcp-ticketer install auggie          # For Auggie
+   mcp-ticketer install gemini          # For Gemini CLI
 ```
 
 ### **5. New Setup Command**

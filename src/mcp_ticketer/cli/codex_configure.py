@@ -151,6 +151,72 @@ def create_codex_server_config(
     return config
 
 
+def remove_codex_mcp(dry_run: bool = False) -> None:
+    """Remove mcp-ticketer from Codex CLI configuration.
+
+    IMPORTANT: Codex CLI ONLY supports global configuration at ~/.codex/config.toml.
+    This will remove mcp-ticketer from the global configuration.
+
+    Args:
+        dry_run: Show what would be removed without making changes
+
+    """
+    # Step 1: Find Codex config location (always global)
+    console.print("[cyan]🔍 Removing Codex CLI global configuration...[/cyan]")
+    console.print(
+        "[yellow]⚠ Note: Codex CLI only supports global configuration[/yellow]"
+    )
+
+    codex_config_path = find_codex_config()
+    console.print(f"[dim]Config location: {codex_config_path}[/dim]")
+
+    # Step 2: Check if config file exists
+    if not codex_config_path.exists():
+        console.print(f"[yellow]⚠ No configuration found at {codex_config_path}[/yellow]")
+        console.print("[dim]mcp-ticketer is not configured for Codex CLI[/dim]")
+        return
+
+    # Step 3: Load existing Codex configuration
+    codex_config = load_codex_config(codex_config_path)
+
+    # Step 4: Check if mcp-ticketer is configured
+    # NOTE: Use underscore mcp_servers, not camelCase
+    mcp_servers = codex_config.get("mcp_servers", {})
+    if "mcp-ticketer" not in mcp_servers:
+        console.print("[yellow]⚠ mcp-ticketer is not configured[/yellow]")
+        console.print(f"[dim]No mcp-ticketer entry found in {codex_config_path}[/dim]")
+        return
+
+    # Step 5: Show what would be removed (dry run or actual removal)
+    if dry_run:
+        console.print("\n[cyan]DRY RUN - Would remove:[/cyan]")
+        console.print("  Server name: mcp-ticketer")
+        console.print(f"  From: {codex_config_path}")
+        console.print("  Scope: Global (all sessions)")
+        return
+
+    # Step 6: Remove mcp-ticketer from configuration
+    del codex_config["mcp_servers"]["mcp-ticketer"]
+
+    # Step 7: Save updated configuration
+    try:
+        save_codex_config(codex_config_path, codex_config)
+        console.print("\n[green]✓ Successfully removed mcp-ticketer[/green]")
+        console.print(f"[dim]Configuration updated: {codex_config_path}[/dim]")
+
+        # Next steps
+        console.print("\n[bold cyan]Next Steps:[/bold cyan]")
+        console.print("1. [bold]Restart Codex CLI[/bold] (required for changes)")
+        console.print("2. mcp-ticketer will no longer be available via MCP")
+        console.print(
+            "\n[yellow]⚠ Note: This removes global configuration affecting all Codex sessions[/yellow]"
+        )
+
+    except Exception as e:
+        console.print(f"\n[red]✗ Failed to update configuration:[/red] {e}")
+        raise
+
+
 def configure_codex_mcp(force: bool = False) -> None:
     """Configure Codex CLI to use mcp-ticketer.
 

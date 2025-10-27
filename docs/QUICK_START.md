@@ -256,6 +256,7 @@ MCP Ticketer supports **4 major AI clients**. Choose based on your needs:
 | Client | Best For | Config Type | Setup Time |
 |--------|----------|-------------|------------|
 | **Claude Code** | Multi-project workflows | Project-level | < 1 min |
+| **Claude Desktop** | Global AI assistant | Global-only | < 1 min |
 | **Gemini CLI** | Security-conscious teams | Project-level | < 1 min |
 | **Codex CLI** | Single-project users | Global-only | < 2 min |
 | **Auggie** | Simplicity seekers | Global-only | < 1 min |
@@ -282,11 +283,10 @@ Do you prefer TOML config?
 **Best for**: Project-specific workflows, stable integration
 
 ```bash
-# Configure MCP integration (THE ONLY WAY)
-mcp-ticketer mcp claude
+# Install MCP configuration for project-level use
+mcp-ticketer install claude-code
 
 # Configuration created at: .claude/mcp.json
-# Or for global: ~/Library/Application Support/Claude/claude_desktop_config.json
 ```
 
 **Use in Claude Code:**
@@ -297,20 +297,33 @@ mcp-ticketer mcp claude
 
 ---
 
-### Option B: Gemini CLI
+### Option B: Claude Desktop
+
+**Best for**: Global configuration across all projects
+
+```bash
+# Install MCP configuration globally
+mcp-ticketer install claude-desktop
+
+# Configuration created at: ~/Library/Application Support/Claude/claude_desktop_config.json
+```
+
+**Use in Claude Desktop:**
+- Available globally across all conversations
+- Same commands as Claude Code
+- Restart Claude Desktop after installation
+
+---
+
+### Option C: Gemini CLI
 
 **Best for**: Security features, Google AI users
 
 ```bash
-# Configure for project-level (recommended)
-mcp-ticketer mcp gemini --scope project
+# Install for project-level (recommended)
+mcp-ticketer install gemini
 
-# Or configure globally
-mcp-ticketer mcp gemini --scope user
-
-# Configuration created at:
-# Project: .gemini/settings.json
-# Global: ~/.gemini/settings.json
+# Configuration created at: .gemini/settings.json
 ```
 
 **Use in Gemini CLI:**
@@ -324,13 +337,13 @@ gemini
 
 ---
 
-### Option C: Codex CLI
+### Option D: Codex CLI
 
 **Best for**: Single-project users, TOML preferences
 
 ```bash
-# Configure Codex (global-only)
-mcp-ticketer mcp codex
+# Install Codex configuration (global-only)
+mcp-ticketer install codex
 
 # Configuration created at: ~/.codex/config.toml
 
@@ -348,13 +361,13 @@ codex
 
 ---
 
-### Option D: Auggie
+### Option E: Auggie
 
 **Best for**: Simple setup, lightweight usage
 
 ```bash
-# Configure Auggie (global-only)
-mcp-ticketer mcp auggie
+# Install Auggie configuration (global-only)
+mcp-ticketer install auggie
 
 # Configuration created at: ~/.augment/settings.json
 
@@ -385,6 +398,32 @@ mcp-ticketer serve
 ```
 
 **See [AI Client Integration Guide](docs/AI_CLIENT_INTEGRATION.md) for detailed configuration.**
+
+---
+
+### Removing MCP Configuration
+
+When you need to remove mcp-ticketer from an AI platform:
+
+```bash
+# Remove from Claude Code (project-level)
+mcp-ticketer remove claude-code
+
+# Remove from Claude Desktop (global)
+mcp-ticketer remove claude-desktop
+
+# Remove from Auggie (alias: uninstall)
+mcp-ticketer uninstall auggie
+
+# Dry-run to preview removal without making changes
+mcp-ticketer remove codex --dry-run
+```
+
+**Available removal commands:**
+- `mcp-ticketer remove <platform>` - Remove MCP configuration
+- `mcp-ticketer uninstall <platform>` - Alias for remove command
+
+**Supported platforms:** claude-code, claude-desktop, auggie, gemini, codex
 
 ---
 

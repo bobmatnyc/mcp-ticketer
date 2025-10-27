@@ -1,18 +1,204 @@
 # MCP Ticketer Migration Guide
 
-Complete guide for migrating ticket data between different systems using MCP Ticketer.
+Complete guide for migrating between MCP Ticketer versions and migrating ticket data between different systems.
 
 ## Table of Contents
 
-- [Migration Overview](#migration-overview)
-- [Pre-Migration Planning](#pre-migration-planning)
-- [Migration Strategies](#migration-strategies)
-- [Data Export and Import](#data-export-and-import)
-- [Common Migration Scenarios](#common-migration-scenarios)
-- [Field Mapping and Transformation](#field-mapping-and-transformation)
-- [Validation and Testing](#validation-and-testing)
-- [Post-Migration Tasks](#post-migration-tasks)
-- [Troubleshooting](#troubleshooting)
+- [Version Migration](#version-migration)
+  - [Migrating from v0.4.x to v0.5.x](#migrating-from-v04x-to-v05x)
+- [Data Migration](#data-migration)
+  - [Migration Overview](#migration-overview)
+  - [Pre-Migration Planning](#pre-migration-planning)
+  - [Migration Strategies](#migration-strategies)
+  - [Data Export and Import](#data-export-and-import)
+  - [Common Migration Scenarios](#common-migration-scenarios)
+  - [Field Mapping and Transformation](#field-mapping-and-transformation)
+  - [Validation and Testing](#validation-and-testing)
+  - [Post-Migration Tasks](#post-migration-tasks)
+  - [Troubleshooting](#troubleshooting)
+
+---
+
+## Version Migration
+
+### Migrating from v0.4.x to v0.5.x
+
+Version 0.5.x introduces a new CLI command structure for MCP platform installation. This guide helps you update your scripts and workflows.
+
+#### Breaking Changes
+
+##### MCP Installation Commands
+
+**Old syntax (v0.4.x and earlier):**
+```bash
+mcp-ticketer mcp claude
+mcp-ticketer mcp gemini --scope project
+mcp-ticketer mcp codex
+mcp-ticketer mcp auggie
+```
+
+**New syntax (v0.5.x):**
+```bash
+mcp-ticketer install claude-code       # For Claude Code (project-level)
+mcp-ticketer install claude-desktop    # For Claude Desktop (global)
+mcp-ticketer install gemini            # For Gemini CLI
+mcp-ticketer install codex             # For Codex CLI
+mcp-ticketer install auggie            # For Auggie
+
+# Show available platforms
+mcp-ticketer install
+```
+
+#### New Features in v0.5.x
+
+##### 1. Installation Commands
+
+The `install` command now handles MCP platform configuration:
+- Simplified syntax without the `mcp` subcommand
+- Clearer platform names (e.g., `claude-code` vs `claude-desktop`)
+- Dry-run support to preview changes
+
+```bash
+# Install with preview
+mcp-ticketer install claude-code --dry-run
+
+# Install normally
+mcp-ticketer install claude-code
+```
+
+##### 2. Removal Commands
+
+New commands to remove MCP configurations:
+
+```bash
+# Remove MCP configuration
+mcp-ticketer remove claude-code
+mcp-ticketer remove claude-desktop
+mcp-ticketer remove auggie
+
+# Alias: uninstall
+mcp-ticketer uninstall codex
+
+# Dry-run to preview
+mcp-ticketer remove gemini --dry-run
+```
+
+##### 3. Platform Support
+
+**New platforms:**
+- `claude-code` - Project-level Claude Code configuration
+- `claude-desktop` - Global Claude Desktop configuration (separate from claude-code)
+
+**Updated platforms:**
+- `gemini` - Simplified from `mcp gemini --scope project`
+- `codex` - Simplified from `mcp codex`
+- `auggie` - Simplified from `mcp auggie`
+
+#### Migration Steps
+
+##### Step 1: Update Scripts
+
+If you have automation scripts, update them to use the new syntax:
+
+**Before (v0.4.x):**
+```bash
+#!/bin/bash
+# Setup script (OLD)
+mcp-ticketer init --adapter aitrackdown
+mcp-ticketer mcp claude
+```
+
+**After (v0.5.x):**
+```bash
+#!/bin/bash
+# Setup script (NEW)
+mcp-ticketer init --adapter aitrackdown
+mcp-ticketer install claude-code
+```
+
+##### Step 2: Update Documentation
+
+Review and update any project documentation that references the old commands:
+- README files
+- Setup guides
+- CI/CD pipelines
+- Developer onboarding docs
+
+##### Step 3: Reinstall Configurations (Optional)
+
+While old configurations continue to work, you may want to reinstall using the new commands:
+
+```bash
+# Remove old configuration
+mcp-ticketer remove claude-code
+
+# Install with new command
+mcp-ticketer install claude-code
+```
+
+##### Step 4: Test Integrations
+
+Verify that your MCP integrations still work after the update:
+
+```bash
+# For Claude Code users
+# 1. Open project in Claude Code
+# 2. Try: "List all my tickets"
+# 3. Verify MCP tools are available
+
+# For other platforms
+# Follow platform-specific testing procedures
+```
+
+#### Compatibility Notes
+
+- **Backward Compatibility**: Old `mcp-ticketer mcp <platform>` commands are deprecated but still work in v0.5.x
+- **Configuration Files**: Existing configuration files are compatible and don't need migration
+- **Deprecation Timeline**: Old commands will be removed in v1.0.0 (approximately 6-12 months)
+
+#### Common Migration Issues
+
+##### Issue: "Command not found: install"
+
+**Cause**: You're still running v0.4.x
+
+**Solution**: Upgrade to v0.5.x
+```bash
+pip install --upgrade mcp-ticketer
+mcp-ticketer --version  # Should show 0.5.0 or higher
+```
+
+##### Issue: "Platform 'claude' not found"
+
+**Cause**: Old platform name used with new command
+
+**Solution**: Use correct platform names
+```bash
+# ❌ OLD: mcp-ticketer install claude
+# ✅ NEW: mcp-ticketer install claude-code
+# ✅ OR:  mcp-ticketer install claude-desktop
+```
+
+##### Issue: Configuration conflicts
+
+**Cause**: Both old and new configurations exist
+
+**Solution**: Remove old configuration first
+```bash
+mcp-ticketer remove claude-code
+mcp-ticketer install claude-code
+```
+
+#### Resources
+
+- [Quick Start Guide](QUICK_START.md) - Updated for v0.5.x
+- [README](../README.md) - Updated installation instructions
+- [Changelog](../CHANGELOG.md) - Full list of changes
+- [GitHub Issues](https://github.com/mcp-ticketer/mcp-ticketer/issues) - Report problems
+
+---
+
+## Data Migration
 
 ## Migration Overview
 

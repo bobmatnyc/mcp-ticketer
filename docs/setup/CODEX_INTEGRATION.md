@@ -16,11 +16,11 @@ This document describes the Codex CLI integration for mcp-ticketer, which allows
 ### 2. Configure Codex CLI
 
 ```bash
-# Configure Codex CLI globally
-mcp-ticketer mcp codex
+# Install Codex CLI configuration globally
+mcp-ticketer install codex
 
 # Or force overwrite existing configuration
-mcp-ticketer mcp codex --force
+mcp-ticketer install codex --dry-run  # Preview changes first
 ```
 
 ### 3. Restart Codex CLI
@@ -121,17 +121,21 @@ Compare to Claude Code JSON:
 ## CLI Command Reference
 
 ```bash
-# Configure Codex CLI
-mcp-ticketer mcp codex [OPTIONS]
+# Install Codex CLI configuration
+mcp-ticketer install codex [OPTIONS]
 
 # Options:
-#   --force, -f    Overwrite existing configuration
+#   --dry-run      Preview changes without making them
 #   --help         Show help message
 
 # Examples:
-mcp-ticketer mcp codex                    # Configure globally
-mcp-ticketer mcp codex --force            # Force overwrite
-mcp-ticketer mcp codex --help             # Show help
+mcp-ticketer install codex                # Install globally
+mcp-ticketer install codex --dry-run      # Preview changes
+mcp-ticketer install codex --help         # Show help
+
+# Remove configuration
+mcp-ticketer remove codex                 # Remove configuration
+mcp-ticketer uninstall codex              # Alias for remove
 ```
 
 ## Troubleshooting
@@ -156,10 +160,11 @@ mcp-ticketer configure --show
 mcp-ticketer configure --adapter linear
 ```
 
-Then reconfigure Codex:
+Then reinstall Codex configuration:
 
 ```bash
-mcp-ticketer mcp codex --force
+mcp-ticketer remove codex        # Remove old config
+mcp-ticketer install codex       # Install new config
 ```
 
 ### Binary Not Found
@@ -187,7 +192,8 @@ make install-dev
 
 ```bash
 cd /path/to/your/project
-mcp-ticketer mcp codex --force
+mcp-ticketer remove codex
+mcp-ticketer install codex
 ```
 
 ## Implementation Details
@@ -229,14 +235,17 @@ dependencies = [
 ### Manual Test
 
 ```bash
-# 1. Configure
-mcp-ticketer mcp codex
+# 1. Install configuration
+mcp-ticketer install codex
 
 # 2. Check TOML file
 cat ~/.codex/config.toml
 
-# 3. Verify structure
-python3 test_codex_config.py
+# 3. Test removal
+mcp-ticketer remove codex --dry-run
+
+# 4. Reinstall
+mcp-ticketer install codex
 ```
 
 ### Automated Test
@@ -284,7 +293,7 @@ Since Codex only supports global configuration:
 
 1. **Protect config.toml**: Ensure `~/.codex/config.toml` has appropriate permissions
 2. **Avoid Hardcoded Secrets**: Use environment variables where possible
-3. **Reconfigure Per Project**: Run `mcp-ticketer mcp codex --force` when switching projects
+3. **Reconfigure Per Project**: Run `mcp-ticketer remove codex && mcp-ticketer install codex` when switching projects
 4. **Review Configuration**: Periodically audit `~/.codex/config.toml`
 
 ## Future Enhancements
@@ -308,5 +317,5 @@ For issues or questions:
 
 1. Check troubleshooting section above
 2. Review `~/.codex/config.toml` for correctness
-3. Test with `mcp-ticketer mcp codex --force`
+3. Test with `mcp-ticketer install codex --dry-run`
 4. File issue at https://github.com/mcp-ticketer/mcp-ticketer/issues

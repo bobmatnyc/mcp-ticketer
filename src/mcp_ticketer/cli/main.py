@@ -1941,50 +1941,89 @@ mcp_app = typer.Typer(
     add_completion=False,
 )
 
-# Create install command group (like kuzu-memory)
-install_app = typer.Typer(
-    name="install",
-    help="Manage AI system integrations",
-    add_completion=False,
-)
-
-
-@install_app.command(name="add")
-def install_add(
-    platform: str = typer.Argument(
-        ..., help="Platform to install (claude-code, claude-desktop, etc.)"
-    ),
-    project_path: Optional[str] = typer.Option(
-        None, "--project", help="Project directory"
+@app.command()
+def install(
+    platform: Optional[str] = typer.Argument(
+        None, help="Platform to install (claude-code, claude-desktop, auggie, gemini, codex)"
     ),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be done without making changes"
     ),
-    verbose: bool = typer.Option(False, "--verbose", help="Enable verbose output"),
 ) -> None:
-    """Install mcp-ticketer integration for an AI platform.
+    """Install mcp-ticketer for AI platforms.
+
+    Without arguments, shows installation status and available platforms.
+    With a platform argument, installs MCP configuration for that platform.
 
     Each platform gets the right configuration automatically:
       - claude-code: Project-level MCP server
       - claude-desktop: Global MCP server
+      - auggie: Project-level MCP server
+      - gemini: Project-level MCP server
+      - codex: Project-level MCP server
 
     Examples:
+        # Show status and available platforms
+        mcp-ticketer install
+
         # Install for Claude Code (project-level)
-        mcp-ticketer install add claude-code
+        mcp-ticketer install claude-code
 
         # Install for Claude Desktop (global)
-        mcp-ticketer install add claude-desktop
+        mcp-ticketer install claude-desktop
+
+        # Install for Auggie
+        mcp-ticketer install auggie
 
         # Dry run to preview changes
-        mcp-ticketer install add claude-code --dry-run
+        mcp-ticketer install claude-code --dry-run
 
     """
+    # If no platform specified, show help message
+    if platform is None:
+        console.print(
+            "[green]✓[/green] mcp-ticketer CLI is already installed.\n"
+        )
+        console.print(
+            "[bold]To configure MCP for a specific platform, use:[/bold]\n"
+            "  mcp-ticketer install <platform>\n"
+        )
+        console.print("[bold]Available platforms:[/bold]")
+        console.print("  • claude-code     - Claude Code (project-level)")
+        console.print("  • claude-desktop  - Claude Desktop (global)")
+        console.print("  • auggie          - Auggie (project-level)")
+        console.print("  • gemini          - Gemini CLI (project-level)")
+        console.print("  • codex           - Codex (project-level)")
+        return
+
+    # Import configuration functions
+    from .auggie_configure import configure_auggie_mcp
+    from .codex_configure import configure_codex_mcp
+    from .gemini_configure import configure_gemini_mcp
     from .mcp_configure import configure_claude_mcp
 
-    # Map platform names to configuration
+    # Map platform names to configuration functions
     platform_mapping = {
-        "claude-code": {"global": False, "name": "Claude Code"},
-        "claude-desktop": {"global": True, "name": "Claude Desktop"},
+        "claude-code": {
+            "func": lambda: configure_claude_mcp(global_config=False, force=True),
+            "name": "Claude Code",
+        },
+        "claude-desktop": {
+            "func": lambda: configure_claude_mcp(global_config=True, force=True),
+            "name": "Claude Desktop",
+        },
+        "auggie": {
+            "func": lambda: configure_auggie_mcp(force=True),
+            "name": "Auggie",
+        },
+        "gemini": {
+            "func": lambda: configure_gemini_mcp(scope="project", force=True),
+            "name": "Gemini CLI",
+        },
+        "codex": {
+            "func": lambda: configure_codex_mcp(force=True),
+            "name": "Codex",
+        },
     }
 
     if platform not in platform_mapping:
@@ -2001,10 +2040,134 @@ def install_add(
         return
 
     try:
-        configure_claude_mcp(global_config=config["global"], force=True)
+        config["func"]()
     except Exception as e:
         console.print(f"[red]Installation failed: {e}[/red]")
         raise typer.Exit(1)
+
+
+@app.command()
+def remove(
+    platform: Optional[str] = typer.Argument(
+        None, help="Platform to remove (claude-code, claude-desktop, auggie, gemini, codex)"
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be done without making changes"
+    ),
+) -> None:
+    """Remove mcp-ticketer from AI platforms.
+
+    Without arguments, shows help and available platforms.
+    With a platform argument, removes MCP configuration for that platform.
+
+    Examples:
+        # Remove from Claude Code (project-level)
+        mcp-ticketer remove claude-code
+
+        # Remove from Claude Desktop (global)
+        mcp-ticketer remove claude-desktop
+
+        # Remove from Auggie
+        mcp-ticketer remove auggie
+
+        # Dry run to preview changes
+        mcp-ticketer remove claude-code --dry-run
+
+    """
+    # If no platform specified, show help message
+    if platform is None:
+        console.print(
+            "[bold]Remove mcp-ticketer from AI platforms[/bold]\n"
+        )
+        console.print(
+            "Usage: mcp-ticketer remove <platform>\n"
+        )
+        console.print("[bold]Available platforms:[/bold]")
+        console.print("  • claude-code     - Claude Code (project-level)")
+        console.print("  • claude-desktop  - Claude Desktop (global)")
+        console.print("  • auggie          - Auggie (global)")
+        console.print("  • gemini          - Gemini CLI (project-level by default)")
+        console.print("  • codex           - Codex (global)")
+        return
+
+    # Import removal functions
+    from .auggie_configure import remove_auggie_mcp
+    from .codex_configure import remove_codex_mcp
+    from .gemini_configure import remove_gemini_mcp
+    from .mcp_configure import remove_claude_mcp
+
+    # Map platform names to removal functions
+    platform_mapping = {
+        "claude-code": {
+            "func": lambda: remove_claude_mcp(global_config=False, dry_run=dry_run),
+            "name": "Claude Code",
+        },
+        "claude-desktop": {
+            "func": lambda: remove_claude_mcp(global_config=True, dry_run=dry_run),
+            "name": "Claude Desktop",
+        },
+        "auggie": {
+            "func": lambda: remove_auggie_mcp(dry_run=dry_run),
+            "name": "Auggie",
+        },
+        "gemini": {
+            "func": lambda: remove_gemini_mcp(scope="project", dry_run=dry_run),
+            "name": "Gemini CLI",
+        },
+        "codex": {
+            "func": lambda: remove_codex_mcp(dry_run=dry_run),
+            "name": "Codex",
+        },
+    }
+
+    if platform not in platform_mapping:
+        console.print(f"[red]Unknown platform: {platform}[/red]")
+        console.print("\n[bold]Available platforms:[/bold]")
+        for p in platform_mapping.keys():
+            console.print(f"  • {p}")
+        raise typer.Exit(1)
+
+    config = platform_mapping[platform]
+
+    try:
+        config["func"]()
+    except Exception as e:
+        console.print(f"[red]Removal failed: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
+def uninstall(
+    platform: Optional[str] = typer.Argument(
+        None, help="Platform to uninstall (claude-code, claude-desktop, auggie, gemini, codex)"
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be done without making changes"
+    ),
+) -> None:
+    """Uninstall mcp-ticketer from AI platforms (alias for remove).
+
+    This is an alias for the 'remove' command.
+
+    Without arguments, shows help and available platforms.
+    With a platform argument, removes MCP configuration for that platform.
+
+    Examples:
+        # Uninstall from Claude Code (project-level)
+        mcp-ticketer uninstall claude-code
+
+        # Uninstall from Claude Desktop (global)
+        mcp-ticketer uninstall claude-desktop
+
+        # Uninstall from Auggie
+        mcp-ticketer uninstall auggie
+
+        # Dry run to preview changes
+        mcp-ticketer uninstall claude-code --dry-run
+
+    """
+    # Call the remove command with the same parameters
+    remove(platform=platform, dry_run=dry_run)
 
 
 @app.command(deprecated=True, hidden=True)
@@ -2077,7 +2240,7 @@ def mcp_serve(
       2. Global: ~/.mcp-ticketer/config.json
       3. Default: aitrackdown adapter with .aitrackdown base path
     """
-    from ..mcp.server import MCPTicketServer
+    from ..mcp.server_sdk import configure_adapter, main as sdk_main
 
     # Load configuration (respects project-specific config in cwd)
     config = load_config()
@@ -2118,21 +2281,20 @@ def mcp_serve(
     if sys.stderr.isatty():
         # Only print if stderr is a terminal (not redirected)
         console.file = sys.stderr
-        console.print(f"[green]Starting MCP server[/green] with {adapter_type} adapter")
+        console.print(f"[green]Starting MCP SDK server[/green] with {adapter_type} adapter")
         console.print(
             "[dim]Server running on stdio. Send JSON-RPC requests via stdin.[/dim]"
         )
 
-    # Create and run server
+    # Configure adapter and run SDK server
     try:
-        server = MCPTicketServer(adapter_type, adapter_config)
-        asyncio.run(server.run())
+        configure_adapter(adapter_type, adapter_config)
+        sdk_main()
     except KeyboardInterrupt:
-        # Also send this to stderr
+        # Send this to stderr
         if sys.stderr.isatty():
             console.print("\n[yellow]Server stopped by user[/yellow]")
-        if "server" in locals():
-            asyncio.run(server.stop())
+        sys.exit(0)
     except Exception as e:
         # Log error to stderr
         sys.stderr.write(f"MCP server error: {e}\n")
@@ -2292,7 +2454,6 @@ def mcp_auggie(
 
 # Add command groups to main app (must be after all subcommands are defined)
 app.add_typer(mcp_app, name="mcp")
-app.add_typer(install_app, name="install")
 
 
 def main():
