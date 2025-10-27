@@ -82,10 +82,25 @@ class LinearAdapter(BaseAdapter[Task]):
                 "Linear API key is required (api_key or LINEAR_API_KEY env var)"
             )
 
-        # Clean API key - remove Bearer prefix if accidentally included in config
-        # (The client will add it back when making requests)
-        if self.api_key.startswith("Bearer "):
-            self.api_key = self.api_key.replace("Bearer ", "")
+        # Clean API key - remove common prefixes if accidentally included in config
+        # (The client will add Bearer back when making requests)
+        if isinstance(self.api_key, str):
+            # Remove Bearer prefix
+            if self.api_key.startswith("Bearer "):
+                self.api_key = self.api_key.replace("Bearer ", "")
+            # Remove environment variable name prefix (e.g., "LINEAR_API_KEY=")
+            if "=" in self.api_key:
+                parts = self.api_key.split("=", 1)
+                if len(parts) == 2 and parts[0].upper() in ("LINEAR_API_KEY", "API_KEY"):
+                    self.api_key = parts[1]
+
+            # Validate API key format (Linear keys start with "lin_api_")
+            if not self.api_key.startswith("lin_api_"):
+                raise ValueError(
+                    f"Invalid Linear API key format. Expected key starting with 'lin_api_', "
+                    f"got: {self.api_key[:15]}... "
+                    f"Please check your configuration and ensure the API key is correct."
+                )
 
         self.workspace = config.get("workspace", "")
         self.team_key = config.get("team_key")
