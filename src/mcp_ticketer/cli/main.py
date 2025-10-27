@@ -5,7 +5,6 @@ import json
 import os
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 import typer
 from dotenv import load_dotenv
@@ -21,7 +20,8 @@ from ..core.models import Comment, SearchQuery
 from ..queue import Queue, QueueStatus, WorkerManager
 from ..queue.health_monitor import HealthStatus, QueueHealthMonitor
 from ..queue.ticket_registry import TicketRegistry
-from .configure import configure_wizard, set_adapter_config, show_current_config
+from .configure import (configure_wizard, set_adapter_config,
+                        show_current_config)
 from .diagnostics import run_diagnostics
 from .discover import app as discover_app
 from .migrate_config import migrate_config_command
@@ -84,7 +84,7 @@ class AdapterType(str, Enum):
     GITHUB = "github"
 
 
-def load_config(project_dir: Optional[Path] = None) -> dict:
+def load_config(project_dir: Path | None = None) -> dict:
     """Load configuration from project-local config file ONLY.
 
     SECURITY: This method ONLY reads from the current project directory
@@ -146,7 +146,7 @@ def load_config(project_dir: Optional[Path] = None) -> dict:
     return {"adapter": "aitrackdown", "config": {"base_path": ".aitrackdown"}}
 
 
-def _discover_from_env_files() -> Optional[str]:
+def _discover_from_env_files() -> str | None:
     """Discover adapter configuration from .env or .env.local files.
 
     Returns:
@@ -270,7 +270,7 @@ def merge_config(updates: dict) -> dict:
 
 
 def get_adapter(
-    override_adapter: Optional[str] = None, override_config: Optional[dict] = None
+    override_adapter: str | None = None, override_config: dict | None = None
 ):
     """Get configured adapter instance.
 
@@ -387,13 +387,13 @@ def _prompt_for_adapter_selection(console: Console) -> str:
 
 @app.command()
 def setup(
-    adapter: Optional[str] = typer.Option(
+    adapter: str | None = typer.Option(
         None,
         "--adapter",
         "-a",
         help="Adapter type to use (interactive prompt if not specified)",
     ),
-    project_path: Optional[str] = typer.Option(
+    project_path: str | None = typer.Option(
         None, "--path", help="Project path (default: current directory)"
     ),
     global_config: bool = typer.Option(
@@ -402,36 +402,36 @@ def setup(
         "-g",
         help="Save to global config instead of project-specific",
     ),
-    base_path: Optional[str] = typer.Option(
+    base_path: str | None = typer.Option(
         None,
         "--base-path",
         "-p",
         help="Base path for ticket storage (AITrackdown only)",
     ),
-    api_key: Optional[str] = typer.Option(
+    api_key: str | None = typer.Option(
         None, "--api-key", help="API key for Linear or API token for JIRA"
     ),
-    team_id: Optional[str] = typer.Option(
+    team_id: str | None = typer.Option(
         None, "--team-id", help="Linear team ID (required for Linear adapter)"
     ),
-    jira_server: Optional[str] = typer.Option(
+    jira_server: str | None = typer.Option(
         None,
         "--jira-server",
         help="JIRA server URL (e.g., https://company.atlassian.net)",
     ),
-    jira_email: Optional[str] = typer.Option(
+    jira_email: str | None = typer.Option(
         None, "--jira-email", help="JIRA user email for authentication"
     ),
-    jira_project: Optional[str] = typer.Option(
+    jira_project: str | None = typer.Option(
         None, "--jira-project", help="Default JIRA project key"
     ),
-    github_owner: Optional[str] = typer.Option(
+    github_owner: str | None = typer.Option(
         None, "--github-owner", help="GitHub repository owner"
     ),
-    github_repo: Optional[str] = typer.Option(
+    github_repo: str | None = typer.Option(
         None, "--github-repo", help="GitHub repository name"
     ),
-    github_token: Optional[str] = typer.Option(
+    github_token: str | None = typer.Option(
         None, "--github-token", help="GitHub Personal Access Token"
     ),
 ) -> None:
@@ -471,13 +471,13 @@ def setup(
 
 @app.command()
 def init(
-    adapter: Optional[str] = typer.Option(
+    adapter: str | None = typer.Option(
         None,
         "--adapter",
         "-a",
         help="Adapter type to use (interactive prompt if not specified)",
     ),
-    project_path: Optional[str] = typer.Option(
+    project_path: str | None = typer.Option(
         None, "--path", help="Project path (default: current directory)"
     ),
     global_config: bool = typer.Option(
@@ -486,36 +486,36 @@ def init(
         "-g",
         help="Save to global config instead of project-specific",
     ),
-    base_path: Optional[str] = typer.Option(
+    base_path: str | None = typer.Option(
         None,
         "--base-path",
         "-p",
         help="Base path for ticket storage (AITrackdown only)",
     ),
-    api_key: Optional[str] = typer.Option(
+    api_key: str | None = typer.Option(
         None, "--api-key", help="API key for Linear or API token for JIRA"
     ),
-    team_id: Optional[str] = typer.Option(
+    team_id: str | None = typer.Option(
         None, "--team-id", help="Linear team ID (required for Linear adapter)"
     ),
-    jira_server: Optional[str] = typer.Option(
+    jira_server: str | None = typer.Option(
         None,
         "--jira-server",
         help="JIRA server URL (e.g., https://company.atlassian.net)",
     ),
-    jira_email: Optional[str] = typer.Option(
+    jira_email: str | None = typer.Option(
         None, "--jira-email", help="JIRA user email for authentication"
     ),
-    jira_project: Optional[str] = typer.Option(
+    jira_project: str | None = typer.Option(
         None, "--jira-project", help="Default JIRA project key"
     ),
-    github_owner: Optional[str] = typer.Option(
+    github_owner: str | None = typer.Option(
         None, "--github-owner", help="GitHub repository owner"
     ),
-    github_repo: Optional[str] = typer.Option(
+    github_repo: str | None = typer.Option(
         None, "--github-repo", help="GitHub repository name"
     ),
-    github_token: Optional[str] = typer.Option(
+    github_token: str | None = typer.Option(
         None, "--github-token", help="GitHub Personal Access Token"
     ),
 ) -> None:
@@ -678,23 +678,10 @@ def init(
 
             if not linear_team_key and not linear_team_id and not discovered:
                 console.print("\n[bold]Linear Team Configuration[/bold]")
-                console.print("You can identify your team using either:")
-                console.print("  • Team key (e.g., 'ENG') - recommended, easier to remember")
-                console.print("  • Team ID (UUID) - for advanced use cases")
-                console.print("[dim]Find both in: Linear Settings → Teams → Your Team[/dim]\n")
+                console.print("Enter your team key (e.g., 'ENG', 'DESIGN', 'PRODUCT')")
+                console.print("[dim]Find it in: Linear Settings → Teams → Your Team → Key field[/dim]\n")
 
-                # Offer user-friendly choice
-                use_key = typer.confirm(
-                    "Use team key (like 'ENG') instead of team ID?",
-                    default=True
-                )
-
-                if use_key:
-                    console.print("\n[dim]Enter your team key (e.g., ENG, DESIGN, PRODUCT)[/dim]")
-                    linear_team_key = typer.prompt("Team key")
-                else:
-                    console.print("\n[dim]Enter your team UUID[/dim]")
-                    linear_team_id = typer.prompt("Team ID")
+                linear_team_key = typer.prompt("Team key")
 
             # Save whichever was provided
             if linear_team_key:
@@ -702,7 +689,9 @@ def init(
             if linear_team_id:
                 linear_config["team_id"] = linear_team_id
 
-            if not linear_config.get("api_key") or (not linear_config.get("team_id") and not linear_config.get("team_key")):
+            if not linear_config.get("api_key") or (
+                not linear_config.get("team_id") and not linear_config.get("team_key")
+            ):
                 console.print(
                     "[red]Error:[/red] Linear requires both API key and team ID/key"
                 )
@@ -913,24 +902,20 @@ def _show_next_steps(
     console.print("[dim]Run 'mcp-ticketer --help' for more commands[/dim]")
 
 
-
-
 @app.command("set")
 def set_config(
-    adapter: Optional[AdapterType] = typer.Option(
+    adapter: AdapterType | None = typer.Option(
         None, "--adapter", "-a", help="Set default adapter"
     ),
-    team_key: Optional[str] = typer.Option(
+    team_key: str | None = typer.Option(
         None, "--team-key", help="Linear team key (e.g., BTA)"
     ),
-    team_id: Optional[str] = typer.Option(None, "--team-id", help="Linear team ID"),
-    owner: Optional[str] = typer.Option(
-        None, "--owner", help="GitHub repository owner"
-    ),
-    repo: Optional[str] = typer.Option(None, "--repo", help="GitHub repository name"),
-    server: Optional[str] = typer.Option(None, "--server", help="JIRA server URL"),
-    project: Optional[str] = typer.Option(None, "--project", help="JIRA project key"),
-    base_path: Optional[str] = typer.Option(
+    team_id: str | None = typer.Option(None, "--team-id", help="Linear team ID"),
+    owner: str | None = typer.Option(None, "--owner", help="GitHub repository owner"),
+    repo: str | None = typer.Option(None, "--repo", help="GitHub repository name"),
+    server: str | None = typer.Option(None, "--server", help="JIRA server URL"),
+    project: str | None = typer.Option(None, "--project", help="JIRA project key"),
+    base_path: str | None = typer.Option(
         None, "--base-path", help="AITrackdown base path"
     ),
 ) -> None:
@@ -1020,16 +1005,12 @@ def set_config(
 @app.command("configure")
 def configure_command(
     show: bool = typer.Option(False, "--show", help="Show current configuration"),
-    adapter: Optional[str] = typer.Option(
+    adapter: str | None = typer.Option(
         None, "--adapter", help="Set default adapter type"
     ),
-    api_key: Optional[str] = typer.Option(None, "--api-key", help="Set API key/token"),
-    project_id: Optional[str] = typer.Option(
-        None, "--project-id", help="Set project ID"
-    ),
-    team_id: Optional[str] = typer.Option(
-        None, "--team-id", help="Set team ID (Linear)"
-    ),
+    api_key: str | None = typer.Option(None, "--api-key", help="Set API key/token"),
+    project_id: str | None = typer.Option(None, "--project-id", help="Set project ID"),
+    team_id: str | None = typer.Option(None, "--team-id", help="Set team ID (Linear)"),
     global_scope: bool = typer.Option(
         False,
         "--global",
@@ -1205,29 +1186,29 @@ def old_queue_health_command(
 @app.command(deprecated=True, hidden=True)
 def create(
     title: str = typer.Argument(..., help="Ticket title"),
-    description: Optional[str] = typer.Option(
+    description: str | None = typer.Option(
         None, "--description", "-d", help="Ticket description"
     ),
     priority: Priority = typer.Option(
         Priority.MEDIUM, "--priority", "-p", help="Priority level"
     ),
-    tags: Optional[list[str]] = typer.Option(
+    tags: list[str] | None = typer.Option(
         None, "--tag", "-t", help="Tags (can be specified multiple times)"
     ),
-    assignee: Optional[str] = typer.Option(
+    assignee: str | None = typer.Option(
         None, "--assignee", "-a", help="Assignee username"
     ),
-    project: Optional[str] = typer.Option(
+    project: str | None = typer.Option(
         None,
         "--project",
         help="Parent project/epic ID (synonym for --epic)",
     ),
-    epic: Optional[str] = typer.Option(
+    epic: str | None = typer.Option(
         None,
         "--epic",
         help="Parent epic/project ID (synonym for --project)",
     ),
-    adapter: Optional[AdapterType] = typer.Option(
+    adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
@@ -1436,14 +1417,14 @@ def create(
 
 @app.command("list", deprecated=True, hidden=True)
 def list_tickets(
-    state: Optional[TicketState] = typer.Option(
+    state: TicketState | None = typer.Option(
         None, "--state", "-s", help="Filter by state"
     ),
-    priority: Optional[Priority] = typer.Option(
+    priority: Priority | None = typer.Option(
         None, "--priority", "-p", help="Filter by priority"
     ),
     limit: int = typer.Option(10, "--limit", "-l", help="Maximum number of tickets"),
-    adapter: Optional[AdapterType] = typer.Option(
+    adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
@@ -1499,7 +1480,7 @@ def list_tickets(
 def show(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
     comments: bool = typer.Option(False, "--comments", "-c", help="Show comments"),
-    adapter: Optional[AdapterType] = typer.Option(
+    adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
@@ -1555,7 +1536,7 @@ def show(
 def comment(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
     content: str = typer.Argument(..., help="Comment content"),
-    adapter: Optional[AdapterType] = typer.Option(
+    adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
@@ -1596,17 +1577,15 @@ def comment(
 @app.command(deprecated=True, hidden=True)
 def update(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
-    title: Optional[str] = typer.Option(None, "--title", help="New title"),
-    description: Optional[str] = typer.Option(
+    title: str | None = typer.Option(None, "--title", help="New title"),
+    description: str | None = typer.Option(
         None, "--description", "-d", help="New description"
     ),
-    priority: Optional[Priority] = typer.Option(
+    priority: Priority | None = typer.Option(
         None, "--priority", "-p", help="New priority"
     ),
-    assignee: Optional[str] = typer.Option(
-        None, "--assignee", "-a", help="New assignee"
-    ),
-    adapter: Optional[AdapterType] = typer.Option(
+    assignee: str | None = typer.Option(None, "--assignee", "-a", help="New assignee"),
+    adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
@@ -1666,13 +1645,13 @@ def update(
 @app.command(deprecated=True, hidden=True)
 def transition(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
-    state_positional: Optional[TicketState] = typer.Argument(
+    state_positional: TicketState | None = typer.Argument(
         None, help="Target state (positional - deprecated, use --state instead)"
     ),
-    state: Optional[TicketState] = typer.Option(
+    state: TicketState | None = typer.Option(
         None, "--state", "-s", help="Target state (recommended)"
     ),
-    adapter: Optional[AdapterType] = typer.Option(
+    adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
@@ -1737,12 +1716,12 @@ def transition(
 
 @app.command(deprecated=True, hidden=True)
 def search(
-    query: Optional[str] = typer.Argument(None, help="Search query"),
-    state: Optional[TicketState] = typer.Option(None, "--state", "-s"),
-    priority: Optional[Priority] = typer.Option(None, "--priority", "-p"),
-    assignee: Optional[str] = typer.Option(None, "--assignee", "-a"),
+    query: str | None = typer.Argument(None, help="Search query"),
+    state: TicketState | None = typer.Option(None, "--state", "-s"),
+    priority: Priority | None = typer.Option(None, "--priority", "-p"),
+    assignee: str | None = typer.Option(None, "--assignee", "-a"),
     limit: int = typer.Option(10, "--limit", "-l"),
-    adapter: Optional[AdapterType] = typer.Option(
+    adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
@@ -1800,7 +1779,7 @@ app.add_typer(discover_app, name="discover")
 # Add diagnostics command
 @app.command("diagnose")
 def diagnose_command(
-    output_file: Optional[str] = typer.Option(
+    output_file: str | None = typer.Option(
         None, "--output", "-o", help="Save full report to file"
     ),
     json_output: bool = typer.Option(
@@ -1847,7 +1826,7 @@ def diagnose_command(
 
 @app.command("doctor")
 def doctor_alias(
-    output_file: Optional[str] = typer.Option(
+    output_file: str | None = typer.Option(
         None, "--output", "-o", help="Save full report to file"
     ),
     json_output: bool = typer.Option(
@@ -1892,13 +1871,13 @@ mcp_app = typer.Typer(
 
 @app.command()
 def install(
-    adapter: Optional[str] = typer.Option(
+    adapter: str | None = typer.Option(
         None,
         "--adapter",
         "-a",
         help="Adapter type to use (interactive prompt if not specified)",
     ),
-    project_path: Optional[str] = typer.Option(
+    project_path: str | None = typer.Option(
         None, "--path", help="Project path (default: current directory)"
     ),
     global_config: bool = typer.Option(
@@ -1907,45 +1886,47 @@ def install(
         "-g",
         help="Save to global config instead of project-specific",
     ),
-    base_path: Optional[str] = typer.Option(
+    base_path: str | None = typer.Option(
         None,
         "--base-path",
         "-p",
         help="Base path for ticket storage (AITrackdown only)",
     ),
-    api_key: Optional[str] = typer.Option(
+    api_key: str | None = typer.Option(
         None, "--api-key", help="API key for Linear or API token for JIRA"
     ),
-    team_id: Optional[str] = typer.Option(
+    team_id: str | None = typer.Option(
         None, "--team-id", help="Linear team ID (required for Linear adapter)"
     ),
-    jira_server: Optional[str] = typer.Option(
+    jira_server: str | None = typer.Option(
         None,
         "--jira-server",
         help="JIRA server URL (e.g., https://company.atlassian.net)",
     ),
-    jira_email: Optional[str] = typer.Option(
+    jira_email: str | None = typer.Option(
         None, "--jira-email", help="JIRA user email for authentication"
     ),
-    jira_project: Optional[str] = typer.Option(
+    jira_project: str | None = typer.Option(
         None, "--jira-project", help="Default JIRA project key"
     ),
-    github_owner: Optional[str] = typer.Option(
+    github_owner: str | None = typer.Option(
         None, "--github-owner", help="GitHub repository owner"
     ),
-    github_repo: Optional[str] = typer.Option(
+    github_repo: str | None = typer.Option(
         None, "--github-repo", help="GitHub repository name"
     ),
-    github_token: Optional[str] = typer.Option(
+    github_token: str | None = typer.Option(
         None, "--github-token", help="GitHub Personal Access Token"
     ),
-    platform: Optional[str] = typer.Option(
+    platform: str | None = typer.Option(
         None,
         "--platform",
         help="Platform to configure MCP for (claude-code, claude-desktop, auggie, gemini, codex)",
     ),
     dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be done without making changes (for platform installation)"
+        False,
+        "--dry-run",
+        help="Show what would be done without making changes (for platform installation)",
     ),
 ) -> None:
     """Install and initialize mcp-ticketer (synonymous with 'init' and 'setup').
@@ -2043,7 +2024,7 @@ def install(
 
 @app.command()
 def remove(
-    platform: Optional[str] = typer.Argument(
+    platform: str | None = typer.Argument(
         None,
         help="Platform to remove (claude-code, claude-desktop, auggie, gemini, codex)",
     ),
@@ -2130,7 +2111,7 @@ def remove(
 
 @app.command()
 def uninstall(
-    platform: Optional[str] = typer.Argument(
+    platform: str | None = typer.Argument(
         None,
         help="Platform to uninstall (claude-code, claude-desktop, auggie, gemini, codex)",
     ),
@@ -2213,10 +2194,10 @@ def check(queue_id: str = typer.Argument(..., help="Queue ID to check")):
 
 @mcp_app.command(name="serve")
 def mcp_serve(
-    adapter: Optional[AdapterType] = typer.Option(
+    adapter: AdapterType | None = typer.Option(
         None, "--adapter", "-a", help="Override default adapter type"
     ),
-    base_path: Optional[str] = typer.Option(
+    base_path: str | None = typer.Option(
         None, "--base-path", help="Base path for AITrackdown adapter"
     ),
 ):
