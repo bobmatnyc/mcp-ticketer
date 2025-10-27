@@ -576,7 +576,7 @@ def init(
         )
 
         # First try our improved .env configuration loader
-        from ..mcp.server import _load_env_configuration
+        from ..mcp.server.main import _load_env_configuration
 
         env_config = _load_env_configuration()
 
@@ -2226,7 +2226,7 @@ def mcp_serve(
         adapter_config = adapters_config.get(adapter_type, {})
     else:
         # Priority 2: .env files
-        from ..mcp.server import _load_env_configuration
+        from ..mcp.server.main import _load_env_configuration
 
         env_config = _load_env_configuration()
         if env_config:
