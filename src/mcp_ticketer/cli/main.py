@@ -20,8 +20,7 @@ from ..core.models import Comment, SearchQuery
 from ..queue import Queue, QueueStatus, WorkerManager
 from ..queue.health_monitor import HealthStatus, QueueHealthMonitor
 from ..queue.ticket_registry import TicketRegistry
-from .configure import (configure_wizard, set_adapter_config,
-                        show_current_config)
+from .configure import configure_wizard, set_adapter_config, show_current_config
 from .diagnostics import run_diagnostics
 from .discover import app as discover_app
 from .migrate_config import migrate_config_command
@@ -679,7 +678,9 @@ def init(
             if not linear_team_key and not linear_team_id and not discovered:
                 console.print("\n[bold]Linear Team Configuration[/bold]")
                 console.print("Enter your team key (e.g., 'ENG', 'DESIGN', 'PRODUCT')")
-                console.print("[dim]Find it in: Linear Settings → Teams → Your Team → Key field[/dim]\n")
+                console.print(
+                    "[dim]Find it in: Linear Settings → Teams → Your Team → Key field[/dim]\n"
+                )
 
                 linear_team_key = typer.prompt("Team key")
 
@@ -2442,9 +2443,7 @@ def mcp_status():
     # Check project-level configuration
     project_config = Path.cwd() / ".mcp-ticketer" / "config.json"
     if project_config.exists():
-        console.print(
-            f"[green]✓[/green] Project config found: {project_config}"
-        )
+        console.print(f"[green]✓[/green] Project config found: {project_config}")
         try:
             with open(project_config) as f:
                 config = json.load(f)
@@ -2453,9 +2452,7 @@ def mcp_status():
         except Exception as e:
             console.print(f"  [yellow]Warning: Could not read config: {e}[/yellow]")
     else:
-        console.print(
-            "[yellow]○[/yellow] No project config found"
-        )
+        console.print("[yellow]○[/yellow] No project config found")
 
     # Check Claude Code configuration
     claude_code_config = Path.cwd() / ".mcp" / "config.json"
@@ -2464,12 +2461,16 @@ def mcp_status():
             f"\n[green]✓[/green] Claude Code configured: {claude_code_config}"
         )
     else:
-        console.print(
-            "\n[yellow]○[/yellow] Claude Code not configured"
-        )
+        console.print("\n[yellow]○[/yellow] Claude Code not configured")
 
     # Check Claude Desktop configuration
-    claude_desktop_config = Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
+    claude_desktop_config = (
+        Path.home()
+        / "Library"
+        / "Application Support"
+        / "Claude"
+        / "claude_desktop_config.json"
+    )
     if claude_desktop_config.exists():
         try:
             with open(claude_desktop_config) as f:
@@ -2487,9 +2488,7 @@ def mcp_status():
                 "[yellow]○[/yellow] Claude Desktop config exists but could not be read"
             )
     else:
-        console.print(
-            "[yellow]○[/yellow] Claude Desktop not configured"
-        )
+        console.print("[yellow]○[/yellow] Claude Desktop not configured")
 
     # Check Gemini configuration
     gemini_project_config = Path.cwd() / ".gemini" / "settings.json"
@@ -2503,31 +2502,21 @@ def mcp_status():
             f"\n[green]✓[/green] Gemini (user) configured: {gemini_user_config}"
         )
     else:
-        console.print(
-            "\n[yellow]○[/yellow] Gemini not configured"
-        )
+        console.print("\n[yellow]○[/yellow] Gemini not configured")
 
     # Check Codex configuration
     codex_config = Path.home() / ".codex" / "config.toml"
     if codex_config.exists():
-        console.print(
-            f"[green]✓[/green] Codex configured: {codex_config}"
-        )
+        console.print(f"[green]✓[/green] Codex configured: {codex_config}")
     else:
-        console.print(
-            "[yellow]○[/yellow] Codex not configured"
-        )
+        console.print("[yellow]○[/yellow] Codex not configured")
 
     # Check Auggie configuration
     auggie_config = Path.home() / ".augment" / "settings.json"
     if auggie_config.exists():
-        console.print(
-            f"[green]✓[/green] Auggie configured: {auggie_config}"
-        )
+        console.print(f"[green]✓[/green] Auggie configured: {auggie_config}")
     else:
-        console.print(
-            "[yellow]○[/yellow] Auggie not configured"
-        )
+        console.print("[yellow]○[/yellow] Auggie not configured")
 
     console.print(
         "\n[dim]Run 'mcp-ticketer install <platform>' to configure a platform[/dim]"
@@ -2549,9 +2538,7 @@ def mcp_stop():
     console.print(
         "[yellow]ℹ[/yellow]  MCP server runs on-demand via stdio (not as a background service)"
     )
-    console.print(
-        "There is no persistent server process to stop."
-    )
+    console.print("There is no persistent server process to stop.")
     console.print(
         "\n[dim]The server starts automatically when AI clients connect and stops when they disconnect.[/dim]"
     )
