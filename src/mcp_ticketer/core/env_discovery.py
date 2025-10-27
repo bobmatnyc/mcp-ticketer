@@ -11,7 +11,7 @@ environment files, including:
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from dotenv import dotenv_values
 
@@ -125,7 +125,7 @@ class DiscoveryResult:
     warnings: list[str] = field(default_factory=list)
     env_files_found: list[str] = field(default_factory=list)
 
-    def get_primary_adapter(self) -> Optional[DiscoveredAdapter]:
+    def get_primary_adapter(self) -> DiscoveredAdapter | None:
         """Get the adapter with highest confidence and completeness."""
         if not self.adapters:
             return None
@@ -136,7 +136,7 @@ class DiscoveryResult:
         )
         return sorted_adapters[0]
 
-    def get_adapter_by_type(self, adapter_type: str) -> Optional[DiscoveredAdapter]:
+    def get_adapter_by_type(self, adapter_type: str) -> DiscoveredAdapter | None:
         """Get discovered adapter by type."""
         for adapter in self.adapters:
             if adapter.adapter_type == adapter_type:
@@ -155,7 +155,7 @@ class EnvDiscovery:
         ".env.development",
     ]
 
-    def __init__(self, project_path: Optional[Path] = None):
+    def __init__(self, project_path: Path | None = None):
         """Initialize discovery.
 
         Args:
@@ -255,7 +255,7 @@ class EnvDiscovery:
 
     def _find_key_value(
         self, env_vars: dict[str, str], patterns: list[str]
-    ) -> Optional[str]:
+    ) -> str | None:
         """Find first matching key value from patterns.
 
         Args:
@@ -273,7 +273,7 @@ class EnvDiscovery:
 
     def _detect_linear(
         self, env_vars: dict[str, str], found_in: str
-    ) -> Optional[DiscoveredAdapter]:
+    ) -> DiscoveredAdapter | None:
         """Detect Linear adapter configuration.
 
         Args:
@@ -327,7 +327,7 @@ class EnvDiscovery:
 
     def _detect_github(
         self, env_vars: dict[str, str], found_in: str
-    ) -> Optional[DiscoveredAdapter]:
+    ) -> DiscoveredAdapter | None:
         """Detect GitHub adapter configuration.
 
         Args:
@@ -386,7 +386,7 @@ class EnvDiscovery:
 
     def _detect_jira(
         self, env_vars: dict[str, str], found_in: str
-    ) -> Optional[DiscoveredAdapter]:
+    ) -> DiscoveredAdapter | None:
         """Detect JIRA adapter configuration.
 
         Args:
@@ -442,7 +442,7 @@ class EnvDiscovery:
 
     def _detect_aitrackdown(
         self, env_vars: dict[str, str], found_in: str
-    ) -> Optional[DiscoveredAdapter]:
+    ) -> DiscoveredAdapter | None:
         """Detect AITrackdown adapter configuration.
 
         Args:
@@ -622,7 +622,7 @@ class EnvDiscovery:
         return warnings
 
 
-def discover_config(project_path: Optional[Path] = None) -> DiscoveryResult:
+def discover_config(project_path: Path | None = None) -> DiscoveryResult:
     """Convenience function to discover configuration.
 
     Args:

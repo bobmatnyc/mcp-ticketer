@@ -4,7 +4,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 import psutil
 
@@ -30,8 +30,8 @@ class HealthAlert:
         self,
         level: HealthStatus,
         message: str,
-        details: Optional[dict[str, Any]] = None,
-        timestamp: Optional[datetime] = None,
+        details: dict[str, Any] | None = None,
+        timestamp: datetime | None = None,
     ):
         self.level = level
         self.message = message
@@ -52,7 +52,7 @@ class QueueHealthMonitor:
     QUEUE_BACKLOG_WARNING = 10  # Warn if more than 10 pending items
     QUEUE_BACKLOG_CRITICAL = 50  # Critical if more than 50 pending items
 
-    def __init__(self, queue: Optional[Queue] = None):
+    def __init__(self, queue: Queue | None = None):
         """Initialize health monitor.
 
         Args:

@@ -5,13 +5,13 @@ import sqlite3
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 
 class TicketRegistry:
     """Persistent registry for tracking ticket IDs and their lifecycle."""
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path | None = None):
         """Initialize ticket registry.
 
         Args:
@@ -130,10 +130,10 @@ class TicketRegistry:
         self,
         queue_id: str,
         status: str,
-        ticket_id: Optional[str] = None,
-        result_data: Optional[dict[str, Any]] = None,
-        error_message: Optional[str] = None,
-        retry_count: Optional[int] = None,
+        ticket_id: str | None = None,
+        result_data: dict[str, Any] | None = None,
+        error_message: str | None = None,
+        retry_count: int | None = None,
     ) -> None:
         """Update ticket operation status.
 
@@ -179,7 +179,7 @@ class TicketRegistry:
                 )
                 conn.commit()
 
-    def get_ticket_info(self, queue_id: str) -> Optional[dict[str, Any]]:
+    def get_ticket_info(self, queue_id: str) -> dict[str, Any] | None:
         """Get ticket information by queue ID.
 
         Args:

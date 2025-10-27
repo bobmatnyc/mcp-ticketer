@@ -4,7 +4,7 @@ This module implements the core create, read, update, delete, and list
 operations for tickets using the FastMCP SDK.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from ...core.models import Priority, Task, TicketState
 from ..server_sdk import get_adapter, mcp
@@ -15,8 +15,8 @@ async def ticket_create(
     title: str,
     description: str = "",
     priority: str = "medium",
-    tags: Optional[list[str]] = None,
-    assignee: Optional[str] = None,
+    tags: list[str] | None = None,
+    assignee: str | None = None,
 ) -> dict[str, Any]:
     """Create a new ticket with specified details.
 
@@ -101,12 +101,12 @@ async def ticket_read(ticket_id: str) -> dict[str, Any]:
 @mcp.tool()
 async def ticket_update(
     ticket_id: str,
-    title: Optional[str] = None,
-    description: Optional[str] = None,
-    priority: Optional[str] = None,
-    state: Optional[str] = None,
-    assignee: Optional[str] = None,
-    tags: Optional[list[str]] = None,
+    title: str | None = None,
+    description: str | None = None,
+    priority: str | None = None,
+    state: str | None = None,
+    assignee: str | None = None,
+    tags: list[str] | None = None,
 ) -> dict[str, Any]:
     """Update an existing ticket.
 
@@ -214,9 +214,9 @@ async def ticket_delete(ticket_id: str) -> dict[str, Any]:
 async def ticket_list(
     limit: int = 10,
     offset: int = 0,
-    state: Optional[str] = None,
-    priority: Optional[str] = None,
-    assignee: Optional[str] = None,
+    state: str | None = None,
+    priority: str | None = None,
+    assignee: str | None = None,
 ) -> dict[str, Any]:
     """List tickets with pagination and optional filters.
 

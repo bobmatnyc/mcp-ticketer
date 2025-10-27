@@ -3,13 +3,14 @@
 import builtins
 import re
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
 from ..core.adapter import BaseAdapter
 from ..core.env_loader import load_adapter_config, validate_adapter_config
-from ..core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
+from ..core.models import (Comment, Epic, Priority, SearchQuery, Task,
+                           TicketState)
 from ..core.registry import AdapterRegistry
 
 
@@ -198,8 +199,8 @@ class GitHubAdapter(BaseAdapter[Task]):
         )
 
         # Cache for labels and milestones
-        self._labels_cache: Optional[list[dict[str, Any]]] = None
-        self._milestones_cache: Optional[list[dict[str, Any]]] = None
+        self._labels_cache: list[dict[str, Any]] | None = None
+        self._milestones_cache: list[dict[str, Any]] | None = None
         self._rate_limit: dict[str, Any] = {}
 
     def validate_credentials(self) -> tuple[bool, str]:
@@ -239,7 +240,7 @@ class GitHubAdapter(BaseAdapter[Task]):
             TicketState.CLOSED: GitHubStateMapping.CLOSED,
         }
 
-    def _get_state_label(self, state: TicketState) -> Optional[str]:
+    def _get_state_label(self, state: TicketState) -> str | None:
         """Get the label name for extended states."""
         return GitHubStateMapping.STATE_LABELS.get(state)
 
@@ -508,7 +509,7 @@ class GitHubAdapter(BaseAdapter[Task]):
 
         return self._task_from_github_issue(created_issue)
 
-    async def read(self, ticket_id: str) -> Optional[Task]:
+    async def read(self, ticket_id: str) -> Task | None:
         """Read a GitHub issue by number."""
         # Validate credentials before attempting operation
         is_valid, error_message = self.validate_credentials()
@@ -533,7 +534,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         except httpx.HTTPError:
             return None
 
-    async def update(self, ticket_id: str, updates: dict[str, Any]) -> Optional[Task]:
+    async def update(self, ticket_id: str, updates: dict[str, Any]) -> Task | None:
         """Update a GitHub issue."""
         # Validate credentials before attempting operation
         is_valid, error_message = self.validate_credentials()
@@ -685,7 +686,7 @@ class GitHubAdapter(BaseAdapter[Task]):
             return False
 
     async def list(
-        self, limit: int = 10, offset: int = 0, filters: Optional[dict[str, Any]] = None
+        self, limit: int = 10, offset: int = 0, filters: dict[str, Any] | None = None
     ) -> list[Task]:
         """List GitHub issues with filters."""
         # Build query parameters
@@ -837,7 +838,7 @@ class GitHubAdapter(BaseAdapter[Task]):
 
     async def transition_state(
         self, ticket_id: str, target_state: TicketState
-    ) -> Optional[Task]:
+    ) -> Task | None:
         """Transition GitHub issue to a new state."""
         # Validate transition
         if not await self.validate_transition(ticket_id, target_state):
@@ -971,7 +972,7 @@ class GitHubAdapter(BaseAdapter[Task]):
             },
         )
 
-    async def get_milestone(self, milestone_number: int) -> Optional[Epic]:
+    async def get_milestone(self, milestone_number: int) -> Epic | None:
         """Get a GitHub milestone as an Epic."""
         try:
             response = await self.client.get(
@@ -1073,9 +1074,9 @@ class GitHubAdapter(BaseAdapter[Task]):
         self,
         ticket_id: str,
         base_branch: str = "main",
-        head_branch: Optional[str] = None,
-        title: Optional[str] = None,
-        body: Optional[str] = None,
+        head_branch: str | None = None,
+        title: str | None = None,
+        body: str | None = None,
         draft: bool = False,
     ) -> dict[str, Any]:
         """Create a pull request linked to an issue.
@@ -1342,7 +1343,7 @@ Fixes #{issue_number}
         response.raise_for_status()
         return response.json()
 
-    async def get_current_user(self) -> Optional[dict[str, Any]]:
+    async def get_current_user(self) -> dict[str, Any] | None:
         """Get current authenticated user information."""
         response = await self.client.get("/user")
         response.raise_for_status()

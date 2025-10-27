@@ -12,7 +12,7 @@ import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class EnvKeyConfig:
     aliases: list[str]
     description: str
     required: bool = False
-    default: Optional[str] = None
+    default: str | None = None
 
 
 class UnifiedEnvLoader:
@@ -105,7 +105,7 @@ class UnifiedEnvLoader:
         ),
     }
 
-    def __init__(self, project_root: Optional[Path] = None):
+    def __init__(self, project_root: Path | None = None):
         """Initialize the environment loader.
 
         Args:
@@ -177,8 +177,8 @@ class UnifiedEnvLoader:
             logger.warning(f"Failed to load {env_file}: {e}")
 
     def get_value(
-        self, config_key: str, config: Optional[dict[str, Any]] = None
-    ) -> Optional[str]:
+        self, config_key: str, config: dict[str, Any] | None = None
+    ) -> str | None:
         """Get a configuration value using the key alias system.
 
         Args:
@@ -230,7 +230,7 @@ class UnifiedEnvLoader:
         return None
 
     def get_adapter_config(
-        self, adapter_name: str, base_config: Optional[dict[str, Any]] = None
+        self, adapter_name: str, base_config: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Get complete configuration for an adapter with environment variable resolution.
 
@@ -307,7 +307,7 @@ class UnifiedEnvLoader:
 
 
 # Global instance
-_env_loader: Optional[UnifiedEnvLoader] = None
+_env_loader: UnifiedEnvLoader | None = None
 
 
 def get_env_loader() -> UnifiedEnvLoader:
@@ -319,7 +319,7 @@ def get_env_loader() -> UnifiedEnvLoader:
 
 
 def load_adapter_config(
-    adapter_name: str, base_config: Optional[dict[str, Any]] = None
+    adapter_name: str, base_config: dict[str, Any] | None = None
 ) -> dict[str, Any]:
     """Convenience function to load adapter configuration with environment variables.
 

@@ -5,7 +5,7 @@ creating PRs from tickets. Note that PR functionality may not be available
 in all adapters.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from ..server_sdk import get_adapter, mcp
 
@@ -15,7 +15,7 @@ async def ticket_create_pr(
     ticket_id: str,
     title: str,
     description: str = "",
-    source_branch: Optional[str] = None,
+    source_branch: str | None = None,
     target_branch: str = "main",
 ) -> dict[str, Any]:
     """Create a pull request linked to a ticket.

@@ -6,7 +6,7 @@ Unlike Claude Code and Gemini CLI, there is no project-level configuration suppo
 
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -78,7 +78,7 @@ def save_codex_config(config_path: Path, config: dict[str, Any]) -> None:
 
 
 def create_codex_server_config(
-    binary_path: str, project_config: dict, cwd: Optional[str] = None
+    binary_path: str, project_config: dict, cwd: str | None = None
 ) -> dict[str, Any]:
     """Create Codex MCP server configuration for mcp-ticketer.
 

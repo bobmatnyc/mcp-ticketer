@@ -4,7 +4,7 @@ import asyncio
 import logging
 import time
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 from httpx import AsyncClient, TimeoutException
@@ -32,8 +32,8 @@ class RetryConfig:
         max_delay: float = 60.0,
         exponential_base: float = 2.0,
         jitter: bool = True,
-        retry_on_status: Optional[list[int]] = None,
-        retry_on_exceptions: Optional[list[type]] = None,
+        retry_on_status: list[int] | None = None,
+        retry_on_exceptions: list[type] | None = None,
     ):
         self.max_retries = max_retries
         self.initial_delay = initial_delay
@@ -94,11 +94,11 @@ class BaseHTTPClient:
     def __init__(
         self,
         base_url: str,
-        headers: Optional[dict[str, str]] = None,
-        auth: Optional[Union[httpx.Auth, tuple]] = None,
+        headers: dict[str, str] | None = None,
+        auth: httpx.Auth | tuple | None = None,
         timeout: float = 30.0,
-        retry_config: Optional[RetryConfig] = None,
-        rate_limiter: Optional[RateLimiter] = None,
+        retry_config: RetryConfig | None = None,
+        rate_limiter: RateLimiter | None = None,
         verify_ssl: bool = True,
         follow_redirects: bool = True,
     ):
@@ -132,7 +132,7 @@ class BaseHTTPClient:
             "errors": 0,
         }
 
-        self._client: Optional[AsyncClient] = None
+        self._client: AsyncClient | None = None
 
     async def _get_client(self) -> AsyncClient:
         """Get or create HTTP client instance."""
@@ -148,7 +148,7 @@ class BaseHTTPClient:
         return self._client
 
     async def _calculate_delay(
-        self, attempt: int, response: Optional[httpx.Response] = None
+        self, attempt: int, response: httpx.Response | None = None
     ) -> float:
         """Calculate delay for retry attempt."""
         if response and response.status_code == 429:
@@ -178,7 +178,7 @@ class BaseHTTPClient:
     def _should_retry(
         self,
         exception: Exception,
-        response: Optional[httpx.Response] = None,
+        response: httpx.Response | None = None,
         attempt: int = 1,
     ) -> bool:
         """Determine if request should be retried."""
@@ -198,13 +198,13 @@ class BaseHTTPClient:
 
     async def request(
         self,
-        method: Union[HTTPMethod, str],
+        method: HTTPMethod | str,
         endpoint: str,
-        data: Optional[dict[str, Any]] = None,
-        json: Optional[dict[str, Any]] = None,
-        params: Optional[dict[str, Any]] = None,
-        headers: Optional[dict[str, str]] = None,
-        timeout: Optional[float] = None,
+        data: dict[str, Any] | None = None,
+        json: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+        timeout: float | None = None,
         retry_count: int = 0,
         **kwargs,
     ) -> httpx.Response:

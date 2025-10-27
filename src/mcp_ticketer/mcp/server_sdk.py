@@ -10,7 +10,7 @@ startup and used by all tool implementations.
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -21,7 +21,7 @@ from ..core.registry import AdapterRegistry
 mcp = FastMCP("mcp-ticketer")
 
 # Global adapter instance
-_adapter: Optional[BaseAdapter] = None
+_adapter: BaseAdapter | None = None
 
 # Configure logging
 logger = logging.getLogger(__name__)

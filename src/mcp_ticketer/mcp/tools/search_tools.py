@@ -4,7 +4,7 @@ This module implements advanced search capabilities for tickets using
 various filters and criteria.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from ...core.models import Priority, SearchQuery, TicketState
 from ..server_sdk import get_adapter, mcp
@@ -12,11 +12,11 @@ from ..server_sdk import get_adapter, mcp
 
 @mcp.tool()
 async def ticket_search(
-    query: Optional[str] = None,
-    state: Optional[str] = None,
-    priority: Optional[str] = None,
-    tags: Optional[list[str]] = None,
-    assignee: Optional[str] = None,
+    query: str | None = None,
+    state: str | None = None,
+    priority: str | None = None,
+    tags: list[str] | None = None,
+    assignee: str | None = None,
     limit: int = 10,
 ) -> dict[str, Any]:
     """Search tickets using advanced filters.

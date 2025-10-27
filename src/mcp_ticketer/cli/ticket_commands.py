@@ -5,7 +5,6 @@ import json
 import os
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -36,7 +35,7 @@ console = Console()
 
 
 # Configuration functions (moved from main.py to avoid circular import)
-def load_config(project_dir: Optional[Path] = None) -> dict:
+def load_config(project_dir: Path | None = None) -> dict:
     """Load configuration from project-local config file."""
     import logging
 
@@ -73,7 +72,7 @@ def save_config(config: dict) -> None:
 
 
 def get_adapter(
-    override_adapter: Optional[str] = None, override_config: Optional[dict] = None
+    override_adapter: str | None = None, override_config: dict | None = None
 ):
     """Get configured adapter instance."""
     config = load_config()
@@ -108,7 +107,7 @@ def get_adapter(
     return AdapterRegistry.get_adapter(adapter_type, adapter_config)
 
 
-def _discover_from_env_files() -> Optional[str]:
+def _discover_from_env_files() -> str | None:
     """Discover adapter configuration from .env or .env.local files.
 
     Returns:
@@ -191,29 +190,29 @@ def _save_adapter_to_config(adapter_name: str) -> None:
 @app.command()
 def create(
     title: str = typer.Argument(..., help="Ticket title"),
-    description: Optional[str] = typer.Option(
+    description: str | None = typer.Option(
         None, "--description", "-d", help="Ticket description"
     ),
     priority: Priority = typer.Option(
         Priority.MEDIUM, "--priority", "-p", help="Priority level"
     ),
-    tags: Optional[list[str]] = typer.Option(
+    tags: list[str] | None = typer.Option(
         None, "--tag", "-t", help="Tags (can be specified multiple times)"
     ),
-    assignee: Optional[str] = typer.Option(
+    assignee: str | None = typer.Option(
         None, "--assignee", "-a", help="Assignee username"
     ),
-    project: Optional[str] = typer.Option(
+    project: str | None = typer.Option(
         None,
         "--project",
         help="Parent project/epic ID (synonym for --epic)",
     ),
-    epic: Optional[str] = typer.Option(
+    epic: str | None = typer.Option(
         None,
         "--epic",
         help="Parent epic/project ID (synonym for --project)",
     ),
-    adapter: Optional[AdapterType] = typer.Option(
+    adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
@@ -417,14 +416,14 @@ def create(
 
 @app.command("list")
 def list_tickets(
-    state: Optional[TicketState] = typer.Option(
+    state: TicketState | None = typer.Option(
         None, "--state", "-s", help="Filter by state"
     ),
-    priority: Optional[Priority] = typer.Option(
+    priority: Priority | None = typer.Option(
         None, "--priority", "-p", help="Filter by priority"
     ),
     limit: int = typer.Option(10, "--limit", "-l", help="Maximum number of tickets"),
-    adapter: Optional[AdapterType] = typer.Option(
+    adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
@@ -474,7 +473,7 @@ def list_tickets(
 def show(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
     comments: bool = typer.Option(False, "--comments", "-c", help="Show comments"),
-    adapter: Optional[AdapterType] = typer.Option(
+    adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
@@ -524,7 +523,7 @@ def show(
 def comment(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
     content: str = typer.Argument(..., help="Comment content"),
-    adapter: Optional[AdapterType] = typer.Option(
+    adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
@@ -559,17 +558,15 @@ def comment(
 @app.command()
 def update(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
-    title: Optional[str] = typer.Option(None, "--title", help="New title"),
-    description: Optional[str] = typer.Option(
+    title: str | None = typer.Option(None, "--title", help="New title"),
+    description: str | None = typer.Option(
         None, "--description", "-d", help="New description"
     ),
-    priority: Optional[Priority] = typer.Option(
+    priority: Priority | None = typer.Option(
         None, "--priority", "-p", help="New priority"
     ),
-    assignee: Optional[str] = typer.Option(
-        None, "--assignee", "-a", help="New assignee"
-    ),
-    adapter: Optional[AdapterType] = typer.Option(
+    assignee: str | None = typer.Option(None, "--assignee", "-a", help="New assignee"),
+    adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
@@ -625,13 +622,13 @@ def update(
 @app.command()
 def transition(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
-    state_positional: Optional[TicketState] = typer.Argument(
+    state_positional: TicketState | None = typer.Argument(
         None, help="Target state (positional - deprecated, use --state instead)"
     ),
-    state: Optional[TicketState] = typer.Option(
+    state: TicketState | None = typer.Option(
         None, "--state", "-s", help="Target state (recommended)"
     ),
-    adapter: Optional[AdapterType] = typer.Option(
+    adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
@@ -692,12 +689,12 @@ def transition(
 
 @app.command()
 def search(
-    query: Optional[str] = typer.Argument(None, help="Search query"),
-    state: Optional[TicketState] = typer.Option(None, "--state", "-s"),
-    priority: Optional[Priority] = typer.Option(None, "--priority", "-p"),
-    assignee: Optional[str] = typer.Option(None, "--assignee", "-a"),
+    query: str | None = typer.Argument(None, help="Search query"),
+    state: TicketState | None = typer.Option(None, "--state", "-s"),
+    priority: Priority | None = typer.Option(None, "--priority", "-p"),
+    assignee: str | None = typer.Option(None, "--assignee", "-a"),
     limit: int = typer.Option(10, "--limit", "-l"),
-    adapter: Optional[AdapterType] = typer.Option(
+    adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:

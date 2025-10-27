@@ -6,7 +6,7 @@ import os
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -27,23 +27,23 @@ class BaseAdapterConfig(BaseModel):
     """Base configuration for all adapters."""
 
     type: AdapterType
-    name: Optional[str] = None
+    name: str | None = None
     enabled: bool = True
     timeout: float = 30.0
     max_retries: int = 3
-    rate_limit: Optional[dict[str, Any]] = None
+    rate_limit: dict[str, Any] | None = None
 
 
 class GitHubConfig(BaseAdapterConfig):
     """GitHub adapter configuration."""
 
     type: AdapterType = AdapterType.GITHUB
-    token: Optional[str] = Field(None, env="GITHUB_TOKEN")
-    owner: Optional[str] = Field(None, env="GITHUB_OWNER")
-    repo: Optional[str] = Field(None, env="GITHUB_REPO")
+    token: str | None = Field(None, env="GITHUB_TOKEN")
+    owner: str | None = Field(None, env="GITHUB_OWNER")
+    repo: str | None = Field(None, env="GITHUB_REPO")
     api_url: str = "https://api.github.com"
     use_projects_v2: bool = False
-    custom_priority_scheme: Optional[dict[str, list[str]]] = None
+    custom_priority_scheme: dict[str, list[str]] | None = None
 
     @field_validator("token", mode="before")
     @classmethod
@@ -77,10 +77,10 @@ class JiraConfig(BaseAdapterConfig):
     """JIRA adapter configuration."""
 
     type: AdapterType = AdapterType.JIRA
-    server: Optional[str] = Field(None, env="JIRA_SERVER")
-    email: Optional[str] = Field(None, env="JIRA_EMAIL")
-    api_token: Optional[str] = Field(None, env="JIRA_API_TOKEN")
-    project_key: Optional[str] = Field(None, env="JIRA_PROJECT_KEY")
+    server: str | None = Field(None, env="JIRA_SERVER")
+    email: str | None = Field(None, env="JIRA_EMAIL")
+    api_token: str | None = Field(None, env="JIRA_API_TOKEN")
+    project_key: str | None = Field(None, env="JIRA_PROJECT_KEY")
     cloud: bool = True
     verify_ssl: bool = True
 
@@ -116,10 +116,10 @@ class LinearConfig(BaseAdapterConfig):
     """Linear adapter configuration."""
 
     type: AdapterType = AdapterType.LINEAR
-    api_key: Optional[str] = Field(None, env="LINEAR_API_KEY")
-    workspace: Optional[str] = None
-    team_key: Optional[str] = None  # Short team key like "BTA"
-    team_id: Optional[str] = None  # UUID team identifier
+    api_key: str | None = Field(None, env="LINEAR_API_KEY")
+    workspace: str | None = None
+    team_key: str | None = None  # Short team key like "BTA"
+    team_id: str | None = None  # UUID team identifier
     api_url: str = "https://api.linear.app/graphql"
 
     @model_validator(mode="after")
@@ -150,7 +150,7 @@ class QueueConfig(BaseModel):
     """Queue configuration."""
 
     provider: str = "sqlite"
-    connection_string: Optional[str] = None
+    connection_string: str | None = None
     batch_size: int = 10
     max_concurrent: int = 5
     retry_attempts: int = 3
@@ -162,7 +162,7 @@ class LoggingConfig(BaseModel):
 
     level: str = "INFO"
     format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    file: Optional[str] = None
+    file: str | None = None
     max_size: str = "10MB"
     backup_count: int = 5
 
@@ -171,12 +171,12 @@ class AppConfig(BaseModel):
     """Main application configuration."""
 
     adapters: dict[
-        str, Union[GitHubConfig, JiraConfig, LinearConfig, AITrackdownConfig]
+        str, GitHubConfig | JiraConfig | LinearConfig | AITrackdownConfig
     ] = {}
     queue: QueueConfig = QueueConfig()
     logging: LoggingConfig = LoggingConfig()
     cache_ttl: int = 300  # Cache TTL in seconds
-    default_adapter: Optional[str] = None
+    default_adapter: str | None = None
 
     @model_validator(mode="after")
     def validate_adapters(self):
@@ -196,7 +196,7 @@ class AppConfig(BaseModel):
 
         return self
 
-    def get_adapter_config(self, adapter_name: str) -> Optional[BaseAdapterConfig]:
+    def get_adapter_config(self, adapter_name: str) -> BaseAdapterConfig | None:
         """Get configuration for a specific adapter."""
         return self.adapters.get(adapter_name)
 
@@ -211,7 +211,7 @@ class ConfigurationManager:
     """Centralized configuration management with caching and validation."""
 
     _instance: Optional["ConfigurationManager"] = None
-    _config: Optional[AppConfig] = None
+    _config: AppConfig | None = None
     _config_file_paths: list[Path] = []
 
     def __new__(cls) -> "ConfigurationManager":
@@ -266,7 +266,7 @@ class ConfigurationManager:
             logger.debug("No project-local config files found, will use defaults")
 
     @lru_cache(maxsize=1)
-    def load_config(self, config_file: Optional[Union[str, Path]] = None) -> AppConfig:
+    def load_config(self, config_file: str | Path | None = None) -> AppConfig:
         """Load and validate configuration from file and environment.
 
         Args:
@@ -437,7 +437,7 @@ class ConfigurationManager:
             return self.load_config()
         return self._config
 
-    def get_adapter_config(self, adapter_name: str) -> Optional[BaseAdapterConfig]:
+    def get_adapter_config(self, adapter_name: str) -> BaseAdapterConfig | None:
         """Get configuration for a specific adapter."""
         config = self.get_config()
         return config.get_adapter_config(adapter_name)
@@ -457,9 +457,7 @@ class ConfigurationManager:
         config = self.get_config()
         return config.logging
 
-    def reload_config(
-        self, config_file: Optional[Union[str, Path]] = None
-    ) -> AppConfig:
+    def reload_config(self, config_file: str | Path | None = None) -> AppConfig:
         """Reload configuration from file."""
         # Clear cache
         self.load_config.cache_clear()
@@ -492,7 +490,7 @@ class ConfigurationManager:
         self._config_cache[key] = value
         return value
 
-    def create_sample_config(self, output_path: Union[str, Path]) -> None:
+    def create_sample_config(self, output_path: str | Path) -> None:
         """Create a sample configuration file."""
         sample_config = {
             "adapters": {
@@ -539,11 +537,11 @@ def get_config() -> AppConfig:
     return config_manager.get_config()
 
 
-def get_adapter_config(adapter_name: str) -> Optional[BaseAdapterConfig]:
+def get_adapter_config(adapter_name: str) -> BaseAdapterConfig | None:
     """Get configuration for a specific adapter."""
     return config_manager.get_adapter_config(adapter_name)
 
 
-def reload_config(config_file: Optional[Union[str, Path]] = None) -> AppConfig:
+def reload_config(config_file: str | Path | None = None) -> AppConfig:
     """Reload the global configuration."""
     return config_manager.reload_config(config_file)

@@ -5,7 +5,7 @@ import logging
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import typer
 from rich.console import Console
@@ -795,7 +795,7 @@ class SystemDiagnostics:
 
 
 async def run_diagnostics(
-    output_file: Optional[str] = None,
+    output_file: str | None = None,
     json_output: bool = False,
 ) -> None:
     """Run comprehensive system diagnostics."""

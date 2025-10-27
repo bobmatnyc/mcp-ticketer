@@ -6,20 +6,21 @@ import logging
 import re
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 import httpx
 from httpx import AsyncClient, HTTPStatusError, TimeoutException
 
 from ..core.adapter import BaseAdapter
 from ..core.env_loader import load_adapter_config, validate_adapter_config
-from ..core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
+from ..core.models import (Comment, Epic, Priority, SearchQuery, Task,
+                           TicketState)
 from ..core.registry import AdapterRegistry
 
 logger = logging.getLogger(__name__)
 
 
-def parse_jira_datetime(date_str: str) -> Optional[datetime]:
+def parse_jira_datetime(date_str: str) -> datetime | None:
     """Parse JIRA datetime strings which can be in various formats.
 
     JIRA can return dates in formats like:
@@ -47,7 +48,7 @@ def parse_jira_datetime(date_str: str) -> Optional[datetime]:
         return None
 
 
-def extract_text_from_adf(adf_content: Union[str, dict[str, Any]]) -> str:
+def extract_text_from_adf(adf_content: str | dict[str, Any]) -> str:
     """Extract plain text from Atlassian Document Format (ADF).
 
     Args:
@@ -221,8 +222,8 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         self,
         method: str,
         endpoint: str,
-        data: Optional[dict[str, Any]] = None,
-        params: Optional[dict[str, Any]] = None,
+        data: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
         retry_count: int = 0,
     ) -> dict[str, Any]:
         """Make HTTP request to JIRA API with retry logic.
@@ -287,7 +288,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         return self._priority_cache
 
     async def _get_issue_types(
-        self, project_key: Optional[str] = None
+        self, project_key: str | None = None
     ) -> list[dict[str, Any]]:
         """Get available issue types for a project."""
         key = project_key or self.project_key
@@ -380,9 +381,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         }
         return mapping.get(priority, JiraPriority.MEDIUM)
 
-    def _map_priority_from_jira(
-        self, jira_priority: Optional[dict[str, Any]]
-    ) -> Priority:
+    def _map_priority_from_jira(self, jira_priority: dict[str, Any] | None) -> Priority:
         """Map JIRA priority to universal priority."""
         if not jira_priority:
             return Priority.MEDIUM
@@ -432,7 +431,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         else:
             return TicketState.OPEN
 
-    def _issue_to_ticket(self, issue: dict[str, Any]) -> Union[Epic, Task]:
+    def _issue_to_ticket(self, issue: dict[str, Any]) -> Epic | Task:
         """Convert JIRA issue to universal ticket model."""
         fields = issue.get("fields", {})
 
@@ -507,7 +506,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             )
 
     def _ticket_to_issue_fields(
-        self, ticket: Union[Epic, Task], issue_type: Optional[str] = None
+        self, ticket: Epic | Task, issue_type: str | None = None
     ) -> dict[str, Any]:
         """Convert universal ticket to JIRA issue fields."""
         # Convert description to ADF format for JIRA Cloud
@@ -556,7 +555,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
         return fields
 
-    async def create(self, ticket: Union[Epic, Task]) -> Union[Epic, Task]:
+    async def create(self, ticket: Epic | Task) -> Epic | Task:
         """Create a new JIRA issue."""
         # Validate credentials before attempting operation
         is_valid, error_message = self.validate_credentials()
@@ -576,7 +575,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         created_issue = await self._make_request("GET", f"issue/{ticket.id}")
         return self._issue_to_ticket(created_issue)
 
-    async def read(self, ticket_id: str) -> Optional[Union[Epic, Task]]:
+    async def read(self, ticket_id: str) -> Epic | Task | None:
         """Read a JIRA issue by key."""
         # Validate credentials before attempting operation
         is_valid, error_message = self.validate_credentials()
@@ -595,7 +594,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
     async def update(
         self, ticket_id: str, updates: dict[str, Any]
-    ) -> Optional[Union[Epic, Task]]:
+    ) -> Epic | Task | None:
         """Update a JIRA issue."""
         # Validate credentials before attempting operation
         is_valid, error_message = self.validate_credentials()
@@ -652,8 +651,8 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             raise
 
     async def list(
-        self, limit: int = 10, offset: int = 0, filters: Optional[dict[str, Any]] = None
-    ) -> list[Union[Epic, Task]]:
+        self, limit: int = 10, offset: int = 0, filters: dict[str, Any] | None = None
+    ) -> list[Epic | Task]:
         """List JIRA issues with pagination."""
         # Build JQL query
         jql_parts = []
@@ -692,7 +691,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         issues = data.get("issues", [])
         return [self._issue_to_ticket(issue) for issue in issues]
 
-    async def search(self, query: SearchQuery) -> builtins.list[Union[Epic, Task]]:
+    async def search(self, query: SearchQuery) -> builtins.list[Epic | Task]:
         """Search JIRA issues using JQL."""
         # Build JQL query
         jql_parts = []
@@ -744,7 +743,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
     async def transition_state(
         self, ticket_id: str, target_state: TicketState
-    ) -> Optional[Union[Epic, Task]]:
+    ) -> Epic | Task | None:
         """Transition JIRA issue to a new state."""
         # Get available transitions
         transitions = await self._get_transitions(ticket_id)
@@ -858,9 +857,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
         return comments
 
-    async def get_project_info(
-        self, project_key: Optional[str] = None
-    ) -> dict[str, Any]:
+    async def get_project_info(self, project_key: str | None = None) -> dict[str, Any]:
         """Get JIRA project information including workflows and fields."""
         key = project_key or self.project_key
         if not key:
@@ -882,7 +879,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
     async def execute_jql(
         self, jql: str, limit: int = 50
-    ) -> builtins.list[Union[Epic, Task]]:
+    ) -> builtins.list[Epic | Task]:
         """Execute a raw JQL query.
 
         Args:
@@ -908,7 +905,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         return [self._issue_to_ticket(issue) for issue in issues]
 
     async def get_sprints(
-        self, board_id: Optional[int] = None
+        self, board_id: int | None = None
     ) -> builtins.list[dict[str, Any]]:
         """Get active sprints for a board (requires JIRA Software).
 
@@ -992,7 +989,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             except Exception:
                 return []
 
-    async def get_current_user(self) -> Optional[dict[str, Any]]:
+    async def get_current_user(self) -> dict[str, Any] | None:
         """Get current authenticated user information."""
         try:
             return await self._make_request("GET", "myself")

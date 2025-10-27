@@ -47,29 +47,29 @@ class AdapterConfig:
     enabled: bool = True
 
     # Common fields (not all adapters use all fields)
-    api_key: Optional[str] = None
-    token: Optional[str] = None
+    api_key: str | None = None
+    token: str | None = None
 
     # Linear-specific
-    team_id: Optional[str] = None
-    team_key: Optional[str] = None
-    workspace: Optional[str] = None
+    team_id: str | None = None
+    team_key: str | None = None
+    workspace: str | None = None
 
     # JIRA-specific
-    server: Optional[str] = None
-    email: Optional[str] = None
-    api_token: Optional[str] = None
-    project_key: Optional[str] = None
+    server: str | None = None
+    email: str | None = None
+    api_token: str | None = None
+    project_key: str | None = None
 
     # GitHub-specific
-    owner: Optional[str] = None
-    repo: Optional[str] = None
+    owner: str | None = None
+    repo: str | None = None
 
     # AITrackdown-specific
-    base_path: Optional[str] = None
+    base_path: str | None = None
 
     # Project ID (can be used by any adapter for scoping)
-    project_id: Optional[str] = None
+    project_id: str | None = None
 
     # Additional adapter-specific configuration
     additional_config: dict[str, Any] = field(default_factory=dict)
@@ -126,9 +126,9 @@ class ProjectConfig:
     """Configuration for a specific project."""
 
     adapter: str
-    api_key: Optional[str] = None
-    project_id: Optional[str] = None
-    team_id: Optional[str] = None
+    api_key: str | None = None
+    project_id: str | None = None
+    team_id: str | None = None
     additional_config: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -147,7 +147,7 @@ class HybridConfig:
 
     enabled: bool = False
     adapters: list[str] = field(default_factory=list)
-    primary_adapter: Optional[str] = None
+    primary_adapter: str | None = None
     sync_strategy: SyncStrategy = SyncStrategy.PRIMARY_SOURCE
 
     def to_dict(self) -> dict[str, Any]:
@@ -172,7 +172,7 @@ class TicketerConfig:
     default_adapter: str = "aitrackdown"
     project_configs: dict[str, ProjectConfig] = field(default_factory=dict)
     adapters: dict[str, AdapterConfig] = field(default_factory=dict)
-    hybrid_mode: Optional[HybridConfig] = None
+    hybrid_mode: HybridConfig | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -219,7 +219,7 @@ class ConfigValidator:
     """Validate adapter configurations."""
 
     @staticmethod
-    def validate_linear_config(config: dict[str, Any]) -> tuple[bool, Optional[str]]:
+    def validate_linear_config(config: dict[str, Any]) -> tuple[bool, str | None]:
         """Validate Linear adapter configuration.
 
         Returns:
@@ -241,7 +241,7 @@ class ConfigValidator:
         return True, None
 
     @staticmethod
-    def validate_github_config(config: dict[str, Any]) -> tuple[bool, Optional[str]]:
+    def validate_github_config(config: dict[str, Any]) -> tuple[bool, str | None]:
         """Validate GitHub adapter configuration.
 
         Returns:
@@ -270,7 +270,7 @@ class ConfigValidator:
         return True, None
 
     @staticmethod
-    def validate_jira_config(config: dict[str, Any]) -> tuple[bool, Optional[str]]:
+    def validate_jira_config(config: dict[str, Any]) -> tuple[bool, str | None]:
         """Validate JIRA adapter configuration.
 
         Returns:
@@ -292,7 +292,7 @@ class ConfigValidator:
     @staticmethod
     def validate_aitrackdown_config(
         config: dict[str, Any],
-    ) -> tuple[bool, Optional[str]]:
+    ) -> tuple[bool, str | None]:
         """Validate AITrackdown adapter configuration.
 
         Returns:
@@ -306,7 +306,7 @@ class ConfigValidator:
     @classmethod
     def validate(
         cls, adapter_type: str, config: dict[str, Any]
-    ) -> tuple[bool, Optional[str]]:
+    ) -> tuple[bool, str | None]:
         """Validate configuration for any adapter type.
 
         Args:
@@ -350,7 +350,7 @@ class ConfigResolver:
     PROJECT_CONFIG_SUBPATH = ".mcp-ticketer" / Path("config.json")
 
     def __init__(
-        self, project_path: Optional[Path] = None, enable_env_discovery: bool = True
+        self, project_path: Path | None = None, enable_env_discovery: bool = True
     ):
         """Initialize config resolver.
 
@@ -361,8 +361,8 @@ class ConfigResolver:
         """
         self.project_path = project_path or Path.cwd()
         self.enable_env_discovery = enable_env_discovery
-        self._project_config: Optional[TicketerConfig] = None
-        self._discovered_config: Optional[DiscoveryResult] = None
+        self._project_config: TicketerConfig | None = None
+        self._discovered_config: DiscoveryResult | None = None
 
     def load_global_config(self) -> TicketerConfig:
         """Load default configuration (global config loading removed for security).
@@ -382,8 +382,8 @@ class ConfigResolver:
         return default_config
 
     def load_project_config(
-        self, project_path: Optional[Path] = None
-    ) -> Optional[TicketerConfig]:
+        self, project_path: Path | None = None
+    ) -> TicketerConfig | None:
         """Load project-specific configuration.
 
         Args:
@@ -424,7 +424,7 @@ class ConfigResolver:
         self.save_project_config(config)
 
     def save_project_config(
-        self, config: TicketerConfig, project_path: Optional[Path] = None
+        self, config: TicketerConfig, project_path: Path | None = None
     ) -> None:
         """Save project-specific configuration.
 
@@ -461,8 +461,8 @@ class ConfigResolver:
 
     def resolve_adapter_config(
         self,
-        adapter_name: Optional[str] = None,
-        cli_overrides: Optional[dict[str, Any]] = None,
+        adapter_name: str | None = None,
+        cli_overrides: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Resolve adapter configuration with hierarchical precedence.
 
@@ -629,7 +629,7 @@ class ConfigResolver:
 
         return overrides
 
-    def get_hybrid_config(self) -> Optional[HybridConfig]:
+    def get_hybrid_config(self) -> HybridConfig | None:
         """Get hybrid mode configuration if enabled.
 
         Returns:
@@ -661,10 +661,10 @@ class ConfigResolver:
 
 
 # Singleton instance for global access
-_default_resolver: Optional[ConfigResolver] = None
+_default_resolver: ConfigResolver | None = None
 
 
-def get_config_resolver(project_path: Optional[Path] = None) -> ConfigResolver:
+def get_config_resolver(project_path: Path | None = None) -> ConfigResolver:
     """Get the global config resolver instance.
 
     Args:

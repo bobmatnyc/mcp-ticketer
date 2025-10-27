@@ -25,7 +25,7 @@ Example:
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -194,14 +194,14 @@ class BaseTicket(BaseModel):
 
     model_config = ConfigDict(use_enum_values=True)
 
-    id: Optional[str] = Field(None, description="Unique identifier")
+    id: str | None = Field(None, description="Unique identifier")
     title: str = Field(..., min_length=1, description="Ticket title")
-    description: Optional[str] = Field(None, description="Detailed description")
+    description: str | None = Field(None, description="Detailed description")
     state: TicketState = Field(TicketState.OPEN, description="Current state")
     priority: Priority = Field(Priority.MEDIUM, description="Priority level")
     tags: list[str] = Field(default_factory=list, description="Tags/labels")
-    created_at: Optional[datetime] = Field(None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
+    created_at: datetime | None = Field(None, description="Creation timestamp")
+    updated_at: datetime | None = Field(None, description="Last update timestamp")
 
     # Metadata for field mapping to different systems
     metadata: dict[str, Any] = Field(
@@ -270,20 +270,20 @@ class Task(BaseTicket):
     ticket_type: TicketType = Field(
         default=TicketType.ISSUE, description="Ticket type in hierarchy"
     )
-    parent_issue: Optional[str] = Field(None, description="Parent issue ID (for tasks)")
-    parent_epic: Optional[str] = Field(
+    parent_issue: str | None = Field(None, description="Parent issue ID (for tasks)")
+    parent_epic: str | None = Field(
         None,
         description="Parent epic/project ID (for issues). Synonym: 'project'",
     )
-    assignee: Optional[str] = Field(None, description="Assigned user")
+    assignee: str | None = Field(None, description="Assigned user")
     children: list[str] = Field(default_factory=list, description="Child task IDs")
 
     # Additional fields common across systems
-    estimated_hours: Optional[float] = Field(None, description="Time estimate")
-    actual_hours: Optional[float] = Field(None, description="Actual time spent")
+    estimated_hours: float | None = Field(None, description="Time estimate")
+    actual_hours: float | None = Field(None, description="Actual time spent")
 
     @property
-    def project(self) -> Optional[str]:
+    def project(self) -> str | None:
         """Synonym for parent_epic.
 
         Returns:
@@ -293,7 +293,7 @@ class Task(BaseTicket):
         return self.parent_epic
 
     @project.setter
-    def project(self, value: Optional[str]) -> None:
+    def project(self, value: str | None) -> None:
         """Set parent_epic via project synonym.
 
         Args:
@@ -345,11 +345,11 @@ class Comment(BaseModel):
 
     model_config = ConfigDict(use_enum_values=True)
 
-    id: Optional[str] = Field(None, description="Comment ID")
+    id: str | None = Field(None, description="Comment ID")
     ticket_id: str = Field(..., description="Parent ticket ID")
-    author: Optional[str] = Field(None, description="Comment author")
+    author: str | None = Field(None, description="Comment author")
     content: str = Field(..., min_length=1, description="Comment text")
-    created_at: Optional[datetime] = Field(None, description="Creation timestamp")
+    created_at: datetime | None = Field(None, description="Creation timestamp")
     metadata: dict[str, Any] = Field(
         default_factory=dict, description="System-specific metadata"
     )
@@ -364,27 +364,19 @@ class Attachment(BaseModel):
 
     model_config = ConfigDict(use_enum_values=True)
 
-    id: Optional[str] = Field(None, description="Attachment unique identifier")
+    id: str | None = Field(None, description="Attachment unique identifier")
     ticket_id: str = Field(..., description="Parent ticket identifier")
     filename: str = Field(..., description="Original filename")
-    url: Optional[str] = Field(None, description="Download URL or file path")
-    content_type: Optional[str] = Field(
-        None,
-        description="MIME type (e.g., 'application/pdf', 'image/png')"
+    url: str | None = Field(None, description="Download URL or file path")
+    content_type: str | None = Field(
+        None, description="MIME type (e.g., 'application/pdf', 'image/png')"
     )
-    size_bytes: Optional[int] = Field(None, description="File size in bytes")
-    created_at: Optional[datetime] = Field(None, description="Upload timestamp")
-    created_by: Optional[str] = Field(
-        None,
-        description="User who uploaded the attachment"
-    )
-    description: Optional[str] = Field(
-        None,
-        description="Attachment description or notes"
-    )
+    size_bytes: int | None = Field(None, description="File size in bytes")
+    created_at: datetime | None = Field(None, description="Upload timestamp")
+    created_by: str | None = Field(None, description="User who uploaded the attachment")
+    description: str | None = Field(None, description="Attachment description or notes")
     metadata: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Adapter-specific attachment metadata"
+        default_factory=dict, description="Adapter-specific attachment metadata"
     )
 
     def __str__(self) -> str:
@@ -396,10 +388,10 @@ class Attachment(BaseModel):
 class SearchQuery(BaseModel):
     """Search query parameters."""
 
-    query: Optional[str] = Field(None, description="Text search query")
-    state: Optional[TicketState] = Field(None, description="Filter by state")
-    priority: Optional[Priority] = Field(None, description="Filter by priority")
-    tags: Optional[list[str]] = Field(None, description="Filter by tags")
-    assignee: Optional[str] = Field(None, description="Filter by assignee")
+    query: str | None = Field(None, description="Text search query")
+    state: TicketState | None = Field(None, description="Filter by state")
+    priority: Priority | None = Field(None, description="Filter by priority")
+    tags: list[str] | None = Field(None, description="Filter by tags")
+    assignee: str | None = Field(None, description="Filter by assignee")
     limit: int = Field(10, gt=0, le=100, description="Maximum results")
     offset: int = Field(0, ge=0, description="Result offset for pagination")

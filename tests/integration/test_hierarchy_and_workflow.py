@@ -14,14 +14,8 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Import adapters to register them
 from mcp_ticketer.core.env_loader import load_adapter_config
-from mcp_ticketer.core.models import (
-    Epic,
-    Priority,
-    SearchQuery,
-    Task,
-    TicketState,
-    TicketType,
-)
+from mcp_ticketer.core.models import (Epic, Priority, SearchQuery, Task,
+                                      TicketState, TicketType)
 from mcp_ticketer.core.registry import AdapterRegistry
 
 # Set up logging

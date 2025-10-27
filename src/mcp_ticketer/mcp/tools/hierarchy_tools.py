@@ -7,7 +7,7 @@ This module implements tools for managing the three-level ticket hierarchy:
 """
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from ...core.models import Epic, Priority, Task, TicketType
 from ..server_sdk import get_adapter, mcp
@@ -17,9 +17,9 @@ from ..server_sdk import get_adapter, mcp
 async def epic_create(
     title: str,
     description: str = "",
-    target_date: Optional[str] = None,
-    lead_id: Optional[str] = None,
-    child_issues: Optional[list[str]] = None,
+    target_date: str | None = None,
+    lead_id: str | None = None,
+    child_issues: list[str] | None = None,
 ) -> dict[str, Any]:
     """Create a new epic (strategic level container).
 
@@ -156,8 +156,8 @@ async def epic_issues(epic_id: str) -> dict[str, Any]:
 async def issue_create(
     title: str,
     description: str = "",
-    epic_id: Optional[str] = None,
-    assignee: Optional[str] = None,
+    epic_id: str | None = None,
+    assignee: str | None = None,
     priority: str = "medium",
 ) -> dict[str, Any]:
     """Create a new issue (standard work item).
@@ -258,8 +258,8 @@ async def issue_tasks(issue_id: str) -> dict[str, Any]:
 async def task_create(
     title: str,
     description: str = "",
-    issue_id: Optional[str] = None,
-    assignee: Optional[str] = None,
+    issue_id: str | None = None,
+    assignee: str | None = None,
     priority: str = "medium",
 ) -> dict[str, Any]:
     """Create a new task (sub-work item).

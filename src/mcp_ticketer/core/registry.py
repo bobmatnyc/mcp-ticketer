@@ -1,6 +1,6 @@
 """Adapter registry for dynamic adapter management."""
 
-from typing import Any, Optional
+from typing import Any
 
 from .adapter import BaseAdapter
 
@@ -37,7 +37,7 @@ class AdapterRegistry:
 
     @classmethod
     def get_adapter(
-        cls, name: str, config: Optional[dict[str, Any]] = None, force_new: bool = False
+        cls, name: str, config: dict[str, Any] | None = None, force_new: bool = False
     ) -> BaseAdapter:
         """Get or create an adapter instance.
 

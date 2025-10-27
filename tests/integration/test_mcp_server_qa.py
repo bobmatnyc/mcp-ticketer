@@ -7,7 +7,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -27,7 +27,7 @@ class QATestResults:
         test_name: str,
         status: str,
         details: dict[str, Any],
-        error: Optional[str] = None,
+        error: str | None = None,
     ):
         """Add a test result."""
         self.tests.append(

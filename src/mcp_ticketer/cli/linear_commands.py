@@ -1,7 +1,6 @@
 """Linear-specific CLI commands for workspace and team management."""
 
 import os
-from typing import Optional
 
 import typer
 from gql import Client, gql
@@ -80,7 +79,7 @@ def list_workspaces():
 
 @app.command("teams")
 def list_teams(
-    workspace: Optional[str] = typer.Option(
+    workspace: str | None = typer.Option(
         None, "--workspace", "-w", help="Workspace URL key (optional)"
     ),
     all_teams: bool = typer.Option(
@@ -250,11 +249,11 @@ def list_teams(
 
 @app.command("configure")
 def configure_team(
-    team_key: Optional[str] = typer.Option(
+    team_key: str | None = typer.Option(
         None, "--team-key", "-k", help="Team key (e.g., '1M')"
     ),
-    team_id: Optional[str] = typer.Option(None, "--team-id", "-i", help="Team UUID"),
-    workspace: Optional[str] = typer.Option(
+    team_id: str | None = typer.Option(None, "--team-id", "-i", help="Team UUID"),
+    workspace: str | None = typer.Option(
         None, "--workspace", "-w", help="Workspace URL key"
     ),
 ):
@@ -382,10 +381,10 @@ def configure_team(
 
 @app.command("info")
 def show_info(
-    team_key: Optional[str] = typer.Option(
+    team_key: str | None = typer.Option(
         None, "--team-key", "-k", help="Team key to show info for"
     ),
-    team_id: Optional[str] = typer.Option(
+    team_id: str | None = typer.Option(
         None, "--team-id", "-i", help="Team UUID to show info for"
     ),
 ):

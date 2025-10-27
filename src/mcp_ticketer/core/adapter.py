@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import builtins
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from .models import Comment, Epic, SearchQuery, Task, TicketState, TicketType
 
@@ -62,7 +62,7 @@ class BaseAdapter(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    async def read(self, ticket_id: str) -> Optional[T]:
+    async def read(self, ticket_id: str) -> T | None:
         """Read a ticket by ID.
 
         Args:
@@ -75,7 +75,7 @@ class BaseAdapter(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    async def update(self, ticket_id: str, updates: dict[str, Any]) -> Optional[T]:
+    async def update(self, ticket_id: str, updates: dict[str, Any]) -> T | None:
         """Update a ticket.
 
         Args:
@@ -103,7 +103,7 @@ class BaseAdapter(ABC, Generic[T]):
 
     @abstractmethod
     async def list(
-        self, limit: int = 10, offset: int = 0, filters: Optional[dict[str, Any]] = None
+        self, limit: int = 10, offset: int = 0, filters: dict[str, Any] | None = None
     ) -> list[T]:
         """List tickets with pagination and filters.
 
@@ -134,7 +134,7 @@ class BaseAdapter(ABC, Generic[T]):
     @abstractmethod
     async def transition_state(
         self, ticket_id: str, target_state: TicketState
-    ) -> Optional[T]:
+    ) -> T | None:
         """Transition ticket to a new state.
 
         Args:
@@ -230,8 +230,8 @@ class BaseAdapter(ABC, Generic[T]):
     # Epic/Issue/Task Hierarchy Methods
 
     async def create_epic(
-        self, title: str, description: Optional[str] = None, **kwargs
-    ) -> Optional[Epic]:
+        self, title: str, description: str | None = None, **kwargs
+    ) -> Epic | None:
         """Create epic (top-level grouping).
 
         Args:
@@ -254,7 +254,7 @@ class BaseAdapter(ABC, Generic[T]):
             return result
         return None
 
-    async def get_epic(self, epic_id: str) -> Optional[Epic]:
+    async def get_epic(self, epic_id: str) -> Epic | None:
         """Get epic by ID.
 
         Args:
@@ -289,10 +289,10 @@ class BaseAdapter(ABC, Generic[T]):
     async def create_issue(
         self,
         title: str,
-        description: Optional[str] = None,
-        epic_id: Optional[str] = None,
+        description: str | None = None,
+        epic_id: str | None = None,
         **kwargs,
-    ) -> Optional[Task]:
+    ) -> Task | None:
         """Create issue, optionally linked to epic.
 
         Args:
@@ -330,8 +330,8 @@ class BaseAdapter(ABC, Generic[T]):
         return [r for r in results if isinstance(r, Task) and r.is_issue()]
 
     async def create_task(
-        self, title: str, parent_id: str, description: Optional[str] = None, **kwargs
-    ) -> Optional[Task]:
+        self, title: str, parent_id: str, description: str | None = None, **kwargs
+    ) -> Task | None:
         """Create task as sub-ticket of parent issue.
 
         Args:
@@ -385,8 +385,8 @@ class BaseAdapter(ABC, Generic[T]):
         self,
         ticket_id: str,
         file_path: str,
-        description: Optional[str] = None,
-    ) -> "Attachment":
+        description: str | None = None,
+    ) -> Attachment:
         """Attach a file to a ticket.
 
         Args:
@@ -401,13 +401,14 @@ class BaseAdapter(ABC, Generic[T]):
             NotImplementedError: If adapter doesn't support attachments
             FileNotFoundError: If file doesn't exist
             ValueError: If ticket doesn't exist or upload fails
+
         """
         raise NotImplementedError(
             f"{self.__class__.__name__} does not support file attachments. "
             "Use comments to reference external files instead."
         )
 
-    async def get_attachments(self, ticket_id: str) -> list["Attachment"]:
+    async def get_attachments(self, ticket_id: str) -> list[Attachment]:
         """Get all attachments for a ticket.
 
         Args:
@@ -415,6 +416,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         Returns:
             List of attachments (empty if none or not supported)
+
         """
         raise NotImplementedError(
             f"{self.__class__.__name__} does not support file attachments."
@@ -436,6 +438,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         Raises:
             NotImplementedError: If adapter doesn't support deletion
+
         """
         raise NotImplementedError(
             f"{self.__class__.__name__} does not support attachment deletion."

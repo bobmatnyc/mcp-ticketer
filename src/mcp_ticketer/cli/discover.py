@@ -1,18 +1,13 @@
 """CLI command for auto-discovering configuration from .env files."""
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
 
 from ..core.env_discovery import DiscoveredAdapter, EnvDiscovery
-from ..core.project_config import (
-    AdapterConfig,
-    ConfigResolver,
-    ConfigValidator,
-    TicketerConfig,
-)
+from ..core.project_config import (AdapterConfig, ConfigResolver,
+                                   ConfigValidator, TicketerConfig)
 
 console = Console()
 app = typer.Typer(help="Auto-discover configuration from .env files")
@@ -93,7 +88,7 @@ def _display_discovered_adapter(
 
 @app.command()
 def show(
-    project_path: Optional[Path] = typer.Option(
+    project_path: Path | None = typer.Option(
         None,
         "--path",
         "-p",
@@ -148,7 +143,7 @@ def show(
 
 @app.command()
 def save(
-    adapter: Optional[str] = typer.Option(
+    adapter: str | None = typer.Option(
         None, "--adapter", "-a", help="Which adapter to save (defaults to recommended)"
     ),
     global_config: bool = typer.Option(
@@ -157,7 +152,7 @@ def save(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be saved without saving"
     ),
-    project_path: Optional[Path] = typer.Option(
+    project_path: Path | None = typer.Option(
         None,
         "--path",
         "-p",
@@ -261,7 +256,7 @@ def save(
 
 @app.command()
 def interactive(
-    project_path: Optional[Path] = typer.Option(
+    project_path: Path | None = typer.Option(
         None,
         "--path",
         "-p",

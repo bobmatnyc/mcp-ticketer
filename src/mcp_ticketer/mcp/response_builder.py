@@ -1,6 +1,6 @@
 """Response builder utility for consistent MCP responses."""
 
-from typing import Any, Optional
+from typing import Any
 
 from .constants import JSONRPC_VERSION, STATUS_COMPLETED
 
@@ -36,7 +36,7 @@ class ResponseBuilder:
         request_id: Any,
         code: int,
         message: str,
-        data: Optional[dict[str, Any]] = None,
+        data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Build error response.
 

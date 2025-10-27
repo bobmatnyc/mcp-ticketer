@@ -3,7 +3,7 @@
 import logging
 from abc import ABC, abstractmethod
 from functools import lru_cache
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 from .models import Priority, TicketState
 
@@ -27,11 +27,11 @@ class BiDirectionalDict(Generic[T, U]):
         self._reverse: dict[U, T] = {v: k for k, v in mapping.items()}
         self._cache: dict[str, Any] = {}
 
-    def get_forward(self, key: T, default: Optional[U] = None) -> Optional[U]:
+    def get_forward(self, key: T, default: U | None = None) -> U | None:
         """Get value by forward key."""
         return self._forward.get(key, default)
 
-    def get_reverse(self, key: U, default: Optional[T] = None) -> Optional[T]:
+    def get_reverse(self, key: U, default: T | None = None) -> T | None:
         """Get value by reverse key."""
         return self._reverse.get(key, default)
 
@@ -83,7 +83,7 @@ class StateMapper(BaseMapper):
     """Universal state mapping utility."""
 
     def __init__(
-        self, adapter_type: str, custom_mappings: Optional[dict[str, Any]] = None
+        self, adapter_type: str, custom_mappings: dict[str, Any] | None = None
     ):
         """Initialize state mapper.
 
@@ -95,7 +95,7 @@ class StateMapper(BaseMapper):
         super().__init__()
         self.adapter_type = adapter_type
         self.custom_mappings = custom_mappings or {}
-        self._mapping: Optional[BiDirectionalDict] = None
+        self._mapping: BiDirectionalDict | None = None
 
     @lru_cache(maxsize=1)
     def get_mapping(self) -> BiDirectionalDict:
@@ -229,7 +229,7 @@ class StateMapper(BaseMapper):
         """Check if adapter uses labels for extended states."""
         return self.adapter_type in ["github", "linear"]
 
-    def get_state_label(self, state: TicketState) -> Optional[str]:
+    def get_state_label(self, state: TicketState) -> str | None:
         """Get label name for extended states that require labels.
 
         Args:
@@ -258,7 +258,7 @@ class PriorityMapper(BaseMapper):
     """Universal priority mapping utility."""
 
     def __init__(
-        self, adapter_type: str, custom_mappings: Optional[dict[str, Any]] = None
+        self, adapter_type: str, custom_mappings: dict[str, Any] | None = None
     ):
         """Initialize priority mapper.
 
@@ -270,7 +270,7 @@ class PriorityMapper(BaseMapper):
         super().__init__()
         self.adapter_type = adapter_type
         self.custom_mappings = custom_mappings or {}
-        self._mapping: Optional[BiDirectionalDict] = None
+        self._mapping: BiDirectionalDict | None = None
 
     @lru_cache(maxsize=1)
     def get_mapping(self) -> BiDirectionalDict:
@@ -483,7 +483,7 @@ class MapperRegistry:
 
     @classmethod
     def get_state_mapper(
-        cls, adapter_type: str, custom_mappings: Optional[dict[str, Any]] = None
+        cls, adapter_type: str, custom_mappings: dict[str, Any] | None = None
     ) -> StateMapper:
         """Get or create state mapper for adapter type.
 
@@ -502,7 +502,7 @@ class MapperRegistry:
 
     @classmethod
     def get_priority_mapper(
-        cls, adapter_type: str, custom_mappings: Optional[dict[str, Any]] = None
+        cls, adapter_type: str, custom_mappings: dict[str, Any] | None = None
     ) -> PriorityMapper:
         """Get or create priority mapper for adapter type.
 

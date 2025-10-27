@@ -5,7 +5,6 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from typing import Optional
 
 from rich.console import Console
 
@@ -171,7 +170,7 @@ def save_claude_mcp_config(config_path: Path, config: dict) -> None:
 
 
 def create_mcp_server_config(
-    binary_path: str, project_config: dict, cwd: Optional[str] = None
+    binary_path: str, project_config: dict, cwd: str | None = None
 ) -> dict:
     """Create MCP server configuration for mcp-ticketer.
 

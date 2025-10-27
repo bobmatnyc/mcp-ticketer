@@ -3,7 +3,7 @@
 This module implements tools for adding and retrieving comments on tickets.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from ...core.models import Comment
 from ..server_sdk import get_adapter, mcp
@@ -13,7 +13,7 @@ from ..server_sdk import get_adapter, mcp
 async def ticket_comment(
     ticket_id: str,
     operation: str,
-    text: Optional[str] = None,
+    text: str | None = None,
     limit: int = 10,
     offset: int = 0,
 ) -> dict[str, Any]:

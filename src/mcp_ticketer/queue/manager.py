@@ -7,7 +7,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import psutil
 
@@ -304,7 +304,7 @@ class WorkerManager:
 
         return status
 
-    def _get_pid(self) -> Optional[int]:
+    def _get_pid(self) -> int | None:
         """Get worker PID from file.
 
         Returns:

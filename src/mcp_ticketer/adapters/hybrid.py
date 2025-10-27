@@ -8,7 +8,7 @@ import builtins
 import json
 import logging
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from ..core.adapter import BaseAdapter
 from ..core.models import Comment, Epic, SearchQuery, Task, TicketState
@@ -129,7 +129,7 @@ class HybridAdapter(BaseAdapter):
 
     def _get_adapter_ticket_id(
         self, universal_id: str, adapter_name: str
-    ) -> Optional[str]:
+    ) -> str | None:
         """Get adapter-specific ticket ID from universal ID.
 
         Args:
@@ -153,7 +153,7 @@ class HybridAdapter(BaseAdapter):
 
         return f"hybrid-{uuid.uuid4().hex[:12]}"
 
-    async def create(self, ticket: Union[Task, Epic]) -> Union[Task, Epic]:
+    async def create(self, ticket: Task | Epic) -> Task | Epic:
         """Create ticket in all configured adapters.
 
         Args:
@@ -208,7 +208,7 @@ class HybridAdapter(BaseAdapter):
         return primary_ticket
 
     def _add_cross_references(
-        self, ticket: Union[Task, Epic], results: list[tuple[str, Union[Task, Epic]]]
+        self, ticket: Task | Epic, results: list[tuple[str, Task | Epic]]
     ) -> None:
         """Add cross-references to ticket description.
 
@@ -226,7 +226,7 @@ class HybridAdapter(BaseAdapter):
         else:
             ticket.description = cross_refs.strip()
 
-    async def read(self, ticket_id: str) -> Optional[Union[Task, Epic]]:
+    async def read(self, ticket_id: str) -> Task | Epic | None:
         """Read ticket from primary adapter.
 
         Args:
@@ -255,7 +255,7 @@ class HybridAdapter(BaseAdapter):
 
     async def update(
         self, ticket_id: str, updates: dict[str, Any]
-    ) -> Optional[Union[Task, Epic]]:
+    ) -> Task | Epic | None:
         """Update ticket across all adapters.
 
         Args:
@@ -300,7 +300,7 @@ class HybridAdapter(BaseAdapter):
 
         return None
 
-    def _find_universal_id(self, adapter_ticket_id: str) -> Optional[str]:
+    def _find_universal_id(self, adapter_ticket_id: str) -> str | None:
         """Find universal ID for an adapter-specific ticket ID.
 
         Args:
@@ -359,8 +359,8 @@ class HybridAdapter(BaseAdapter):
         return success_count > 0
 
     async def list(
-        self, limit: int = 10, offset: int = 0, filters: Optional[dict[str, Any]] = None
-    ) -> list[Union[Task, Epic]]:
+        self, limit: int = 10, offset: int = 0, filters: dict[str, Any] | None = None
+    ) -> list[Task | Epic]:
         """List tickets from primary adapter.
 
         Args:
@@ -375,7 +375,7 @@ class HybridAdapter(BaseAdapter):
         primary = self.adapters[self.primary_adapter_name]
         return await primary.list(limit, offset, filters)
 
-    async def search(self, query: SearchQuery) -> builtins.list[Union[Task, Epic]]:
+    async def search(self, query: SearchQuery) -> builtins.list[Task | Epic]:
         """Search tickets in primary adapter.
 
         Args:
@@ -390,7 +390,7 @@ class HybridAdapter(BaseAdapter):
 
     async def transition_state(
         self, ticket_id: str, target_state: TicketState
-    ) -> Optional[Union[Task, Epic]]:
+    ) -> Task | Epic | None:
         """Transition ticket state across all adapters.
 
         Args:

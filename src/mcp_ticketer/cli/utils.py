@@ -4,9 +4,10 @@ import asyncio
 import json
 import logging
 import os
+from collections.abc import Callable
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, TypeVar
 
 import typer
 from rich.console import Console
@@ -154,7 +155,7 @@ class CommonPatterns:
 
     @staticmethod
     def get_adapter(
-        override_adapter: Optional[str] = None, override_config: Optional[dict] = None
+        override_adapter: str | None = None, override_config: dict | None = None
     ):
         """Get configured adapter instance with environment variable support."""
         config = CommonPatterns.load_config()
@@ -206,7 +207,7 @@ class CommonPatterns:
     def queue_operation(
         ticket_data: dict[str, Any],
         operation: str,
-        adapter_name: Optional[str] = None,
+        adapter_name: str | None = None,
         show_progress: bool = True,
     ) -> str:
         """Queue an operation and optionally start the worker."""
@@ -265,7 +266,7 @@ class CommonPatterns:
         console.print(table)
 
     @staticmethod
-    def display_ticket_details(ticket: Task, comments: Optional[list] = None) -> None:
+    def display_ticket_details(ticket: Task, comments: list | None = None) -> None:
         """Display detailed ticket information."""
         console.print(f"\n[bold]Ticket: {ticket.id}[/bold]")
         console.print(f"Title: {ticket.title}")
@@ -334,7 +335,7 @@ def with_adapter(f: Callable) -> Callable:
     """Decorator to inject adapter instance into CLI commands."""
 
     @wraps(f)
-    def wrapper(adapter: Optional[str] = None, *args, **kwargs):
+    def wrapper(adapter: str | None = None, *args, **kwargs):
         adapter_instance = CommonPatterns.get_adapter(override_adapter=adapter)
         return f(adapter_instance, *args, **kwargs)
 
@@ -446,7 +447,7 @@ class ConfigValidator:
         return issues
 
     @staticmethod
-    def _get_env_var(adapter_type: str, field: str) -> Optional[str]:
+    def _get_env_var(adapter_type: str, field: str) -> str | None:
         """Get corresponding environment variable name for a config field."""
         env_mapping = {
             "github": {
@@ -520,14 +521,14 @@ def create_standard_ticket_command(operation: str):
     """Create a standard ticket operation command."""
 
     def command_template(
-        ticket_id: Optional[str] = None,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        priority: Optional[Priority] = None,
-        state: Optional[TicketState] = None,
-        assignee: Optional[str] = None,
-        tags: Optional[list[str]] = None,
-        adapter: Optional[str] = None,
+        ticket_id: str | None = None,
+        title: str | None = None,
+        description: str | None = None,
+        priority: Priority | None = None,
+        state: TicketState | None = None,
+        assignee: str | None = None,
+        tags: list[str] | None = None,
+        adapter: str | None = None,
     ):
         """Template for ticket commands."""
         # Build ticket data
@@ -568,8 +569,8 @@ class TicketCommands:
     @handle_adapter_errors
     async def list_tickets(
         adapter_instance,
-        state: Optional[TicketState] = None,
-        priority: Optional[Priority] = None,
+        state: TicketState | None = None,
+        priority: Priority | None = None,
         limit: int = 10,
     ):
         """List tickets with filters."""
@@ -603,11 +604,11 @@ class TicketCommands:
     @staticmethod
     def create_ticket(
         title: str,
-        description: Optional[str] = None,
+        description: str | None = None,
         priority: Priority = Priority.MEDIUM,
-        tags: Optional[list[str]] = None,
-        assignee: Optional[str] = None,
-        adapter: Optional[str] = None,
+        tags: list[str] | None = None,
+        assignee: str | None = None,
+        adapter: str | None = None,
     ) -> str:
         """Create a new ticket."""
         ticket_data = {
@@ -622,7 +623,7 @@ class TicketCommands:
 
     @staticmethod
     def update_ticket(
-        ticket_id: str, updates: dict[str, Any], adapter: Optional[str] = None
+        ticket_id: str, updates: dict[str, Any], adapter: str | None = None
     ) -> str:
         """Update a ticket."""
         if not updates:
@@ -634,7 +635,7 @@ class TicketCommands:
 
     @staticmethod
     def transition_ticket(
-        ticket_id: str, state: TicketState, adapter: Optional[str] = None
+        ticket_id: str, state: TicketState, adapter: str | None = None
     ) -> str:
         """Transition ticket state."""
         ticket_data = {

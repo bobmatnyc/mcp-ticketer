@@ -8,7 +8,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 
 class QueueStatus(str, Enum):
@@ -30,12 +30,12 @@ class QueueItem:
     operation: str
     status: QueueStatus
     created_at: datetime
-    processed_at: Optional[datetime] = None
-    error_message: Optional[str] = None
+    processed_at: datetime | None = None
+    error_message: str | None = None
     retry_count: int = 0
-    result: Optional[dict[str, Any]] = None
-    project_dir: Optional[str] = None
-    adapter_config: Optional[dict[str, Any]] = None  # Adapter configuration
+    result: dict[str, Any] | None = None
+    project_dir: str | None = None
+    adapter_config: dict[str, Any] | None = None  # Adapter configuration
 
     def to_dict(self) -> dict:
         """Convert to dictionary for storage."""
@@ -67,7 +67,7 @@ class QueueItem:
 class Queue:
     """Thread-safe SQLite queue for ticket operations."""
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path | None = None):
         """Initialize queue with database connection.
 
         Args:
@@ -139,8 +139,8 @@ class Queue:
         ticket_data: dict[str, Any],
         adapter: str,
         operation: str,
-        project_dir: Optional[str] = None,
-        adapter_config: Optional[dict[str, Any]] = None,
+        project_dir: str | None = None,
+        adapter_config: dict[str, Any] | None = None,
     ) -> str:
         """Add item to queue.
 
@@ -186,7 +186,7 @@ class Queue:
 
         return queue_id
 
-    def get_next_pending(self) -> Optional[QueueItem]:
+    def get_next_pending(self) -> QueueItem | None:
         """Get next pending item from queue atomically.
 
         Returns:
@@ -251,9 +251,9 @@ class Queue:
         self,
         queue_id: str,
         status: QueueStatus,
-        error_message: Optional[str] = None,
-        result: Optional[dict[str, Any]] = None,
-        expected_status: Optional[QueueStatus] = None,
+        error_message: str | None = None,
+        result: dict[str, Any] | None = None,
+        expected_status: QueueStatus | None = None,
     ) -> bool:
         """Update queue item status atomically.
 
@@ -328,7 +328,7 @@ class Queue:
                     raise
 
     def increment_retry(
-        self, queue_id: str, expected_status: Optional[QueueStatus] = None
+        self, queue_id: str, expected_status: QueueStatus | None = None
     ) -> int:
         """Increment retry count and reset to pending atomically.
 
@@ -387,7 +387,7 @@ class Queue:
                     conn.rollback()
                     raise
 
-    def get_item(self, queue_id: str) -> Optional[QueueItem]:
+    def get_item(self, queue_id: str) -> QueueItem | None:
         """Get specific queue item by ID.
 
         Args:
@@ -409,7 +409,7 @@ class Queue:
             return QueueItem.from_row(row) if row else None
 
     def list_items(
-        self, status: Optional[QueueStatus] = None, limit: int = 50
+        self, status: QueueStatus | None = None, limit: int = 50
     ) -> list[QueueItem]:
         """List queue items.
 

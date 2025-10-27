@@ -1,17 +1,13 @@
 """Unit tests for Linear data mappers."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
 from mcp_ticketer.adapters.linear.mappers import (
-    build_linear_issue_input,
-    build_linear_issue_update_input,
-    extract_child_issue_ids,
-    map_linear_comment_to_comment,
-    map_linear_issue_to_task,
-    map_linear_project_to_epic,
-)
+    build_linear_issue_input, build_linear_issue_update_input,
+    extract_child_issue_ids, map_linear_comment_to_comment,
+    map_linear_issue_to_task, map_linear_project_to_epic)
 from mcp_ticketer.core.models import Priority, Task, TicketState
 
 
@@ -38,8 +34,8 @@ class TestLinearIssueMapping:
         assert task.description == "Test description"
         assert task.priority == Priority.HIGH
         assert task.state == TicketState.IN_PROGRESS
-        assert task.created_at == datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        assert task.updated_at == datetime(2023, 1, 2, 0, 0, 0, tzinfo=timezone.utc)
+        assert task.created_at == datetime(2023, 1, 1, 0, 0, 0, tzinfo=UTC)
+        assert task.updated_at == datetime(2023, 1, 2, 0, 0, 0, tzinfo=UTC)
 
     def test_map_linear_issue_to_task_with_assignee(self):
         """Test Linear issue mapping with assignee."""
@@ -137,8 +133,8 @@ class TestLinearProjectMapping:
         assert epic.description == "Test project description"
         assert epic.state == TicketState.IN_PROGRESS
         assert epic.priority == Priority.MEDIUM  # Default for projects
-        assert epic.created_at == datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        assert epic.updated_at == datetime(2023, 1, 2, 0, 0, 0, tzinfo=timezone.utc)
+        assert epic.created_at == datetime(2023, 1, 1, 0, 0, 0, tzinfo=UTC)
+        assert epic.updated_at == datetime(2023, 1, 2, 0, 0, 0, tzinfo=UTC)
 
     def test_map_linear_project_to_epic_states(self):
         """Test Linear project state mapping."""
@@ -205,7 +201,7 @@ class TestLinearCommentMapping:
         assert comment.ticket_id == "TEST-123"
         assert comment.content == "This is a test comment"
         assert comment.author == "test@example.com"
-        assert comment.created_at == datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        assert comment.created_at == datetime(2023, 1, 1, 0, 0, 0, tzinfo=UTC)
         # Note: Comment model doesn't have updated_at field
         # It's stored in metadata if available
         assert "updated_at" in comment.metadata

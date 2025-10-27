@@ -4,8 +4,9 @@ import asyncio
 import hashlib
 import json
 import time
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Optional
+from typing import Any
 
 
 class CacheEntry:
@@ -41,7 +42,7 @@ class MemoryCache:
         self._default_ttl = default_ttl
         self._lock = asyncio.Lock()
 
-    async def get(self, key: str) -> Optional[Any]:
+    async def get(self, key: str) -> Any | None:
         """Get value from cache.
 
         Args:
@@ -60,7 +61,7 @@ class MemoryCache:
                 del self._cache[key]
             return None
 
-    async def set(self, key: str, value: Any, ttl: Optional[float] = None) -> None:
+    async def set(self, key: str, value: Any, ttl: float | None = None) -> None:
         """Set value in cache.
 
         Args:
@@ -134,9 +135,9 @@ class MemoryCache:
 
 
 def cache_decorator(
-    ttl: Optional[float] = None,
+    ttl: float | None = None,
     key_prefix: str = "",
-    cache_instance: Optional[MemoryCache] = None,
+    cache_instance: MemoryCache | None = None,
 ) -> Callable:
     """Decorator for caching async function results.
 

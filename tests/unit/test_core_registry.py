@@ -1,7 +1,7 @@
 """Unit tests for adapter registry module."""
 
 import builtins
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 
@@ -27,11 +27,11 @@ class MockAdapter(BaseAdapter[Task]):
         """Mock create method."""
         return ticket
 
-    async def read(self, ticket_id: str) -> Optional[Task]:
+    async def read(self, ticket_id: str) -> Task | None:
         """Mock read method."""
         return None
 
-    async def update(self, ticket_id: str, updates: dict[str, Any]) -> Optional[Task]:
+    async def update(self, ticket_id: str, updates: dict[str, Any]) -> Task | None:
         """Mock update method."""
         return None
 
@@ -40,7 +40,7 @@ class MockAdapter(BaseAdapter[Task]):
         return True
 
     async def list(
-        self, limit: int = 10, offset: int = 0, filters: Optional[dict] = None
+        self, limit: int = 10, offset: int = 0, filters: dict | None = None
     ) -> list[Task]:
         """Mock list method."""
         return []
@@ -51,7 +51,7 @@ class MockAdapter(BaseAdapter[Task]):
 
     async def transition_state(
         self, ticket_id: str, target_state: TicketState
-    ) -> Optional[Task]:
+    ) -> Task | None:
         """Mock transition state method."""
         return None
 

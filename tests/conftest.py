@@ -13,14 +13,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from mcp_ticketer.core.models import (
-    Comment,
-    Epic,
-    Priority,
-    SearchQuery,
-    Task,
-    TicketState,
-)
+from mcp_ticketer.core.models import (Comment, Epic, Priority, SearchQuery,
+                                      Task, TicketState)
 from mcp_ticketer.queue.queue import Queue
 
 

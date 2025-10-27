@@ -1,7 +1,6 @@
 """Interactive configuration wizard for MCP Ticketer."""
 
 import os
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -9,15 +8,9 @@ from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from ..core.project_config import (
-    AdapterConfig,
-    AdapterType,
-    ConfigResolver,
-    ConfigValidator,
-    HybridConfig,
-    SyncStrategy,
-    TicketerConfig,
-)
+from ..core.project_config import (AdapterConfig, AdapterType, ConfigResolver,
+                                   ConfigValidator, HybridConfig, SyncStrategy,
+                                   TicketerConfig)
 
 console = Console()
 
@@ -440,10 +433,10 @@ def show_current_config() -> None:
 
 
 def set_adapter_config(
-    adapter: Optional[str] = None,
-    api_key: Optional[str] = None,
-    project_id: Optional[str] = None,
-    team_id: Optional[str] = None,
+    adapter: str | None = None,
+    api_key: str | None = None,
+    project_id: str | None = None,
+    team_id: str | None = None,
     global_scope: bool = False,
     **kwargs,
 ) -> None:

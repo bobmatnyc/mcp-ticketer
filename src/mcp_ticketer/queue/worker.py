@@ -7,7 +7,7 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from dotenv import load_dotenv
 
@@ -58,7 +58,7 @@ class Worker:
 
     def __init__(
         self,
-        queue: Optional[Queue] = None,
+        queue: Queue | None = None,
         batch_size: int = DEFAULT_BATCH_SIZE,
         max_concurrent: int = DEFAULT_MAX_CONCURRENT,
     ):
