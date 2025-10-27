@@ -10,8 +10,15 @@ from typing import Any
 from ..core.adapter import BaseAdapter
 
 logger = logging.getLogger(__name__)
-from ..core.models import (Attachment, Comment, Epic, Priority, SearchQuery,
-                           Task, TicketState)
+from ..core.models import (
+    Attachment,
+    Comment,
+    Epic,
+    Priority,
+    SearchQuery,
+    Task,
+    TicketState,
+)
 from ..core.registry import AdapterRegistry
 
 # Import ai-trackdown-pytools when available
@@ -766,7 +773,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         # CRITICAL SECURITY CHECK: Ensure ticket directory is within base attachments
         base_attachments = (self.base_path / "attachments").resolve()
         if not str(attachments_dir).startswith(str(base_attachments)):
-            raise ValueError(f"Invalid ticket_id: path traversal detected")
+            raise ValueError("Invalid ticket_id: path traversal detected")
 
         if not attachments_dir.exists():
             return []
@@ -828,9 +835,13 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         # CRITICAL SECURITY CHECK: Ensure paths are within attachments_dir
         base_resolved = attachments_dir.resolve()
         if not str(attachment_file).startswith(str(base_resolved)):
-            raise ValueError(f"Invalid attachment path: path traversal detected in attachment_id")
+            raise ValueError(
+                "Invalid attachment path: path traversal detected in attachment_id"
+            )
         if not str(metadata_file).startswith(str(base_resolved)):
-            raise ValueError(f"Invalid attachment path: path traversal detected in attachment_id")
+            raise ValueError(
+                "Invalid attachment path: path traversal detected in attachment_id"
+            )
 
         # Delete files if they exist
         deleted = False
