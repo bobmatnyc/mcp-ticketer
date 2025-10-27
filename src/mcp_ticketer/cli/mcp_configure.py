@@ -310,11 +310,20 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
         ValueError: If configuration is invalid
 
     """
-    # Step 1: Find Python executable
+    # Determine project path for venv detection
+    project_path = Path.cwd() if not global_config else None
+
+    # Step 1: Find Python executable (project-specific if available)
     console.print("[cyan]🔍 Finding mcp-ticketer Python executable...[/cyan]")
     try:
-        python_path = get_mcp_ticketer_python()
+        python_path = get_mcp_ticketer_python(project_path=project_path)
         console.print(f"[green]✓[/green] Found: {python_path}")
+
+        # Show if using project venv or fallback
+        if project_path and str(project_path / ".venv") in python_path:
+            console.print("[dim]Using project-specific venv[/dim]")
+        else:
+            console.print("[dim]Using pipx/system Python[/dim]")
     except Exception as e:
         console.print(f"[red]✗[/red] Could not find Python executable: {e}")
         raise FileNotFoundError(

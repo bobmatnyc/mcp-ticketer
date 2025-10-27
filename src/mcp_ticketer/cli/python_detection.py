@@ -13,33 +13,49 @@ import os
 import shutil
 import sys
 from pathlib import Path
+from typing import Optional
 
 
-def get_mcp_ticketer_python() -> str:
-    """Get the correct Python executable for mcp-ticketer.
+def get_mcp_ticketer_python(project_path: Optional[Path] = None) -> str:
+    """Get the correct Python executable for mcp-ticketer MCP server.
 
-    This function reliably detects the Python executable across different
-    installation methods (pipx, pip, uv, direct venv).
+    This function follows the mcp-vector-search pattern of using project-specific
+    venv Python for proper project isolation and dependency management.
 
     Detection priority:
-    1. Current Python executable if in pipx venv
-    2. Python from mcp-ticketer binary shebang
-    3. Current Python executable (fallback)
+    1. Project-local venv (.venv/bin/python) if project_path provided
+    2. Current Python executable if in pipx venv
+    3. Python from mcp-ticketer binary shebang
+    4. Current Python executable (fallback)
+
+    Args:
+        project_path: Optional project directory path to check for local venv
 
     Returns:
         Path to Python executable
 
     Examples:
+        >>> # With project venv
+        >>> python_path = get_mcp_ticketer_python(Path("/home/user/my-project"))
+        >>> # Returns: "/home/user/my-project/.venv/bin/python"
+
+        >>> # Without project path (fallback to pipx)
         >>> python_path = get_mcp_ticketer_python()
         >>> # Returns: "/Users/user/.local/pipx/venvs/mcp-ticketer/bin/python"
     """
+    # Priority 1: Check for project-local venv
+    if project_path:
+        project_venv_python = project_path / ".venv" / "bin" / "python"
+        if project_venv_python.exists():
+            return str(project_venv_python)
+
     current_executable = sys.executable
 
-    # Priority 1: Check if we're in a pipx venv
+    # Priority 2: Check if we're in a pipx venv
     if "/pipx/venvs/" in current_executable:
         return current_executable
 
-    # Priority 2: Check mcp-ticketer binary shebang
+    # Priority 3: Check mcp-ticketer binary shebang
     mcp_ticketer_path = shutil.which("mcp-ticketer")
     if mcp_ticketer_path:
         try:
@@ -52,7 +68,7 @@ def get_mcp_ticketer_python() -> str:
         except OSError:
             pass
 
-    # Priority 3: Fallback to current Python
+    # Priority 4: Fallback to current Python
     return current_executable
 
 
@@ -60,7 +76,7 @@ def get_mcp_server_command(project_path: str | None = None) -> tuple[str, list[s
     """Get the complete command to run the MCP server.
 
     Args:
-        project_path: Optional project path to pass as argument
+        project_path: Optional project path to pass as argument and check for venv
 
     Returns:
         Tuple of (python_executable, args_list)
@@ -68,10 +84,12 @@ def get_mcp_server_command(project_path: str | None = None) -> tuple[str, list[s
 
     Examples:
         >>> python, args = get_mcp_server_command("/home/user/project")
-        >>> # python: "/Users/user/.local/pipx/venvs/mcp-ticketer/bin/python"
+        >>> # python: "/home/user/project/.venv/bin/python" (if .venv exists)
         >>> # args: ["-m", "mcp_ticketer.mcp.server", "/home/user/project"]
     """
-    python_path = get_mcp_ticketer_python()
+    # Convert project_path to Path object for venv detection
+    project_path_obj = Path(project_path) if project_path else None
+    python_path = get_mcp_ticketer_python(project_path=project_path_obj)
     args = ["-m", "mcp_ticketer.mcp.server"]
 
     if project_path:
