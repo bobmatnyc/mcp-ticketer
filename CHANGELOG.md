@@ -4,6 +4,25 @@ All notable changes to MCP Ticketer will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.4] - 2025-10-27
+
+### Changed
+- **CLI restructure**: `install <platform>` for platform installation (claude-code, claude-desktop, gemini, codex, auggie)
+- **MCP commands**: Reserved `mcp` namespace for MCP server actions (serve, status, stop)
+- Platform names now positional arguments instead of flags for better UX
+
+### Added
+- **mcp status**: New command showing configuration status for all platforms
+- **mcp stop**: New command with informational message about MCP architecture
+
+### Improved
+- Better command structure (install for platforms, mcp for actions)
+- Clearer error messages with available options
+- Maintained full backward compatibility with legacy commands
+
+### Testing
+- 19/19 CLI tests passed (100% success rate)
+
 ## [0.4.3] - 2025-10-27
 
 ### Added
