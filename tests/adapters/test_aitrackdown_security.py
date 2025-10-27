@@ -208,9 +208,7 @@ class TestDeleteAttachmentPathTraversal:
 
         # Try path traversal in attachment_id
         with pytest.raises(ValueError) as exc_info:
-            await aitrackdown_adapter.delete_attachment(
-                created.id, "../../secret.txt"
-            )
+            await aitrackdown_adapter.delete_attachment(created.id, "../../secret.txt")
 
         # Expected: ValueError raised with descriptive message
         assert "path traversal detected" in str(exc_info.value).lower()
@@ -225,9 +223,7 @@ class TestDeleteAttachmentPathTraversal:
         """
         # Try path traversal in ticket_id
         # This should return False (directory doesn't exist) rather than raising error
-        result = await aitrackdown_adapter.delete_attachment(
-            "../../../etc", "passwd"
-        )
+        result = await aitrackdown_adapter.delete_attachment("../../../etc", "passwd")
 
         # Expected: False (directory doesn't exist due to path traversal)
         # Note: The security check happens when resolving paths
@@ -248,9 +244,7 @@ class TestDeleteAttachmentPathTraversal:
 
         # Try absolute path in attachment_id
         with pytest.raises(ValueError) as exc_info:
-            await aitrackdown_adapter.delete_attachment(
-                created.id, "/etc/passwd"
-            )
+            await aitrackdown_adapter.delete_attachment(created.id, "/etc/passwd")
 
         # Expected: ValueError raised with descriptive message
         assert "path traversal detected" in str(exc_info.value).lower()
@@ -265,9 +259,7 @@ class TestDeleteAttachmentPathTraversal:
         created = await aitrackdown_adapter.create(task)
 
         # Create attachments directory
-        attachments_dir = (
-            aitrackdown_adapter.base_path / "attachments" / created.id
-        )
+        attachments_dir = aitrackdown_adapter.base_path / "attachments" / created.id
         attachments_dir.mkdir(parents=True, exist_ok=True)
 
         # Try to use a symlink name that would traverse (even if symlink doesn't exist)
