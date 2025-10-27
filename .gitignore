@@ -245,3 +245,4 @@ virtualenv/
 .claude/sessions/
 .kuzu-memory-backups/
 .mcp.json
+uv.lock
