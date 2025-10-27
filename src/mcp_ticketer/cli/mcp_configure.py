@@ -16,13 +16,21 @@ def find_mcp_ticketer_binary() -> str:
     """Find the mcp-ticketer binary path.
 
     Returns:
-        Path to mcp-ticketer binary
+        Path to mcp-ticketer binary (prefers simple 'mcp-ticketer' if in PATH)
 
     Raises:
         FileNotFoundError: If binary not found
 
     """
-    # Check if running from development environment
+    # PRIORITY 1: Check PATH first (like kuzu-memory)
+    # This allows the system to resolve the binary location
+    which_result = shutil.which("mcp-ticketer")
+    if which_result:
+        # Return just "mcp-ticketer" for PATH-based installations
+        # This is more portable and matches kuzu-memory's approach
+        return "mcp-ticketer"
+
+    # FALLBACK: Check development environment
     import mcp_ticketer
 
     package_path = Path(mcp_ticketer.__file__).parent.parent.parent
@@ -44,11 +52,6 @@ def find_mcp_ticketer_binary() -> str:
         / "bin"
         / "mcp-ticketer",
     ]
-
-    # Check PATH
-    which_result = shutil.which("mcp-ticketer")
-    if which_result:
-        return which_result
 
     # Check possible paths
     for path in possible_paths:
@@ -183,7 +186,7 @@ def create_mcp_server_config(
     """
     config = {
         "command": binary_path,
-        "args": ["serve"],  # Use 'serve' command to start MCP server
+        "args": ["mcp", "serve"],  # Use 'mcp serve' command to start MCP server
     }
 
     # Add working directory if provided

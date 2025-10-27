@@ -891,7 +891,8 @@ def _show_next_steps(
     console.print("[dim]Run 'mcp-ticketer --help' for more commands[/dim]")
 
 
-@app.command()
+# Keep the old install command as deprecated alias to init
+@app.command(deprecated=True, hidden=True)
 def install(
     adapter: Optional[str] = typer.Option(
         None,
@@ -941,26 +942,12 @@ def install(
         None, "--github-token", help="GitHub Personal Access Token"
     ),
 ) -> None:
-    """Initialize mcp-ticketer for the current project (alias for init).
+    """DEPRECATED: Use 'mcp-ticketer init' instead.
 
-    This command is synonymous with 'init' and 'setup' - all three provide
-    identical functionality with interactive prompts to guide you through
-    configuring MCP Ticketer for your preferred ticket management system.
-
-    Examples:
-        # Interactive setup (same as 'init' and 'setup')
-        mcp-ticketer install
-
-        # Force specific adapter
-        mcp-ticketer install --adapter linear
-
-        # Initialize for different project
-        mcp-ticketer install --path /path/to/project
-
-        # Save globally (not recommended)
-        mcp-ticketer install --global
+    This command is deprecated. Use 'mcp-ticketer init' for project initialization.
 
     """
+    console.print("[yellow]⚠️  'install' is deprecated. Use 'mcp-ticketer init' instead.[/yellow]\n")
     # Call init with all parameters
     init(
         adapter=adapter,
@@ -1934,6 +1921,71 @@ mcp_app = typer.Typer(
     add_completion=False,
 )
 
+# Create install command group (like kuzu-memory)
+install_app = typer.Typer(
+    name="install",
+    help="Manage AI system integrations",
+    add_completion=False,
+)
+
+
+@install_app.command(name="add")
+def install_add(
+    platform: str = typer.Argument(..., help="Platform to install (claude-code, claude-desktop, etc.)"),
+    project_path: Optional[str] = typer.Option(
+        None, "--project", help="Project directory"
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be done without making changes"
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", help="Enable verbose output"
+    ),
+) -> None:
+    """Install mcp-ticketer integration for an AI platform.
+
+    Each platform gets the right configuration automatically:
+      - claude-code: Project-level MCP server
+      - claude-desktop: Global MCP server
+
+    Examples:
+        # Install for Claude Code (project-level)
+        mcp-ticketer install add claude-code
+
+        # Install for Claude Desktop (global)
+        mcp-ticketer install add claude-desktop
+
+        # Dry run to preview changes
+        mcp-ticketer install add claude-code --dry-run
+
+    """
+    from .mcp_configure import configure_claude_mcp
+
+    # Map platform names to configuration
+    platform_mapping = {
+        "claude-code": {"global": False, "name": "Claude Code"},
+        "claude-desktop": {"global": True, "name": "Claude Desktop"},
+    }
+
+    if platform not in platform_mapping:
+        console.print(f"[red]Unknown platform: {platform}[/red]")
+        console.print("\n[bold]Available platforms:[/bold]")
+        for p in platform_mapping.keys():
+            console.print(f"  • {p}")
+        raise typer.Exit(1)
+
+    config = platform_mapping[platform]
+
+    if dry_run:
+        console.print(f"[cyan]DRY RUN - Would install for {config['name']}[/cyan]")
+        return
+
+    try:
+        configure_claude_mcp(global_config=config["global"], force=True)
+    except Exception as e:
+        console.print(f"[red]Installation failed: {e}[/red]")
+        raise typer.Exit(1)
+
 
 @app.command(deprecated=True, hidden=True)
 def check(queue_id: str = typer.Argument(..., help="Queue ID to check")):
@@ -1981,8 +2033,8 @@ def check(queue_id: str = typer.Argument(..., help="Queue ID to check")):
         console.print(f"\nRetry Count: {item.retry_count}")
 
 
-@app.command()
-def serve(
+@mcp_app.command(name="serve")
+def mcp_serve(
     adapter: Optional[AdapterType] = typer.Option(
         None, "--adapter", "-a", help="Override default adapter type"
     ),
@@ -1993,7 +2045,7 @@ def serve(
     """Start MCP server for JSON-RPC communication over stdio.
 
     This command is used by Claude Code/Desktop when connecting to the MCP server.
-    You typically don't need to run this manually - use 'mcp-ticketer mcp' to configure.
+    You typically don't need to run this manually - use 'mcp-ticketer install add' to configure.
 
     Configuration Resolution:
     - When MCP server starts, it uses the current working directory (cwd)
@@ -2218,6 +2270,7 @@ def mcp_auggie(
 
 # Add command groups to main app (must be after all subcommands are defined)
 app.add_typer(mcp_app, name="mcp")
+app.add_typer(install_app, name="install")
 
 
 def main():
