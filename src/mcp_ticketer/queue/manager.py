@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 import psutil
 
 if TYPE_CHECKING:
-    from .queue import Queue
+    pass
 
 logger = logging.getLogger(__name__)
 
