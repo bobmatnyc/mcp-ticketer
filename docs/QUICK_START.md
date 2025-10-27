@@ -453,6 +453,39 @@ mcp-ticketer serve
 # Press Ctrl+C to stop
 ```
 
+**Manual Configuration Pattern:**
+
+All AI clients use the same reliable venv Python + module invocation pattern:
+
+```json
+{
+  "command": "/path/to/venv/bin/python",
+  "args": ["-m", "mcp_ticketer.mcp.server", "/absolute/path/to/project"],
+  "env": {
+    "MCP_TICKETER_ADAPTER": "aitrackdown",
+    "PYTHONPATH": "/absolute/path/to/project"
+  }
+}
+```
+
+**Key Points:**
+- **command**: Path to Python in your mcp-ticketer venv (auto-detected by install commands)
+- **args**: Module invocation pattern `["-m", "mcp_ticketer.mcp.server", "<project_path>"]`
+- **PYTHONPATH**: Set to project root for proper module resolution
+- **Benefits**: More reliable than binary paths, works across all installation methods
+
+**Finding your venv Python:**
+```bash
+# For pipx installations
+ls ~/.local/pipx/venvs/mcp-ticketer/bin/python
+
+# For pip installations in venv
+ls .venv/bin/python
+
+# For uv installations
+ls .venv/bin/python
+```
+
 **See [AI Client Integration Guide](docs/AI_CLIENT_INTEGRATION.md) for detailed configuration.**
 
 ---

@@ -51,22 +51,81 @@ mcp-ticketer install
 
 #### New Features in v0.5.x
 
-##### 1. Installation Commands
+##### 1. Reliable venv Python Pattern
+
+Version 0.5.x introduces a new, more reliable MCP server configuration pattern:
+
+**Old Pattern (v0.4.x):**
+```json
+{
+  "command": "/usr/local/bin/mcp-ticketer",
+  "args": ["serve"],
+  "env": {
+    "MCP_TICKETER_ADAPTER": "aitrackdown"
+  }
+}
+```
+
+**New Pattern (v0.5.x):**
+```json
+{
+  "command": "/path/to/venv/bin/python",
+  "args": ["-m", "mcp_ticketer.mcp.server", "/project/path"],
+  "env": {
+    "MCP_TICKETER_ADAPTER": "aitrackdown",
+    "PYTHONPATH": "/project/path"
+  }
+}
+```
+
+**Benefits:**
+- ✅ More reliable across installation methods (pipx, pip, uv)
+- ✅ Better error messages from Python module invocation
+- ✅ Consistent with proven mcp-vector-search approach
+- ✅ Automatic detection of venv Python path
+- ✅ Works across different Python versions
+
+**Migration:** The `install` commands automatically generate the new pattern. Old configurations continue to work but are deprecated.
+
+##### 2. Installation Commands
 
 The `install` command now handles MCP platform configuration:
 - Simplified syntax without the `mcp` subcommand
 - Clearer platform names (e.g., `claude-code` vs `claude-desktop`)
 - Dry-run support to preview changes
+- Automatic venv Python detection
 
 ```bash
 # Install with preview
 mcp-ticketer install claude-code --dry-run
 
-# Install normally
+# Install normally (automatically uses new pattern)
 mcp-ticketer install claude-code
 ```
 
-##### 2. Removal Commands
+##### 2. Automatic Python Path Detection
+
+The installer now automatically detects the correct Python executable:
+
+```python
+# Detection priority:
+# 1. Current Python if in pipx venv
+# 2. Python from mcp-ticketer binary shebang
+# 3. Current Python executable (fallback)
+```
+
+**Finding your venv Python manually:**
+```bash
+# For pipx installations
+ls ~/.local/pipx/venvs/mcp-ticketer/bin/python
+
+# For pip/uv in project venv
+ls .venv/bin/python
+
+# The install command detects this automatically
+```
+
+##### 3. Removal Commands
 
 New commands to remove MCP configurations:
 
@@ -83,7 +142,7 @@ mcp-ticketer uninstall codex
 mcp-ticketer remove gemini --dry-run
 ```
 
-##### 3. Platform Support
+##### 4. Platform Support
 
 **New platforms:**
 - `claude-code` - Project-level Claude Code configuration
@@ -124,16 +183,39 @@ Review and update any project documentation that references the old commands:
 - CI/CD pipelines
 - Developer onboarding docs
 
-##### Step 3: Reinstall Configurations (Optional)
+##### Step 3: Migrate to venv Python Pattern (Recommended)
 
-While old configurations continue to work, you may want to reinstall using the new commands:
+Update your configurations to use the new venv Python pattern:
 
 ```bash
-# Remove old configuration
+# Option 1: Automatic reinstall (recommended)
 mcp-ticketer remove claude-code
-
-# Install with new command
 mcp-ticketer install claude-code
+
+# Option 2: Manual update
+# Edit your configuration file directly:
+# Change: "command": "/usr/local/bin/mcp-ticketer"
+# To:     "command": "/path/to/venv/bin/python"
+# Change: "args": ["serve"]
+# To:     "args": ["-m", "mcp_ticketer.mcp.server", "/project/path"]
+# Add:    "PYTHONPATH": "/project/path" to env
+```
+
+**Why migrate?**
+- ✅ More reliable across different installation methods
+- ✅ Better error messages and debugging
+- ✅ Future-proof pattern matching industry standards
+- ✅ No RuntimeWarning about lazy imports
+
+**Verification:**
+```bash
+# Test the new configuration
+# For Claude Code/Desktop: Try creating a ticket in the AI client
+# The new pattern should work seamlessly
+
+# Check Python path manually
+which python
+# Should show your venv Python if installed with pipx/pip
 ```
 
 ##### Step 4: Test Integrations

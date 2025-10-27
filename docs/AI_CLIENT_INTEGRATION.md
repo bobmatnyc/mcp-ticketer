@@ -28,6 +28,33 @@ Complete guide to integrating MCP Ticketer with AI clients via the Model Context
 
 The **Model Context Protocol (MCP)** is a standardized protocol that enables AI assistants to interact with external tools and services. MCP Ticketer implements MCP to provide universal ticket management capabilities to AI clients.
 
+### MCP Server Configuration Pattern
+
+**MCP Ticketer uses a reliable venv Python + module invocation pattern:**
+
+```json
+{
+  "command": "/path/to/venv/bin/python",
+  "args": ["-m", "mcp_ticketer.mcp.server", "/project/path"],
+  "env": {
+    "PYTHONPATH": "/project/path"
+  }
+}
+```
+
+**Why this pattern?**
+1. **Reliability**: Direct venv Python invocation avoids binary wrapper issues
+2. **Consistency**: Matches proven mcp-vector-search approach
+3. **Compatibility**: Works across pipx, pip, and uv installations
+4. **Error Clarity**: Python module errors are more informative
+5. **Automatic**: `mcp-ticketer install <platform>` detects paths automatically
+
+**How it works:**
+- The `install` commands automatically detect your mcp-ticketer venv Python
+- Module invocation (`-m mcp_ticketer.mcp.server`) is more reliable than binary paths
+- Project path argument enables project-specific configurations
+- PYTHONPATH ensures proper module resolution
+
 ### Supported AI Clients
 
 MCP Ticketer supports **4 major AI clients** with varying levels of integration:
@@ -164,17 +191,23 @@ mcp-ticketer install claude-code --dry-run
 {
   "mcpServers": {
     "mcp-ticketer": {
-      "command": "/usr/local/bin/mcp-ticketer",
-      "args": ["serve"],
-      "cwd": "/Users/username/projects/my-project",
+      "command": "/path/to/venv/bin/python",
+      "args": ["-m", "mcp_ticketer.mcp.server", "/Users/username/projects/my-project"],
       "env": {
         "MCP_TICKETER_ADAPTER": "aitrackdown",
-        "MCP_TICKETER_BASE_PATH": "/Users/username/projects/my-project/.aitrackdown"
+        "MCP_TICKETER_BASE_PATH": "/Users/username/projects/my-project/.aitrackdown",
+        "PYTHONPATH": "/Users/username/projects/my-project"
       }
     }
   }
 }
 ```
+
+**Configuration Pattern Explained:**
+- **command**: Path to Python in your mcp-ticketer venv (auto-detected by `install` command)
+- **args**: `["-m", "mcp_ticketer.mcp.server", "<project_path>"]` - module invocation pattern
+- **PYTHONPATH**: Project path for proper module resolution
+- **Benefits**: More reliable, better error messages, works across all installation methods
 
 #### Step 5: Use in Claude Code
 
@@ -193,13 +226,14 @@ mcp-ticketer install claude-code --dry-run
 {
   "mcpServers": {
     "mcp-ticketer": {
-      "command": "/path/to/mcp-ticketer",
-      "args": ["serve"],
+      "command": "/path/to/venv/bin/python",
+      "args": ["-m", "mcp_ticketer.mcp.server", "/project/path"],
       "env": {
         "MCP_TICKETER_ADAPTER": "linear",
         "LINEAR_API_KEY": "your-api-key",
         "LINEAR_TEAM_ID": "your-team-id",
-        "MCP_TICKETER_LOG_LEVEL": "DEBUG"
+        "MCP_TICKETER_LOG_LEVEL": "DEBUG",
+        "PYTHONPATH": "/project/path"
       }
     }
   }
@@ -212,19 +246,21 @@ mcp-ticketer install claude-code --dry-run
 {
   "mcpServers": {
     "mcp-ticketer-jira": {
-      "command": "/path/to/mcp-ticketer",
-      "args": ["serve"],
+      "command": "/path/to/venv/bin/python",
+      "args": ["-m", "mcp_ticketer.mcp.server", "/project/path"],
       "env": {
         "MCP_TICKETER_ADAPTER": "jira",
-        "JIRA_SERVER": "https://company.atlassian.net"
+        "JIRA_SERVER": "https://company.atlassian.net",
+        "PYTHONPATH": "/project/path"
       }
     },
     "mcp-ticketer-github": {
-      "command": "/path/to/mcp-ticketer",
-      "args": ["serve"],
+      "command": "/path/to/venv/bin/python",
+      "args": ["-m", "mcp_ticketer.mcp.server", "/project/path"],
       "env": {
         "MCP_TICKETER_ADAPTER": "github",
-        "GITHUB_REPO": "owner/repo"
+        "GITHUB_REPO": "owner/repo",
+        "PYTHONPATH": "/project/path"
       }
     }
   }
@@ -300,10 +336,10 @@ mcp-ticketer install gemini --dry-run
 {
   "mcpServers": {
     "mcp-ticketer": {
-      "command": "/usr/local/bin/mcp-ticketer",
-      "args": ["serve"],
+      "command": "/path/to/venv/bin/python",
+      "args": ["-m", "mcp_ticketer.mcp.server", "/Users/username/projects/my-project"],
       "env": {
-        "PYTHONPATH": "/Users/username/projects/my-project/src",
+        "PYTHONPATH": "/Users/username/projects/my-project",
         "MCP_TICKETER_ADAPTER": "aitrackdown",
         "MCP_TICKETER_BASE_PATH": "/Users/username/projects/my-project/.aitrackdown"
       },
@@ -313,6 +349,8 @@ mcp-ticketer install gemini --dry-run
   }
 }
 ```
+
+**Note**: The venv Python path is automatically detected by `mcp-ticketer install gemini`.
 
 #### Step 5: Use in Gemini CLI
 
@@ -424,14 +462,16 @@ mcp-ticketer install codex --dry-run
 
 ```toml
 [mcp_servers.mcp-ticketer]
-command = "/usr/local/bin/mcp-ticketer"
-args = ["serve"]
+command = "/path/to/venv/bin/python"
+args = ["-m", "mcp_ticketer.mcp.server", "/Users/username/projects/my-project"]
 
 [mcp_servers.mcp-ticketer.env]
-PYTHONPATH = "/Users/username/projects/my-project/src"
+PYTHONPATH = "/Users/username/projects/my-project"
 MCP_TICKETER_ADAPTER = "aitrackdown"
 MCP_TICKETER_BASE_PATH = "/Users/username/projects/my-project/.aitrackdown"
 ```
+
+**Note**: The venv Python path is automatically detected and configured by `mcp-ticketer install codex`.
 
 #### Step 6: Use in Codex CLI
 
@@ -525,8 +565,8 @@ mcp-ticketer install auggie --dry-run
 {
   "mcpServers": {
     "mcp-ticketer": {
-      "command": "/usr/local/bin/mcp-ticketer",
-      "args": ["serve"],
+      "command": "/path/to/venv/bin/python",
+      "args": ["-m", "mcp_ticketer.mcp.server"],
       "env": {
         "MCP_TICKETER_ADAPTER": "aitrackdown",
         "MCP_TICKETER_BASE_PATH": "/Users/username/.mcp-ticketer/.aitrackdown"
@@ -535,6 +575,8 @@ mcp-ticketer install auggie --dry-run
   }
 }
 ```
+
+**Note**: The venv Python path is automatically detected by `mcp-ticketer install auggie`. Since Auggie uses global configuration, project path arguments are typically omitted.
 
 #### Step 6: Use in Auggie
 

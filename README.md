@@ -197,15 +197,24 @@ mcp-ticketer uninstall auggie        # Alias for remove
 {
   "mcpServers": {
     "mcp-ticketer": {
-      "command": "/path/to/mcp-ticketer",
-      "args": ["serve"],
+      "command": "/path/to/venv/bin/python",
+      "args": ["-m", "mcp_ticketer.mcp.server", "/absolute/path/to/project"],
       "env": {
-        "MCP_TICKETER_ADAPTER": "aitrackdown"
+        "MCP_TICKETER_ADAPTER": "aitrackdown",
+        "PYTHONPATH": "/absolute/path/to/project"
       }
     }
   }
 }
 ```
+
+**Why this pattern?**
+- **More Reliable**: Uses venv Python directly instead of binary wrapper
+- **Consistent**: Matches proven mcp-vector-search pattern
+- **Universal**: Works across pipx, pip, and uv installations
+- **Better Errors**: Python module invocation provides clearer error messages
+
+**Automatic Detection**: The `mcp-ticketer install` commands automatically detect your venv Python and generate the correct configuration.
 
 **See [AI Client Integration Guide](docs/AI_CLIENT_INTEGRATION.md) for client-specific details.**
 
