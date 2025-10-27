@@ -7,6 +7,7 @@ import pytest_asyncio
 
 import mcp_ticketer.adapters  # noqa: F401 - Register adapters
 from mcp_ticketer.mcp.server import MCPTicketServer
+from mcp_ticketer.queue.queue import Queue
 
 
 class TestCompleteWorkflow:
