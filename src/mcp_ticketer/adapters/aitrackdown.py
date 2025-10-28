@@ -10,8 +10,15 @@ from typing import Any
 from ..core.adapter import BaseAdapter
 
 logger = logging.getLogger(__name__)
-from ..core.models import (Attachment, Comment, Epic, Priority, SearchQuery,
-                           Task, TicketState)
+from ..core.models import (
+    Attachment,
+    Comment,
+    Epic,
+    Priority,
+    SearchQuery,
+    Task,
+    TicketState,
+)
 from ..core.registry import AdapterRegistry
 
 # Import ai-trackdown-pytools when available

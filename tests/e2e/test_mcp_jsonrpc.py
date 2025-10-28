@@ -17,7 +17,6 @@ integration tests. Focus here is on the transport layer and protocol compliance.
 import asyncio
 import json
 import subprocess
-import sys
 from pathlib import Path
 from typing import Any
 

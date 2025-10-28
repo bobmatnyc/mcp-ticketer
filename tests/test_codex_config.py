@@ -7,9 +7,10 @@ without requiring full mcp-ticketer installation.
 
 import sys
 import tempfile
+from pathlib import Path
+
 # Test TOML reading/writing
 import tomllib
-from pathlib import Path
 
 try:
     import tomli_w
