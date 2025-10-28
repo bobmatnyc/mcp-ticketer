@@ -87,6 +87,7 @@ def create_auggie_server_config(
     """
     # Get mcp-ticketer CLI command from same directory as Python
     from pathlib import Path
+
     python_dir = Path(python_path).parent
     mcp_ticketer_cmd = str(python_dir / "mcp-ticketer")
     # Get adapter configuration

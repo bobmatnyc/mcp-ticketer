@@ -1,7 +1,8 @@
 """Unit tests for Linear adapter project ID resolution."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from mcp_ticketer.adapters.linear.adapter import LinearAdapter
 
@@ -99,7 +100,9 @@ class TestLinearProjectIDResolution:
         assert result == "ef19b35e-ce4f-4132-9705-811d4d6c8c08"
         adapter.client.execute_query.assert_called_once()
 
-    async def test_resolve_by_name_case_insensitive(self, adapter, mock_projects_response):
+    async def test_resolve_by_name_case_insensitive(
+        self, adapter, mock_projects_response
+    ):
         """Test that name matching is case-insensitive."""
         adapter.client.execute_query.return_value = mock_projects_response
 
@@ -118,7 +121,9 @@ class TestLinearProjectIDResolution:
         assert result == "ef19b35e-ce4f-4132-9705-811d4d6c8c08"
         adapter.client.execute_query.assert_called_once()
 
-    async def test_resolve_from_url_without_trailing_path(self, adapter, mock_projects_response):
+    async def test_resolve_from_url_without_trailing_path(
+        self, adapter, mock_projects_response
+    ):
         """Test extracting from URL without /overview suffix."""
         adapter.client.execute_query.return_value = mock_projects_response
 
@@ -281,7 +286,7 @@ class TestLinearProjectResolutionInCreateTask:
         # Mock project resolution to return a UUID
         mock_resolve = AsyncMock(return_value="resolved-uuid-12345")
 
-        with patch.object(adapter, '_resolve_project_id', mock_resolve):
+        with patch.object(adapter, "_resolve_project_id", mock_resolve):
             # We're just testing that resolution is attempted
             # The actual task creation requires more complex mocking
             result = await adapter._resolve_project_id("test-project")

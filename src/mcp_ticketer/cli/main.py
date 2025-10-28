@@ -1886,6 +1886,7 @@ def mcp_callback(
         # Change to project directory if provided
         if project_path:
             import os
+
             os.chdir(project_path)
         # Invoke the serve command through context
         ctx.invoke(mcp_serve, adapter=None, base_path=None)

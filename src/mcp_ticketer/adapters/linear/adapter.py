@@ -91,7 +91,10 @@ class LinearAdapter(BaseAdapter[Task]):
             # Remove environment variable name prefix (e.g., "LINEAR_API_KEY=")
             if "=" in self.api_key:
                 parts = self.api_key.split("=", 1)
-                if len(parts) == 2 and parts[0].upper() in ("LINEAR_API_KEY", "API_KEY"):
+                if len(parts) == 2 and parts[0].upper() in (
+                    "LINEAR_API_KEY",
+                    "API_KEY",
+                ):
                     self.api_key = parts[1]
 
             # Validate API key format (Linear keys start with "lin_api_")
@@ -225,7 +228,9 @@ class LinearAdapter(BaseAdapter[Task]):
             # https://linear.app/travel-bta/project/crm-smart-monitoring-system-f59a41a96c52/overview
             parts = project_identifier.split("/project/")
             if len(parts) > 1:
-                slug_with_id = parts[1].split("/")[0]  # Get "crm-smart-monitoring-system-f59a41a96c52"
+                slug_with_id = parts[1].split("/")[
+                    0
+                ]  # Get "crm-smart-monitoring-system-f59a41a96c52"
                 project_identifier = slug_with_id
             else:
                 raise ValueError(f"Invalid Linear project URL: {project_identifier}")
@@ -261,14 +266,18 @@ class LinearAdapter(BaseAdapter[Task]):
                     # slugId format: "crm-smart-monitoring-system-f59a41a96c52"
                     # Extract both the slug part and short ID
                     if "-" in slug_id:
-                        parts = slug_id.rsplit("-", 1)  # Split from right to get last part
+                        parts = slug_id.rsplit(
+                            "-", 1
+                        )  # Split from right to get last part
                         slug_part = parts[0]  # "crm-smart-monitoring-system"
                         short_id = parts[1] if len(parts) > 1 else ""  # "f59a41a96c52"
 
                         # Match full slugId, slug part, or short ID
-                        if (slug_id.lower() == project_lower or
-                            slug_part.lower() == project_lower or
-                            short_id.lower() == project_lower):
+                        if (
+                            slug_id.lower() == project_lower
+                            or slug_part.lower() == project_lower
+                            or short_id.lower() == project_lower
+                        ):
                             return project["id"]
 
                 # Also check exact name match (case-insensitive)

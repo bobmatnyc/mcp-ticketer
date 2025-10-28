@@ -221,9 +221,7 @@ class TestMCPJsonRpcProtocol:
         process = None
         try:
             # Start MCP server with config
-            process = self.start_mcp_server(
-                mcp_command, cwd=temp_config_dir.parent
-            )
+            process = self.start_mcp_server(mcp_command, cwd=temp_config_dir.parent)
 
             # Send initialize request
             await self.send_jsonrpc_request(
@@ -246,9 +244,9 @@ class TestMCPJsonRpcProtocol:
             # Verify JSON-RPC structure
             assert response.get("jsonrpc") == "2.0", "Missing or invalid jsonrpc field"
             assert response.get("id") == 1, "Response ID doesn't match request"
-            assert "result" in response or "error" in response, (
-                "Response must contain 'result' or 'error'"
-            )
+            assert (
+                "result" in response or "error" in response
+            ), "Response must contain 'result' or 'error'"
 
             # If successful, verify MCP initialize response structure
             if "result" in response:
@@ -260,9 +258,9 @@ class TestMCPJsonRpcProtocol:
 
                 # Verify protocol version is compatible
                 protocol_version = result["protocolVersion"]
-                assert protocol_version.startswith("2024-"), (
-                    f"Unexpected protocol version: {protocol_version}"
-                )
+                assert protocol_version.startswith(
+                    "2024-"
+                ), f"Unexpected protocol version: {protocol_version}"
 
         finally:
             if process:
@@ -288,9 +286,7 @@ class TestMCPJsonRpcProtocol:
         process = None
         try:
             # Start MCP server
-            process = self.start_mcp_server(
-                mcp_command, cwd=temp_config_dir.parent
-            )
+            process = self.start_mcp_server(mcp_command, cwd=temp_config_dir.parent)
 
             # Step 1: Initialize
             await self.send_jsonrpc_request(
@@ -306,9 +302,9 @@ class TestMCPJsonRpcProtocol:
 
             # Wait for initialize response
             init_response = await self.read_jsonrpc_response(process, timeout=5.0)
-            assert "result" in init_response, (
-                f"Initialize failed: {init_response.get('error')}"
-            )
+            assert (
+                "result" in init_response
+            ), f"Initialize failed: {init_response.get('error')}"
 
             # Step 2: Send initialized notification
             await self.send_jsonrpc_request(
@@ -348,9 +344,9 @@ class TestMCPJsonRpcProtocol:
                     # Verify inputSchema is valid JSON Schema
                     schema = tool["inputSchema"]
                     assert "type" in schema, f"inputSchema missing type: {schema}"
-                    assert schema["type"] == "object", (
-                        f"inputSchema type should be object: {schema}"
-                    )
+                    assert (
+                        schema["type"] == "object"
+                    ), f"inputSchema type should be object: {schema}"
 
                 # Verify expected core tools are present
                 tool_names = {tool["name"] for tool in tools}
@@ -392,9 +388,7 @@ class TestMCPJsonRpcProtocol:
         process = None
         try:
             # Start MCP server
-            process = self.start_mcp_server(
-                mcp_command, cwd=temp_config_dir.parent
-            )
+            process = self.start_mcp_server(mcp_command, cwd=temp_config_dir.parent)
 
             # Step 1: Initialize
             await self.send_jsonrpc_request(
@@ -445,9 +439,7 @@ class TestMCPJsonRpcProtocol:
                 process.wait()
 
     @pytest.mark.asyncio
-    async def test_invalid_jsonrpc(
-        self, mcp_command: list[str], temp_config_dir: Path
-    ):
+    async def test_invalid_jsonrpc(self, mcp_command: list[str], temp_config_dir: Path):
         """Test error handling for invalid JSON-RPC requests.
 
         Verifies:
@@ -458,9 +450,7 @@ class TestMCPJsonRpcProtocol:
         process = None
         try:
             # Start MCP server
-            process = self.start_mcp_server(
-                mcp_command, cwd=temp_config_dir.parent
-            )
+            process = self.start_mcp_server(mcp_command, cwd=temp_config_dir.parent)
 
             # Initialize first (required before other requests)
             await self.send_jsonrpc_request(
@@ -499,9 +489,11 @@ class TestMCPJsonRpcProtocol:
             # -32601: Method not found
             # -32600: Invalid request
             # -32602: Invalid params
-            assert error["code"] in [-32601, -32600, -32602], (
-                f"Unexpected error code: {error['code']}"
-            )
+            assert error["code"] in [
+                -32601,
+                -32600,
+                -32602,
+            ], f"Unexpected error code: {error['code']}"
 
         finally:
             if process:
@@ -525,9 +517,7 @@ class TestMCPJsonRpcProtocol:
         process = None
         try:
             # Start MCP server
-            process = self.start_mcp_server(
-                mcp_command, cwd=temp_config_dir.parent
-            )
+            process = self.start_mcp_server(mcp_command, cwd=temp_config_dir.parent)
 
             # Send valid request
             await self.send_jsonrpc_request(
