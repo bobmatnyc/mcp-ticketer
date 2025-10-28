@@ -14,8 +14,8 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from ..core.adapter import BaseAdapter
-from ..core.registry import AdapterRegistry
+from ...core.adapter import BaseAdapter
+from ...core.registry import AdapterRegistry
 
 # Initialize FastMCP server
 mcp = FastMCP("mcp-ticketer")

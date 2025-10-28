@@ -197,6 +197,90 @@ class LinearAdapter(BaseAdapter[Task]):
         except Exception as e:
             raise ValueError(f"Failed to resolve team '{self.team_key}': {e}")
 
+    async def _resolve_project_id(self, project_identifier: str) -> str | None:
+        """Resolve project identifier (slug, name, short ID, or URL) to full UUID.
+
+        Args:
+            project_identifier: Project slug, name, short ID, or URL
+
+        Returns:
+            Full Linear project UUID, or None if not found
+
+        Raises:
+            ValueError: If project lookup fails
+
+        Examples:
+            - "crm-smart-monitoring-system" (slug)
+            - "CRM Smart Monitoring System" (name)
+            - "f59a41a96c52" (short ID from URL)
+            - "https://linear.app/travel-bta/project/crm-smart-monitoring-system-f59a41a96c52/overview" (full URL)
+
+        """
+        if not project_identifier:
+            return None
+
+        # Extract slug/ID from URL if full URL provided
+        if project_identifier.startswith("http"):
+            # Extract slug-shortid from URL like:
+            # https://linear.app/travel-bta/project/crm-smart-monitoring-system-f59a41a96c52/overview
+            parts = project_identifier.split("/project/")
+            if len(parts) > 1:
+                slug_with_id = parts[1].split("/")[0]  # Get "crm-smart-monitoring-system-f59a41a96c52"
+                project_identifier = slug_with_id
+            else:
+                raise ValueError(f"Invalid Linear project URL: {project_identifier}")
+
+        # If it looks like a full UUID already (exactly 36 chars with exactly 4 dashes), return it
+        # UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        if len(project_identifier) == 36 and project_identifier.count("-") == 4:
+            return project_identifier
+
+        # Query all projects and search for matching slug, name, or slugId
+        query = """
+            query GetProjects {
+                projects(first: 100) {
+                    nodes {
+                        id
+                        name
+                        slugId
+                    }
+                }
+            }
+        """
+
+        try:
+            result = await self.client.execute_query(query, {})
+            projects = result.get("projects", {}).get("nodes", [])
+
+            # Search for match by slug, slugId, name (case-insensitive)
+            project_lower = project_identifier.lower()
+            for project in projects:
+                # Check if identifier matches slug pattern (extracted from slugId)
+                slug_id = project.get("slugId", "")
+                if slug_id:
+                    # slugId format: "crm-smart-monitoring-system-f59a41a96c52"
+                    # Extract both the slug part and short ID
+                    if "-" in slug_id:
+                        parts = slug_id.rsplit("-", 1)  # Split from right to get last part
+                        slug_part = parts[0]  # "crm-smart-monitoring-system"
+                        short_id = parts[1] if len(parts) > 1 else ""  # "f59a41a96c52"
+
+                        # Match full slugId, slug part, or short ID
+                        if (slug_id.lower() == project_lower or
+                            slug_part.lower() == project_lower or
+                            short_id.lower() == project_lower):
+                            return project["id"]
+
+                # Also check exact name match (case-insensitive)
+                if project["name"].lower() == project_lower:
+                    return project["id"]
+
+            # No match found
+            return None
+
+        except Exception as e:
+            raise ValueError(f"Failed to resolve project '{project_identifier}': {e}")
+
     async def _load_workflow_states(self, team_id: str) -> None:
         """Load and cache workflow states for the team.
 
@@ -445,6 +529,20 @@ class LinearAdapter(BaseAdapter[Task]):
             else:
                 # Remove labelIds if no labels resolved
                 issue_input.pop("labelIds", None)
+
+        # Resolve project ID if parent_epic is provided (supports slug, name, short ID, or URL)
+        if task.parent_epic:
+            project_id = await self._resolve_project_id(task.parent_epic)
+            if project_id:
+                issue_input["projectId"] = project_id
+            else:
+                # Log warning but don't fail - user may have provided invalid project
+                logging.getLogger(__name__).warning(
+                    f"Could not resolve project identifier '{task.parent_epic}' to UUID. "
+                    "Issue will be created without project assignment."
+                )
+                # Remove projectId if we couldn't resolve it
+                issue_input.pop("projectId", None)
 
         try:
             result = await self.client.execute_mutation(

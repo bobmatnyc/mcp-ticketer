@@ -85,6 +85,10 @@ def create_auggie_server_config(
         Auggie MCP server configuration dict
 
     """
+    # Get mcp-ticketer CLI command from same directory as Python
+    from pathlib import Path
+    python_dir = Path(python_path).parent
+    mcp_ticketer_cmd = str(python_dir / "mcp-ticketer")
     # Get adapter configuration
     adapter = project_config.get("default_adapter", "aitrackdown")
     adapters_config = project_config.get("adapters", {})
@@ -134,14 +138,14 @@ def create_auggie_server_config(
         if "project_key" in adapter_config:
             env_vars["JIRA_PROJECT_KEY"] = adapter_config["project_key"]
 
-    # Use module invocation pattern: python -m mcp_ticketer.mcp.server
-    args = ["-m", "mcp_ticketer.mcp.server"]
+    # Use CLI command: mcp-ticketer mcp
+    args = ["mcp"]
     if project_path:
         args.append(project_path)
 
     # Create server configuration (simpler than Gemini - no timeout/trust)
     config = {
-        "command": python_path,
+        "command": mcp_ticketer_cmd,
         "args": args,
         "env": env_vars,
     }
@@ -298,7 +302,7 @@ def configure_auggie_mcp(force: bool = False) -> None:
         console.print("  Server name: mcp-ticketer")
         console.print(f"  Adapter: {adapter}")
         console.print(f"  Python: {python_path}")
-        console.print("  Command: python -m mcp_ticketer.mcp.server")
+        console.print("  Command: mcp-ticketer mcp")
         console.print("  Scope: Global (affects all projects)")
         console.print(f"  Project path: {project_path}")
         if "env" in server_config:

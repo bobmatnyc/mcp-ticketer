@@ -5,7 +5,7 @@ This module implements tools for adding and retrieving comments on tickets.
 
 from typing import Any
 
-from ...core.models import Comment
+from ....core.models import Comment
 from ..server_sdk import get_adapter, mcp
 
 

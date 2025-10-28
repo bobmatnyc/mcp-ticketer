@@ -6,7 +6,7 @@ various filters and criteria.
 
 from typing import Any
 
-from ...core.models import Priority, SearchQuery, TicketState
+from ....core.models import Priority, SearchQuery, TicketState
 from ..server_sdk import get_adapter, mcp
 
 

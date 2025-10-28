@@ -6,7 +6,7 @@ efficiency when working with multiple items.
 
 from typing import Any
 
-from ...core.models import Priority, Task, TicketState, TicketType
+from ....core.models import Priority, Task, TicketState, TicketType
 from ..server_sdk import get_adapter, mcp
 
 

@@ -9,7 +9,7 @@ This module implements tools for managing the three-level ticket hierarchy:
 from datetime import datetime
 from typing import Any
 
-from ...core.models import Epic, Priority, Task, TicketType
+from ....core.models import Epic, Priority, Task, TicketType
 from ..server_sdk import get_adapter, mcp
 
 

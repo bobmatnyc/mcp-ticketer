@@ -6,7 +6,7 @@ operations for tickets using the FastMCP SDK.
 
 from typing import Any
 
-from ...core.models import Priority, Task, TicketState
+from ....core.models import Priority, Task, TicketState
 from ..server_sdk import get_adapter, mcp
 
 

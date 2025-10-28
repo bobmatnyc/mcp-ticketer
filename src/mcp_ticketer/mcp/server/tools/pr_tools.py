@@ -129,7 +129,7 @@ async def ticket_link_pr(
             }
 
         # Fallback: Add PR link as comment
-        from ...core.models import Comment
+        from ....core.models import Comment
 
         comment = Comment(
             ticket_id=ticket_id,
