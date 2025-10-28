@@ -107,28 +107,44 @@ def find_claude_mcp_config(global_config: bool = False) -> Path:
                 Path.home() / ".config" / "Claude" / "claude_desktop_config.json"
             )
     else:
-        # Project-level configuration for Claude Code
-        config_path = Path.cwd() / ".claude" / "settings.local.json"
+        # Claude Code configuration (project-specific)
+        config_path = Path.home() / ".claude.json"
 
     return config_path
 
 
-def load_claude_mcp_config(config_path: Path) -> dict:
+def load_claude_mcp_config(config_path: Path, is_claude_code: bool = False) -> dict:
     """Load existing Claude MCP configuration or return empty structure.
 
     Args:
         config_path: Path to MCP config file
+        is_claude_code: If True, return Claude Code structure with projects
 
     Returns:
         MCP configuration dict
 
     """
     if config_path.exists():
-        with open(config_path) as f:
-            return json.load(f)
+        try:
+            with open(config_path) as f:
+                content = f.read().strip()
+                if not content:
+                    # Empty file, return default structure
+                    return {"projects": {}} if is_claude_code else {"mcpServers": {}}
+                return json.loads(content)
+        except json.JSONDecodeError as e:
+            console.print(
+                f"[yellow]⚠ Warning: Invalid JSON in {config_path}, creating new config[/yellow]"
+            )
+            console.print(f"[dim]Error: {e}[/dim]")
+            # Return default structure on parse error
+            return {"projects": {}} if is_claude_code else {"mcpServers": {}}
 
-    # Return empty structure (Claude Code uses mcpServers key)
-    return {"mcpServers": {}}
+    # Return empty structure based on config type
+    if is_claude_code:
+        return {"projects": {}}
+    else:
+        return {"mcpServers": {}}
 
 
 def save_claude_mcp_config(config_path: Path, config: dict) -> None:
@@ -246,11 +262,14 @@ def remove_claude_mcp(global_config: bool = False, dry_run: bool = False) -> Non
 
     """
     # Step 1: Find Claude MCP config location
-    config_type = "Claude Desktop" if global_config else "project-level"
+    config_type = "Claude Desktop" if global_config else "Claude Code"
     console.print(f"[cyan]🔍 Removing {config_type} MCP configuration...[/cyan]")
 
     mcp_config_path = find_claude_mcp_config(global_config)
-    console.print(f"[dim]Config location: {mcp_config_path}[/dim]")
+    console.print(f"[dim]Primary config: {mcp_config_path}[/dim]")
+
+    # Get absolute project path for Claude Code
+    absolute_project_path = str(Path.cwd().resolve()) if not global_config else None
 
     # Step 2: Check if config file exists
     if not mcp_config_path.exists():
@@ -259,10 +278,22 @@ def remove_claude_mcp(global_config: bool = False, dry_run: bool = False) -> Non
         return
 
     # Step 3: Load existing MCP configuration
-    mcp_config = load_claude_mcp_config(mcp_config_path)
+    is_claude_code = not global_config
+    mcp_config = load_claude_mcp_config(mcp_config_path, is_claude_code=is_claude_code)
 
     # Step 4: Check if mcp-ticketer is configured
-    if "mcp-ticketer" not in mcp_config.get("mcpServers", {}):
+    is_configured = False
+    if is_claude_code:
+        # Check Claude Code structure: .projects[path].mcpServers["mcp-ticketer"]
+        if absolute_project_path:
+            projects = mcp_config.get("projects", {})
+            project_config_entry = projects.get(absolute_project_path, {})
+            is_configured = "mcp-ticketer" in project_config_entry.get("mcpServers", {})
+    else:
+        # Check Claude Desktop structure: .mcpServers["mcp-ticketer"]
+        is_configured = "mcp-ticketer" in mcp_config.get("mcpServers", {})
+
+    if not is_configured:
         console.print("[yellow]⚠ mcp-ticketer is not configured[/yellow]")
         console.print(f"[dim]No mcp-ticketer entry found in {mcp_config_path}[/dim]")
         return
@@ -272,10 +303,37 @@ def remove_claude_mcp(global_config: bool = False, dry_run: bool = False) -> Non
         console.print("\n[cyan]DRY RUN - Would remove:[/cyan]")
         console.print("  Server name: mcp-ticketer")
         console.print(f"  From: {mcp_config_path}")
+        if absolute_project_path:
+            console.print(f"  Project: {absolute_project_path}")
         return
 
     # Step 6: Remove mcp-ticketer from configuration
-    del mcp_config["mcpServers"]["mcp-ticketer"]
+    if is_claude_code and absolute_project_path:
+        # Remove from Claude Code structure
+        del mcp_config["projects"][absolute_project_path]["mcpServers"]["mcp-ticketer"]
+
+        # Clean up empty structures
+        if not mcp_config["projects"][absolute_project_path]["mcpServers"]:
+            del mcp_config["projects"][absolute_project_path]["mcpServers"]
+        if not mcp_config["projects"][absolute_project_path]:
+            del mcp_config["projects"][absolute_project_path]
+
+        # Also remove from legacy location if it exists
+        legacy_config_path = Path.cwd() / ".claude" / "mcp.local.json"
+        if legacy_config_path.exists():
+            try:
+                legacy_config = load_claude_mcp_config(
+                    legacy_config_path, is_claude_code=False
+                )
+                if "mcp-ticketer" in legacy_config.get("mcpServers", {}):
+                    del legacy_config["mcpServers"]["mcp-ticketer"]
+                    save_claude_mcp_config(legacy_config_path, legacy_config)
+                    console.print("[dim]✓ Removed from legacy config as well[/dim]")
+            except Exception as e:
+                console.print(f"[dim]⚠ Could not remove from legacy config: {e}[/dim]")
+    else:
+        # Remove from Claude Desktop structure
+        del mcp_config["mcpServers"]["mcp-ticketer"]
 
     # Step 7: Save updated configuration
     try:
@@ -342,17 +400,34 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
         raise
 
     # Step 3: Find Claude MCP config location
-    config_type = "Claude Desktop" if global_config else "project-level"
+    config_type = "Claude Desktop" if global_config else "Claude Code"
     console.print(f"\n[cyan]🔧 Configuring {config_type} MCP...[/cyan]")
 
     mcp_config_path = find_claude_mcp_config(global_config)
-    console.print(f"[dim]Config location: {mcp_config_path}[/dim]")
+    console.print(f"[dim]Primary config: {mcp_config_path}[/dim]")
+
+    # Get absolute project path for Claude Code
+    absolute_project_path = str(Path.cwd().resolve()) if not global_config else None
 
     # Step 4: Load existing MCP configuration
-    mcp_config = load_claude_mcp_config(mcp_config_path)
+    is_claude_code = not global_config
+    mcp_config = load_claude_mcp_config(mcp_config_path, is_claude_code=is_claude_code)
 
     # Step 5: Check if mcp-ticketer already configured
-    if "mcp-ticketer" in mcp_config.get("mcpServers", {}):
+    already_configured = False
+    if is_claude_code:
+        # Check Claude Code structure: .projects[path].mcpServers["mcp-ticketer"]
+        if absolute_project_path:
+            projects = mcp_config.get("projects", {})
+            project_config_entry = projects.get(absolute_project_path, {})
+            already_configured = "mcp-ticketer" in project_config_entry.get(
+                "mcpServers", {}
+            )
+    else:
+        # Check Claude Desktop structure: .mcpServers["mcp-ticketer"]
+        already_configured = "mcp-ticketer" in mcp_config.get("mcpServers", {})
+
+    if already_configured:
         if not force:
             console.print("[yellow]⚠ mcp-ticketer is already configured[/yellow]")
             console.print("[dim]Use --force to overwrite existing configuration[/dim]")
@@ -361,18 +436,55 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
             console.print("[yellow]⚠ Overwriting existing configuration[/yellow]")
 
     # Step 6: Create mcp-ticketer server config
-    project_path = str(Path.cwd()) if not global_config else None
     server_config = create_mcp_server_config(
         python_path=python_path,
         project_config=project_config,
-        project_path=project_path,
+        project_path=absolute_project_path,
     )
 
-    # Step 7: Update MCP configuration
-    if "mcpServers" not in mcp_config:
-        mcp_config["mcpServers"] = {}
+    # Step 7: Update MCP configuration based on platform
+    if is_claude_code:
+        # Claude Code: Write to ~/.claude.json with project-specific path
+        if absolute_project_path:
+            # Ensure projects structure exists
+            if "projects" not in mcp_config:
+                mcp_config["projects"] = {}
 
-    mcp_config["mcpServers"]["mcp-ticketer"] = server_config
+            # Ensure project entry exists
+            if absolute_project_path not in mcp_config["projects"]:
+                mcp_config["projects"][absolute_project_path] = {}
+
+            # Ensure mcpServers for this project exists
+            if "mcpServers" not in mcp_config["projects"][absolute_project_path]:
+                mcp_config["projects"][absolute_project_path]["mcpServers"] = {}
+
+            # Add mcp-ticketer configuration
+            mcp_config["projects"][absolute_project_path]["mcpServers"][
+                "mcp-ticketer"
+            ] = server_config
+
+            # Also write to backward-compatible location for older Claude Code versions
+            legacy_config_path = Path.cwd() / ".claude" / "mcp.local.json"
+            console.print(f"[dim]Legacy config: {legacy_config_path}[/dim]")
+
+            try:
+                legacy_config = load_claude_mcp_config(
+                    legacy_config_path, is_claude_code=False
+                )
+                if "mcpServers" not in legacy_config:
+                    legacy_config["mcpServers"] = {}
+                legacy_config["mcpServers"]["mcp-ticketer"] = server_config
+                save_claude_mcp_config(legacy_config_path, legacy_config)
+                console.print("[dim]✓ Backward-compatible config also written[/dim]")
+            except Exception as e:
+                console.print(
+                    f"[dim]⚠ Could not write legacy config (non-fatal): {e}[/dim]"
+                )
+    else:
+        # Claude Desktop: Write to platform-specific config
+        if "mcpServers" not in mcp_config:
+            mcp_config["mcpServers"] = {}
+        mcp_config["mcpServers"]["mcp-ticketer"] = server_config
 
     # Step 8: Save configuration
     try:
@@ -386,8 +498,8 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
         console.print(f"  Adapter: {adapter}")
         console.print(f"  Python: {python_path}")
         console.print("  Command: mcp-ticketer mcp")
-        if project_path:
-            console.print(f"  Project path: {project_path}")
+        if absolute_project_path:
+            console.print(f"  Project path: {absolute_project_path}")
         if "env" in server_config:
             console.print(
                 f"  Environment variables: {list(server_config['env'].keys())}"
