@@ -180,7 +180,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S", "D", "T"]
+"tests/*" = ["S", "D", "T", "E402"]  # Allow imports after sys.path modifications in tests
 "**/__init__.py" = ["D", "F401"]
 
 [tool.mypy]
