@@ -69,9 +69,9 @@ class MockAdapter(BaseAdapter[Task]):
         """Mock close method."""
         self.closed = True
 
-    def validate_credentials(self) -> tuple[bool, str]:
+    async def validate_credentials(self) -> bool:
         """Mock validate credentials method."""
-        return True, ""
+        return True
 
 
 class InvalidAdapter:

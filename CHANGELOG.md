@@ -4,6 +4,26 @@ All notable changes to MCP Ticketer will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.10] - 2025-10-28
+
+### Fixed
+- **CRITICAL: MCP Installer Configuration**: Fixed Claude Code MCP installer to write to correct config location
+  - Changed config path from `.claude/settings.local.json` to `~/.claude.json`
+  - Updated to use project-specific structure: `.projects[path].mcpServers["mcp-ticketer"]`
+  - Added backward compatibility with `.claude/mcp.local.json`
+  - Enhanced error handling for invalid JSON and empty config files
+  - Added `type: "stdio"` field required by Claude Code
+  - Uses absolute project paths with `Path.cwd().resolve()`
+  - Matches working pattern from mcp-vector-search installation
+  - Resolves issue where mcp-ticketer server failed to connect in Claude Code
+
+### Technical Details
+- Updated `find_claude_mcp_config()` to return `~/.claude.json` for Claude Code
+- Enhanced `load_claude_mcp_config()` with platform-specific structure support
+- Refactored `configure_claude_mcp()` to write to both primary and legacy locations
+- Updated `remove_claude_mcp()` to clean up both config locations
+- Added comprehensive JSON parsing and empty file handling
+
 ## [0.4.4] - 2025-10-27
 
 ### Changed

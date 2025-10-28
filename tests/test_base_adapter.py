@@ -126,6 +126,10 @@ class MockAdapter(BaseAdapter[Task]):
         comments = self.comments_db.get(ticket_id, [])
         return comments[offset : offset + limit]
 
+    async def validate_credentials(self) -> bool:
+        """Mock implementation of validate_credentials."""
+        return True
+
 
 @pytest.fixture
 def mock_adapter(mock_adapter_config: dict[str, Any]) -> MockAdapter:

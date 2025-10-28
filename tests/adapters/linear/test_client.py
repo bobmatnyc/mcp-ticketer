@@ -18,15 +18,15 @@ class TestLinearGraphQLClient:
 
     def test_init(self):
         """Test client initialization."""
-        client = LinearGraphQLClient("test-api-key")
+        client = LinearGraphQLClient("lin_api_test_key_12345")
 
-        assert client.api_key == "test-api-key"
+        assert client.api_key == "lin_api_test_key_12345"
         assert client.timeout == 30
         assert client._base_url == "https://api.linear.app/graphql"
 
     def test_init_with_custom_timeout(self):
         """Test client initialization with custom timeout."""
-        client = LinearGraphQLClient("test-api-key", timeout=60)
+        client = LinearGraphQLClient("lin_api_test_key_12345", timeout=60)
 
         assert client.timeout == 60
 
@@ -34,14 +34,14 @@ class TestLinearGraphQLClient:
     @patch("mcp_ticketer.adapters.linear.client.HTTPXAsyncTransport")
     def test_create_client_success(self, mock_transport, mock_client):
         """Test successful client creation."""
-        client = LinearGraphQLClient("test-api-key")
+        client = LinearGraphQLClient("lin_api_test_key_12345")
 
         result = client.create_client()
 
         # Verify transport was created with correct parameters
         mock_transport.assert_called_once_with(
             url="https://api.linear.app/graphql",
-            headers={"Authorization": "test-api-key"},
+            headers={"Authorization": "lin_api_test_key_12345"},
             timeout=30,
         )
 
@@ -62,7 +62,7 @@ class TestLinearGraphQLClient:
     @patch("mcp_ticketer.adapters.linear.client.Client", None)
     def test_create_client_missing_gql(self):
         """Test client creation when gql library is missing."""
-        client = LinearGraphQLClient("test-api-key")
+        client = LinearGraphQLClient("lin_api_test_key_12345")
 
         with pytest.raises(AdapterError) as exc_info:
             client.create_client()
@@ -72,7 +72,7 @@ class TestLinearGraphQLClient:
     @pytest.mark.asyncio
     async def test_execute_query_success(self):
         """Test successful query execution."""
-        client = LinearGraphQLClient("test-api-key")
+        client = LinearGraphQLClient("lin_api_test_key_12345")
 
         # Mock the GraphQL client and session
         mock_session = AsyncMock()
@@ -95,7 +95,7 @@ class TestLinearGraphQLClient:
     @pytest.mark.asyncio
     async def test_execute_query_with_retries(self):
         """Test query execution with retries on failure."""
-        client = LinearGraphQLClient("test-api-key")
+        client = LinearGraphQLClient("lin_api_test_key_12345")
 
         # Mock the GraphQL client and session
         mock_session = AsyncMock()
@@ -122,7 +122,7 @@ class TestLinearGraphQLClient:
     @pytest.mark.asyncio
     async def test_execute_query_authentication_error(self):
         """Test query execution with authentication error."""
-        client = LinearGraphQLClient("test-api-key")
+        client = LinearGraphQLClient("lin_api_test_key_12345")
 
         mock_session = AsyncMock()
         mock_session.execute.side_effect = Exception("authentication failed")
@@ -141,7 +141,7 @@ class TestLinearGraphQLClient:
     @pytest.mark.asyncio
     async def test_execute_query_rate_limit_error(self):
         """Test query execution with rate limit error."""
-        client = LinearGraphQLClient("test-api-key")
+        client = LinearGraphQLClient("lin_api_test_key_12345")
 
         mock_session = AsyncMock()
         mock_session.execute.side_effect = Exception("rate limit exceeded")
@@ -160,7 +160,7 @@ class TestLinearGraphQLClient:
     @pytest.mark.asyncio
     async def test_execute_query_max_retries_exceeded(self):
         """Test query execution when max retries are exceeded."""
-        client = LinearGraphQLClient("test-api-key")
+        client = LinearGraphQLClient("lin_api_test_key_12345")
 
         mock_session = AsyncMock()
         mock_session.execute.side_effect = Exception("Network error")
@@ -180,7 +180,7 @@ class TestLinearGraphQLClient:
     @pytest.mark.asyncio
     async def test_execute_mutation(self):
         """Test mutation execution."""
-        client = LinearGraphQLClient("test-api-key")
+        client = LinearGraphQLClient("lin_api_test_key_12345")
 
         with patch.object(client, "execute_query") as mock_execute:
             mock_execute.return_value = {"mutation": "result"}
@@ -197,7 +197,7 @@ class TestLinearGraphQLClient:
     @pytest.mark.asyncio
     async def test_test_connection_success(self):
         """Test successful connection test."""
-        client = LinearGraphQLClient("test-api-key")
+        client = LinearGraphQLClient("lin_api_test_key_12345")
 
         with patch.object(client, "execute_query") as mock_execute:
             mock_execute.return_value = {"viewer": {"id": "user-123"}}
@@ -210,7 +210,7 @@ class TestLinearGraphQLClient:
     @pytest.mark.asyncio
     async def test_test_connection_failure(self):
         """Test connection test failure."""
-        client = LinearGraphQLClient("test-api-key")
+        client = LinearGraphQLClient("lin_api_test_key_12345")
 
         with patch.object(client, "execute_query") as mock_execute:
             mock_execute.side_effect = Exception("Connection failed")
@@ -222,7 +222,7 @@ class TestLinearGraphQLClient:
     @pytest.mark.asyncio
     async def test_get_team_info_success(self):
         """Test successful team info retrieval."""
-        client = LinearGraphQLClient("test-api-key")
+        client = LinearGraphQLClient("lin_api_test_key_12345")
 
         expected_team = {
             "id": "team-123",
@@ -241,7 +241,7 @@ class TestLinearGraphQLClient:
     @pytest.mark.asyncio
     async def test_get_team_info_not_found(self):
         """Test team info retrieval when team not found."""
-        client = LinearGraphQLClient("test-api-key")
+        client = LinearGraphQLClient("lin_api_test_key_12345")
 
         with patch.object(client, "execute_query") as mock_execute:
             mock_execute.side_effect = Exception("Team not found")
@@ -253,7 +253,7 @@ class TestLinearGraphQLClient:
     @pytest.mark.asyncio
     async def test_get_user_by_email_success(self):
         """Test successful user retrieval by email."""
-        client = LinearGraphQLClient("test-api-key")
+        client = LinearGraphQLClient("lin_api_test_key_12345")
 
         expected_user = {
             "id": "user-123",
@@ -273,7 +273,7 @@ class TestLinearGraphQLClient:
     @pytest.mark.asyncio
     async def test_get_user_by_email_not_found(self):
         """Test user retrieval when user not found."""
-        client = LinearGraphQLClient("test-api-key")
+        client = LinearGraphQLClient("lin_api_test_key_12345")
 
         with patch.object(client, "execute_query") as mock_execute:
             mock_execute.return_value = {"users": {"nodes": []}}
@@ -285,7 +285,7 @@ class TestLinearGraphQLClient:
     @pytest.mark.asyncio
     async def test_close(self):
         """Test client close method."""
-        client = LinearGraphQLClient("test-api-key")
+        client = LinearGraphQLClient("lin_api_test_key_12345")
 
         # Should not raise any exceptions
         await client.close()

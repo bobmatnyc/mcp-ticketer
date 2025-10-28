@@ -14,18 +14,18 @@ class TestLinearAdapterInit:
 
     def test_init_with_api_key_and_team_id(self):
         """Test initialization with API key and team ID."""
-        config = {"api_key": "test-api-key", "team_id": "team-123"}
+        config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
 
         adapter = LinearAdapter(config)
 
-        assert adapter.api_key == "test-api-key"
+        assert adapter.api_key == "lin_api_test_key_12345"
         assert adapter.team_id == "team-123"
         assert adapter.team_key is None
         assert adapter.api_url == "https://api.linear.app/graphql"
 
     def test_init_with_api_key_and_team_key(self):
         """Test initialization with API key and team key."""
-        config = {"api_key": "test-api-key", "team_key": "TEST"}
+        config = {"api_key": "lin_api_test_key_12345", "team_key": "TEST"}
 
         adapter = LinearAdapter(config)
 
@@ -34,11 +34,11 @@ class TestLinearAdapterInit:
 
     def test_init_with_bearer_prefix(self):
         """Test initialization when API key already has Bearer prefix."""
-        config = {"api_key": "Bearer test-api-key", "team_id": "team-123"}
+        config = {"api_key": "Bearer lin_api_test_key_12345", "team_id": "team-123"}
 
         adapter = LinearAdapter(config)
 
-        assert adapter.api_key == "test-api-key"
+        assert adapter.api_key == "lin_api_test_key_12345"
 
     @patch.dict("os.environ", {}, clear=True)
     def test_init_missing_api_key(self):
@@ -52,26 +52,26 @@ class TestLinearAdapterInit:
 
     def test_init_missing_team_info(self):
         """Test initialization without team key or ID."""
-        config = {"api_key": "test-api-key"}
+        config = {"api_key": "lin_api_test_key_12345"}
 
         with pytest.raises(ValueError) as exc_info:
             LinearAdapter(config)
 
         assert "Either team_key or team_id must be provided" in str(exc_info.value)
 
-    @patch.dict("os.environ", {"LINEAR_API_KEY": "env-api-key"})
+    @patch.dict("os.environ", {"LINEAR_API_KEY": "lin_api_env_key_12345"})
     def test_init_with_env_api_key(self):
         """Test initialization with API key from environment."""
         config = {"team_id": "team-123"}
 
         adapter = LinearAdapter(config)
 
-        assert adapter.api_key == "env-api-key"
+        assert adapter.api_key == "lin_api_env_key_12345"
 
     def test_init_with_custom_api_url(self):
         """Test initialization with custom API URL."""
         config = {
-            "api_key": "test-api-key",
+            "api_key": "lin_api_test_key_12345",
             "team_id": "team-123",
             "api_url": "https://custom.linear.app/graphql",
         }
@@ -87,7 +87,7 @@ class TestLinearAdapterValidation:
 
     def test_validate_credentials_success(self):
         """Test successful credential validation."""
-        config = {"api_key": "test-api-key", "team_id": "team-123"}
+        config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
         adapter = LinearAdapter(config)
 
         is_valid, error_message = adapter.validate_credentials()
@@ -114,7 +114,7 @@ class TestLinearAdapterValidation:
 
         # Create adapter with missing team info by bypassing __init__ validation
         adapter = LinearAdapter.__new__(LinearAdapter)
-        adapter.api_key = "test-api-key"
+        adapter.api_key = "lin_api_test_key_12345"
         adapter.team_id = None
         adapter.team_key = None
 
@@ -130,7 +130,7 @@ class TestLinearAdapterStateMapping:
 
     def test_get_state_mapping_without_workflow_states(self):
         """Test state mapping when workflow states are not loaded."""
-        config = {"api_key": "test-api-key", "team_id": "team-123"}
+        config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
         adapter = LinearAdapter(config)
 
         # Ensure workflow states are not loaded
@@ -146,7 +146,7 @@ class TestLinearAdapterStateMapping:
 
     def test_get_state_mapping_with_workflow_states(self):
         """Test state mapping when workflow states are loaded."""
-        config = {"api_key": "test-api-key", "team_id": "team-123"}
+        config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
         adapter = LinearAdapter(config)
 
         # Mock loaded workflow states
@@ -173,7 +173,7 @@ class TestLinearAdapterTeamResolution:
     @pytest.mark.asyncio
     async def test_ensure_team_id_with_existing_id(self):
         """Test team ID resolution when ID is already provided."""
-        config = {"api_key": "test-api-key", "team_id": "team-123"}
+        config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
         adapter = LinearAdapter(config)
 
         team_id = await adapter._ensure_team_id()
@@ -183,7 +183,7 @@ class TestLinearAdapterTeamResolution:
     @pytest.mark.asyncio
     async def test_ensure_team_id_with_team_key(self):
         """Test team ID resolution from team key."""
-        config = {"api_key": "test-api-key", "team_key": "TEST"}
+        config = {"api_key": "lin_api_test_key_12345", "team_key": "TEST"}
         adapter = LinearAdapter(config)
 
         # Mock the client query
@@ -210,7 +210,7 @@ class TestLinearAdapterTeamResolution:
     @pytest.mark.asyncio
     async def test_ensure_team_id_team_not_found(self):
         """Test team ID resolution when team is not found."""
-        config = {"api_key": "test-api-key", "team_key": "NONEXISTENT"}
+        config = {"api_key": "lin_api_test_key_12345", "team_key": "NONEXISTENT"}
         adapter = LinearAdapter(config)
 
         # Mock empty result
@@ -244,7 +244,7 @@ class TestLinearAdapterUserResolution:
     @pytest.mark.asyncio
     async def test_get_user_id_by_email(self):
         """Test user ID resolution by email."""
-        config = {"api_key": "test-api-key", "team_id": "team-123"}
+        config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
         adapter = LinearAdapter(config)
 
         mock_user = {"id": "user-456", "email": "test@example.com", "name": "Test User"}
@@ -257,7 +257,7 @@ class TestLinearAdapterUserResolution:
     @pytest.mark.asyncio
     async def test_get_user_id_not_found(self):
         """Test user ID resolution when user is not found."""
-        config = {"api_key": "test-api-key", "team_id": "team-123"}
+        config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
         adapter = LinearAdapter(config)
 
         with patch.object(adapter.client, "get_user_by_email", return_value=None):
@@ -269,7 +269,7 @@ class TestLinearAdapterUserResolution:
     @pytest.mark.asyncio
     async def test_get_user_id_empty_identifier(self):
         """Test user ID resolution with empty identifier."""
-        config = {"api_key": "test-api-key", "team_id": "team-123"}
+        config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
         adapter = LinearAdapter(config)
 
         user_id = await adapter._get_user_id("")
@@ -284,7 +284,7 @@ class TestLinearAdapterInitialization:
     @pytest.mark.asyncio
     async def test_initialize_success(self):
         """Test successful adapter initialization."""
-        config = {"api_key": "test-api-key", "team_id": "team-123"}
+        config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
         adapter = LinearAdapter(config)
 
         # Mock client methods
@@ -298,7 +298,7 @@ class TestLinearAdapterInitialization:
     @pytest.mark.asyncio
     async def test_initialize_connection_failure(self):
         """Test adapter initialization with connection failure."""
-        config = {"api_key": "test-api-key", "team_id": "team-123"}
+        config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
         adapter = LinearAdapter(config)
 
         with patch.object(adapter.client, "test_connection", return_value=False):
@@ -310,7 +310,7 @@ class TestLinearAdapterInitialization:
     @pytest.mark.asyncio
     async def test_initialize_already_initialized(self):
         """Test adapter initialization when already initialized."""
-        config = {"api_key": "test-api-key", "team_id": "team-123"}
+        config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
         adapter = LinearAdapter(config)
         adapter._initialized = True
 
@@ -322,7 +322,7 @@ class TestLinearAdapterInitialization:
     @pytest.mark.asyncio
     async def test_load_workflow_states(self):
         """Test workflow states loading."""
-        config = {"api_key": "test-api-key", "team_id": "team-123"}
+        config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
         adapter = LinearAdapter(config)
 
         mock_result = {

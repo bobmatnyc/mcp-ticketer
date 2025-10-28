@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import tempfile
 from collections.abc import Generator
@@ -22,6 +23,29 @@ from mcp_ticketer.core.models import (
     TicketState,
 )
 from mcp_ticketer.queue.queue import Queue
+
+
+@pytest.fixture(autouse=True)
+def clean_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Clear all adapter-related environment variables for test isolation.
+
+    This fixture runs automatically before each test to ensure clean state.
+    """
+    # List of environment variable prefixes to clear
+    env_prefixes = [
+        "LINEAR_",
+        "JIRA_",
+        "GITHUB_",
+        "MCP_TICKETER_",
+        "AITRACKDOWN_",
+    ]
+
+    # Clear all matching environment variables
+    for key in list(os.environ.keys()):
+        for prefix in env_prefixes:
+            if key.startswith(prefix):
+                monkeypatch.delenv(key, raising=False)
+                break
 
 
 @pytest.fixture

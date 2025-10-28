@@ -7,9 +7,9 @@ operations via the Model Context Protocol (MCP).
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .main import main
+    from .main import MCPTicketServer, main
 
-__all__ = ["main"]
+__all__ = ["main", "MCPTicketServer"]
 
 
 def __getattr__(name: str):
@@ -18,4 +18,8 @@ def __getattr__(name: str):
         from .main import main
 
         return main
+    if name == "MCPTicketServer":
+        from .main import MCPTicketServer
+
+        return MCPTicketServer
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
