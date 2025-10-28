@@ -4,6 +4,28 @@ All notable changes to MCP Ticketer will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.11] - 2025-10-28
+
+### Fixed
+- **CRITICAL: MCP Installer Command Structure**: Fixed all MCP installers to use Python module invocation pattern
+  - Changed from: `command: {venv}/bin/mcp-ticketer`, `args: ["mcp", project_path]`
+  - Changed to: `command: {venv}/bin/python`, `args: ["-m", "mcp_ticketer.mcp.server", project_path]`
+  - Affects: Claude Code, Auggie CLI, Gemini CLI, and Codex CLI installers
+  - Impact: Installer now works with any Python environment (pip, pipx, editable installs)
+  - Matches established pattern from mcp-vector-search and other MCP servers
+
+### Files Modified
+- `src/mcp_ticketer/cli/mcp_configure.py` - Claude Code/Desktop installer
+- `src/mcp_ticketer/cli/auggie_configure.py` - Auggie CLI installer
+- `src/mcp_ticketer/cli/gemini_configure.py` - Gemini CLI installer
+- `src/mcp_ticketer/cli/codex_configure.py` - Codex CLI installer
+
+### Technical Details
+- Uses Python executable directly with `-m` module flag
+- No longer depends on `mcp-ticketer` binary existing in target venv
+- Works across all installation methods and Python environments
+- Provides consistent behavior with other MCP ecosystem tools
+
 ## [0.4.10] - 2025-10-28
 
 ### Fixed

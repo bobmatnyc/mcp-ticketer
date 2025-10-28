@@ -127,7 +127,7 @@ class TestMCPJsonRpcProtocol:
             response = json.loads(line_bytes.decode())
             return response
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             # Include stderr for debugging timeout issues
             stderr_output = ""
             if process.stderr:
@@ -138,7 +138,7 @@ class TestMCPJsonRpcProtocol:
                 except Exception:
                     pass
 
-            raise asyncio.TimeoutError(
+            raise TimeoutError(
                 f"No response received within {timeout}s. "
                 f"Stderr: {stderr_output[:500] if stderr_output else '(empty)'}"
             )

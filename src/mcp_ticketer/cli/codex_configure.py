@@ -4,11 +4,11 @@ Codex CLI only supports global configuration at ~/.codex/config.toml.
 Unlike Claude Code and Gemini CLI, there is no project-level configuration support.
 """
 
+import tomllib
 from pathlib import Path
 from typing import Any
 
 import tomli_w
-import tomllib
 from rich.console import Console
 
 from .mcp_configure import load_project_config
@@ -87,9 +87,7 @@ def create_codex_server_config(
         Codex MCP server configuration dict
 
     """
-    # Get mcp-ticketer CLI command from same directory as Python
-    python_dir = Path(python_path).parent
-    mcp_ticketer_cmd = str(python_dir / "mcp-ticketer")
+    # Use Python module invocation pattern (works regardless of where package is installed)
 
     # Get adapter configuration
     adapter = project_config.get("default_adapter", "aitrackdown")
@@ -140,14 +138,14 @@ def create_codex_server_config(
         if "project_key" in adapter_config:
             env_vars["JIRA_PROJECT_KEY"] = adapter_config["project_key"]
 
-    # Use CLI command: mcp-ticketer mcp
-    args = ["mcp"]
+    # Use Python module invocation pattern
+    args = ["-m", "mcp_ticketer.mcp.server"]
     if project_path:
         args.append(project_path)
 
     # Create server configuration with Codex-specific structure
     config: dict[str, Any] = {
-        "command": mcp_ticketer_cmd,
+        "command": python_path,
         "args": args,
         "env": env_vars,
     }
@@ -311,7 +309,7 @@ def configure_codex_mcp(force: bool = False) -> None:
         console.print("  Server name: mcp-ticketer")
         console.print(f"  Adapter: {adapter}")
         console.print(f"  Python: {python_path}")
-        console.print("  Command: mcp-ticketer mcp")
+        console.print("  Command: python -m mcp_ticketer.mcp.server")
         console.print("  Scope: global (Codex only supports global config)")
         console.print(f"  Project path: {project_path}")
         if "env" in server_config:

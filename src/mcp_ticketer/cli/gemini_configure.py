@@ -87,9 +87,7 @@ def create_gemini_server_config(
         Gemini MCP server configuration dict
 
     """
-    # Get mcp-ticketer CLI command from same directory as Python
-    python_dir = Path(python_path).parent
-    mcp_ticketer_cmd = str(python_dir / "mcp-ticketer")
+    # Use Python module invocation pattern (works regardless of where package is installed)
 
     # Get adapter configuration
     adapter = project_config.get("default_adapter", "aitrackdown")
@@ -140,14 +138,14 @@ def create_gemini_server_config(
         if "project_key" in adapter_config:
             env_vars["JIRA_PROJECT_KEY"] = adapter_config["project_key"]
 
-    # Use CLI command: mcp-ticketer mcp
-    args = ["mcp"]
+    # Use Python module invocation pattern
+    args = ["-m", "mcp_ticketer.mcp.server"]
     if project_path:
         args.append(project_path)
 
     # Create server configuration with Gemini-specific options
     config = {
-        "command": mcp_ticketer_cmd,
+        "command": python_path,
         "args": args,
         "env": env_vars,
         "timeout": 15000,  # 15 seconds timeout
@@ -304,7 +302,7 @@ def configure_gemini_mcp(
         console.print("  Server name: mcp-ticketer")
         console.print(f"  Adapter: {adapter}")
         console.print(f"  Python: {python_path}")
-        console.print("  Command: mcp-ticketer mcp")
+        console.print("  Command: python -m mcp_ticketer.mcp.server")
         console.print(f"  Timeout: {server_config['timeout']}ms")
         console.print(f"  Trust: {server_config['trust']}")
         if project_path:

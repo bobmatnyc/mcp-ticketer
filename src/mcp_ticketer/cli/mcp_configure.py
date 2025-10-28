@@ -177,12 +177,8 @@ def create_mcp_server_config(
         MCP server configuration dict matching Claude Code stdio pattern
 
     """
-    # Get mcp-ticketer CLI command from same directory as Python
-    python_dir = Path(python_path).parent
-    mcp_ticketer_cmd = str(python_dir / "mcp-ticketer")
-
-    # Use CLI command: mcp-ticketer mcp
-    args = ["mcp"]
+    # Use Python module invocation pattern (works regardless of where package is installed)
+    args = ["-m", "mcp_ticketer.mcp.server"]
 
     # Add project path if provided
     if project_path:
@@ -191,7 +187,7 @@ def create_mcp_server_config(
     # REQUIRED: Add "type": "stdio" for Claude Code compatibility
     config = {
         "type": "stdio",
-        "command": mcp_ticketer_cmd,
+        "command": python_path,
         "args": args,
     }
 
@@ -497,7 +493,7 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
         console.print("  Server name: mcp-ticketer")
         console.print(f"  Adapter: {adapter}")
         console.print(f"  Python: {python_path}")
-        console.print("  Command: mcp-ticketer mcp")
+        console.print("  Command: python -m mcp_ticketer.mcp.server")
         if absolute_project_path:
             console.print(f"  Project path: {absolute_project_path}")
         if "env" in server_config:
