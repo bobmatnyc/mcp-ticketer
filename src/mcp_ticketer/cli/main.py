@@ -1869,7 +1869,26 @@ mcp_app = typer.Typer(
     name="mcp",
     help="Configure MCP integration for AI clients (Claude, Gemini, Codex, Auggie)",
     add_completion=False,
+    invoke_without_command=True,
 )
+
+
+@mcp_app.callback()
+def mcp_callback(
+    ctx: typer.Context,
+    project_path: str | None = typer.Argument(
+        None, help="Project directory path (optional - uses cwd if not provided)"
+    ),
+):
+    """MCP command group - runs MCP server if no subcommand provided."""
+    if ctx.invoked_subcommand is None:
+        # No subcommand provided, run the serve command
+        # Change to project directory if provided
+        if project_path:
+            import os
+            os.chdir(project_path)
+        # Invoke the serve command through context
+        ctx.invoke(mcp_serve, adapter=None, base_path=None)
 
 
 @app.command()
@@ -2211,8 +2230,8 @@ def mcp_serve(
       2. Global: ~/.mcp-ticketer/config.json
       3. Default: aitrackdown adapter with .aitrackdown base path
     """
-    from ..mcp.server_sdk import configure_adapter
-    from ..mcp.server_sdk import main as sdk_main
+    from ..mcp.server.server_sdk import configure_adapter
+    from ..mcp.server.server_sdk import main as sdk_main
 
     # Load configuration (respects project-specific config in cwd)
     config = load_config()
