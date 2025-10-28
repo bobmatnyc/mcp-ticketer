@@ -8,8 +8,6 @@ from pathlib import Path
 from typing import Any
 
 from ..core.adapter import BaseAdapter
-
-logger = logging.getLogger(__name__)
 from ..core.models import (
     Attachment,
     Comment,
@@ -20,6 +18,8 @@ from ..core.models import (
     TicketState,
 )
 from ..core.registry import AdapterRegistry
+
+logger = logging.getLogger(__name__)
 
 # Import ai-trackdown-pytools when available
 try:
