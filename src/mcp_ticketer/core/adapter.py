@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import builtins
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from .models import Comment, Epic, SearchQuery, Task, TicketState, TicketType
 
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 T = TypeVar("T", Epic, Task)
 
 
-class BaseAdapter(ABC, Generic[T]):
+class BaseAdapter[T: (Epic, Task)](ABC):
     """Abstract base class for all ticket system adapters."""
 
     def __init__(self, config: dict[str, Any]):

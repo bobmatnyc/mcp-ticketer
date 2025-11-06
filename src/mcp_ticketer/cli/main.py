@@ -673,7 +673,9 @@ def init(
             if not linear_team_key and not linear_team_id and not discovered:
                 console.print("\n[bold]Linear Team Configuration[/bold]")
                 console.print("You can provide either:")
-                console.print("  1. Team URL (e.g., https://linear.app/workspace/team/TEAMKEY/active)")
+                console.print(
+                    "  1. Team URL (e.g., https://linear.app/workspace/team/TEAMKEY/active)"
+                )
                 console.print("  2. Team key (e.g., 'ENG', 'DESIGN', 'PRODUCT')")
                 console.print("  3. Team ID (UUID)")
                 console.print(
@@ -700,9 +702,7 @@ def init(
                         )
                     else:
                         console.print(f"[red]Error:[/red] {error}")
-                        console.print(
-                            "Please provide team key or ID manually instead."
-                        )
+                        console.print("Please provide team key or ID manually instead.")
                         team_input = typer.prompt("Team key or ID")
 
                         # Store as either team_key or team_id based on format
@@ -723,7 +723,9 @@ def init(
                 raise typer.Exit(1)
 
             if not linear_team_id and not linear_team_key:
-                console.print("[red]Error:[/red] Linear requires either team ID or team key")
+                console.print(
+                    "[red]Error:[/red] Linear requires either team ID or team key"
+                )
                 raise typer.Exit(1)
 
             # Build configuration

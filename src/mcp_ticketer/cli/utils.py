@@ -321,7 +321,7 @@ class CommonPatterns:
                 )
 
 
-def async_command(f: Callable[..., T]) -> Callable[..., T]:
+def async_command[T](f: Callable[..., T]) -> Callable[..., T]:
     """Decorator to handle async CLI commands."""
 
     @wraps(f)

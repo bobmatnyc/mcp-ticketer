@@ -13,7 +13,9 @@ app = typer.Typer(name="linear", help="Linear workspace and team management")
 console = Console()
 
 
-async def derive_team_from_url(api_key: str, team_url: str) -> tuple[str | None, str | None]:
+async def derive_team_from_url(
+    api_key: str, team_url: str
+) -> tuple[str | None, str | None]:
     """Derive team ID from Linear team issues URL.
 
     Accepts URLs like:
@@ -36,7 +38,10 @@ async def derive_team_from_url(api_key: str, team_url: str) -> tuple[str | None,
     match = re.search(pattern, team_url)
 
     if not match:
-        return None, "Invalid Linear team URL format. Expected: https://linear.app/<workspace>/team/<TEAM_KEY>"
+        return (
+            None,
+            "Invalid Linear team URL format. Expected: https://linear.app/<workspace>/team/<TEAM_KEY>",
+        )
 
     team_key = match.group(1)
     console.print(f"[dim]Extracted team key: {team_key}[/dim]")
@@ -72,13 +77,18 @@ async def derive_team_from_url(api_key: str, team_url: str) -> tuple[str | None,
         teams = result.get("teams", {}).get("nodes", [])
 
         if not teams:
-            return None, f"Team with key '{team_key}' not found. Please check your team URL and API key."
+            return (
+                None,
+                f"Team with key '{team_key}' not found. Please check your team URL and API key.",
+            )
 
         team = teams[0]
         team_id = team["id"]
         team_name = team["name"]
 
-        console.print(f"[green]✓[/green] Resolved team: {team_name} (Key: {team_key}, ID: {team_id})")
+        console.print(
+            f"[green]✓[/green] Resolved team: {team_name} (Key: {team_key}, ID: {team_id})"
+        )
 
         return team_id, None
 
