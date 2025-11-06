@@ -6,7 +6,7 @@ This guide explains how to set up and use the Linear adapter with mcp-ticketer.
 
 1. A Linear account with access to a team
 2. A Linear API key
-3. Your Linear team ID
+3. Your Linear team URL, team key, or team ID (see below for easy setup options)
 
 ## Getting Your Linear API Key
 
@@ -15,12 +15,40 @@ This guide explains how to set up and use the Linear adapter with mcp-ticketer.
 3. Give it a descriptive name like "MCP Ticketer"
 4. Copy the generated API key
 
-## Finding Your Team ID
+## Finding Your Team Information
+
+### Option 1: Using Team URL (Easiest - Recommended)
+
+The easiest way to configure your Linear team is to use your team's URL:
+
+1. Go to your Linear workspace
+2. Navigate to your team's issues page (the main view where you see your team's work)
+3. Copy the full URL from your browser's address bar
+4. Use it during setup - the system will automatically extract your team key and resolve it to the team ID
+
+**Supported URL formats:**
+- `https://linear.app/your-org/team/ABC/active` - Full issues page URL
+- `https://linear.app/your-org/team/ABC/` - Team page URL
+- `https://linear.app/your-org/team/ABC` - Short form URL
+
+**Example:**
+If your team URL is `https://linear.app/acme-corp/team/ENG/active`:
+- Team key extracted: `ENG`
+- System automatically resolves `ENG` to your team ID
+
+### Option 2: Using Team Key (Manual)
+
+1. In Linear, go to Settings → Teams
+2. Click on your team
+3. Look for the "Key" field (e.g., "ENG", "DESIGN", "PRODUCT")
+4. This is a short, human-readable identifier
+
+### Option 3: Using Team ID (Advanced)
 
 1. In Linear, go to Settings → Teams
 2. Click on your team
 3. The team ID is in the URL: `linear.app/YOUR-TEAM-ID/...`
-4. Or check the team settings page for the ID
+4. Or check the team settings page for the UUID-based ID
 
 ## Installation
 
@@ -38,27 +66,65 @@ pip install mcp-ticketer[linear]
 
 ## Configuration
 
-### Option 1: Using Environment Variables (Recommended)
+### Option 1: Using Team URL (Easiest - Recommended)
+
+Simply paste your Linear team's issues URL:
+
+```bash
+# Set your API key in environment
+export LINEAR_API_KEY=lin_api_YOUR_KEY_HERE
+
+# Initialize with your team URL (paste directly from browser)
+mcp-ticketer init --adapter linear --team-url https://linear.app/your-org/team/ENG/active
+```
+
+The system will automatically:
+1. Extract the team key from the URL (`ENG` in this example)
+2. Use the Linear API to resolve the team key to your team ID
+3. Save the configuration with the resolved team ID
+
+### Option 2: Using Team Key
+
+If you prefer to enter your team key directly:
+
+```bash
+# Set your API key in environment
+export LINEAR_API_KEY=lin_api_YOUR_KEY_HERE
+
+# Initialize with team key
+mcp-ticketer init --adapter linear --team-key ENG
+```
+
+### Option 3: Using Team ID (Advanced)
+
+For direct team ID configuration:
+
+```bash
+# Set your API key in environment
+export LINEAR_API_KEY=lin_api_YOUR_KEY_HERE
+
+# Initialize with team ID
+mcp-ticketer init --adapter linear --team-id YOUR-TEAM-ID
+```
+
+### Option 4: Using .env File
 
 Create a `.env` file in your project root:
 
 ```bash
 LINEAR_API_KEY=lin_api_YOUR_KEY_HERE
+# Choose one of:
+LINEAR_TEAM_URL=https://linear.app/your-org/team/ENG/active
+# OR
+LINEAR_TEAM_KEY=ENG
+# OR
+LINEAR_TEAM_ID=YOUR-TEAM-ID
 ```
 
-Then initialize with your team ID:
+Then initialize:
 
 ```bash
-mcp-ticket init --adapter linear --team-id YOUR-TEAM-ID
-```
-
-### Option 2: Direct Configuration
-
-```bash
-mcp-ticket init \
-  --adapter linear \
-  --team-id YOUR-TEAM-ID \
-  --api-key lin_api_YOUR_KEY_HERE
+mcp-ticketer init --adapter linear
 ```
 
 ## Usage Examples
@@ -175,6 +241,24 @@ The adapter maps between mcp-ticketer states and Linear workflow states:
 
 ## Troubleshooting
 
+### Using the Doctor Command
+
+Test your Linear configuration with the diagnostic tool:
+
+```bash
+# Run diagnostics to check your setup
+mcp-ticketer doctor
+
+# This will check:
+# - Adapter configuration validity
+# - API credential authentication
+# - Team ID resolution
+# - Network connectivity
+# - Recent error logs
+```
+
+**Note**: The `diagnose` command is still available as an alias for backward compatibility.
+
 ### Authentication Error
 
 If you get an authentication error, verify:
@@ -182,13 +266,34 @@ If you get an authentication error, verify:
 2. The API key has proper permissions
 3. The environment variable is set correctly
 
+Run `mcp-ticketer doctor` to test your authentication.
+
 ### Team Not Found
 
-Ensure your team ID is correct. You can verify it in Linear's settings.
+If the team cannot be found:
+1. Verify your team URL, key, or ID is correct
+2. Ensure you have access to the team in Linear
+3. Try using the team URL method (easiest and most reliable)
+4. Run `mcp-ticketer doctor` to see detailed error information
+
+**Example with team URL:**
+```bash
+mcp-ticketer init --adapter linear --team-url https://linear.app/your-org/team/ENG/active
+```
 
 ### Rate Limiting
 
 Linear's API has rate limits. If you hit them, the adapter will return errors. Wait a moment and retry.
+
+### Team URL Not Recognized
+
+If your team URL isn't being recognized:
+1. Ensure it matches one of the supported formats:
+   - `https://linear.app/your-org/team/ABC/active`
+   - `https://linear.app/your-org/team/ABC/`
+   - `https://linear.app/your-org/team/ABC`
+2. Copy the URL directly from your browser's address bar
+3. Make sure the URL contains `/team/` followed by your team key
 
 ## Programmatic Usage
 

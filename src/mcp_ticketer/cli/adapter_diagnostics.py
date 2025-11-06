@@ -343,7 +343,7 @@ def _provide_recommendations(console: Console) -> None:
     console.print("• For local files: [cyan]mcp-ticketer init aitrackdown[/cyan]")
 
     console.print("\n[bold]Test Configuration:[/bold]")
-    console.print("• Run diagnostics: [cyan]mcp-ticketer diagnose[/cyan]")
+    console.print("• Run diagnostics: [cyan]mcp-ticketer doctor[/cyan]")
     console.print(
         "• Test ticket creation: [cyan]mcp-ticketer create 'Test ticket'[/cyan]"
     )

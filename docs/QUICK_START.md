@@ -78,11 +78,14 @@ make init-aitrackdown
 # Set environment variables
 export LINEAR_API_KEY="lin_api_your_key_here"
 
-# Option 1: Use team key (recommended)
+# Option 1: Use team URL (easiest - paste from browser)
+mcp-ticketer init --adapter linear --team-url https://linear.app/your-org/team/ENG/active
+
+# Option 2: Use team key
 export LINEAR_TEAM_KEY="ENG"
 mcp-ticketer init --adapter linear --team-key $LINEAR_TEAM_KEY
 
-# Option 2: Use team ID
+# Option 3: Use team ID
 export LINEAR_TEAM_ID="your_team_id"
 mcp-ticketer init --adapter linear --team-id $LINEAR_TEAM_ID
 
@@ -92,7 +95,14 @@ make init-linear
 
 **Get API Key**: https://linear.app/settings/api
 
-**Find Team Key**: Go to Linear Settings → Teams → Your Team → "Key" field (e.g., "ENG", "DESIGN")
+**Find Team Information**:
+- **Easiest**: Copy your team's issues URL directly from your browser
+- **Alternative**: Go to Linear Settings → Teams → Your Team → "Key" field (e.g., "ENG", "DESIGN")
+
+**Supported URL formats**:
+- `https://linear.app/your-org/team/ABC/active` (full issues page)
+- `https://linear.app/your-org/team/ABC/` (team page)
+- `https://linear.app/your-org/team/ABC` (short form)
 
 ### Option C: JIRA (Requires JIRA Account)
 
@@ -597,7 +607,10 @@ pip install mcp-ticketer
 
 **Solution**:
 ```bash
-# Check configuration
+# Run diagnostics to check configuration
+mcp-ticketer doctor
+
+# Check configuration details
 mcp-ticketer config-show
 
 # Reinitialize adapter
@@ -608,14 +621,19 @@ mcp-ticketer init --adapter aitrackdown
 
 **Solution**:
 ```bash
+# Run diagnostics to test credentials
+mcp-ticketer doctor
+
 # Verify API keys
 echo $LINEAR_API_KEY
 echo $GITHUB_TOKEN
 echo $JIRA_API_TOKEN
 
-# Reinitialize with correct credentials
-mcp-ticketer init --adapter linear --team-id YOUR_TEAM_ID
+# Reinitialize with correct credentials (use team URL for Linear - easiest)
+mcp-ticketer init --adapter linear --team-url https://linear.app/your-org/team/ENG/active
 ```
+
+**Note**: The `doctor` command (formerly `diagnose`) provides comprehensive diagnostics including credential validation, network connectivity, and recent errors.
 
 ### Issue: "Import errors after installation"
 
@@ -684,11 +702,13 @@ make test
 # Adapter Selection
 export MCP_TICKETER_ADAPTER=linear
 
-# Linear (choose team key OR team ID)
+# Linear (choose team URL, team key, OR team ID)
 export LINEAR_API_KEY=lin_api_xxx
-export LINEAR_TEAM_KEY=ENG           # Recommended: short team identifier
+export LINEAR_TEAM_URL=https://linear.app/your-org/team/ENG/active  # Easiest: paste from browser
 # OR
-export LINEAR_TEAM_ID=team_xxx       # Alternative: UUID-based team ID
+export LINEAR_TEAM_KEY=ENG           # Alternative: short team identifier
+# OR
+export LINEAR_TEAM_ID=team_xxx       # Advanced: UUID-based team ID
 
 # JIRA
 export JIRA_SERVER=https://company.atlassian.net
@@ -704,7 +724,7 @@ export MCP_TICKETER_DEBUG=1
 export MCP_TICKETER_LOG_LEVEL=DEBUG
 ```
 
-**Linear Configuration Note**: LINEAR_TEAM_KEY is now the recommended option. Find it in Linear Settings → Teams → Your Team → "Key" field.
+**Linear Configuration Note**: LINEAR_TEAM_URL is now the easiest option - just paste your team's issues URL from your browser. Alternatively, LINEAR_TEAM_KEY can be found in Linear Settings → Teams → Your Team → "Key" field.
 
 ---
 

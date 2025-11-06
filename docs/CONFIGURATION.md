@@ -225,6 +225,27 @@ mcp-ticket init --adapter jira
 
 ### Linear Configuration
 
+**Quick Setup with Team URL:**
+
+The easiest way to configure Linear is to use your team's URL:
+
+```bash
+# Simply paste your team's issues URL
+mcp-ticketer init --adapter linear --team-url https://linear.app/your-org/team/ENG/active
+
+# The system automatically:
+# 1. Extracts the team key (ENG)
+# 2. Resolves it to your team ID via Linear API
+# 3. Saves the configuration
+```
+
+**Supported URL formats:**
+- `https://linear.app/your-org/team/ABC/active` (full issues page)
+- `https://linear.app/your-org/team/ABC/` (team page)
+- `https://linear.app/your-org/team/ABC` (short form)
+
+**Configuration File Example:**
+
 ```json
 {
   "adapter": "linear",
@@ -272,9 +293,13 @@ mcp-ticket init --adapter jira
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `LINEAR_API_KEY` | Linear API key | ✅ |
-| `LINEAR_TEAM_ID` | Team identifier | ✅ |
+| `LINEAR_TEAM_URL` | Team issues URL (easiest) | ❌ (one of URL/key/ID) |
+| `LINEAR_TEAM_KEY` | Team key | ❌ (one of URL/key/ID) |
+| `LINEAR_TEAM_ID` | Team identifier | ❌ (one of URL/key/ID) |
 | `LINEAR_ENDPOINT` | GraphQL endpoint | ❌ |
 | `LINEAR_TIMEOUT` | Request timeout | ❌ |
+
+**Note**: You must provide one of `LINEAR_TEAM_URL`, `LINEAR_TEAM_KEY`, or `LINEAR_TEAM_ID`. The URL option is recommended as it's the easiest - just paste your team's issues URL from your browser.
 
 ### JIRA Configuration
 
@@ -861,6 +886,9 @@ mcp-ticket list
 #### Configuration Validation
 
 ```bash
+# Run comprehensive diagnostics
+mcp-ticketer doctor
+
 # Validate current configuration
 mcp-ticket config validate
 
@@ -873,6 +901,8 @@ mcp-ticket config test
 # Show configuration precedence
 mcp-ticket config debug
 ```
+
+**Note**: The `doctor` command (formerly `diagnose`) provides the most comprehensive configuration diagnostics, including credential validation, network connectivity tests, and recent error analysis. The `diagnose` command is still available as an alias for backward compatibility.
 
 #### Configuration Export/Import
 

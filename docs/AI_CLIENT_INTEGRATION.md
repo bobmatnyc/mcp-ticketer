@@ -740,6 +740,25 @@ This ensures tickets are accessible across all projects when using Auggie.
 
 ## Troubleshooting
 
+### Using the Doctor Command
+
+Before diving into specific issues, always start with the diagnostic tool:
+
+```bash
+# Run comprehensive diagnostics
+mcp-ticketer doctor
+```
+
+The `doctor` command checks:
+- ✅ Adapter configuration validity
+- ✅ Credential authentication
+- ✅ Network connectivity
+- ✅ Queue system health
+- ✅ Recent error logs
+- ✅ System dependencies
+
+**Note**: The `diagnose` command is still available as an alias for backward compatibility.
+
 ### Common Issues
 
 #### 1. "Command not found: mcp-ticketer"
@@ -762,6 +781,9 @@ mcp-ticketer install claude-code
 
 **Solution:**
 ```bash
+# Run diagnostics first
+mcp-ticketer doctor
+
 # Check configuration
 mcp-ticketer config-show
 

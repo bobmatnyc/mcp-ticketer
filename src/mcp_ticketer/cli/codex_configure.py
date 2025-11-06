@@ -4,11 +4,11 @@ Codex CLI only supports global configuration at ~/.codex/config.toml.
 Unlike Claude Code and Gemini CLI, there is no project-level configuration support.
 """
 
-import tomllib
 from pathlib import Path
 from typing import Any
 
 import tomli_w
+import tomllib
 from rich.console import Console
 
 from .mcp_configure import load_project_config
@@ -153,6 +153,75 @@ def create_codex_server_config(
     return config
 
 
+def _test_configuration(adapter: str, project_config: dict) -> bool:
+    """Test the configuration by validating adapter credentials.
+
+    Args:
+        adapter: Adapter type (linear, github, jira, aitrackdown)
+        project_config: Project configuration dict
+
+    Returns:
+        True if validation passed, False otherwise
+
+    """
+    try:
+        from ..core import AdapterRegistry
+
+        # Get adapter configuration
+        adapters_config = project_config.get("adapters", {})
+        adapter_config = adapters_config.get(adapter, {})
+
+        # Test adapter instantiation
+        console.print(f"  Testing {adapter} adapter...")
+
+        try:
+            adapter_instance = AdapterRegistry.get_adapter(adapter, adapter_config)
+            console.print("  [green]✓[/green] Adapter instantiated successfully")
+
+            # Test credentials if validation method exists
+            if hasattr(adapter_instance, "validate_credentials"):
+                console.print(f"  Validating {adapter} credentials...")
+                is_valid, error_msg = adapter_instance.validate_credentials()
+
+                if is_valid:
+                    console.print("  [green]✓[/green] Credentials are valid")
+                    return True
+                else:
+                    console.print(
+                        f"  [red]✗[/red] Credential validation failed: {error_msg}"
+                    )
+                    return False
+            else:
+                # No validation method, assume valid
+                console.print(
+                    f"  [yellow]○[/yellow] No credential validation available for {adapter}"
+                )
+                return True
+
+        except Exception as e:
+            console.print(f"  [red]✗[/red] Adapter instantiation failed: {e}")
+
+            # Provide helpful error messages based on adapter type
+            if adapter == "linear":
+                console.print(
+                    "\n  [yellow]Linear requires:[/yellow] LINEAR_API_KEY and LINEAR_TEAM_ID"
+                )
+            elif adapter == "github":
+                console.print(
+                    "\n  [yellow]GitHub requires:[/yellow] GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO"
+                )
+            elif adapter == "jira":
+                console.print(
+                    "\n  [yellow]JIRA requires:[/yellow] JIRA_SERVER, JIRA_EMAIL, JIRA_API_TOKEN"
+                )
+
+            return False
+
+    except Exception as e:
+        console.print(f"  [red]✗[/red] Configuration test error: {e}")
+        return False
+
+
 def remove_codex_mcp(dry_run: bool = False) -> None:
     """Remove mcp-ticketer from Codex CLI configuration.
 
@@ -248,7 +317,7 @@ def configure_codex_mcp(force: bool = False) -> None:
             "Could not find mcp-ticketer Python executable. "
             "Please ensure mcp-ticketer is installed.\n"
             "Install with: pip install mcp-ticketer or pipx install mcp-ticketer"
-        )
+        ) from e
 
     # Step 2: Load project configuration
     console.print("\n[cyan]📖 Reading project configuration...[/cyan]")
@@ -315,6 +384,16 @@ def configure_codex_mcp(force: bool = False) -> None:
         if "env" in server_config:
             console.print(
                 f"  Environment variables: {list(server_config['env'].keys())}"
+            )
+
+        # Step 9: Test configuration
+        console.print("\n[cyan]🧪 Testing configuration...[/cyan]")
+        test_success = _test_configuration(adapter, project_config)
+
+        if not test_success:
+            console.print(
+                "[yellow]⚠ Configuration saved but validation failed. "
+                "Please check your credentials and settings.[/yellow]"
             )
 
         # Next steps

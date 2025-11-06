@@ -1,6 +1,7 @@
 """Linear-specific CLI commands for workspace and team management."""
 
 import os
+import re
 
 import typer
 from gql import Client, gql
@@ -10,6 +11,79 @@ from rich.table import Table
 
 app = typer.Typer(name="linear", help="Linear workspace and team management")
 console = Console()
+
+
+async def derive_team_from_url(api_key: str, team_url: str) -> tuple[str | None, str | None]:
+    """Derive team ID from Linear team issues URL.
+
+    Accepts URLs like:
+    - https://linear.app/1m-hyperdev/team/1M/active
+    - https://linear.app/1m-hyperdev/team/1M/
+    - https://linear.app/1m-hyperdev/team/1M
+
+    Args:
+        api_key: Linear API key
+        team_url: URL to Linear team issues page
+
+    Returns:
+        Tuple of (team_id, error_message). If successful, team_id is set and error_message is None.
+        If failed, team_id is None and error_message contains the error.
+
+    """
+    # Extract team key from URL using regex
+    # Pattern: https://linear.app/<workspace>/team/<TEAM_KEY>/...
+    pattern = r"https://linear\.app/[\w-]+/team/([\w-]+)"
+    match = re.search(pattern, team_url)
+
+    if not match:
+        return None, "Invalid Linear team URL format. Expected: https://linear.app/<workspace>/team/<TEAM_KEY>"
+
+    team_key = match.group(1)
+    console.print(f"[dim]Extracted team key: {team_key}[/dim]")
+
+    # Query Linear API to resolve team key to team ID
+    query = gql(
+        """
+        query GetTeamByKey($key: String!) {
+            teams(filter: { key: { eq: $key } }) {
+                nodes {
+                    id
+                    key
+                    name
+                    organization {
+                        name
+                        urlKey
+                    }
+                }
+            }
+        }
+    """
+    )
+
+    try:
+        # Create client
+        transport = HTTPXTransport(
+            url="https://api.linear.app/graphql", headers={"Authorization": api_key}
+        )
+        client = Client(transport=transport, fetch_schema_from_transport=False)
+
+        # Execute query
+        result = client.execute(query, variable_values={"key": team_key})
+        teams = result.get("teams", {}).get("nodes", [])
+
+        if not teams:
+            return None, f"Team with key '{team_key}' not found. Please check your team URL and API key."
+
+        team = teams[0]
+        team_id = team["id"]
+        team_name = team["name"]
+
+        console.print(f"[green]✓[/green] Resolved team: {team_name} (Key: {team_key}, ID: {team_id})")
+
+        return team_id, None
+
+    except Exception as e:
+        return None, f"Failed to query Linear API: {str(e)}"
 
 
 def _create_linear_client() -> Client:
@@ -74,7 +148,7 @@ def list_workspaces():
 
     except Exception as e:
         console.print(f"[red]❌ Error fetching workspace info: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @app.command("teams")
@@ -244,7 +318,7 @@ def list_teams(
 
     except Exception as e:
         console.print(f"[red]❌ Error fetching teams: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @app.command("configure")
@@ -296,7 +370,7 @@ def configure_team(
 
         except Exception as e:
             console.print(f"[red]❌ Error validating team: {e}[/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
     elif team_key:
         # Validate team by key
@@ -332,7 +406,7 @@ def configure_team(
 
         except Exception as e:
             console.print(f"[red]❌ Error validating team: {e}[/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
     # Update configuration
     config = load_config()
@@ -529,4 +603,4 @@ def show_info(
 
     except Exception as e:
         console.print(f"[red]❌ Error fetching team info: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e

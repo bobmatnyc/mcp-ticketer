@@ -381,7 +381,7 @@ def _prompt_for_adapter_selection(console: Console) -> str:
                 )
         except (ValueError, typer.Abort):
             console.print("[yellow]Setup cancelled.[/yellow]")
-            raise typer.Exit(0)
+            raise typer.Exit(0) from None
 
 
 @app.command()
@@ -670,19 +670,57 @@ def init(
             if linear_api_key:
                 linear_config["api_key"] = linear_api_key
 
-            # Team ID or Team Key
+            # Team ID or Team Key or Team URL
             # Try environment variables first
             linear_team_key = os.getenv("LINEAR_TEAM_KEY")
             linear_team_id = team_id or os.getenv("LINEAR_TEAM_ID")
 
             if not linear_team_key and not linear_team_id and not discovered:
                 console.print("\n[bold]Linear Team Configuration[/bold]")
-                console.print("Enter your team key (e.g., 'ENG', 'DESIGN', 'PRODUCT')")
+                console.print("You can provide either:")
+                console.print("  1. Team URL (e.g., https://linear.app/workspace/team/TEAMKEY/active)")
+                console.print("  2. Team key (e.g., 'ENG', 'DESIGN', 'PRODUCT')")
+                console.print("  3. Team ID (UUID)")
                 console.print(
-                    "[dim]Find it in: Linear Settings → Teams → Your Team → Key field[/dim]\n"
+                    "[dim]Find team URL or key in: Linear → Your Team → Team Issues Page[/dim]\n"
                 )
 
-                linear_team_key = typer.prompt("Team key")
+                team_input = typer.prompt("Team URL, key, or ID")
+
+                # Check if input is a URL
+                if team_input.startswith("https://linear.app/"):
+                    console.print("[cyan]Detected team URL, deriving team ID...[/cyan]")
+                    import asyncio
+
+                    from .linear_commands import derive_team_from_url
+
+                    derived_team_id, error = asyncio.run(
+                        derive_team_from_url(linear_api_key, team_input)
+                    )
+
+                    if derived_team_id:
+                        linear_team_id = derived_team_id
+                        console.print(
+                            "[green]✓[/green] Successfully derived team ID from URL"
+                        )
+                    else:
+                        console.print(f"[red]Error:[/red] {error}")
+                        console.print(
+                            "Please provide team key or ID manually instead."
+                        )
+                        team_input = typer.prompt("Team key or ID")
+
+                        # Store as either team_key or team_id based on format
+                        if len(team_input) > 20:  # Likely a UUID
+                            linear_team_id = team_input
+                        else:
+                            linear_team_key = team_input
+                else:
+                    # Input is team key or ID
+                    if len(team_input) > 20:  # Likely a UUID
+                        linear_team_id = team_input
+                    else:
+                        linear_team_key = team_input
 
             # Save whichever was provided
             if linear_team_key:
@@ -875,7 +913,7 @@ def _show_next_steps(
 
     console.print("[bold]Next Steps:[/bold]")
     console.print("1. [cyan]Test your configuration:[/cyan]")
-    console.print("   mcp-ticketer diagnose")
+    console.print("   mcp-ticketer doctor")
     console.print("\n2. [cyan]Create a test ticket:[/cyan]")
     console.print("   mcp-ticketer create 'Test ticket from MCP Ticketer'")
 
@@ -1573,7 +1611,7 @@ def comment(
         console.print(f"Content: {content}")
     except Exception as e:
         console.print(f"[red]✗[/red] Failed to add comment: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @app.command(deprecated=True, hidden=True)
@@ -1779,8 +1817,8 @@ app.add_typer(discover_app, name="discover")
 
 
 # Add diagnostics command
-@app.command("diagnose")
-def diagnose_command(
+@app.command("doctor")
+def doctor_command(
     output_file: str | None = typer.Option(
         None, "--output", "-o", help="Save full report to file"
     ),
@@ -1791,7 +1829,7 @@ def diagnose_command(
         False, "--simple", help="Use simple diagnostics (no heavy dependencies)"
     ),
 ) -> None:
-    """Run comprehensive system diagnostics and health check (alias: doctor)."""
+    """Run comprehensive system diagnostics and health check (alias: diagnose)."""
     if simple:
         from .simple_health import simple_diagnose
 
@@ -1823,11 +1861,11 @@ def diagnose_command(
 
             report = simple_diagnose()
             if report["issues"]:
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
 
 
-@app.command("doctor")
-def doctor_alias(
+@app.command("diagnose", hidden=True)
+def diagnose_alias(
     output_file: str | None = typer.Option(
         None, "--output", "-o", help="Save full report to file"
     ),
@@ -1838,9 +1876,9 @@ def doctor_alias(
         False, "--simple", help="Use simple diagnostics (no heavy dependencies)"
     ),
 ) -> None:
-    """Run comprehensive system diagnostics and health check (alias for diagnose)."""
-    # Call the diagnose_command function with the same parameters
-    diagnose_command(output_file=output_file, json_output=json_output, simple=simple)
+    """Run comprehensive system diagnostics and health check (alias for doctor)."""
+    # Call the doctor_command function with the same parameters
+    doctor_command(output_file=output_file, json_output=json_output, simple=simple)
 
 
 @app.command("status")
@@ -2017,7 +2055,7 @@ def install(
             config["func"]()
         except Exception as e:
             console.print(f"[red]Installation failed: {e}[/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
         return
 
     # Otherwise, delegate to init for adapter initialization (LEGACY BEHAVIOR)
@@ -2122,7 +2160,7 @@ def remove(
         config["func"]()
     except Exception as e:
         console.print(f"[red]Removal failed: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @app.command()
@@ -2331,7 +2369,7 @@ def mcp_claude(
         configure_claude_mcp(global_config=global_config, force=force)
     except Exception as e:
         console.print(f"[red]✗ Configuration failed:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @mcp_app.command(name="gemini")
@@ -2378,7 +2416,7 @@ def mcp_gemini(
         configure_gemini_mcp(scope=scope, force=force)  # type: ignore
     except Exception as e:
         console.print(f"[red]✗ Configuration failed:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @mcp_app.command(name="codex")
@@ -2410,7 +2448,7 @@ def mcp_codex(
         configure_codex_mcp(force=force)
     except Exception as e:
         console.print(f"[red]✗ Configuration failed:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @mcp_app.command(name="auggie")
@@ -2442,7 +2480,7 @@ def mcp_auggie(
         configure_auggie_mcp(force=force)
     except Exception as e:
         console.print(f"[red]✗ Configuration failed:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @mcp_app.command(name="status")
@@ -2569,7 +2607,7 @@ app.add_typer(mcp_app, name="mcp")
 
 
 def main():
-    """Main entry point."""
+    """Execute the main CLI application entry point."""
     app()
 
 

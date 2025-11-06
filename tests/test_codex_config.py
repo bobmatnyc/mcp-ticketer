@@ -7,10 +7,10 @@ without requiring full mcp-ticketer installation.
 
 import sys
 import tempfile
+from pathlib import Path
 
 # Test TOML reading/writing
 import tomllib
-from pathlib import Path
 
 try:
     import tomli_w
@@ -54,7 +54,9 @@ def test_codex_config_structure():
     assert "[mcp_servers.mcp-ticketer]" in toml_content, "Missing server section"
     assert "[mcp_servers.mcp-ticketer.env]" in toml_content, "Missing env section"
     assert 'command = "/usr/local/bin/mcp-ticketer"' in toml_content
-    assert 'args = ["serve"]' in toml_content
+    # Note: tomli_w formats arrays on multiple lines, so check for the content, not exact format
+    assert '"serve"' in toml_content or "'serve'" in toml_content, "Missing 'serve' in args"
+    assert 'args = [' in toml_content or 'args=[' in toml_content, "Missing args array"
     print("✓ TOML format validation passed")
 
     # Read back and verify structure

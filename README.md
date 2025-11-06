@@ -99,10 +99,13 @@ mcp-ticketer install
 mcp-ticketer init --adapter aitrackdown
 
 # For Linear (requires API key)
-# Option 1: Using team key (recommended)
+# Option 1: Using team URL (easiest - paste your Linear team issues URL)
+mcp-ticketer init --adapter linear --team-url https://linear.app/your-org/team/ENG/active
+
+# Option 2: Using team key
 mcp-ticketer init --adapter linear --team-key ENG
 
-# Option 2: Using team ID
+# Option 3: Using team ID
 mcp-ticketer init --adapter linear --team-id YOUR_TEAM_ID
 
 # For JIRA (requires server and credentials)
@@ -222,28 +225,38 @@ mcp-ticketer uninstall auggie        # Alias for remove
 
 ### Linear Configuration
 
-Configure Linear using either a team **key** (recommended) or team **ID**:
+Configure Linear using a team **URL** (easiest), team **key**, or team **ID**:
 
-**Option 1: Team Key** (Recommended)
+**Option 1: Team URL** (Easiest)
+```bash
+# Paste your Linear team issues URL during setup
+mcp-ticketer init --adapter linear --team-url https://linear.app/your-org/team/ENG/active
+
+# The system automatically extracts the team key and resolves it to the team ID
+```
+
+**Option 2: Team Key**
 ```bash
 # In .env or environment
 LINEAR_API_KEY=lin_api_...
 LINEAR_TEAM_KEY=ENG
 ```
 
-**Option 2: Team ID**
+**Option 3: Team ID**
 ```bash
 # In .env or environment
 LINEAR_API_KEY=lin_api_...
 LINEAR_TEAM_ID=02d15669-7351-4451-9719-807576c16049
 ```
 
-**Finding your team key in Linear:**
-1. Go to Linear Settings → Teams
-2. Select your team
-3. Look for the "Key" field (e.g., "ENG", "DESIGN", "PRODUCT")
+**Supported URL formats:**
+- `https://linear.app/your-org/team/ABC/active` (full issues page)
+- `https://linear.app/your-org/team/ABC/` (team page)
+- `https://linear.app/your-org/team/ABC` (short form)
 
-The team key is a short, human-readable identifier that's easier to use than the UUID-based team ID.
+**Finding your team information:**
+1. **Easiest**: Copy the URL from your Linear team's issues page
+2. **Alternative**: Go to Linear Settings → Teams → Your Team → "Key" field (e.g., "ENG", "DESIGN", "PRODUCT")
 
 ### Environment Variables
 

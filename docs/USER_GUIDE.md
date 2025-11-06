@@ -313,6 +313,34 @@ mcp-ticket config test
 mcp-ticket config reset
 ```
 
+#### `doctor` - Diagnostic Testing
+
+Run comprehensive diagnostics on your MCP Ticketer setup.
+
+```bash
+mcp-ticketer doctor
+```
+
+**What it checks:**
+- Adapter configuration validity
+- Credential authentication
+- Network connectivity
+- Queue system health
+- Recent error logs
+- System dependencies
+
+**Examples:**
+
+```bash
+# Run full diagnostics
+mcp-ticketer doctor
+
+# Alternative command (alias)
+mcp-ticketer diagnose
+```
+
+**Note**: The `diagnose` command is still available as an alias for backward compatibility.
+
 ## Configuration Management
 
 ### Configuration File Location
@@ -350,6 +378,8 @@ Environment variables take precedence over configuration file settings:
 | `MCP_TICKETER_ADAPTER` | Default adapter | `linear` |
 | `MCP_TICKETER_CONFIG_FILE` | Config file path | `/path/to/config.json` |
 | `LINEAR_API_KEY` | Linear API key | `lin_api_xxxxxxxxxxxxx` |
+| `LINEAR_TEAM_URL` | Linear team URL (easiest) | `https://linear.app/org/team/ENG/active` |
+| `LINEAR_TEAM_KEY` | Linear team key | `ENG` |
 | `LINEAR_TEAM_ID` | Linear team ID | `team-id` |
 | `JIRA_SERVER` | JIRA server URL | `https://company.atlassian.net` |
 | `JIRA_EMAIL` | JIRA user email | `user@company.com` |
@@ -392,12 +422,23 @@ Modern project management for software teams.
 
 **Setup:**
 1. Get your Linear API key from [Linear Settings](https://linear.app/settings/api)
-2. Find your team ID in the Linear URL or API
+2. Get your team URL, key, or ID (see options below)
 3. Initialize:
 
 ```bash
-mcp-ticket init --adapter linear --team-id YOUR_TEAM_ID --api-key YOUR_API_KEY
+# Option 1: Using team URL (easiest - paste from browser)
+mcp-ticketer init --adapter linear --team-url https://linear.app/your-org/team/ENG/active
+
+# Option 2: Using team key
+mcp-ticketer init --adapter linear --team-key ENG --api-key YOUR_API_KEY
+
+# Option 3: Using team ID (advanced)
+mcp-ticketer init --adapter linear --team-id YOUR_TEAM_ID --api-key YOUR_API_KEY
 ```
+
+**Finding team information:**
+- **Easiest**: Copy your Linear team's issues URL directly from your browser
+- **Alternative**: Go to Linear Settings → Teams → Your Team → "Key" field
 
 **Features:**
 - ✅ Real-time sync
@@ -572,11 +613,15 @@ export MCP_TICKETER_CONFIG_FILE=/path/to/config.json
 
 For Linear:
 ```bash
+# Run diagnostics
+mcp-ticketer doctor
+
 # Check Linear API key
 mcp-ticket config test
 
 # Regenerate API key at https://linear.app/settings/api
-mcp-ticket init --adapter linear --team-id TEAM_ID --api-key NEW_KEY
+# Reinitialize with team URL (easiest)
+mcp-ticketer init --adapter linear --team-url https://linear.app/your-org/team/ENG/active
 ```
 
 For JIRA:
