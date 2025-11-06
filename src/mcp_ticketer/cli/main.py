@@ -652,8 +652,6 @@ def init(
     elif adapter_type == "linear":
         # If not auto-discovered, build from CLI params or prompt
         if adapter_type not in config["adapters"]:
-            linear_config = {}
-
             # API Key
             linear_api_key = api_key or os.getenv("LINEAR_API_KEY")
             if not linear_api_key and not discovered:
@@ -666,9 +664,6 @@ def init(
                 linear_api_key = typer.prompt(
                     "Enter your Linear API key", hide_input=True
                 )
-
-            if linear_api_key:
-                linear_config["api_key"] = linear_api_key
 
             # Team ID or Team Key or Team URL
             # Try environment variables first
@@ -722,24 +717,27 @@ def init(
                     else:
                         linear_team_key = team_input
 
+            # Validate required fields (following JIRA pattern)
+            if not linear_api_key:
+                console.print("[red]Error:[/red] Linear API key is required")
+                raise typer.Exit(1)
+
+            if not linear_team_id and not linear_team_key:
+                console.print("[red]Error:[/red] Linear requires either team ID or team key")
+                raise typer.Exit(1)
+
+            # Build configuration
+            linear_config = {
+                "api_key": linear_api_key,
+                "type": "linear",
+            }
+
             # Save whichever was provided
             if linear_team_key:
                 linear_config["team_key"] = linear_team_key
             if linear_team_id:
                 linear_config["team_id"] = linear_team_id
 
-            if not linear_config.get("api_key") or (
-                not linear_config.get("team_id") and not linear_config.get("team_key")
-            ):
-                console.print(
-                    "[red]Error:[/red] Linear requires both API key and team ID/key"
-                )
-                console.print(
-                    "Run 'mcp-ticketer init --adapter linear' with proper credentials"
-                )
-                raise typer.Exit(1)
-
-            linear_config["type"] = "linear"
             config["adapters"]["linear"] = linear_config
 
     elif adapter_type == "jira":
