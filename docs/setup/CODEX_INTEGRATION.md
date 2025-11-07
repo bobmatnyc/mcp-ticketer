@@ -16,11 +16,14 @@ This document describes the Codex CLI integration for mcp-ticketer, which allows
 ### 2. Configure Codex CLI
 
 ```bash
-# Install Codex CLI configuration globally
+# Option 1: Auto-detect (recommended)
+mcp-ticketer install  # Select Codex CLI from detected platforms
+
+# Option 2: Install directly
 mcp-ticketer install codex
 
-# Or force overwrite existing configuration
-mcp-ticketer install codex --dry-run  # Preview changes first
+# Preview changes before applying
+mcp-ticketer install codex --dry-run
 ```
 
 ### 3. Restart Codex CLI

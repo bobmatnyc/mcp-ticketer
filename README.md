@@ -64,28 +64,24 @@ MCP Ticketer integrates with multiple AI clients via the Model Context Protocol 
 ### Quick MCP Setup
 
 ```bash
-# Claude Code (recommended for project-specific workflows)
-mcp-ticketer init --adapter aitrackdown    # First, initialize an adapter
-mcp-ticketer install claude-code           # Then install MCP configuration
-
-# Claude Desktop (global configuration)
+# Initialize adapter first (required)
 mcp-ticketer init --adapter aitrackdown
-mcp-ticketer install claude-desktop
 
-# Gemini CLI (Google's AI client)
-mcp-ticketer init --adapter aitrackdown
-mcp-ticketer install gemini
+# Auto-detection (Recommended) - Interactive platform selection
+mcp-ticketer install                       # Auto-detect and prompt for platform
 
-# Codex CLI (global configuration, requires restart)
-mcp-ticketer init --adapter aitrackdown
-mcp-ticketer install codex
+# See all detected platforms
+mcp-ticketer install --auto-detect         # Show what's installed on your system
 
-# Auggie (simple global setup)
-mcp-ticketer init --adapter aitrackdown
-mcp-ticketer install auggie
+# Install for all detected platforms at once
+mcp-ticketer install --all                 # Configure all detected AI clients
 
-# Show available platforms
-mcp-ticketer install
+# Or install for specific platform
+mcp-ticketer install claude-code           # Claude Code (project-level)
+mcp-ticketer install claude-desktop        # Claude Desktop (global)
+mcp-ticketer install gemini                # Gemini CLI
+mcp-ticketer install codex                 # Codex CLI
+mcp-ticketer install auggie                # Auggie
 ```
 
 **See [AI Client Integration Guide](docs/AI_CLIENT_INTEGRATION.md) for detailed setup instructions.**
@@ -164,25 +160,29 @@ For programmatic access, see the [Attachments Guide](docs/ATTACHMENTS.md).
 
 ## 🤖 MCP Server Integration
 
-MCP Ticketer provides seamless integration with AI clients through automatic configuration:
+MCP Ticketer provides seamless integration with AI clients through automatic configuration and platform detection:
 
 ```bash
-# Start MCP server in current directory (recommended)
-mcp-ticketer mcp
+# Auto-detection (Recommended)
+mcp-ticketer install                       # Interactive: detect and prompt for platform
+mcp-ticketer install --auto-detect         # Show all detected AI platforms
+mcp-ticketer install --all                 # Install for all detected platforms
+mcp-ticketer install --all --dry-run       # Preview what would be installed
 
-# Start MCP server in specific directory
-mcp-ticketer mcp --path /path/to/project
+# Platform-specific installation
+mcp-ticketer install claude-code           # For Claude Code (project-level)
+mcp-ticketer install claude-desktop        # For Claude Desktop (global)
+mcp-ticketer install gemini                # For Gemini CLI
+mcp-ticketer install codex                 # For Codex CLI
+mcp-ticketer install auggie                # For Auggie
 
-# Or install MCP configuration automatically
-mcp-ticketer install claude-code     # For Claude Code (project-level)
-mcp-ticketer install claude-desktop  # For Claude Desktop (global)
-mcp-ticketer install gemini          # For Gemini CLI
-mcp-ticketer install codex           # For Codex CLI
-mcp-ticketer install auggie          # For Auggie
+# Manual MCP server control (advanced)
+mcp-ticketer mcp                           # Start MCP server in current directory
+mcp-ticketer mcp --path /path/to/project   # Start in specific directory
 
 # Remove MCP configuration when needed
-mcp-ticketer remove claude-code      # Remove from Claude Code
-mcp-ticketer uninstall auggie        # Alias for remove
+mcp-ticketer remove claude-code            # Remove from Claude Code
+mcp-ticketer uninstall auggie              # Alias for remove
 ```
 
 **Configuration is automatic** - the commands above will:

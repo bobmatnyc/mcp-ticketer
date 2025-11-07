@@ -39,14 +39,17 @@ mcp-ticketer mcp auggie
 
 **New syntax (v0.5.x):**
 ```bash
+# Auto-detection (recommended in v0.5.x+)
+mcp-ticketer install --auto-detect     # Show all detected platforms
+mcp-ticketer install                   # Interactive: auto-detect and prompt
+mcp-ticketer install --all             # Install for all detected platforms
+
+# Or install for specific platform
 mcp-ticketer install claude-code       # For Claude Code (project-level)
 mcp-ticketer install claude-desktop    # For Claude Desktop (global)
 mcp-ticketer install gemini            # For Gemini CLI
 mcp-ticketer install codex             # For Codex CLI
 mcp-ticketer install auggie            # For Auggie
-
-# Show available platforms
-mcp-ticketer install
 ```
 
 #### New Features in v0.5.x
@@ -87,11 +90,41 @@ Version 0.5.x introduces a new, more reliable MCP server configuration pattern:
 
 **Migration:** The `install` commands automatically generate the new pattern. Old configurations continue to work but are deprecated.
 
-##### 2. Installation Commands
+##### 2. Platform Auto-Detection
+
+Version 0.5.x introduces intelligent platform detection that automatically discovers installed AI clients:
+
+**Features:**
+- ✅ Auto-detects Claude Code, Claude Desktop, Gemini CLI, Codex CLI, and Auggie
+- ✅ Shows platform status and configuration paths
+- ✅ Interactive selection from detected platforms
+- ✅ Batch installation with `--all` flag
+- ✅ Validates platforms before configuration
+- ✅ Dry-run support to preview changes
+
+**Usage:**
+```bash
+# Show all detected platforms
+mcp-ticketer install --auto-detect
+
+# Interactive: auto-detect and prompt for selection
+mcp-ticketer install
+
+# Install for all detected platforms
+mcp-ticketer install --all
+
+# Preview what would be installed
+mcp-ticketer install --all --dry-run
+```
+
+**Migration:** Old explicit platform commands still work, but auto-detection is recommended for new setups.
+
+##### 3. Installation Commands
 
 The `install` command now handles MCP platform configuration:
 - Simplified syntax without the `mcp` subcommand
 - Clearer platform names (e.g., `claude-code` vs `claude-desktop`)
+- Platform auto-detection and validation
 - Dry-run support to preview changes
 - Automatic venv Python detection
 

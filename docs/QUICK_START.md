@@ -344,12 +344,55 @@ Do you prefer TOML config?
 
 ---
 
+### Auto-Detection (Easiest Method)
+
+**The fastest way to set up any AI client:**
+
+```bash
+# See what AI platforms are detected on your system
+mcp-ticketer install --auto-detect
+
+# Interactive selection - choose from detected platforms
+mcp-ticketer install
+
+# Install for all detected platforms at once
+mcp-ticketer install --all
+
+# Preview what would be installed (safe to run)
+mcp-ticketer install --all --dry-run
+```
+
+**What happens:**
+1. ✅ **Auto-detects** all installed AI platforms on your system
+2. ✅ **Shows status** of each platform (installed, configured, config path)
+3. ✅ **Prompts for selection** or installs all at once
+4. ✅ **Validates** platform is actually installed before configuring
+5. ✅ **Configures** automatically with correct paths and settings
+
+**Example output:**
+```
+Detected AI platforms:
+
+Platform          Status        Scope          Config Path
+────────────────────────────────────────────────────────────────────
+Claude Code       ✓ Installed   Project-level  .claude/mcp.json
+Claude Desktop    ✓ Installed   Global         ~/Library/.../claude_desktop_config.json
+Gemini CLI        ✓ Installed   Project-level  .gemini/settings.json
+
+Select platform (1-3, or 'q' to quit):
+```
+
+---
+
 ### Option A: Claude Code (Recommended)
 
 **Best for**: Project-specific workflows, stable integration
 
 ```bash
-# Install MCP configuration for project-level use
+# Auto-detect and install (recommended)
+mcp-ticketer install  # Select "Claude Code" from the list
+
+# Or install directly
 mcp-ticketer install claude-code
 
 # Configuration created at: .claude/mcp.json
@@ -368,7 +411,10 @@ mcp-ticketer install claude-code
 **Best for**: Global configuration across all projects
 
 ```bash
-# Install MCP configuration globally
+# Auto-detect and install (recommended)
+mcp-ticketer install  # Select "Claude Desktop" from the list
+
+# Or install directly
 mcp-ticketer install claude-desktop
 
 # Configuration created at: ~/Library/Application Support/Claude/claude_desktop_config.json
@@ -386,7 +432,10 @@ mcp-ticketer install claude-desktop
 **Best for**: Security features, Google AI users
 
 ```bash
-# Install for project-level (recommended)
+# Auto-detect and install (recommended)
+mcp-ticketer install  # Select "Gemini CLI" from the list
+
+# Or install directly
 mcp-ticketer install gemini
 
 # Configuration created at: .gemini/settings.json
@@ -408,7 +457,10 @@ gemini
 **Best for**: Single-project users, TOML preferences
 
 ```bash
-# Install Codex configuration (global-only)
+# Auto-detect and install (recommended)
+mcp-ticketer install  # Select "Codex CLI" from the list
+
+# Or install directly
 mcp-ticketer install codex
 
 # Configuration created at: ~/.codex/config.toml
@@ -432,7 +484,10 @@ codex
 **Best for**: Simple setup, lightweight usage
 
 ```bash
-# Install Auggie configuration (global-only)
+# Auto-detect and install (recommended)
+mcp-ticketer install  # Select "Auggie" from the list
+
+# Or install directly
 mcp-ticketer install auggie
 
 # Configuration created at: ~/.augment/settings.json

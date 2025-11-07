@@ -77,6 +77,209 @@ Before integrating with any AI client, ensure you have:
 
 ---
 
+## Platform Auto-Detection
+
+### Overview
+
+MCP Ticketer includes intelligent platform detection that automatically discovers which AI clients are installed on your system. This simplifies setup by eliminating guesswork and ensuring correct configuration.
+
+### Auto-Detection Features
+
+**What it detects:**
+- ✅ Installed AI platforms (Claude Code, Claude Desktop, Gemini CLI, Codex CLI, Auggie)
+- ✅ Configuration file locations (project-level and global)
+- ✅ Platform availability and status
+- ✅ Configuration scope (project vs. global)
+
+**Benefits:**
+- 🚀 **Faster setup**: No need to remember platform-specific commands
+- ✅ **Validation**: Confirms platform is installed before attempting configuration
+- 🎯 **Accuracy**: Uses correct paths and settings for your system
+- 🔄 **Batch install**: Configure multiple platforms at once
+
+### Auto-Detection Commands
+
+#### Show Detected Platforms
+
+```bash
+# Display all detected AI platforms
+mcp-ticketer install --auto-detect
+```
+
+**Example output:**
+```
+Detected AI platforms:
+
+Platform          Status        Scope          Config Path
+────────────────────────────────────────────────────────────────────
+Claude Code       ✓ Installed   Project-level  .claude/mcp.json
+Claude Desktop    ✓ Installed   Global         ~/Library/.../claude_desktop_config.json
+Gemini CLI        ✓ Installed   Project-level  .gemini/settings.json
+Codex CLI         ⚠ Not found   Global         ~/.codex/config.toml
+Auggie            ⚠ Not found   Global         ~/.augment/settings.json
+
+3 platform(s) detected and ready for installation.
+```
+
+#### Interactive Installation
+
+```bash
+# Auto-detect and prompt for platform selection
+mcp-ticketer install
+```
+
+**Example interaction:**
+```
+Detected AI platforms:
+
+  1. Claude Code (Project-level)
+  2. Claude Desktop (Global)
+  3. Gemini CLI (Project-level)
+
+Enter the number of the platform to configure, or 'q' to quit:
+Select platform: 1
+
+✓ Installing MCP configuration for Claude Code...
+✓ Configuration saved to .claude/mcp.json
+```
+
+#### Install All Platforms
+
+```bash
+# Install for all detected platforms at once
+mcp-ticketer install --all
+
+# Preview what would be installed (safe to run)
+mcp-ticketer install --all --dry-run
+```
+
+**Example output (dry-run):**
+```
+DRY RUN - The following platforms would be configured:
+
+  ✓ Claude Code (Project-level)
+  ✓ Claude Desktop (Global)
+  ✓ Gemini CLI (Project-level)
+
+Would configure 3 platform(s)
+```
+
+**Example output (actual install):**
+```
+Installing for 3 detected platform(s)...
+
+✓ Claude Code configured (.claude/mcp.json)
+✓ Claude Desktop configured (~/Library/.../claude_desktop_config.json)
+✓ Gemini CLI configured (.gemini/settings.json)
+
+Successfully configured 3 platform(s).
+```
+
+### Platform Validation
+
+When installing for a specific platform, auto-detection validates that the platform is actually installed:
+
+```bash
+# If platform is not detected
+mcp-ticketer install codex
+```
+
+**Output if not installed:**
+```
+⚠ Platform 'codex' not detected on this system.
+Run 'mcp-ticketer install --auto-detect' to see detected platforms.
+
+Do you want to proceed with installation anyway? [y/N]:
+```
+
+This prevents configuration errors and provides helpful feedback.
+
+### How Auto-Detection Works
+
+**Detection methods:**
+1. **Binary checks**: Looks for AI client executables in PATH
+2. **Config file checks**: Searches for existing configuration files
+3. **Platform-specific detection**:
+   - **Claude Code**: Checks for `.claude/` directory or `claude` binary
+   - **Claude Desktop**: Checks for config directory in user's Application Support
+   - **Gemini CLI**: Checks for `gemini` binary or `.gemini/` directory
+   - **Codex CLI**: Checks for `codex` binary or `~/.codex/` directory
+   - **Auggie**: Checks for `auggie` binary or `~/.augment/` directory
+
+**Scope determination:**
+- **Project-level**: Platforms that support per-project configuration (Claude Code, Gemini CLI)
+- **Global**: Platforms that only support system-wide configuration (Claude Desktop, Codex CLI, Auggie)
+
+### Best Practices
+
+1. **Always check detection first**: Run `--auto-detect` before manual installation
+   ```bash
+   mcp-ticketer install --auto-detect
+   ```
+
+2. **Use interactive mode for single platform**: Let auto-detection guide you
+   ```bash
+   mcp-ticketer install  # Interactive selection
+   ```
+
+3. **Use --all for team setups**: Configure all platforms at once
+   ```bash
+   mcp-ticketer install --all --dry-run  # Preview first
+   mcp-ticketer install --all            # Then install
+   ```
+
+4. **Verify platform is installed**: Auto-detection will warn if platform isn't found
+   ```bash
+   # If you see "not detected", install the platform first
+   # For example:
+   brew install gemini-cli  # Install the AI client
+   mcp-ticketer install gemini  # Then configure it
+   ```
+
+### Troubleshooting Auto-Detection
+
+#### Platform Not Detected
+
+**Symptom**: Platform you installed doesn't appear in `--auto-detect` output.
+
+**Solutions**:
+```bash
+# 1. Verify platform is in PATH
+which claude
+which gemini
+which codex
+which auggie
+
+# 2. Check if binary is accessible
+claude --version
+gemini --version
+
+# 3. Try manual installation (will prompt if not detected)
+mcp-ticketer install <platform-name>
+```
+
+#### Wrong Configuration Path
+
+**Symptom**: Auto-detection shows incorrect config path.
+
+**Solution**: Use `--path` flag to specify project directory:
+```bash
+mcp-ticketer install --path /path/to/project
+```
+
+#### Multiple Platforms Not Showing
+
+**Symptom**: Only some platforms detected, but you have more installed.
+
+**Solution**: Check installation methods and paths:
+```bash
+# Check each platform individually
+mcp-ticketer install claude-code    # Will show if detected
+mcp-ticketer install gemini         # Will show if detected
+```
+
+---
+
 ## Quick Comparison
 
 ### Configuration Scope
@@ -104,7 +307,12 @@ Before integrating with any AI client, ensure you have:
 pip install mcp-ticketer
 mcp-ticketer init --adapter aitrackdown
 
-# 2. Install MCP configuration for your AI client (choose ONE)
+# 2. Auto-detect and install (RECOMMENDED)
+mcp-ticketer install --auto-detect   # Show all detected AI platforms
+mcp-ticketer install                 # Interactive: auto-detect and prompt
+mcp-ticketer install --all           # Install for all detected platforms
+
+# 3. Or install for specific platform
 mcp-ticketer install claude-code     # Claude Code (project-level, recommended)
 mcp-ticketer install claude-desktop  # Claude Desktop (global)
 mcp-ticketer install gemini          # Gemini CLI
@@ -163,11 +371,12 @@ mcp-ticketer init --adapter github --repo owner/repo
 #### Step 3: Configure MCP Integration
 
 ```bash
-# Project-level configuration (recommended for Claude Code)
-mcp-ticketer install claude-code
+# Auto-detect and install (recommended)
+mcp-ticketer install  # Select Claude Code from the list
 
-# Global configuration (for Claude Desktop)
-mcp-ticketer install claude-desktop
+# Or install directly
+mcp-ticketer install claude-code    # Project-level (recommended for Claude Code)
+mcp-ticketer install claude-desktop # Global configuration (for Claude Desktop)
 
 # Preview changes without applying them
 mcp-ticketer install claude-code --dry-run
@@ -311,7 +520,10 @@ mcp-ticketer init --adapter aitrackdown
 #### Step 3: Configure MCP Integration
 
 ```bash
-# Install Gemini CLI configuration (project-level by default)
+# Auto-detect and install (recommended)
+mcp-ticketer install  # Select Gemini CLI from the list
+
+# Or install directly
 mcp-ticketer install gemini
 
 # Preview changes without applying them
@@ -435,7 +647,10 @@ mcp-ticketer init --adapter aitrackdown
 #### Step 3: Configure MCP Integration
 
 ```bash
-# Install Codex CLI configuration (global-only)
+# Auto-detect and install (recommended)
+mcp-ticketer install  # Select Codex CLI from the list
+
+# Or install directly
 mcp-ticketer install codex
 
 # Preview changes without applying them
@@ -538,7 +753,10 @@ mcp-ticketer init --adapter aitrackdown
 #### Step 3: Configure MCP Integration
 
 ```bash
-# Install Auggie configuration (global-only)
+# Auto-detect and install (recommended)
+mcp-ticketer install  # Select Auggie from the list
+
+# Or install directly
 mcp-ticketer install auggie
 
 # Preview changes without applying them
