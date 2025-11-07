@@ -103,7 +103,9 @@ class TestLinearIssueIDResolution:
         assert "Failed to resolve issue" in str(exc_info.value)
         assert "ENG-842" in str(exc_info.value)
 
-    async def test_uuid_with_wrong_dash_count_queries_api(self, adapter, mock_issue_response):
+    async def test_uuid_with_wrong_dash_count_queries_api(
+        self, adapter, mock_issue_response
+    ):
         """Test that strings with dashes but not UUIDs still query the API."""
         adapter.client.execute_query.return_value = mock_issue_response
 
