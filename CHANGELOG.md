@@ -4,6 +4,41 @@ All notable changes to MCP Ticketer will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.15] - 2025-11-07
+
+### Fixed
+- **Linear Task Creation with Parent Issues**: Fixed Linear adapter to resolve issue identifiers to UUIDs
+  - Task creation with `parent_issue` parameter now works with both issue identifiers (e.g., "ENG-842") and UUIDs
+  - Added automatic identifier resolution via GraphQL query
+  - Eliminates "Variable '$issueId' of non-null type 'UUID!' must not be null" errors
+  - Resolves validation failures when creating tasks under parent issues
+
+### Added
+- **Linear Issue Resolution Method**: Added `_resolve_issue_id()` for automatic identifier resolution
+  - Resolves issue identifiers (like "ENG-842") to UUIDs via GraphQL
+  - Provides clear error messages when issues cannot be found
+  - Enables flexible parent issue specification in task creation
+  - Comprehensive test coverage with 13 new tests
+
+### Changed
+- **Code Quality**: Import formatting standardization across codebase
+  - Applied consistent import ordering to 38 files
+  - Improved code consistency and maintainability
+  - No functional changes to core logic
+
+### Testing
+- **Issue Resolution Tests**: Added comprehensive test suite for Linear issue resolution
+  - Created `tests/adapters/linear/test_issue_resolution.py` with 13 tests
+  - Tests cover identifier resolution, UUID handling, and error cases
+  - Validates task creation with parent issues
+  - 100% test coverage for new resolution functionality
+
+### Documentation
+- **Linear Parent Issue Fix**: Added detailed documentation in `docs/linear_parent_issue_fix.md`
+  - Explains the root cause of the issue
+  - Documents the resolution approach
+  - Provides examples and testing guidance
+
 ## [0.4.11] - 2025-10-28
 
 ### Fixed

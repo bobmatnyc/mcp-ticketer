@@ -20,27 +20,15 @@ from ...core.adapter import BaseAdapter
 from ...core.models import Comment, Epic, SearchQuery, Task, TicketState
 from ...core.registry import AdapterRegistry
 from .client import LinearGraphQLClient
-from .mappers import (
-    build_linear_issue_input,
-    build_linear_issue_update_input,
-    map_linear_comment_to_comment,
-    map_linear_issue_to_task,
-    map_linear_project_to_epic,
-)
-from .queries import (
-    ALL_FRAGMENTS,
-    CREATE_ISSUE_MUTATION,
-    LIST_ISSUES_QUERY,
-    SEARCH_ISSUES_QUERY,
-    UPDATE_ISSUE_MUTATION,
-    WORKFLOW_STATES_QUERY,
-)
-from .types import (
-    LinearStateMapping,
-    build_issue_filter,
-    get_linear_priority,
-    get_linear_state_type,
-)
+from .mappers import (build_linear_issue_input,
+                      build_linear_issue_update_input,
+                      map_linear_comment_to_comment, map_linear_issue_to_task,
+                      map_linear_project_to_epic)
+from .queries import (ALL_FRAGMENTS, CREATE_ISSUE_MUTATION, LIST_ISSUES_QUERY,
+                      SEARCH_ISSUES_QUERY, UPDATE_ISSUE_MUTATION,
+                      WORKFLOW_STATES_QUERY)
+from .types import (LinearStateMapping, build_issue_filter,
+                    get_linear_priority, get_linear_state_type)
 
 
 class LinearAdapter(BaseAdapter[Task]):
@@ -301,6 +289,55 @@ class LinearAdapter(BaseAdapter[Task]):
 
         except Exception as e:
             raise ValueError(f"Failed to resolve project '{project_identifier}': {e}")
+
+    async def _resolve_issue_id(self, issue_identifier: str) -> str | None:
+        """Resolve issue identifier (like "ENG-842") to full UUID.
+
+        Args:
+            issue_identifier: Issue identifier (e.g., "ENG-842") or UUID
+
+        Returns:
+            Full Linear issue UUID, or None if not found
+
+        Raises:
+            ValueError: If issue lookup fails
+
+        Examples:
+            - "ENG-842" (issue identifier)
+            - "BTA-123" (issue identifier)
+            - "a1b2c3d4-e5f6-7890-abcd-ef1234567890" (already a UUID)
+
+        """
+        if not issue_identifier:
+            return None
+
+        # If it looks like a full UUID already (exactly 36 chars with exactly 4 dashes), return it
+        # UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        if len(issue_identifier) == 36 and issue_identifier.count("-") == 4:
+            return issue_identifier
+
+        # Query issue by identifier to get its UUID
+        query = """
+            query GetIssueId($identifier: String!) {
+                issue(id: $identifier) {
+                    id
+                }
+            }
+        """
+
+        try:
+            result = await self.client.execute_query(
+                query, {"identifier": issue_identifier}
+            )
+
+            if result.get("issue"):
+                return result["issue"]["id"]
+
+            # No match found
+            return None
+
+        except Exception as e:
+            raise ValueError(f"Failed to resolve issue '{issue_identifier}': {e}")
 
     async def _load_workflow_states(self, team_id: str) -> None:
         """Load and cache workflow states for the team.
@@ -564,6 +601,20 @@ class LinearAdapter(BaseAdapter[Task]):
                 )
                 # Remove projectId if we couldn't resolve it
                 issue_input.pop("projectId", None)
+
+        # Resolve issue ID if parent_issue is provided (supports identifiers like "ENG-842" or UUIDs)
+        if task.parent_issue:
+            issue_id = await self._resolve_issue_id(task.parent_issue)
+            if issue_id:
+                issue_input["parentId"] = issue_id
+            else:
+                # Log warning but don't fail - user may have provided invalid issue
+                logging.getLogger(__name__).warning(
+                    f"Could not resolve issue identifier '{task.parent_issue}' to UUID. "
+                    "Task will be created without parent issue assignment."
+                )
+                # Remove parentId if we couldn't resolve it
+                issue_input.pop("parentId", None)
 
         try:
             result = await self.client.execute_mutation(
