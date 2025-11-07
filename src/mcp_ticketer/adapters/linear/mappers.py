@@ -6,8 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from ...core.models import Comment, Epic, Priority, Task, TicketState
-from .types import (extract_linear_metadata, get_universal_priority,
-                    get_universal_state)
+from .types import extract_linear_metadata, get_universal_priority, get_universal_state
 
 
 def map_linear_issue_to_task(issue_data: dict[str, Any]) -> Task:

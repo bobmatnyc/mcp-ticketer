@@ -77,57 +77,31 @@ def test_project_specific_config_takes_precedence():
 
 
 def test_global_config_fallback():
-    """Test that global config is used when project-specific doesn't exist."""
+    """Test that default config is used when project-specific doesn't exist.
+
+    NOTE: Global config loading has been removed for security reasons.
+    The load_config() function now only reads from project-local directories.
+    When no project config exists, it defaults to aitrackdown adapter.
+    """
     # Create a temporary directory without project config
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir_path = Path(tmpdir)
 
-        # Create global config
-        global_config_dir = Path.home() / ".mcp-ticketer"
-        global_config_dir.mkdir(parents=True, exist_ok=True)
-        global_config_file = global_config_dir / "config.json"
+        # Mock Path.cwd() to return temp directory (no project config)
+        with mock.patch("pathlib.Path.cwd", return_value=tmpdir_path):
+            # Load config - should use default (aitrackdown)
+            config = load_config()
 
-        global_config_data = {
-            "default_adapter": "github",
-            "adapters": {"github": {"owner": "GLOBAL-FALLBACK"}},
-        }
+            # Verify default config was loaded (aitrackdown fallback)
+            assert (
+                config["adapter"] == "aitrackdown"
+            ), f"Expected 'aitrackdown', got '{config.get('adapter')}'"
+            assert "config" in config, "Expected 'config' key in default config"
+            assert (
+                config["config"]["base_path"] == ".aitrackdown"
+            ), "Expected default base_path"
 
-        # Backup existing global config if it exists
-        backup_config = None
-        if global_config_file.exists():
-            with open(global_config_file) as f:
-                backup_config = f.read()
-
-        try:
-            # Write temporary global config
-            with open(global_config_file, "w") as f:
-                json.dump(global_config_data, f)
-
-            # Mock Path.cwd() to return temp directory (no project config)
-            with mock.patch("pathlib.Path.cwd", return_value=tmpdir_path):
-                # Load config - should use global
-                config = load_config()
-
-                # Verify global config was loaded
-                assert (
-                    config["default_adapter"] == "github"
-                ), f"Expected 'github', got '{config['default_adapter']}'"
-                assert (
-                    "github" in config["adapters"]
-                ), "Expected 'github' adapter in config"
-                assert (
-                    config["adapters"]["github"]["owner"] == "GLOBAL-FALLBACK"
-                ), "Expected global config values"
-
-                print("✓ Test passed: Global config used when project config missing")
-
-        finally:
-            # Restore original global config
-            if backup_config is not None:
-                with open(global_config_file, "w") as f:
-                    f.write(backup_config)
-            elif global_config_file.exists():
-                global_config_file.unlink()
+            print("✓ Test passed: Default config used when project config missing")
 
 
 def test_default_fallback():

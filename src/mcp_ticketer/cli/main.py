@@ -2034,7 +2034,9 @@ def install(
 
     # Handle auto-detect flag (just show detected platforms and exit)
     if auto_detect:
-        detected = detector.detect_all(project_path=Path(project_path) if project_path else Path.cwd())
+        detected = detector.detect_all(
+            project_path=Path(project_path) if project_path else Path.cwd()
+        )
 
         if not detected:
             console.print("[yellow]No AI platforms detected.[/yellow]")
@@ -2044,7 +2046,9 @@ def install(
             console.print("  • Auggie - CLI tool with global config")
             console.print("  • Codex - CLI tool with global config")
             console.print("  • Gemini - CLI tool with project/global config")
-            console.print("\n[dim]Install these platforms to use them with mcp-ticketer.[/dim]")
+            console.print(
+                "\n[dim]Install these platforms to use them with mcp-ticketer.[/dim]"
+            )
             return
 
         console.print("[bold]Detected AI platforms:[/bold]\n")
@@ -2056,30 +2060,35 @@ def install(
 
         for plat in detected:
             status = "✓ Installed" if plat.is_installed else "⚠ Config Issue"
-            table.add_row(
-                plat.display_name,
-                status,
-                plat.scope,
-                str(plat.config_path)
-            )
+            table.add_row(plat.display_name, status, plat.scope, str(plat.config_path))
 
         console.print(table)
-        console.print("\n[dim]Run 'mcp-ticketer install <platform>' to configure a specific platform[/dim]")
-        console.print("[dim]Run 'mcp-ticketer install --all' to configure all detected platforms[/dim]")
+        console.print(
+            "\n[dim]Run 'mcp-ticketer install <platform>' to configure a specific platform[/dim]"
+        )
+        console.print(
+            "[dim]Run 'mcp-ticketer install --all' to configure all detected platforms[/dim]"
+        )
         return
 
     # Handle --all flag (install for all detected platforms)
     if install_all:
-        detected = detector.detect_all(project_path=Path(project_path) if project_path else Path.cwd())
+        detected = detector.detect_all(
+            project_path=Path(project_path) if project_path else Path.cwd()
+        )
 
         if not detected:
             console.print("[yellow]No AI platforms detected.[/yellow]")
-            console.print("Run 'mcp-ticketer install --auto-detect' to see supported platforms.")
+            console.print(
+                "Run 'mcp-ticketer install --auto-detect' to see supported platforms."
+            )
             return
 
         # Handle dry-run mode - show what would be installed without actually installing
         if dry_run:
-            console.print("\n[yellow]DRY RUN - The following platforms would be configured:[/yellow]\n")
+            console.print(
+                "\n[yellow]DRY RUN - The following platforms would be configured:[/yellow]\n"
+            )
 
             installable_count = 0
             for plat in detected:
@@ -2087,12 +2096,18 @@ def install(
                     console.print(f"  ✓ {plat.display_name} ({plat.scope})")
                     installable_count += 1
                 else:
-                    console.print(f"  ⚠ {plat.display_name} ({plat.scope}) - would be skipped (configuration issue)")
+                    console.print(
+                        f"  ⚠ {plat.display_name} ({plat.scope}) - would be skipped (configuration issue)"
+                    )
 
-            console.print(f"\n[dim]Would configure {installable_count} platform(s)[/dim]")
+            console.print(
+                f"\n[dim]Would configure {installable_count} platform(s)[/dim]"
+            )
             return
 
-        console.print(f"[bold]Installing for {len(detected)} detected platform(s)...[/bold]\n")
+        console.print(
+            f"[bold]Installing for {len(detected)} detected platform(s)...[/bold]\n"
+        )
 
         # Import configuration functions
         from .auggie_configure import configure_auggie_mcp
@@ -2102,8 +2117,12 @@ def install(
 
         # Map platform names to configuration functions
         platform_mapping = {
-            "claude-code": lambda: configure_claude_mcp(global_config=False, force=True),
-            "claude-desktop": lambda: configure_claude_mcp(global_config=True, force=True),
+            "claude-code": lambda: configure_claude_mcp(
+                global_config=False, force=True
+            ),
+            "claude-desktop": lambda: configure_claude_mcp(
+                global_config=True, force=True
+            ),
             "auggie": lambda: configure_auggie_mcp(force=True),
             "gemini": lambda: configure_gemini_mcp(scope="project", force=True),
             "codex": lambda: configure_codex_mcp(force=True),
@@ -2114,12 +2133,16 @@ def install(
 
         for plat in detected:
             if not plat.is_installed:
-                console.print(f"[yellow]⚠[/yellow]  Skipping {plat.display_name} (configuration issue)")
+                console.print(
+                    f"[yellow]⚠[/yellow]  Skipping {plat.display_name} (configuration issue)"
+                )
                 continue
 
             config_func = platform_mapping.get(plat.name)
             if not config_func:
-                console.print(f"[yellow]⚠[/yellow]  No installer for {plat.display_name}")
+                console.print(
+                    f"[yellow]⚠[/yellow]  No installer for {plat.display_name}"
+                )
                 continue
 
             try:
@@ -2127,17 +2150,23 @@ def install(
                 config_func()
                 success_count += 1
             except Exception as e:
-                console.print(f"[red]✗[/red]  Failed to install for {plat.display_name}: {e}")
+                console.print(
+                    f"[red]✗[/red]  Failed to install for {plat.display_name}: {e}"
+                )
                 failed.append(plat.display_name)
 
-        console.print(f"\n[bold]Installation complete:[/bold] {success_count} succeeded")
+        console.print(
+            f"\n[bold]Installation complete:[/bold] {success_count} succeeded"
+        )
         if failed:
             console.print(f"[red]Failed:[/red] {', '.join(failed)}")
         return
 
     # If no platform argument and no adapter flag, auto-detect and prompt
     if platform is None and adapter is None:
-        detected = detector.detect_all(project_path=Path(project_path) if project_path else Path.cwd())
+        detected = detector.detect_all(
+            project_path=Path(project_path) if project_path else Path.cwd()
+        )
 
         # Filter to only installed platforms
         installed = [p for p in detected if p.is_installed]
@@ -2155,10 +2184,12 @@ def install(
         for idx, plat in enumerate(installed, 1):
             console.print(f"  {idx}. {plat.display_name} ({plat.scope})")
 
-        console.print("\n[dim]Enter the number of the platform to configure, or 'q' to quit:[/dim]")
+        console.print(
+            "\n[dim]Enter the number of the platform to configure, or 'q' to quit:[/dim]"
+        )
         choice = typer.prompt("Select platform")
 
-        if choice.lower() == 'q':
+        if choice.lower() == "q":
             console.print("Installation cancelled.")
             return
 
@@ -2176,17 +2207,17 @@ def install(
     if platform is not None:
         # Validate that the platform is actually installed
         platform_info = get_platform_by_name(
-            platform,
-            project_path=Path(project_path) if project_path else Path.cwd()
+            platform, project_path=Path(project_path) if project_path else Path.cwd()
         )
 
         if platform_info and not platform_info.is_installed:
-            console.print(f"[yellow]⚠[/yellow]  {platform_info.display_name} was detected but has a configuration issue.")
+            console.print(
+                f"[yellow]⚠[/yellow]  {platform_info.display_name} was detected but has a configuration issue."
+            )
             console.print(f"[dim]Config path: {platform_info.config_path}[/dim]\n")
 
             proceed = typer.confirm(
-                "Do you want to proceed with installation anyway?",
-                default=False
+                "Do you want to proceed with installation anyway?", default=False
             )
             if not proceed:
                 console.print("Installation cancelled.")
@@ -2194,12 +2225,15 @@ def install(
 
         elif not platform_info:
             # Platform not detected at all - warn but allow proceeding
-            console.print(f"[yellow]⚠[/yellow]  Platform '{platform}' not detected on this system.")
-            console.print("[dim]Run 'mcp-ticketer install --auto-detect' to see detected platforms.[/dim]\n")
+            console.print(
+                f"[yellow]⚠[/yellow]  Platform '{platform}' not detected on this system."
+            )
+            console.print(
+                "[dim]Run 'mcp-ticketer install --auto-detect' to see detected platforms.[/dim]\n"
+            )
 
             proceed = typer.confirm(
-                "Do you want to proceed with installation anyway?",
-                default=False
+                "Do you want to proceed with installation anyway?", default=False
             )
             if not proceed:
                 console.print("Installation cancelled.")
