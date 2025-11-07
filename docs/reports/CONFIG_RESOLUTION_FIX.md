@@ -134,8 +134,8 @@ drwxr-xr-x  3 user  staff   96 Oct 22 12:00 .
 drwxr-xr-x  8 user  staff  256 Oct 22 12:00 ..
 -rw-r--r--  1 user  staff  150 Oct 22 12:00 config.json
 
-# When MCP server starts in this directory, it will use .mcp-ticketer/config.json
-$ mcp-ticketer serve
+# Start MCP server in this directory - it will use .mcp-ticketer/config.json
+$ mcp-ticketer mcp
 Starting MCP server with linear adapter
 # Uses project-specific Linear configuration
 ```
@@ -148,7 +148,7 @@ $ ls -la .mcp-ticketer/
 ls: .mcp-ticketer/: No such file or directory
 
 # Falls back to ~/.mcp-ticketer/config.json
-$ mcp-ticketer serve
+$ mcp-ticketer mcp
 Starting MCP server with github adapter
 # Uses global GitHub configuration
 ```
@@ -157,11 +157,10 @@ Starting MCP server with github adapter
 
 When Claude Code/Desktop starts the MCP server:
 
-1. Reads `.mcp/config.json` in your project
-2. Finds `"cwd": "/path/to/your/project"`
-3. Starts MCP server with that working directory
-4. Server's `load_config()` checks `/path/to/your/project/.mcp-ticketer/config.json` first
-5. Uses project-specific config if it exists, otherwise falls back to global
+1. Uses `mcp-ticketer mcp` command or module invocation
+2. Server starts in your project directory (from MCP configuration)
+3. Server's `load_config()` checks `/path/to/your/project/.mcp-ticketer/config.json` first
+4. Uses project-specific config if it exists, otherwise falls back to global
 
 ## Implementation Details
 
@@ -200,8 +199,8 @@ To verify the fix is working:
 mkdir -p .mcp-ticketer
 echo '{"default_adapter": "aitrackdown", "adapters": {"aitrackdown": {"base_path": ".aitrackdown-test"}}}' > .mcp-ticketer/config.json
 
-# 2. Start serve command
-mcp-ticketer serve
+# 2. Start MCP server
+mcp-ticketer mcp
 # Should use .aitrackdown-test base path, not global config
 ```
 

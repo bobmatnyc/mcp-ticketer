@@ -153,17 +153,11 @@ mcp-ticketer search "login bug" --state open
 ### 4. Working with Attachments (AITrackdown)
 
 ```bash
-# Add attachment via MCP tools
-mcp-ticketer mcp call ticket_attach '{
-  "ticket_id": "task-123",
-  "file_path": "/path/to/document.pdf",
-  "description": "Project specification"
-}'
+# Working with attachments through MCP
+# (Requires MCP server running - see MCP Server Integration section)
 
-# List attachments
-mcp-ticketer mcp call ticket_attachments '{
-  "ticket_id": "task-123"
-}'
+# Attachments are managed through your AI client when using MCP
+# Ask your AI assistant: "Add the document.pdf as an attachment to task-123"
 ```
 
 For programmatic access, see the [Attachments Guide](docs/ATTACHMENTS.md).
@@ -173,10 +167,13 @@ For programmatic access, see the [Attachments Guide](docs/ATTACHMENTS.md).
 MCP Ticketer provides seamless integration with AI clients through automatic configuration:
 
 ```bash
-# Run MCP server manually (for testing)
-mcp-ticketer serve
+# Start MCP server in current directory (recommended)
+mcp-ticketer mcp
 
-# Or install MCP configuration automatically (recommended)
+# Start MCP server in specific directory
+mcp-ticketer mcp --path /path/to/project
+
+# Or install MCP configuration automatically
 mcp-ticketer install claude-code     # For Claude Code (project-level)
 mcp-ticketer install claude-desktop  # For Claude Desktop (global)
 mcp-ticketer install gemini          # For Gemini CLI

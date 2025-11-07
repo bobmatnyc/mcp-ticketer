@@ -126,6 +126,12 @@ Thumbs.db
 .mcp-ticketer/
 test-tickets/
 
+# Test artifacts (generated during development)
+TEST_*.md
+test_*.sh
+MCP_COMMAND_*.md
+MCP_COMMAND_*.sh
+
 # Environment variables
 .env
 .env.local

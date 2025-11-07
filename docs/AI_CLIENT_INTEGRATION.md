@@ -852,11 +852,14 @@ cat ~/.codex/config.toml
 #### Test MCP Server Manually
 
 ```bash
-# Start server manually
-mcp-ticketer serve
+# Start MCP server in current directory
+mcp-ticketer mcp
 
-# Check if server starts without errors
-# Press Ctrl+C to stop
+# Start MCP server in specific directory
+mcp-ticketer mcp --path /path/to/project
+
+# Check MCP server status
+mcp-ticketer mcp status
 ```
 
 #### Verify Configuration

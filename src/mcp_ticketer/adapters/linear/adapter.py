@@ -564,7 +564,13 @@ class LinearAdapter(BaseAdapter[Task]):
         return await self._create_task(ticket)
 
     async def _create_task(self, task: Task) -> Task:
-        """Create a Linear issue from a Task.
+        """Create a Linear issue or sub-issue from a Task.
+
+        Creates a top-level issue when task.parent_issue is not set, or a
+        sub-issue (child of another issue) when task.parent_issue is provided.
+        In Linear terminology:
+        - Issue: Top-level work item (no parent)
+        - Sub-issue: Child work item (has parent issue)
 
         Args:
             task: Task to create
@@ -614,7 +620,8 @@ class LinearAdapter(BaseAdapter[Task]):
                 # Remove projectId if we couldn't resolve it
                 issue_input.pop("projectId", None)
 
-        # Resolve issue ID if parent_issue is provided (supports identifiers like "ENG-842" or UUIDs)
+        # Resolve parent issue ID if provided (creates a sub-issue when parent is set)
+        # Supports identifiers like "ENG-842" or UUIDs
         if task.parent_issue:
             issue_id = await self._resolve_issue_id(task.parent_issue)
             if issue_id:
@@ -623,7 +630,7 @@ class LinearAdapter(BaseAdapter[Task]):
                 # Log warning but don't fail - user may have provided invalid issue
                 logging.getLogger(__name__).warning(
                     f"Could not resolve issue identifier '{task.parent_issue}' to UUID. "
-                    "Task will be created without parent issue assignment."
+                    "Sub-issue will be created without parent assignment."
                 )
                 # Remove parentId if we couldn't resolve it
                 issue_input.pop("parentId", None)
@@ -634,13 +641,15 @@ class LinearAdapter(BaseAdapter[Task]):
             )
 
             if not result["issueCreate"]["success"]:
-                raise ValueError("Failed to create Linear issue")
+                item_type = "sub-issue" if task.parent_issue else "issue"
+                raise ValueError(f"Failed to create Linear {item_type}")
 
             created_issue = result["issueCreate"]["issue"]
             return map_linear_issue_to_task(created_issue)
 
         except Exception as e:
-            raise ValueError(f"Failed to create Linear issue: {e}")
+            item_type = "sub-issue" if task.parent_issue else "issue"
+            raise ValueError(f"Failed to create Linear {item_type}: {e}")
 
     async def _create_epic(self, epic: Epic) -> Epic:
         """Create a Linear project from an Epic.

@@ -456,11 +456,14 @@ auggie
 If you prefer manual configuration or troubleshooting:
 
 ```bash
-# Start server manually (listens on stdio)
-mcp-ticketer serve
+# Start MCP server in current directory (recommended)
+mcp-ticketer mcp
 
-# Test server
-# Press Ctrl+C to stop
+# Start MCP server in specific directory
+mcp-ticketer mcp --path /path/to/project
+
+# Check MCP server status
+mcp-ticketer mcp status
 ```
 
 **Manual Configuration Pattern:**

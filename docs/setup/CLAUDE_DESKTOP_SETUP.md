@@ -37,19 +37,27 @@ The configuration file at `~/.mcp-ticketer/config.json` controls which adapter i
 
 Test the MCP server:
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | /Users/masa/.local/bin/mcp-ticketer serve
+# Test MCP server in current directory
+mcp-ticketer mcp
+
+# Check server status
+mcp-ticketer mcp status
 ```
 
-You should see a JSON response with the server information.
+You should see confirmation that the server is properly configured.
 
 ## Local Development
 
-For development, use the `mcp_server.sh` script in the project directory:
+For development, start the MCP server directly:
 ```bash
-./mcp_server.sh serve
+# Start MCP server in project directory
+mcp-ticketer mcp
+
+# Or specify path explicitly
+mcp-ticketer mcp --path /path/to/project
 ```
 
-This script:
-- Ensures the local virtual environment is set up
-- Loads `.env.local` for development API keys
-- Runs the mcp-ticketer command from the project's virtual environment
+This will:
+- Use the project's local virtual environment
+- Load `.env.local` for development API keys
+- Start the MCP server with project-specific configuration

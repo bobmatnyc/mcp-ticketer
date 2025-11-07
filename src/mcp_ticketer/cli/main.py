@@ -1913,11 +1913,19 @@ mcp_app = typer.Typer(
 @mcp_app.callback()
 def mcp_callback(
     ctx: typer.Context,
-    project_path: str | None = typer.Argument(
-        None, help="Project directory path (optional - uses cwd if not provided)"
+    project_path: str | None = typer.Option(
+        None, "--path", "-p", help="Project directory path (default: current directory)"
     ),
 ):
-    """MCP command group - runs MCP server if no subcommand provided."""
+    """MCP command group - runs MCP server if no subcommand provided.
+
+    Examples:
+        mcp-ticketer mcp              # Start server in current directory
+        mcp-ticketer mcp --path /dir  # Start server in specific directory
+        mcp-ticketer mcp -p /dir      # Start server (short form)
+        mcp-ticketer mcp status       # Check MCP status
+        mcp-ticketer mcp serve        # Explicitly start server
+    """
     if ctx.invoked_subcommand is None:
         # No subcommand provided, run the serve command
         # Change to project directory if provided

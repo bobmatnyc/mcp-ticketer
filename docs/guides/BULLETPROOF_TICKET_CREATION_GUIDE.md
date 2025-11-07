@@ -244,8 +244,8 @@ If using Auggie with MCP, ensure your `~/.augment/settings.json` includes the en
 {
   "mcpServers": {
     "mcp-ticketer": {
-      "command": "/path/to/mcp-ticketer",
-      "args": ["serve"],
+      "command": "/path/to/venv/bin/python",
+      "args": ["-m", "mcp_ticketer.mcp.server"],
       "env": {
         "MCP_TICKETER_ADAPTER": "linear",
         "LINEAR_API_KEY": "lin_api_YOUR_LINEAR_API_KEY_HERE",
@@ -255,6 +255,8 @@ If using Auggie with MCP, ensure your `~/.augment/settings.json` includes the en
   }
 }
 ```
+
+**Note**: For Auggie, the simplified `mcp-ticketer mcp` command is available but configuration must be set in `~/.augment/settings.json` for MCP integration.
 
 ## ✅ **Verification Steps**
 

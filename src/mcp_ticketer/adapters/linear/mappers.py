@@ -10,7 +10,10 @@ from .types import extract_linear_metadata, get_universal_priority, get_universa
 
 
 def map_linear_issue_to_task(issue_data: dict[str, Any]) -> Task:
-    """Convert Linear issue data to universal Task model.
+    """Convert Linear issue or sub-issue data to universal Task model.
+
+    Handles both top-level issues (no parent) and sub-issues (child items
+    with a parent issue).
 
     Args:
         issue_data: Raw Linear issue data from GraphQL
@@ -203,7 +206,10 @@ def map_linear_comment_to_comment(
 
 
 def build_linear_issue_input(task: Task, team_id: str) -> dict[str, Any]:
-    """Build Linear issue input from universal Task model.
+    """Build Linear issue or sub-issue input from universal Task model.
+
+    Creates input for a top-level issue when task.parent_issue is not set,
+    or for a sub-issue when task.parent_issue is provided.
 
     Args:
         task: Universal Task model
