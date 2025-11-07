@@ -1925,6 +1925,7 @@ def mcp_callback(
         mcp-ticketer mcp -p /dir      # Start server (short form)
         mcp-ticketer mcp status       # Check MCP status
         mcp-ticketer mcp serve        # Explicitly start server
+
     """
     if ctx.invoked_subcommand is None:
         # No subcommand provided, run the serve command

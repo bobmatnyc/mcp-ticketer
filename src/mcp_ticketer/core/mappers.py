@@ -3,7 +3,7 @@
 import logging
 from abc import ABC, abstractmethod
 from functools import lru_cache
-from typing import Any, TypeVar
+from typing import Any, Generic, TypeVar
 
 from .models import Priority, TicketState
 
@@ -13,7 +13,7 @@ T = TypeVar("T")
 U = TypeVar("U")
 
 
-class BiDirectionalDict[T, U]:
+class BiDirectionalDict(Generic[T, U]):
     """Bidirectional dictionary for efficient lookups in both directions."""
 
     def __init__(self, mapping: dict[T, U]):
