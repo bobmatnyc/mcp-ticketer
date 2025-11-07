@@ -8,14 +8,8 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from mcp_ticketer.core.models import (
-    Comment,
-    Epic,
-    Priority,
-    SearchQuery,
-    Task,
-    TicketState,
-)
+from mcp_ticketer.core.models import (Comment, Epic, Priority, SearchQuery,
+                                      Task, TicketState)
 
 
 @pytest.mark.unit
