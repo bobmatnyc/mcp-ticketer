@@ -654,7 +654,7 @@ def init(
         if adapter_type not in config["adapters"]:
             # API Key
             linear_api_key = api_key or os.getenv("LINEAR_API_KEY")
-            if not linear_api_key and not discovered:
+            if not linear_api_key:
                 console.print("\n[bold]Linear Configuration[/bold]")
                 console.print("You need a Linear API key to connect to Linear.")
                 console.print(
@@ -670,7 +670,7 @@ def init(
             linear_team_key = os.getenv("LINEAR_TEAM_KEY")
             linear_team_id = team_id or os.getenv("LINEAR_TEAM_ID")
 
-            if not linear_team_key and not linear_team_id and not discovered:
+            if not linear_team_key and not linear_team_id:
                 console.print("\n[bold]Linear Team Configuration[/bold]")
                 console.print("You can provide either:")
                 console.print(
@@ -751,7 +751,7 @@ def init(
             project = jira_project or os.getenv("JIRA_PROJECT_KEY")
 
             # Interactive prompts for missing values
-            if not server and not discovered:
+            if not server:
                 console.print("\n[bold]JIRA Configuration[/bold]")
                 console.print("Enter your JIRA server details.\n")
 
@@ -759,10 +759,10 @@ def init(
                     "JIRA server URL (e.g., https://company.atlassian.net)"
                 )
 
-            if not email and not discovered:
+            if not email:
                 email = typer.prompt("Your JIRA email address")
 
-            if not token and not discovered:
+            if not token:
                 console.print("\nYou need a JIRA API token.")
                 console.print(
                     "[dim]Generate one at: https://id.atlassian.com/manage/api-tokens[/dim]\n"
@@ -770,7 +770,7 @@ def init(
 
                 token = typer.prompt("Enter your JIRA API token", hide_input=True)
 
-            if not project and not discovered:
+            if not project:
                 project = typer.prompt(
                     "Default JIRA project key (optional, press Enter to skip)",
                     default="",
@@ -810,7 +810,7 @@ def init(
             token = github_token or os.getenv("GITHUB_TOKEN")
 
             # Interactive prompts for missing values
-            if not owner and not discovered:
+            if not owner:
                 console.print("\n[bold]GitHub Configuration[/bold]")
                 console.print("Enter your GitHub repository details.\n")
 
@@ -818,10 +818,10 @@ def init(
                     "GitHub repository owner (username or organization)"
                 )
 
-            if not repo and not discovered:
+            if not repo:
                 repo = typer.prompt("GitHub repository name")
 
-            if not token and not discovered:
+            if not token:
                 console.print("\nYou need a GitHub Personal Access Token.")
                 console.print(
                     "[dim]Create one at: https://github.com/settings/tokens/new[/dim]"
