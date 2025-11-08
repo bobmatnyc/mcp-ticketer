@@ -318,7 +318,9 @@ def get_adapter(
     return AdapterRegistry.get_adapter(adapter_type, adapter_config)
 
 
-async def _validate_adapter_credentials(adapter_type: str, config_file_path: Path) -> list[str]:
+async def _validate_adapter_credentials(
+    adapter_type: str, config_file_path: Path
+) -> list[str]:
     """Validate adapter credentials by performing real connectivity tests.
 
     Args:
@@ -327,6 +329,7 @@ async def _validate_adapter_credentials(adapter_type: str, config_file_path: Pat
 
     Returns:
         List of validation issues (empty if valid)
+
     """
     import json
 
@@ -354,7 +357,7 @@ async def _validate_adapter_credentials(adapter_type: str, config_file_path: Pat
 
             if not api_key.startswith("lin_api_"):
                 issues.append(
-                    f"Invalid Linear API key format (should start with 'lin_api_')"
+                    "Invalid Linear API key format (should start with 'lin_api_')"
                 )
                 return issues
 
@@ -368,7 +371,9 @@ async def _validate_adapter_credentials(adapter_type: str, config_file_path: Pat
             except Exception as e:
                 error_msg = str(e)
                 if "401" in error_msg or "Unauthorized" in error_msg:
-                    issues.append("Failed to authenticate with Linear API - invalid API key")
+                    issues.append(
+                        "Failed to authenticate with Linear API - invalid API key"
+                    )
                 elif "403" in error_msg or "Forbidden" in error_msg:
                     issues.append("Linear API key lacks required permissions")
                 elif "team" in error_msg.lower():
@@ -401,7 +406,9 @@ async def _validate_adapter_credentials(adapter_type: str, config_file_path: Pat
             except Exception as e:
                 error_msg = str(e)
                 if "401" in error_msg or "Unauthorized" in error_msg:
-                    issues.append("Failed to authenticate with JIRA - invalid credentials")
+                    issues.append(
+                        "Failed to authenticate with JIRA - invalid credentials"
+                    )
                 elif "403" in error_msg or "Forbidden" in error_msg:
                     issues.append("JIRA credentials lack required permissions")
                 else:
@@ -431,7 +438,11 @@ async def _validate_adapter_credentials(adapter_type: str, config_file_path: Pat
                 await adapter.list(limit=1)
             except Exception as e:
                 error_msg = str(e)
-                if "401" in error_msg or "Unauthorized" in error_msg or "Bad credentials" in error_msg:
+                if (
+                    "401" in error_msg
+                    or "Unauthorized" in error_msg
+                    or "Bad credentials" in error_msg
+                ):
                     issues.append("Failed to authenticate with GitHub - invalid token")
                 elif "404" in error_msg or "Not Found" in error_msg:
                     issues.append(f"GitHub repository not found: {owner}/{repo}")
@@ -485,7 +496,9 @@ async def _validate_configuration_with_retry(
 
         try:
             # Perform real adapter validation using diagnostics
-            validation_issues = await _validate_adapter_credentials(adapter_type, config_file_path)
+            validation_issues = await _validate_adapter_credentials(
+                adapter_type, config_file_path
+            )
         finally:
             # Restore stdout/stderr
             sys.stdout = old_stdout
@@ -532,7 +545,6 @@ async def _validate_configuration_with_retry(
 
             # Reload current config to get values
             import json
-            import os
 
             with open(config_file_path) as f:
                 current_config = json.load(f)
@@ -699,9 +711,7 @@ async def _validate_configuration_with_retry(
             console.print(
                 "[yellow]⚠️  Continuing with potentially invalid configuration.[/yellow]"
             )
-            console.print(
-                "[dim]You can validate later with: mcp-ticketer doctor[/dim]"
-            )
+            console.print("[dim]You can validate later with: mcp-ticketer doctor[/dim]")
             return True
 
         elif choice == 3:
@@ -712,7 +722,9 @@ async def _validate_configuration_with_retry(
             return False
 
         else:
-            console.print(f"[red]Invalid choice: {choice}. Please enter 1, 2, or 3.[/red]")
+            console.print(
+                f"[red]Invalid choice: {choice}. Please enter 1, 2, or 3.[/red]"
+            )
             # Continue loop to ask again
 
     return True

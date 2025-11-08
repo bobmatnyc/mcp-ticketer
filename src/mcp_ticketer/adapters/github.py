@@ -850,8 +850,8 @@ class GitHubAdapter(BaseAdapter[Task]):
         """Add a comment to a GitHub issue."""
         try:
             issue_number = int(comment.ticket_id)
-        except ValueError:
-            raise ValueError(f"Invalid issue number: {comment.ticket_id}")
+        except ValueError as e:
+            raise ValueError(f"Invalid issue number: {comment.ticket_id}") from e
 
         # Create comment
         response = await self.client.post(
@@ -1094,8 +1094,8 @@ class GitHubAdapter(BaseAdapter[Task]):
         """
         try:
             issue_number = int(ticket_id)
-        except ValueError:
-            raise ValueError(f"Invalid issue number: {ticket_id}")
+        except ValueError as e:
+            raise ValueError(f"Invalid issue number: {ticket_id}") from e
 
         # Get the issue details
         issue = await self.read(ticket_id)
@@ -1265,8 +1265,8 @@ Fixes #{issue_number}
         """
         try:
             issue_number = int(ticket_id)
-        except ValueError:
-            raise ValueError(f"Invalid issue number: {ticket_id}")
+        except ValueError as e:
+            raise ValueError(f"Invalid issue number: {ticket_id}") from e
 
         # Parse PR URL to extract owner, repo, and PR number
         # Expected format: https://github.com/owner/repo/pull/123

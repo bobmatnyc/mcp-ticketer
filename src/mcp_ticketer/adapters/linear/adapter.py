@@ -164,7 +164,7 @@ class LinearAdapter(BaseAdapter[Task]):
             self._initialized = True
 
         except Exception as e:
-            raise ValueError(f"Failed to initialize Linear adapter: {e}")
+            raise ValueError(f"Failed to initialize Linear adapter: {e}") from e
 
     async def _ensure_team_id(self) -> str:
         """Ensure we have a team ID, resolving from team_key if needed.
@@ -210,7 +210,7 @@ class LinearAdapter(BaseAdapter[Task]):
             return self.team_id
 
         except Exception as e:
-            raise ValueError(f"Failed to resolve team '{self.team_key}': {e}")
+            raise ValueError(f"Failed to resolve team '{self.team_key}': {e}") from e
 
     async def _resolve_project_id(self, project_identifier: str) -> str | None:
         """Resolve project identifier (slug, name, short ID, or URL) to full UUID.
@@ -300,7 +300,9 @@ class LinearAdapter(BaseAdapter[Task]):
             return None
 
         except Exception as e:
-            raise ValueError(f"Failed to resolve project '{project_identifier}': {e}")
+            raise ValueError(
+                f"Failed to resolve project '{project_identifier}': {e}"
+            ) from e
 
     async def _resolve_issue_id(self, issue_identifier: str) -> str | None:
         """Resolve issue identifier (like "ENG-842") to full UUID.
@@ -349,7 +351,9 @@ class LinearAdapter(BaseAdapter[Task]):
             return None
 
         except Exception as e:
-            raise ValueError(f"Failed to resolve issue '{issue_identifier}': {e}")
+            raise ValueError(
+                f"Failed to resolve issue '{issue_identifier}': {e}"
+            ) from e
 
     async def _load_workflow_states(self, team_id: str) -> None:
         """Load and cache workflow states for the team.
@@ -374,7 +378,7 @@ class LinearAdapter(BaseAdapter[Task]):
             self._workflow_states = workflow_states
 
         except Exception as e:
-            raise ValueError(f"Failed to load workflow states: {e}")
+            raise ValueError(f"Failed to load workflow states: {e}") from e
 
     async def _load_team_labels(self, team_id: str) -> None:
         """Load and cache labels for the team with retry logic.
@@ -649,7 +653,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         except Exception as e:
             item_type = "sub-issue" if task.parent_issue else "issue"
-            raise ValueError(f"Failed to create Linear {item_type}: {e}")
+            raise ValueError(f"Failed to create Linear {item_type}: {e}") from e
 
     async def _create_epic(self, epic: Epic) -> Epic:
         """Create a Linear project from an Epic.
@@ -714,7 +718,7 @@ class LinearAdapter(BaseAdapter[Task]):
             return map_linear_project_to_epic(created_project)
 
         except Exception as e:
-            raise ValueError(f"Failed to create Linear project: {e}")
+            raise ValueError(f"Failed to create Linear project: {e}") from e
 
     async def read(self, ticket_id: str) -> Task | None:
         """Read a Linear issue by identifier with full details.
@@ -827,7 +831,7 @@ class LinearAdapter(BaseAdapter[Task]):
             return map_linear_issue_to_task(updated_issue)
 
         except Exception as e:
-            raise ValueError(f"Failed to update Linear issue: {e}")
+            raise ValueError(f"Failed to update Linear issue: {e}") from e
 
     async def delete(self, ticket_id: str) -> bool:
         """Delete a Linear issue (archive it).

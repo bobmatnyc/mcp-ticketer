@@ -211,7 +211,9 @@ JIRA_API_TOKEN=jira_token_123
         linear = result.get_adapter_by_type(AdapterType.LINEAR.value)
         assert linear is not None
         assert linear.config["api_key"] == "new_key"
-        assert linear.config["team_key"] == "team-old"  # Not overridden (short identifier)
+        assert (
+            linear.config["team_key"] == "team-old"
+        )  # Not overridden (short identifier)
         assert linear.found_in == ".env.local"  # Highest priority file
 
     def test_get_primary_adapter(self, tmp_path: Path) -> None:
@@ -293,7 +295,7 @@ JIRA_API_TOKEN=token123
 
         # Assertions
         # May have 'environment' if actual env vars exist
-        env_files = [f for f in result.env_files_found if f != 'environment']
+        env_files = [f for f in result.env_files_found if f != "environment"]
         assert len(env_files) == 0, "No .env files should be found"
         # Warning should indicate no .env files were found (only if no env vars either)
         if len(result.env_files_found) == 0:
