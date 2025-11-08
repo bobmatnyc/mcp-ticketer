@@ -118,6 +118,17 @@ mcp-ticketer init --adapter github --repo owner/repo
 - `mcp-ticketer install` - Install and configure (same as init)
 - `mcp-ticketer setup` - Setup (same as init)
 
+#### Automatic Validation
+
+The init command now automatically validates your configuration after setup:
+- Valid credentials → Setup completes immediately
+- Invalid credentials → You'll be prompted to:
+  1. Re-enter configuration (up to 3 retries)
+  2. Continue anyway (skip validation)
+  3. Exit and fix manually
+
+You can always re-validate later with: `mcp-ticketer doctor`
+
 ### 2. Create Your First Ticket
 
 ```bash

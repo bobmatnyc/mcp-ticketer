@@ -318,6 +318,406 @@ def get_adapter(
     return AdapterRegistry.get_adapter(adapter_type, adapter_config)
 
 
+async def _validate_adapter_credentials(adapter_type: str, config_file_path: Path) -> list[str]:
+    """Validate adapter credentials by performing real connectivity tests.
+
+    Args:
+        adapter_type: Type of adapter to validate
+        config_file_path: Path to config file
+
+    Returns:
+        List of validation issues (empty if valid)
+    """
+    import json
+
+    issues = []
+
+    try:
+        # Load config
+        with open(config_file_path) as f:
+            config = json.load(f)
+
+        adapter_config = config.get("adapters", {}).get(adapter_type, {})
+
+        if not adapter_config:
+            issues.append(f"No configuration found for {adapter_type}")
+            return issues
+
+        # Validate based on adapter type
+        if adapter_type == "linear":
+            api_key = adapter_config.get("api_key")
+
+            # Check API key format
+            if not api_key:
+                issues.append("Linear API key is missing")
+                return issues
+
+            if not api_key.startswith("lin_api_"):
+                issues.append(
+                    f"Invalid Linear API key format (should start with 'lin_api_')"
+                )
+                return issues
+
+            # Test actual connectivity
+            try:
+                from ..adapters.linear import LinearAdapter
+
+                adapter = LinearAdapter(adapter_config)
+                # Try to list one ticket to verify connectivity
+                await adapter.list(limit=1)
+            except Exception as e:
+                error_msg = str(e)
+                if "401" in error_msg or "Unauthorized" in error_msg:
+                    issues.append("Failed to authenticate with Linear API - invalid API key")
+                elif "403" in error_msg or "Forbidden" in error_msg:
+                    issues.append("Linear API key lacks required permissions")
+                elif "team" in error_msg.lower():
+                    issues.append(f"Linear team configuration error: {error_msg}")
+                else:
+                    issues.append(f"Failed to connect to Linear API: {error_msg}")
+
+        elif adapter_type == "jira":
+            server = adapter_config.get("server")
+            email = adapter_config.get("email")
+            api_token = adapter_config.get("api_token")
+
+            # Check required fields
+            if not server:
+                issues.append("JIRA server URL is missing")
+            if not email:
+                issues.append("JIRA email is missing")
+            if not api_token:
+                issues.append("JIRA API token is missing")
+
+            if issues:
+                return issues
+
+            # Test actual connectivity
+            try:
+                from ..adapters.jira import JiraAdapter
+
+                adapter = JiraAdapter(adapter_config)
+                await adapter.list(limit=1)
+            except Exception as e:
+                error_msg = str(e)
+                if "401" in error_msg or "Unauthorized" in error_msg:
+                    issues.append("Failed to authenticate with JIRA - invalid credentials")
+                elif "403" in error_msg or "Forbidden" in error_msg:
+                    issues.append("JIRA credentials lack required permissions")
+                else:
+                    issues.append(f"Failed to connect to JIRA: {error_msg}")
+
+        elif adapter_type == "github":
+            token = adapter_config.get("token") or adapter_config.get("api_key")
+            owner = adapter_config.get("owner")
+            repo = adapter_config.get("repo")
+
+            # Check required fields
+            if not token:
+                issues.append("GitHub token is missing")
+            if not owner:
+                issues.append("GitHub owner is missing")
+            if not repo:
+                issues.append("GitHub repo is missing")
+
+            if issues:
+                return issues
+
+            # Test actual connectivity
+            try:
+                from ..adapters.github import GitHubAdapter
+
+                adapter = GitHubAdapter(adapter_config)
+                await adapter.list(limit=1)
+            except Exception as e:
+                error_msg = str(e)
+                if "401" in error_msg or "Unauthorized" in error_msg or "Bad credentials" in error_msg:
+                    issues.append("Failed to authenticate with GitHub - invalid token")
+                elif "404" in error_msg or "Not Found" in error_msg:
+                    issues.append(f"GitHub repository not found: {owner}/{repo}")
+                elif "403" in error_msg or "Forbidden" in error_msg:
+                    issues.append("GitHub token lacks required permissions")
+                else:
+                    issues.append(f"Failed to connect to GitHub: {error_msg}")
+
+        elif adapter_type == "aitrackdown":
+            # AITrackdown doesn't require credentials, just check base_path is set
+            base_path = adapter_config.get("base_path")
+            if not base_path:
+                issues.append("AITrackdown base_path is missing")
+
+    except Exception as e:
+        issues.append(f"Validation error: {str(e)}")
+
+    return issues
+
+
+async def _validate_configuration_with_retry(
+    console: Console, adapter_type: str, config_file_path: Path, proj_path: Path
+) -> bool:
+    """Validate configuration with retry loop for corrections.
+
+    Args:
+        console: Rich console for output
+        adapter_type: Type of adapter configured
+        config_file_path: Path to config file
+        proj_path: Project path
+
+    Returns:
+        True if validation passed or user chose to continue, False if user chose to exit
+
+    """
+    max_retries = 3
+    retry_count = 0
+
+    while retry_count < max_retries:
+        console.print("\n[cyan]🔍 Validating configuration...[/cyan]")
+
+        # Run real adapter validation (suppress verbose output)
+        import io
+        import sys
+
+        # Capture output to suppress verbose diagnostics output
+        old_stdout = sys.stdout
+        old_stderr = sys.stderr
+        sys.stdout = io.StringIO()
+        sys.stderr = io.StringIO()
+
+        try:
+            # Perform real adapter validation using diagnostics
+            validation_issues = await _validate_adapter_credentials(adapter_type, config_file_path)
+        finally:
+            # Restore stdout/stderr
+            sys.stdout = old_stdout
+            sys.stderr = old_stderr
+
+        # Check if there are issues
+        if not validation_issues:
+            console.print("[green]✓ Configuration validated successfully![/green]")
+            return True
+
+        # Display issues found
+        console.print("[yellow]⚠️  Configuration validation found issues:[/yellow]")
+        for issue in validation_issues:
+            console.print(f"  [red]❌[/red] {issue}")
+
+        # Offer user options
+        console.print("\n[bold]What would you like to do?[/bold]")
+        console.print("1. [cyan]Re-enter configuration values[/cyan] (fix issues)")
+        console.print("2. [yellow]Continue anyway[/yellow] (skip validation)")
+        console.print("3. [red]Exit[/red] (fix manually later)")
+
+        try:
+            choice = typer.prompt("\nSelect option (1-3)", type=int, default=1)
+        except typer.Abort:
+            console.print("[yellow]Cancelled.[/yellow]")
+            return False
+
+        if choice == 1:
+            # Re-enter configuration
+            # Check BEFORE increment to fix off-by-one error
+            if retry_count >= max_retries:
+                console.print(
+                    f"[red]Maximum retry attempts ({max_retries}) reached.[/red]"
+                )
+                console.print(
+                    "[yellow]Please fix configuration manually and run 'mcp-ticketer doctor'[/yellow]"
+                )
+                return False
+            retry_count += 1
+
+            console.print(
+                f"\n[cyan]Retry {retry_count}/{max_retries} - Re-entering configuration...[/cyan]"
+            )
+
+            # Reload current config to get values
+            import json
+            import os
+
+            with open(config_file_path) as f:
+                current_config = json.load(f)
+
+            # Re-prompt for adapter-specific configuration
+            if adapter_type == "linear":
+                console.print("\n[bold]Linear Configuration[/bold]")
+                console.print(
+                    "[dim]Get your API key at: https://linear.app/settings/api[/dim]\n"
+                )
+
+                linear_api_key = typer.prompt(
+                    "Enter your Linear API key", hide_input=True
+                )
+
+                console.print("\n[bold]Linear Team Configuration[/bold]")
+                console.print("You can provide either:")
+                console.print(
+                    "  1. Team URL (e.g., https://linear.app/workspace/team/TEAMKEY/active)"
+                )
+                console.print("  2. Team key (e.g., 'ENG', 'DESIGN', 'PRODUCT')")
+                console.print("  3. Team ID (UUID)")
+                console.print(
+                    "[dim]Find team URL or key in: Linear → Your Team → Team Issues Page[/dim]\n"
+                )
+
+                team_input = typer.prompt("Team URL, key, or ID")
+
+                # Check if input is a URL
+                linear_team_id = None
+                linear_team_key = None
+
+                if team_input.startswith("https://linear.app/"):
+                    console.print("[cyan]Detected team URL, deriving team ID...[/cyan]")
+                    import asyncio
+
+                    from .linear_commands import derive_team_from_url
+
+                    derived_team_id, error = asyncio.run(
+                        derive_team_from_url(linear_api_key, team_input)
+                    )
+
+                    if derived_team_id:
+                        linear_team_id = derived_team_id
+                        console.print(
+                            "[green]✓[/green] Successfully derived team ID from URL"
+                        )
+                    else:
+                        console.print(f"[red]Error:[/red] {error}")
+                        console.print("Please provide team key or ID manually instead.")
+                        team_input = typer.prompt("Team key or ID")
+
+                        if len(team_input) > 20:  # Likely a UUID
+                            linear_team_id = team_input
+                        else:
+                            linear_team_key = team_input
+                else:
+                    # Input is team key or ID
+                    if len(team_input) > 20:  # Likely a UUID
+                        linear_team_id = team_input
+                    else:
+                        linear_team_key = team_input
+
+                # Update config
+                linear_config = {
+                    "api_key": linear_api_key,
+                    "type": "linear",
+                }
+                if linear_team_key:
+                    linear_config["team_key"] = linear_team_key
+                if linear_team_id:
+                    linear_config["team_id"] = linear_team_id
+
+                current_config["adapters"]["linear"] = linear_config
+
+            elif adapter_type == "jira":
+                console.print("\n[bold]JIRA Configuration[/bold]")
+                console.print("Enter your JIRA server details.\n")
+
+                server = typer.prompt(
+                    "JIRA server URL (e.g., https://company.atlassian.net)"
+                )
+                email = typer.prompt("Your JIRA email address")
+
+                console.print("\nYou need a JIRA API token.")
+                console.print(
+                    "[dim]Generate one at: https://id.atlassian.com/manage/api-tokens[/dim]\n"
+                )
+
+                token = typer.prompt("Enter your JIRA API token", hide_input=True)
+
+                project = typer.prompt(
+                    "Default JIRA project key (optional, press Enter to skip)",
+                    default="",
+                    show_default=False,
+                )
+
+                # Update config
+                jira_config = {
+                    "server": server,
+                    "email": email,
+                    "api_token": token,
+                    "type": "jira",
+                }
+                if project:
+                    jira_config["project_key"] = project
+
+                current_config["adapters"]["jira"] = jira_config
+
+            elif adapter_type == "github":
+                console.print("\n[bold]GitHub Configuration[/bold]")
+                console.print("Enter your GitHub repository details.\n")
+
+                owner = typer.prompt(
+                    "GitHub repository owner (username or organization)"
+                )
+                repo = typer.prompt("GitHub repository name")
+
+                console.print("\nYou need a GitHub Personal Access Token.")
+                console.print(
+                    "[dim]Create one at: https://github.com/settings/tokens/new[/dim]"
+                )
+                console.print(
+                    "[dim]Required scopes: repo (for private repos) or public_repo (for public repos)[/dim]\n"
+                )
+
+                token = typer.prompt(
+                    "Enter your GitHub Personal Access Token", hide_input=True
+                )
+
+                # Update config
+                current_config["adapters"]["github"] = {
+                    "owner": owner,
+                    "repo": repo,
+                    "token": token,
+                    "type": "github",
+                }
+
+            elif adapter_type == "aitrackdown":
+                # AITrackdown doesn't need credentials, but save config before returning
+                # Save updated configuration
+                with open(config_file_path, "w") as f:
+                    json.dump(current_config, f, indent=2)
+
+                console.print(
+                    "[yellow]AITrackdown doesn't require credentials. Continuing...[/yellow]"
+                )
+                console.print("[dim]✓ Configuration updated[/dim]")
+                return True
+
+            else:
+                console.print(f"[red]Unknown adapter type: {adapter_type}[/red]")
+                return False
+
+            # Save updated configuration
+            with open(config_file_path, "w") as f:
+                json.dump(current_config, f, indent=2)
+
+            console.print("[dim]✓ Configuration updated[/dim]")
+            # Loop will retry validation
+
+        elif choice == 2:
+            # Continue anyway
+            console.print(
+                "[yellow]⚠️  Continuing with potentially invalid configuration.[/yellow]"
+            )
+            console.print(
+                "[dim]You can validate later with: mcp-ticketer doctor[/dim]"
+            )
+            return True
+
+        elif choice == 3:
+            # Exit
+            console.print(
+                "[yellow]Configuration saved but not validated. Run 'mcp-ticketer doctor' to test.[/yellow]"
+            )
+            return False
+
+        else:
+            console.print(f"[red]Invalid choice: {choice}. Please enter 1, 2, or 3.[/red]")
+            # Continue loop to ask again
+
+    return True
+
+
 def _prompt_for_adapter_selection(console: Console) -> str:
     """Interactive prompt for adapter selection.
 
@@ -526,6 +926,12 @@ def init(
 
     Creates .mcp-ticketer/config.json in the current directory with
     auto-detected or specified adapter configuration.
+
+    The init command automatically validates your configuration after setup:
+    - If validation passes, setup completes
+    - If issues are detected, you can re-enter credentials, continue anyway, or exit
+    - You get up to 3 retry attempts to fix configuration issues
+    - You can always re-validate later with 'mcp-ticketer doctor'
 
     Note: 'init', 'install', and 'setup' are all synonyms - use whichever feels natural.
 
@@ -893,6 +1299,17 @@ def init(
                 f.write("# MCP Ticketer\n.mcp-ticketer/\n")
             console.print("[dim]✓ Created .gitignore with .mcp-ticketer/[/dim]")
 
+    # Validate configuration with loop for corrections
+    import asyncio
+
+    if not asyncio.run(
+        _validate_configuration_with_retry(
+            console, adapter_type, config_file_path, proj_path
+        )
+    ):
+        # User chose to exit without valid configuration
+        raise typer.Exit(1)
+
     # Show next steps
     _show_next_steps(console, adapter_type, config_file_path)
 
@@ -912,16 +1329,13 @@ def _show_next_steps(
     console.print(f"MCP Ticketer is now configured to use {adapter_type.title()}.\n")
 
     console.print("[bold]Next Steps:[/bold]")
-    console.print("1. [cyan]Test your configuration:[/cyan]")
-    console.print("   mcp-ticketer doctor")
-    console.print("\n2. [cyan]Create a test ticket:[/cyan]")
+    console.print("1. [cyan]Create a test ticket:[/cyan]")
     console.print("   mcp-ticketer create 'Test ticket from MCP Ticketer'")
 
     if adapter_type != "aitrackdown":
         console.print(
-            f"\n3. [cyan]Verify the ticket appears in {adapter_type.title()}[/cyan]"
+            f"\n2. [cyan]Verify the ticket appears in {adapter_type.title()}[/cyan]"
         )
-
         if adapter_type == "linear":
             console.print("   Check your Linear workspace for the new ticket")
         elif adapter_type == "github":
@@ -929,16 +1343,19 @@ def _show_next_steps(
         elif adapter_type == "jira":
             console.print("   Check your JIRA project for the new ticket")
     else:
-        console.print("\n3. [cyan]Check local ticket storage:[/cyan]")
+        console.print("\n2. [cyan]Check local ticket storage:[/cyan]")
         console.print("   ls .aitrackdown/")
 
-    console.print("\n4. [cyan]Install MCP for AI clients (optional):[/cyan]")
+    console.print("\n3. [cyan]Install MCP for AI clients (optional):[/cyan]")
     console.print("   mcp-ticketer install claude-code     # For Claude Code")
     console.print("   mcp-ticketer install claude-desktop  # For Claude Desktop")
     console.print("   mcp-ticketer install auggie          # For Auggie")
     console.print("   mcp-ticketer install gemini          # For Gemini CLI")
 
     console.print(f"\n[dim]Configuration saved to: {config_file_path}[/dim]")
+    console.print(
+        "[dim]Run 'mcp-ticketer doctor' to re-validate configuration anytime[/dim]"
+    )
     console.print("[dim]Run 'mcp-ticketer --help' for more commands[/dim]")
 
 
