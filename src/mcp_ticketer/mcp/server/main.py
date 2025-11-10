@@ -12,22 +12,41 @@ from dotenv import load_dotenv
 import mcp_ticketer.adapters  # noqa: F401
 
 from ...core import AdapterRegistry
-from ...core.models import (Comment, Epic, Priority, SearchQuery, Task,
-                            TicketState)
-from .constants import (DEFAULT_BASE_PATH, DEFAULT_LIMIT, DEFAULT_MAX_DEPTH,
-                        DEFAULT_OFFSET, ERROR_INTERNAL, ERROR_METHOD_NOT_FOUND,
-                        ERROR_PARSE, JSONRPC_VERSION, MCP_PROTOCOL_VERSION,
-                        MSG_EPIC_NOT_FOUND, MSG_INTERNAL_ERROR,
-                        MSG_MISSING_TICKET_ID, MSG_MISSING_TITLE,
-                        MSG_NO_TICKETS_PROVIDED, MSG_NO_UPDATES_PROVIDED,
-                        MSG_TICKET_NOT_FOUND, MSG_TRANSITION_FAILED,
-                        MSG_UNKNOWN_METHOD, MSG_UNKNOWN_OPERATION,
-                        MSG_UPDATE_FAILED, SERVER_NAME, SERVER_VERSION,
-                        STATUS_COMPLETED, STATUS_ERROR)
-from .dto import (CreateEpicRequest, CreateIssueRequest, CreateTaskRequest,
-                  CreateTicketRequest, ReadTicketRequest)
+from ...core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
+from .constants import (
+    DEFAULT_BASE_PATH,
+    DEFAULT_LIMIT,
+    DEFAULT_MAX_DEPTH,
+    DEFAULT_OFFSET,
+    ERROR_INTERNAL,
+    ERROR_METHOD_NOT_FOUND,
+    ERROR_PARSE,
+    JSONRPC_VERSION,
+    MCP_PROTOCOL_VERSION,
+    MSG_EPIC_NOT_FOUND,
+    MSG_INTERNAL_ERROR,
+    MSG_MISSING_TICKET_ID,
+    MSG_MISSING_TITLE,
+    MSG_NO_TICKETS_PROVIDED,
+    MSG_NO_UPDATES_PROVIDED,
+    MSG_TICKET_NOT_FOUND,
+    MSG_TRANSITION_FAILED,
+    MSG_UNKNOWN_METHOD,
+    MSG_UNKNOWN_OPERATION,
+    MSG_UPDATE_FAILED,
+    SERVER_NAME,
+    SERVER_VERSION,
+    STATUS_COMPLETED,
+    STATUS_ERROR,
+)
+from .dto import (
+    CreateEpicRequest,
+    CreateIssueRequest,
+    CreateTaskRequest,
+    CreateTicketRequest,
+    ReadTicketRequest,
+)
 from .response_builder import ResponseBuilder
-
 
 
 class MCPTicketServer:
@@ -1027,7 +1046,6 @@ async def main():
     # Load configuration
     import json
     import logging
-    from pathlib import Path
 
     logger = logging.getLogger(__name__)
 
@@ -1048,7 +1066,9 @@ async def main():
         else:
             # Try default dotenv loading (searches upward)
             load_dotenv(override=True)
-            sys.stderr.write("[MCP Server] Loaded environment from default search path\n")
+            sys.stderr.write(
+                "[MCP Server] Loaded environment from default search path\n"
+            )
             logger.debug("Loaded environment from default search path")
 
     # Initialize defaults
@@ -1122,8 +1142,6 @@ def _load_env_configuration() -> dict[str, Any] | None:
         Dictionary with 'adapter_type' and 'adapter_config' keys, or None if no config found
 
     """
-    from pathlib import Path
-
     # Check for .env files in order of preference
     env_files = [".env.local", ".env"]
     env_vars = {}
