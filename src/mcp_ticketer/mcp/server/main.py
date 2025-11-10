@@ -28,22 +28,6 @@ from .dto import (CreateEpicRequest, CreateIssueRequest, CreateTaskRequest,
                   CreateTicketRequest, ReadTicketRequest)
 from .response_builder import ResponseBuilder
 
-# Load environment variables early (prioritize .env.local)
-# Check for .env.local first (takes precedence)
-env_local_file = Path.cwd() / ".env.local"
-if env_local_file.exists():
-    load_dotenv(env_local_file, override=True)
-    sys.stderr.write(f"[MCP Server] Loaded environment from: {env_local_file}\n")
-else:
-    # Fall back to .env
-    env_file = Path.cwd() / ".env"
-    if env_file.exists():
-        load_dotenv(env_file, override=True)
-        sys.stderr.write(f"[MCP Server] Loaded environment from: {env_file}\n")
-    else:
-        # Try default dotenv loading (searches upward)
-        load_dotenv(override=True)
-        sys.stderr.write("[MCP Server] Loaded environment from default search path\n")
 
 
 class MCPTicketServer:
@@ -1046,6 +1030,26 @@ async def main():
     from pathlib import Path
 
     logger = logging.getLogger(__name__)
+
+    # Load environment variables AFTER working directory has been set by __main__.py
+    # This ensures we load .env files from the target project directory, not from where the command is executed
+    env_local_file = Path.cwd() / ".env.local"
+    if env_local_file.exists():
+        load_dotenv(env_local_file, override=True)
+        sys.stderr.write(f"[MCP Server] Loaded environment from: {env_local_file}\n")
+        logger.debug(f"Loaded environment from: {env_local_file}")
+    else:
+        # Fall back to .env
+        env_file = Path.cwd() / ".env"
+        if env_file.exists():
+            load_dotenv(env_file, override=True)
+            sys.stderr.write(f"[MCP Server] Loaded environment from: {env_file}\n")
+            logger.debug(f"Loaded environment from: {env_file}")
+        else:
+            # Try default dotenv loading (searches upward)
+            load_dotenv(override=True)
+            sys.stderr.write("[MCP Server] Loaded environment from default search path\n")
+            logger.debug("Loaded environment from default search path")
 
     # Initialize defaults
     adapter_type = "aitrackdown"
