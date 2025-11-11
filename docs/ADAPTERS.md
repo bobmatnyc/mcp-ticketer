@@ -315,11 +315,12 @@ Linear states are mapped to universal states:
 - **Advanced state management**
 - **Priority levels (1-4 mapped to Low-Critical)**
 - **Rich text descriptions with Markdown**
-- **Labels and tags**
-- **Assignee management**
+- **Enhanced label management** with add/replace/remove capabilities
+- **Flexible assignee management** by email, username, or display name
 - **Due dates**
 - **Story points estimation**
 - **Parent/child relationships (Epics)**
+- **Flexible project assignment** via URL, slug, name, or ID
 - **Comments and discussions**
 - **Advanced search with filters**
 - **Real-time updates via GraphQL subscriptions**
@@ -330,6 +331,9 @@ Linear states are mapped to universal states:
 #### 🔧 Advanced Features
 
 - **GraphQL API**: Efficient, flexible queries
+- **Smart Project Resolution**: Accepts full URLs, slugs, names, or short IDs
+- **Intelligent User Lookup**: Resolves users by email, display name, or full name
+- **Label Resolution**: Automatic label name to ID conversion with validation
 - **Webhooks**: Real-time notifications
 - **Integrations**: Slack, GitHub, Figma
 - **Analytics**: Velocity, burndown charts
@@ -416,6 +420,32 @@ mcp-ticket transition LIN-123 ready
 mcp-ticket transition LIN-123 done
 ```
 
+### Recent Enhancements
+
+The Linear adapter has been significantly enhanced with the following capabilities:
+
+1. **🎯 Project Assignment by URL/ID**: Assign issues to projects using any of these formats:
+   - Full Linear URLs: `https://linear.app/workspace/project/project-name-abc123/overview`
+   - Project slugs: `project-name-abc123` or `project-name`
+   - Short IDs: `abc123`
+   - Project names: `"My Project Name"`
+
+2. **🏷️ Enhanced Label Management**:
+   - Add labels during create/update
+   - Replace all labels with new set
+   - Remove all labels by setting empty array
+   - Automatic label name resolution
+
+3. **👤 User Assignment by Username**:
+   - Assign by email: `user@company.com`
+   - Assign by display name: `john.smith`
+   - Assign by full name: `John Smith`
+   - Automatic ambiguity resolution
+
+4. **⚡ Priority Updates**: Update issue priorities seamlessly
+
+For detailed documentation on these features with comprehensive examples, see [Linear Adapter Documentation](adapters/LINEAR.md).
+
 ### Best Practices
 
 1. **API Key Security**: Use environment variables, rotate regularly
@@ -423,6 +453,8 @@ mcp-ticket transition LIN-123 done
 3. **Label Strategy**: Establish team-wide label conventions
 4. **State Workflow**: Train team on proper state transitions
 5. **Automation**: Set up Linear automation rules for common actions
+6. **Project Assignment**: Use full URLs when available for accuracy
+7. **User Assignment**: Prefer email addresses for precise user identification
 
 ## JIRA Adapter
 
