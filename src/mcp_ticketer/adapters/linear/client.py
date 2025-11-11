@@ -16,8 +16,7 @@ except ImportError:
     HTTPXAsyncTransport = None
     TransportError = Exception
 
-from ...core.exceptions import (AdapterError, AuthenticationError,
-                                RateLimitError)
+from ...core.exceptions import AdapterError, AuthenticationError, RateLimitError
 
 
 class LinearGraphQLClient:
@@ -266,6 +265,50 @@ class LinearGraphQLClient:
 
         except Exception:
             return None
+
+    async def get_users_by_name(self, name: str) -> list[dict[str, Any]]:
+        """Search users by display name or full name.
+
+        Args:
+            name: Display name or full name to search for
+
+        Returns:
+            List of matching users (may be empty)
+
+        """
+        import logging
+
+        try:
+            query = """
+                query SearchUsers($nameFilter: String!) {
+                    users(
+                        filter: {
+                            or: [
+                                { displayName: { containsIgnoreCase: $nameFilter } }
+                                { name: { containsIgnoreCase: $nameFilter } }
+                            ]
+                        }
+                        first: 10
+                    ) {
+                        nodes {
+                            id
+                            name
+                            email
+                            displayName
+                            avatarUrl
+                            active
+                        }
+                    }
+                }
+            """
+
+            result = await self.execute_query(query, {"nameFilter": name})
+            users = result.get("users", {}).get("nodes", [])
+            return [u for u in users if u.get("active", True)]  # Filter active users
+
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"Failed to search users by name: {e}")
+            return []
 
     async def close(self) -> None:
         """Close the client connection.

@@ -20,15 +20,27 @@ from ...core.adapter import BaseAdapter
 from ...core.models import Comment, Epic, SearchQuery, Task, TicketState
 from ...core.registry import AdapterRegistry
 from .client import LinearGraphQLClient
-from .mappers import (build_linear_issue_input,
-                      build_linear_issue_update_input,
-                      map_linear_comment_to_comment, map_linear_issue_to_task,
-                      map_linear_project_to_epic)
-from .queries import (ALL_FRAGMENTS, CREATE_ISSUE_MUTATION, LIST_ISSUES_QUERY,
-                      SEARCH_ISSUES_QUERY, UPDATE_ISSUE_MUTATION,
-                      WORKFLOW_STATES_QUERY)
-from .types import (LinearStateMapping, build_issue_filter,
-                    get_linear_priority, get_linear_state_type)
+from .mappers import (
+    build_linear_issue_input,
+    build_linear_issue_update_input,
+    map_linear_comment_to_comment,
+    map_linear_issue_to_task,
+    map_linear_project_to_epic,
+)
+from .queries import (
+    ALL_FRAGMENTS,
+    CREATE_ISSUE_MUTATION,
+    LIST_ISSUES_QUERY,
+    SEARCH_ISSUES_QUERY,
+    UPDATE_ISSUE_MUTATION,
+    WORKFLOW_STATES_QUERY,
+)
+from .types import (
+    LinearStateMapping,
+    build_issue_filter,
+    get_linear_priority,
+    get_linear_state_type,
+)
 
 
 class LinearAdapter(BaseAdapter[Task]):
@@ -507,23 +519,48 @@ class LinearAdapter(BaseAdapter[Task]):
         return mapping
 
     async def _get_user_id(self, user_identifier: str) -> str | None:
-        """Get Linear user ID from email or display name.
+        """Get Linear user ID from email, display name, or user ID.
 
         Args:
-            user_identifier: Email address or display name
+            user_identifier: Email, display name, or user ID
 
         Returns:
             Linear user ID or None if not found
 
         """
-        # Try to get user by email first
+        if not user_identifier:
+            return None
+
+        # Try email lookup first (most specific)
         user = await self.client.get_user_by_email(user_identifier)
         if user:
             return user["id"]
 
-        # If not found by email, could implement search by display name
-        # For now, assume the identifier is already a user ID
-        return user_identifier if user_identifier else None
+        # Try name search (displayName or full name)
+        users = await self.client.get_users_by_name(user_identifier)
+        if users:
+            if len(users) == 1:
+                # Exact match found
+                return users[0]["id"]
+            else:
+                # Multiple matches - try exact match
+                for u in users:
+                    if (
+                        u.get("displayName", "").lower() == user_identifier.lower()
+                        or u.get("name", "").lower() == user_identifier.lower()
+                    ):
+                        return u["id"]
+
+                # No exact match - log ambiguity and return first
+                logging.getLogger(__name__).warning(
+                    f"Multiple users match '{user_identifier}': "
+                    f"{[u.get('displayName', u.get('name')) for u in users]}. "
+                    f"Using first match: {users[0].get('displayName')}"
+                )
+                return users[0]["id"]
+
+        # Assume it's already a user ID
+        return user_identifier
 
     # CRUD Operations
 
@@ -802,10 +839,23 @@ class LinearAdapter(BaseAdapter[Task]):
                     update_input["assigneeId"] = user_id
 
             # Resolve label names to IDs if provided
-            if "tags" in updates and updates["tags"]:
-                label_ids = await self._resolve_label_ids(updates["tags"])
-                if label_ids:
-                    update_input["labelIds"] = label_ids
+            if "tags" in updates:
+                if updates["tags"]:  # Non-empty list
+                    label_ids = await self._resolve_label_ids(updates["tags"])
+                    if label_ids:
+                        update_input["labelIds"] = label_ids
+                else:  # Empty list = remove all labels
+                    update_input["labelIds"] = []
+
+            # Resolve project ID if parent_epic is provided (supports slug, name, short ID, or URL)
+            if "parent_epic" in updates and updates["parent_epic"]:
+                project_id = await self._resolve_project_id(updates["parent_epic"])
+                if project_id:
+                    update_input["projectId"] = project_id
+                else:
+                    logging.getLogger(__name__).warning(
+                        f"Could not resolve project identifier '{updates['parent_epic']}'"
+                    )
 
             # Execute update
             result = await self.client.execute_mutation(
