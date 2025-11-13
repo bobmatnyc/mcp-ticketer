@@ -579,12 +579,10 @@ async def _validate_configuration_with_retry(
 
                 if team_input.startswith("https://linear.app/"):
                     console.print("[cyan]Detected team URL, deriving team ID...[/cyan]")
-                    import asyncio
-
                     from .linear_commands import derive_team_from_url
 
-                    derived_team_id, error = asyncio.run(
-                        derive_team_from_url(linear_api_key, team_input)
+                    derived_team_id, error = await derive_team_from_url(
+                        linear_api_key, team_input
                     )
 
                     if derived_team_id:
