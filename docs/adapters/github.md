@@ -168,6 +168,97 @@ comments = await adapter.get_comments("123", limit=50)
 
 ## GitHub-Specific Features
 
+### Epic Updates (Milestones)
+
+GitHub milestones serve as epics in mcp-ticketer. The adapter provides full milestone update capabilities:
+
+```python
+# Update milestone (epic)
+updated_epic = await adapter.update_epic(
+    epic_id="milestone-5",  # or just "5"
+    updates={
+        "title": "v2.0 Release",
+        "description": "Major release with breaking changes",
+        "state": "open",  # open or closed
+        "target_date": "2025-06-01"  # due_on in GitHub
+    }
+)
+
+# Alternative: Direct milestone update
+updated_milestone = await adapter.update_milestone(
+    milestone_number=5,
+    title="v2.0 Release",
+    description="Updated milestone description",
+    state="open",
+    due_on="2025-06-01T00:00:00Z"
+)
+```
+
+**Supported Fields:**
+- `title`: Milestone title
+- `description`: Milestone description (full Markdown support)
+- `state`: Either `open` or `closed`
+- `target_date`: Due date in ISO 8601 format
+
+**Limitations:**
+- Only binary state (open/closed), no intermediate states
+- No priority field (use labels on issues instead)
+- No visual customization (colors, icons)
+
+### File Attachments
+
+**Important**: GitHub Issues does not provide a native file attachment API. The adapter implements workarounds:
+
+#### For Issues: Comment References
+
+```python
+# Attempts to attach file, creates comment with reference
+result = await adapter.add_attachment(
+    ticket_id="123",  # Issue number
+    file_path="/path/to/file.pdf",
+    description="Requirements document"
+)
+
+# Returns guidance:
+# {
+#   "method": "github_comment_reference",
+#   "message": "Created comment with file reference. To upload file:",
+#   "instructions": [
+#     "1. Open issue #123 in browser",
+#     "2. Drag and drop file into a comment",
+#     "3. GitHub will generate markdown link automatically"
+#   ]
+# }
+```
+
+#### For Milestones: URL References
+
+```python
+# Add URL reference to milestone description
+await adapter.add_attachment_reference_to_milestone(
+    milestone_number=5,
+    url="https://drive.google.com/file/d/xyz",
+    description="Project Charter (external link)"
+)
+
+# Updates milestone description with:
+# ## Attachments
+# - [Project Charter (external link)](https://drive.google.com/file/d/xyz)
+```
+
+#### Manual Upload Process
+
+For actual file uploads to issues:
+
+1. Open the issue in your browser
+2. Drag and drop the file into a comment box
+3. GitHub automatically uploads and generates a markdown link
+4. Save the comment with the file reference
+
+**File Size Limit**: 25 MB per file
+
+**Recommended Approach**: Use external file storage (Google Drive, Dropbox) and add URL references.
+
 ### Issue Templates
 The adapter respects GitHub issue templates when creating issues. Include template fields in the description.
 
@@ -214,9 +305,15 @@ Support for GitHub App authentication is planned for enhanced security and highe
 ## Limitations
 
 1. **State Transitions**: GitHub doesn't enforce state transition rules natively
-2. **Time Tracking**: No built-in time tracking (use issue comments or Projects)
-3. **Custom Fields**: Limited to labels and Projects for custom metadata
-4. **Bulk Operations**: Some bulk operations require multiple API calls
+2. **Binary States**: Milestones only support open/closed (no intermediate states)
+3. **No Native Attachments**: Issues lack a file attachment API
+   - Workaround: Manual drag-and-drop or external file hosting
+   - 25 MB file size limit for issue comments
+4. **Milestone Attachments**: Cannot attach files to milestones
+   - Workaround: Add URL references to external files
+5. **Time Tracking**: No built-in time tracking (use issue comments or Projects)
+6. **Custom Fields**: Limited to labels and Projects for custom metadata
+7. **Bulk Operations**: Some bulk operations require multiple API calls
 
 ## Troubleshooting
 

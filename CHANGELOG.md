@@ -4,6 +4,89 @@ All notable changes to MCP Ticketer will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Epic Update Functionality**: Complete epic update support across all adapters
+  - Linear: Update projects with description, state (planned/started/completed/canceled), target date, color, and icon
+  - Jira: Update epics with ADF-formatted descriptions, workflow state transitions, and custom fields
+  - GitHub: Update milestones (epics) with title, description, open/closed state, and due date
+  - AITrackdown: Update file-based epics with all fields including priority and tags
+- **File Attachment Support**: Multi-tier attachment implementation across all adapters
+  - Linear: Native S3 upload via three-step process (request URL → upload → attach)
+    - `upload_file()`: Upload files to Linear's S3 storage
+    - `attach_file_to_issue()`: Attach files to Linear issues
+    - `attach_file_to_epic()`: Attach files to Linear projects/epics
+  - Jira: Direct multipart/form-data upload with full CRUD
+    - `add_attachment()`: Upload files directly to Jira issues/epics
+    - `get_attachments()`: List all attachments for a ticket
+    - `delete_attachment()`: Remove attachments by ID
+  - GitHub: Workaround implementation with guidance
+    - `add_attachment_to_issue()`: Creates comment with file reference and upload instructions
+    - `add_attachment_reference_to_milestone()`: Adds URL references to milestone descriptions
+    - `add_attachment()`: Unified interface with automatic fallback
+  - AITrackdown: Enhanced filesystem storage (already documented, now formally documented in new guides)
+- **MCP Tool: epic_update**: New MCP tool for updating epics across all adapters
+  - Parameters: epic_id, title, description, state, target_date
+  - Full adapter support with platform-specific field handling
+  - Comprehensive error handling and validation
+- **Enhanced MCP Tool: ticket_attach**: Multi-tier attachment support with automatic fallback
+  - Tier 1: Native upload for Linear, Jira, AITrackdown
+  - Tier 2: Workaround for GitHub (comment references, URL references)
+  - Tier 3: Fallback to comments for any adapter
+  - Returns detailed response with method used and attachment metadata
+
+### Changed
+- **Attachment Documentation**: Significantly expanded file attachment documentation
+  - Updated `docs/ATTACHMENTS.md` to reflect all adapter capabilities
+  - Created comprehensive `docs/api/epic_updates_and_attachments.md` (1000+ lines)
+  - Added quick start guide `docs/quickstart/epic_attachments.md`
+  - Updated adapter-specific documentation with epic update and attachment features
+- **Feature Matrix**: Updated adapter comparison matrix in `docs/ADAPTERS.md`
+  - Added "Epic Features" section with 5 new comparison rows
+  - Added detailed attachment capability comparisons
+  - Expanded feature notes (now 15 notes vs 12)
+- **GitHub Adapter Documentation**: Enhanced with epic update and attachment workarounds
+  - Documented milestone update capabilities
+  - Explained attachment limitations and workarounds
+  - Provided manual upload instructions
+
+### Documentation
+- **New Files**:
+  - `docs/api/epic_updates_and_attachments.md`: Complete API documentation for new features
+  - `docs/quickstart/epic_attachments.md`: Quick start guide with examples for all adapters
+- **Updated Files**:
+  - `docs/ADAPTERS.md`: Enhanced feature matrix with epic and attachment capabilities
+  - `docs/adapters/github.md`: Added epic update and attachment sections
+  - `CHANGELOG.md`: This file, documenting all new features
+
+### Implementation Details
+- **Linear Adapter**:
+  - Added `update_epic()` method using `projectUpdate` GraphQL mutation
+  - Implemented three-step S3 upload process via `fileUpload` mutation
+  - Added `attach_file_to_issue()` and `attach_file_to_epic()` methods
+  - Supports project states: planned, started, completed, canceled
+- **Jira Adapter**:
+  - Added `update_epic()` with automatic Markdown to ADF conversion
+  - Implemented `add_attachment()` with multipart/form-data upload
+  - Added `get_attachments()` and `delete_attachment()` for full CRUD
+  - Requires `X-Atlassian-Token: no-check` header for security
+- **GitHub Adapter**:
+  - Added `update_epic()` as wrapper around `update_milestone()`
+  - Implemented `add_attachment_to_issue()` with manual upload guidance
+  - Added `add_attachment_reference_to_milestone()` for URL references
+  - Created unified `add_attachment()` with automatic fallback
+- **AITrackdown Adapter**:
+  - Enhanced documentation for existing `update()` method
+  - Formalized attachment capabilities already present
+  - SHA256 checksums and filename sanitization documented
+
+### Platform-Specific Notes
+- **Linear**: No explicit file size limit, ~100MB practical limit
+- **Jira**: File size limits are instance-configurable (10-100MB typical)
+- **GitHub**: 25MB file size limit, no native attachment API
+- **AITrackdown**: 100MB default limit (configurable)
+
 ## [0.4.15] - 2025-11-07
 
 ### Fixed

@@ -965,6 +965,12 @@ Comprehensive comparison of features across all adapters:
 | State Transitions | ✅ | ✅ | ✅ | 🔶¹ |
 | Comments | ✅ | ✅ | ✅ | ✅ |
 | Search/Filter | ✅ | ✅ | ✅ | ✅ |
+| **Epic Features** |
+| Epic Update | ✅ | ✅ | ✅ | ✅ |
+| Epic Description | ✅ Markdown | ✅ Markdown | ✅ ADF/Markdown | ✅ Markdown |
+| Epic State Management | ✅ Full | ✅ 4 States | ✅ Workflow | 🔶¹³ Open/Closed |
+| Epic Target Date | ✅ | ✅ | ✅ | ✅ |
+| Epic Attachments | ✅ Filesystem | ✅ S3 Native | ✅ Native API | 🔶¹⁴ URL Ref |
 | **Data Features** |
 | Priority Levels | ✅ | ✅ | ✅ | 🔶² |
 | Tags/Labels | ✅ | ✅ | ✅ | ✅ |
@@ -972,7 +978,10 @@ Comprehensive comparison of features across all adapters:
 | Due Dates | ❌ | ✅ | ✅ | 🔶³ |
 | Time Tracking | ❌ | 🔶⁴ | ✅ | ❌ |
 | Custom Fields | 🔶⁵ | ✅ | ✅ | 🔶² |
-| File Attachments | ❌ | ✅ | ✅ | 🔶⁶ |
+| File Attachments | ✅ | ✅ | ✅ | 🔶⁶ |
+| Issue Attachments | ✅ Filesystem | ✅ S3 Native | ✅ Native API | 🔶¹⁵ Comment |
+| Attachment Upload | ✅ Direct | ✅ 3-Step S3 | ✅ Multipart | 🔶¹⁵ Manual |
+| Attachment Delete | ✅ | ✅ | ✅ | ❌ |
 | **Workflow Features** |
 | State Machine | ✅ | ✅ | ✅ | 🔶¹ |
 | Workflow Rules | ❌ | ✅ | ✅ | 🔶⁷ |
@@ -1009,13 +1018,16 @@ Comprehensive comparison of features across all adapters:
 3. **Due Dates**: GitHub milestones provide due dates
 4. **Time Tracking**: Linear has estimates, not time tracking
 5. **Custom Fields**: AITrackdown stores in metadata
-6. **Attachments**: GitHub supports via comments/gists
+6. **Attachments**: GitHub supports via comments/gists (no native API)
 7. **Workflow Rules**: GitHub Actions provide automation
 8. **Bulk Operations**: Available via CLI scripting
 9. **Real-time**: GitHub has notifications, not live updates
 10. **Multi-user**: AITrackdown via file sharing/Git
 11. **Free Tier**: Linear free for small teams
 12. **Free Tier**: JIRA free for up to 10 users
+13. **Epic States**: GitHub milestones only support open/closed
+14. **Epic Attachments**: GitHub milestones can only reference URLs (no native attachments)
+15. **Issue Attachments**: GitHub requires manual drag-and-drop, adapter creates comment references
 
 ## Performance Comparison
 

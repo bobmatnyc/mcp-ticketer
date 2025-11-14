@@ -5,11 +5,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from mcp_ticketer.adapters.linear.client import LinearGraphQLClient
-from mcp_ticketer.core.exceptions import (
-    AdapterError,
-    AuthenticationError,
-    RateLimitError,
-)
+from mcp_ticketer.core.exceptions import (AdapterError, AuthenticationError,
+                                          RateLimitError)
 
 
 @pytest.mark.unit

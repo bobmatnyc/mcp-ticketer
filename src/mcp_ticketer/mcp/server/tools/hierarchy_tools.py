@@ -312,6 +312,91 @@ async def task_create(
 
 
 @mcp.tool()
+async def epic_update(
+    epic_id: str,
+    title: str | None = None,
+    description: str | None = None,
+    state: str | None = None,
+    target_date: str | None = None,
+) -> dict[str, Any]:
+    """Update an existing epic's metadata and description.
+
+    Args:
+        epic_id: Epic identifier (required)
+        title: New title for the epic
+        description: New description for the epic
+        state: New state (open, in_progress, done, closed)
+        target_date: Target completion date in ISO format (YYYY-MM-DD)
+
+    Returns:
+        Updated epic details, or error information
+
+    """
+    try:
+        adapter = get_adapter()
+
+        # Check if adapter supports epic updates
+        if not hasattr(adapter, "update_epic"):
+            return {
+                "status": "error",
+                "error": f"Epic updates not supported by {type(adapter).__name__} adapter",
+                "epic_id": epic_id,
+                "note": "Use ticket_update instead for basic field updates",
+            }
+
+        # Build updates dictionary
+        updates = {}
+        if title is not None:
+            updates["title"] = title
+        if description is not None:
+            updates["description"] = description
+        if state is not None:
+            updates["state"] = state
+        if target_date is not None:
+            # Parse target date if provided
+            try:
+                target_datetime = datetime.fromisoformat(target_date)
+                updates["target_date"] = target_datetime
+            except ValueError:
+                return {
+                    "status": "error",
+                    "error": f"Invalid date format '{target_date}'. Use ISO format: YYYY-MM-DD",
+                }
+
+        if not updates:
+            return {
+                "status": "error",
+                "error": "No updates provided. At least one field (title, description, state, target_date) must be specified.",
+            }
+
+        # Update via adapter
+        updated = await adapter.update_epic(epic_id, updates)  # type: ignore
+
+        if updated is None:
+            return {
+                "status": "error",
+                "error": f"Epic {epic_id} not found or update failed",
+            }
+
+        return {
+            "status": "completed",
+            "epic": updated.model_dump(),
+        }
+    except AttributeError as e:
+        return {
+            "status": "error",
+            "error": f"Epic update method not available: {str(e)}",
+            "epic_id": epic_id,
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to update epic: {str(e)}",
+            "epic_id": epic_id,
+        }
+
+
+@mcp.tool()
 async def hierarchy_tree(
     epic_id: str,
     max_depth: int = 3,

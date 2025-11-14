@@ -5,9 +5,11 @@ attachment information. Note that file attachment functionality may not be
 available in all adapters.
 """
 
+import mimetypes
+from pathlib import Path
 from typing import Any
 
-from ....core.models import Comment
+from ....core.models import Comment, TicketType
 from ..server_sdk import get_adapter, mcp
 
 
@@ -34,7 +36,7 @@ async def ticket_attach(
     try:
         adapter = get_adapter()
 
-        # Read ticket to validate it exists
+        # Read ticket to validate it exists and determine type
         ticket = await adapter.read(ticket_id)
         if ticket is None:
             return {
@@ -42,27 +44,72 @@ async def ticket_attach(
                 "error": f"Ticket {ticket_id} not found",
             }
 
-        # Check if adapter supports attachments
-        if not hasattr(adapter, "add_attachment"):
+        # Check if file exists
+        file_path_obj = Path(file_path)
+        if not file_path_obj.exists():
             return {
                 "status": "error",
-                "error": f"File attachments not supported by {type(adapter).__name__} adapter",
+                "error": f"File not found: {file_path}",
                 "ticket_id": ticket_id,
-                "note": "Consider using ticket_comment to add a reference to the file location",
             }
 
-        # Add attachment via adapter
-        attachment = await adapter.add_attachment(  # type: ignore
-            ticket_id=ticket_id, file_path=file_path, description=description
-        )
+        # Try Linear-specific upload methods first (most advanced)
+        if hasattr(adapter, "upload_file") and hasattr(adapter, "attach_file_to_issue"):
+            try:
+                # Determine MIME type
+                mime_type = mimetypes.guess_type(file_path)[0]
 
-        return {
-            "status": "completed",
-            "ticket_id": ticket_id,
-            "attachment": attachment,
-        }
+                # Upload file to Linear's storage
+                file_url = await adapter.upload_file(file_path, mime_type)  # type: ignore
 
-    except AttributeError:
+                # Determine ticket type and attach accordingly
+                ticket_type = getattr(ticket, "ticket_type", None)
+                filename = file_path_obj.name
+
+                if ticket_type == TicketType.EPIC and hasattr(
+                    adapter, "attach_file_to_epic"
+                ):
+                    # Attach to epic (project)
+                    result = await adapter.attach_file_to_epic(  # type: ignore
+                        epic_id=ticket_id,
+                        file_url=file_url,
+                        title=description or filename,
+                        subtitle=f"Uploaded file: {filename}",
+                    )
+                else:
+                    # Attach to issue/task
+                    result = await adapter.attach_file_to_issue(  # type: ignore
+                        issue_id=ticket_id,
+                        file_url=file_url,
+                        title=description or filename,
+                        subtitle=f"Uploaded file: {filename}",
+                        comment_body=description if description else None,
+                    )
+
+                return {
+                    "status": "completed",
+                    "ticket_id": ticket_id,
+                    "method": "linear_native_upload",
+                    "file_url": file_url,
+                    "attachment": result,
+                }
+            except Exception as e:
+                # Fall through to legacy method if Linear-specific upload fails
+                pass
+
+        # Try legacy add_attachment method
+        if hasattr(adapter, "add_attachment"):
+            attachment = await adapter.add_attachment(  # type: ignore
+                ticket_id=ticket_id, file_path=file_path, description=description
+            )
+
+            return {
+                "status": "completed",
+                "ticket_id": ticket_id,
+                "method": "adapter_native",
+                "attachment": attachment,
+            }
+
         # Fallback: Add file reference as comment
         comment_text = f"Attachment: {file_path}"
         if description:

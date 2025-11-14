@@ -4,11 +4,11 @@ Codex CLI only supports global configuration at ~/.codex/config.toml.
 Unlike Claude Code and Gemini CLI, there is no project-level configuration support.
 """
 
+import tomllib
 from pathlib import Path
 from typing import Any
 
 import tomli_w
-import tomllib
 from rich.console import Console
 
 from .mcp_configure import load_project_config

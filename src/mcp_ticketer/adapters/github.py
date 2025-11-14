@@ -3,13 +3,15 @@
 import builtins
 import re
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import httpx
 
 from ..core.adapter import BaseAdapter
 from ..core.env_loader import load_adapter_config, validate_adapter_config
-from ..core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
+from ..core.models import (Comment, Epic, Priority, SearchQuery, Task,
+                           TicketState)
 from ..core.registry import AdapterRegistry
 
 
@@ -141,11 +143,11 @@ class GitHubAdapter(BaseAdapter[Task]):
 
         Args:
             config: Configuration with:
-                - token: GitHub Personal Access Token (or GITHUB_TOKEN env var)
+                - token: GitHub PAT (or GITHUB_TOKEN env var)
                 - owner: Repository owner (or GITHUB_OWNER env var)
                 - repo: Repository name (or GITHUB_REPO env var)
-                - api_url: Optional API URL for GitHub Enterprise (defaults to github.com)
-                - use_projects_v2: Enable GitHub Projects v2 integration (default: False)
+                - api_url: Optional API URL for GitHub Enterprise
+                - use_projects_v2: Enable Projects v2 (default: False)
                 - custom_priority_scheme: Custom priority label mapping
 
         """
@@ -157,11 +159,12 @@ class GitHubAdapter(BaseAdapter[Task]):
         # Validate required configuration
         missing_keys = validate_adapter_config("github", full_config)
         if missing_keys:
+            missing = ", ".join(missing_keys)
             raise ValueError(
-                f"GitHub adapter missing required configuration: {', '.join(missing_keys)}"
+                f"GitHub adapter missing required configuration: {missing}"
             )
 
-        # Get authentication token - support both 'api_key' and 'token' for compatibility
+        # Get authentication token - support 'api_key' and 'token'
         self.token = (
             full_config.get("api_key")
             or full_config.get("token")
@@ -212,17 +215,21 @@ class GitHubAdapter(BaseAdapter[Task]):
         if not self.token:
             return (
                 False,
-                "GITHUB_TOKEN is required but not found. Set it in .env.local or environment.",
+                "GITHUB_TOKEN is required. Set it in .env.local or environment.",
             )
         if not self.owner:
             return (
                 False,
-                "GitHub owner is required in configuration. Set GITHUB_OWNER in .env.local or configure with 'mcp-ticketer init --adapter github --github-owner <owner>'",
+                "GitHub owner is required. Set GITHUB_OWNER in .env.local "
+                "or configure with 'mcp-ticketer init --adapter github "
+                "--github-owner <owner>'",
             )
         if not self.repo:
             return (
                 False,
-                "GitHub repo is required in configuration. Set GITHUB_REPO in .env.local or configure with 'mcp-ticketer init --adapter github --github-repo <repo>'",
+                "GitHub repo is required. Set GITHUB_REPO in .env.local "
+                "or configure with 'mcp-ticketer init --adapter github "
+                "--github-repo <repo>'",
             )
         return True, ""
 
@@ -276,6 +283,40 @@ class GitHubAdapter(BaseAdapter[Task]):
             labels[0]
             if labels
             else f"P{['0', '1', '2', '3'][list(Priority).index(priority)]}"
+        )
+
+    def _milestone_to_epic(self, milestone: dict[str, Any]) -> Epic:
+        """Convert GitHub milestone to Epic model.
+
+        Args:
+            milestone: GitHub milestone data
+
+        Returns:
+            Epic instance
+        """
+        return Epic(
+            id=str(milestone["number"]),
+            title=milestone["title"],
+            description=milestone.get("description", ""),
+            state=(
+                TicketState.OPEN
+                if milestone["state"] == "open"
+                else TicketState.CLOSED
+            ),
+            created_at=datetime.fromisoformat(
+                milestone["created_at"].replace("Z", "+00:00")
+            ),
+            updated_at=datetime.fromisoformat(
+                milestone["updated_at"].replace("Z", "+00:00")
+            ),
+            metadata={
+                "github": {
+                    "number": milestone["number"],
+                    "url": milestone.get("html_url"),
+                    "open_issues": milestone.get("open_issues", 0),
+                    "closed_issues": milestone.get("closed_issues", 0),
+                }
+            },
         )
 
     def _extract_state_from_issue(self, issue: dict[str, Any]) -> TicketState:
@@ -945,31 +986,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         response.raise_for_status()
 
         created_milestone = response.json()
-
-        return Epic(
-            id=str(created_milestone["number"]),
-            title=created_milestone["title"],
-            description=created_milestone["description"],
-            state=(
-                TicketState.OPEN
-                if created_milestone["state"] == "open"
-                else TicketState.CLOSED
-            ),
-            created_at=datetime.fromisoformat(
-                created_milestone["created_at"].replace("Z", "+00:00")
-            ),
-            updated_at=datetime.fromisoformat(
-                created_milestone["updated_at"].replace("Z", "+00:00")
-            ),
-            metadata={
-                "github": {
-                    "number": created_milestone["number"],
-                    "url": created_milestone["html_url"],
-                    "open_issues": created_milestone["open_issues"],
-                    "closed_issues": created_milestone["closed_issues"],
-                }
-            },
-        )
+        return self._milestone_to_epic(created_milestone)
 
     async def get_milestone(self, milestone_number: int) -> Epic | None:
         """Get a GitHub milestone as an Epic."""
@@ -982,31 +999,7 @@ class GitHubAdapter(BaseAdapter[Task]):
             response.raise_for_status()
 
             milestone = response.json()
-
-            return Epic(
-                id=str(milestone["number"]),
-                title=milestone["title"],
-                description=milestone["description"],
-                state=(
-                    TicketState.OPEN
-                    if milestone["state"] == "open"
-                    else TicketState.CLOSED
-                ),
-                created_at=datetime.fromisoformat(
-                    milestone["created_at"].replace("Z", "+00:00")
-                ),
-                updated_at=datetime.fromisoformat(
-                    milestone["updated_at"].replace("Z", "+00:00")
-                ),
-                metadata={
-                    "github": {
-                        "number": milestone["number"],
-                        "url": milestone["html_url"],
-                        "open_issues": milestone["open_issues"],
-                        "closed_issues": milestone["closed_issues"],
-                    }
-                },
-            )
+            return self._milestone_to_epic(milestone)
         except httpx.HTTPError:
             return None
 
@@ -1025,36 +1018,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         )
         response.raise_for_status()
 
-        epics = []
-        for milestone in response.json():
-            epics.append(
-                Epic(
-                    id=str(milestone["number"]),
-                    title=milestone["title"],
-                    description=milestone["description"],
-                    state=(
-                        TicketState.OPEN
-                        if milestone["state"] == "open"
-                        else TicketState.CLOSED
-                    ),
-                    created_at=datetime.fromisoformat(
-                        milestone["created_at"].replace("Z", "+00:00")
-                    ),
-                    updated_at=datetime.fromisoformat(
-                        milestone["updated_at"].replace("Z", "+00:00")
-                    ),
-                    metadata={
-                        "github": {
-                            "number": milestone["number"],
-                            "url": milestone["html_url"],
-                            "open_issues": milestone["open_issues"],
-                            "closed_issues": milestone["closed_issues"],
-                        }
-                    },
-                )
-            )
-
-        return epics
+        return [self._milestone_to_epic(milestone) for milestone in response.json()]
 
     async def link_to_pull_request(self, issue_number: int, pr_number: int) -> bool:
         """Link an issue to a pull request using keywords."""
@@ -1229,10 +1193,14 @@ Fixes #{issue_number}
         pr = pr_response.json()
 
         # Add a comment to the issue about the PR
+        pr_msg = (
+            f"Pull request #{pr['number']} has been created: "
+            f"{pr['html_url']}"
+        )
         await self.add_comment(
             Comment(
                 ticket_id=ticket_id,
-                content=f"Pull request #{pr['number']} has been created: {pr['html_url']}",
+                content=pr_msg,
                 author="system",
             )
         )
@@ -1347,6 +1315,237 @@ Fixes #{issue_number}
         response = await self.client.get("/user")
         response.raise_for_status()
         return response.json()
+
+    async def update_milestone(
+        self, milestone_number: int, updates: dict[str, Any]
+    ) -> Epic | None:
+        """Update a GitHub milestone (Epic).
+
+        Args:
+            milestone_number: Milestone number (not ID)
+            updates: Dictionary with fields to update:
+                - title: Milestone title
+                - description: Milestone description (supports markdown)
+                - state: TicketState value (maps to open/closed)
+                - target_date: Due date in ISO format
+
+        Returns:
+            Updated Epic object or None if not found
+
+        Raises:
+            ValueError: If no fields to update
+            httpx.HTTPError: If API request fails
+
+        """
+        update_data = {}
+
+        # Map title directly
+        if "title" in updates:
+            update_data["title"] = updates["title"]
+
+        # Map description (supports markdown)
+        if "description" in updates:
+            update_data["description"] = updates["description"]
+
+        # Map state to GitHub milestone state
+        if "state" in updates:
+            state = updates["state"]
+            if isinstance(state, TicketState):
+                # GitHub only has open/closed
+                update_data["state"] = (
+                    "closed"
+                    if state in [TicketState.DONE, TicketState.CLOSED]
+                    else "open"
+                )
+            else:
+                update_data["state"] = state
+
+        # Map target_date to due_on
+        if "target_date" in updates:
+            # GitHub expects ISO 8601 format
+            target_date = updates["target_date"]
+            if isinstance(target_date, str):
+                update_data["due_on"] = target_date
+            elif hasattr(target_date, "isoformat"):
+                update_data["due_on"] = target_date.isoformat()
+
+        if not update_data:
+            raise ValueError("At least one field must be updated")
+
+        # Make API request
+        response = await self.client.patch(
+            f"/repos/{self.owner}/{self.repo}/milestones/{milestone_number}",
+            json=update_data,
+        )
+        response.raise_for_status()
+
+        # Convert response to Epic
+        milestone_data = response.json()
+        return self._milestone_to_epic(milestone_data)
+
+    async def update_epic(self, epic_id: str, updates: dict[str, Any]) -> Epic | None:
+        """Update a GitHub epic (milestone) by ID or number.
+
+        This is a convenience wrapper around update_milestone() that accepts
+        either a milestone number or the epic ID from the Epic object.
+
+        Args:
+            epic_id: Epic ID (e.g., "milestone-5") or milestone number as string
+            updates: Dictionary with fields to update
+
+        Returns:
+            Updated Epic object or None if not found
+
+        """
+        # Extract milestone number from ID
+        if epic_id.startswith("milestone-"):
+            milestone_number = int(epic_id.replace("milestone-", ""))
+        else:
+            milestone_number = int(epic_id)
+
+        return await self.update_milestone(milestone_number, updates)
+
+    async def add_attachment_to_issue(
+        self, issue_number: int, file_path: str, comment: str | None = None
+    ) -> dict[str, Any]:
+        """Attach file to GitHub issue via comment.
+
+        GitHub doesn't have direct file attachment API. This method:
+        1. Creates a comment with the file reference
+        2. Returns metadata about the attachment
+
+        Note: GitHub's actual file upload in comments requires browser-based
+        drag-and-drop or git-lfs. This method creates a placeholder comment
+        that users can edit to add actual file attachments through the UI.
+
+        Args:
+            issue_number: Issue number
+            file_path: Path to file to attach
+            comment: Optional comment text (defaults to "Attached: {filename}")
+
+        Returns:
+            Dictionary with comment data and file info
+
+        Raises:
+            FileNotFoundError: If file doesn't exist
+            ValueError: If file too large (>25 MB)
+
+        Note:
+            GitHub file size limit: 25 MB
+            Supported: Images, videos, documents
+
+        """
+        file_path_obj = Path(file_path)
+        if not file_path_obj.exists():
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        # Check file size (25 MB limit)
+        file_size = file_path_obj.stat().st_size
+        if file_size > 25 * 1024 * 1024:  # 25 MB
+            raise ValueError(
+                f"File too large: {file_size} bytes (max 25 MB). "
+                "Upload file externally and reference URL instead."
+            )
+
+        # Prepare comment body
+        comment_body = comment or f"📎 Attached: `{file_path_obj.name}`"
+        comment_body += (
+            f"\n\n*Note: File `{file_path_obj.name}` ({file_size} bytes) "
+            "needs to be manually uploaded through GitHub UI or referenced via URL.*"
+        )
+
+        # Create comment with file reference
+        response = await self.client.post(
+            f"/repos/{self.owner}/{self.repo}/issues/{issue_number}/comments",
+            json={"body": comment_body},
+        )
+        response.raise_for_status()
+
+        comment_data = response.json()
+
+        return {
+            "comment_id": comment_data["id"],
+            "comment_url": comment_data["html_url"],
+            "filename": file_path_obj.name,
+            "file_size": file_size,
+            "note": "File reference created. Upload file manually through GitHub UI.",
+        }
+
+    async def add_attachment_reference_to_milestone(
+        self, milestone_number: int, file_url: str, description: str
+    ) -> Epic | None:
+        """Add file reference to milestone description.
+
+        Since GitHub milestones don't support direct file attachments,
+        this method appends a markdown link to the milestone description.
+
+        Args:
+            milestone_number: Milestone number
+            file_url: URL to the file (external or GitHub-hosted)
+            description: Description/title for the file
+
+        Returns:
+            Updated Epic object
+
+        Example:
+            await adapter.add_attachment_reference_to_milestone(
+                5,
+                "https://example.com/spec.pdf",
+                "Technical Specification"
+            )
+            # Appends to description: "[Technical Specification](https://example.com/spec.pdf)"
+
+        """
+        # Get current milestone
+        response = await self.client.get(
+            f"/repos/{self.owner}/{self.repo}/milestones/{milestone_number}"
+        )
+        response.raise_for_status()
+        milestone = response.json()
+
+        # Append file reference to description
+        current_desc = milestone.get("description", "")
+        attachment_markdown = f"\n\n📎 [{description}]({file_url})"
+        new_description = current_desc + attachment_markdown
+
+        # Update milestone with new description
+        return await self.update_milestone(
+            milestone_number, {"description": new_description}
+        )
+
+    async def add_attachment(
+        self, ticket_id: str, file_path: str, description: str | None = None
+    ) -> dict[str, Any]:
+        """Add attachment to GitHub ticket (issue or milestone).
+
+        This method routes to appropriate attachment method based on ticket type:
+        - Issues: Creates comment with file reference
+        - Milestones: Not supported, raises NotImplementedError with guidance
+
+        Args:
+            ticket_id: Ticket identifier (issue number or milestone ID)
+            file_path: Path to file to attach
+            description: Optional description
+
+        Returns:
+            Attachment metadata
+
+        Raises:
+            NotImplementedError: For milestones (no native support)
+            FileNotFoundError: If file doesn't exist
+
+        """
+        # Determine ticket type from ID format
+        if ticket_id.startswith("milestone-"):
+            raise NotImplementedError(
+                "GitHub milestones do not support direct file attachments. "
+                "Workaround: Upload file externally and use "
+                "add_attachment_reference_to_milestone() to add URL to description."
+            )
+
+        # Assume it's an issue number
+        issue_number = int(ticket_id.replace("issue-", ""))
+        return await self.add_attachment_to_issue(issue_number, file_path, description)
 
     async def close(self) -> None:
         """Close the HTTP client connection."""

@@ -1,0 +1,162 @@
+"""Example: Upload files and attach them to Linear issues/epics.
+
+This example demonstrates the new file upload and attachment functionality
+in the Linear adapter.
+
+Requirements:
+    - Linear API key (LINEAR_API_KEY environment variable)
+    - Team ID or team key configured
+    - httpx library installed (already in dependencies)
+"""
+
+import asyncio
+import os
+from pathlib import Path
+
+
+async def example_file_upload_and_attachment():
+    """Demonstrate file upload and attachment to Linear issues and epics."""
+    from mcp_ticketer.adapters.linear.adapter import LinearAdapter
+
+    # Initialize adapter with your configuration
+    config = {
+        "api_key": os.getenv("LINEAR_API_KEY"),
+        "team_key": "BTA",  # Replace with your team key
+        # or use team_id: "your-team-uuid"
+    }
+
+    adapter = LinearAdapter(config)
+    await adapter.initialize()
+
+    try:
+        # ===================================================================
+        # Example 1: Update Epic Description
+        # ===================================================================
+        print("=== Example 1: Update Epic Description ===")
+
+        epic_id = "crm-smart-monitoring-system-f59a41a96c52"  # Your epic slug/ID
+        updated_epic = await adapter.update_epic(
+            epic_id,
+            updates={
+                "description": "Updated description with new details",
+                "state": "started",
+                "target_date": "2025-12-31",
+            },
+        )
+
+        if updated_epic:
+            print(f"✓ Updated epic: {updated_epic.title}")
+            print(f"  Description: {updated_epic.description[:100]}...")
+            print()
+
+        # ===================================================================
+        # Example 2: Upload a File
+        # ===================================================================
+        print("=== Example 2: Upload a File ===")
+
+        # Create a test file
+        test_file = Path("/tmp/test_document.txt")
+        test_file.write_text("This is a test document for Linear attachment.")
+
+        # Upload the file to Linear
+        asset_url = await adapter.upload_file(
+            file_path=str(test_file),
+            mime_type="text/plain",  # Optional, will auto-detect if not provided
+        )
+
+        print(f"✓ File uploaded successfully!")
+        print(f"  Asset URL: {asset_url}")
+        print()
+
+        # ===================================================================
+        # Example 3: Attach File to an Issue
+        # ===================================================================
+        print("=== Example 3: Attach File to an Issue ===")
+
+        issue_id = "BTA-123"  # Replace with your issue ID
+        attachment = await adapter.attach_file_to_issue(
+            issue_id=issue_id,
+            file_url=asset_url,
+            title="Test Document",
+            subtitle="Uploaded via API",
+            comment_body="Attaching test document for review",
+        )
+
+        print(f"✓ File attached to issue {issue_id}")
+        print(f"  Attachment ID: {attachment['id']}")
+        print(f"  URL: {attachment['url']}")
+        print()
+
+        # ===================================================================
+        # Example 4: Attach File to an Epic
+        # ===================================================================
+        print("=== Example 4: Attach File to an Epic ===")
+
+        attachment = await adapter.attach_file_to_epic(
+            epic_id=epic_id,
+            file_url=asset_url,
+            title="Epic Documentation",
+            subtitle="Project overview document",
+        )
+
+        print(f"✓ File attached to epic {epic_id}")
+        print(f"  Attachment ID: {attachment['id']}")
+        print(f"  URL: {attachment['url']}")
+        print()
+
+        # ===================================================================
+        # Example 5: Attach External URL
+        # ===================================================================
+        print("=== Example 5: Attach External URL ===")
+
+        # You can also attach external URLs without uploading
+        external_attachment = await adapter.attach_file_to_issue(
+            issue_id=issue_id,
+            file_url="https://example.com/document.pdf",
+            title="External Document",
+            subtitle="Reference document",
+        )
+
+        print(f"✓ External URL attached to issue {issue_id}")
+        print(f"  Attachment ID: {external_attachment['id']}")
+        print()
+
+        # ===================================================================
+        # Example 6: Upload Multiple Files
+        # ===================================================================
+        print("=== Example 6: Upload Multiple Files ===")
+
+        # Create multiple test files
+        files_to_upload = []
+        for i in range(3):
+            file_path = Path(f"/tmp/test_file_{i}.txt")
+            file_path.write_text(f"Test file number {i}")
+            files_to_upload.append(file_path)
+
+        # Upload all files
+        asset_urls = []
+        for file_path in files_to_upload:
+            url = await adapter.upload_file(str(file_path))
+            asset_urls.append(url)
+            print(f"✓ Uploaded: {file_path.name} -> {url}")
+
+        # Attach all files to an issue
+        for i, url in enumerate(asset_urls):
+            await adapter.attach_file_to_issue(
+                issue_id=issue_id,
+                file_url=url,
+                title=f"Batch Upload {i + 1}",
+            )
+
+        print(f"✓ Attached {len(asset_urls)} files to issue {issue_id}")
+        print()
+
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        await adapter.close()
+
+
+if __name__ == "__main__":
+    # Run the example
+    asyncio.run(example_file_upload_and_attachment())

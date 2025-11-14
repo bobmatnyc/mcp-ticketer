@@ -4,15 +4,19 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import mimetypes
 import os
+from pathlib import Path
 from typing import Any
 
 try:
     from gql import gql
     from gql.transport.exceptions import TransportQueryError
+    import httpx
 except ImportError:
     gql = None
     TransportQueryError = Exception
+    httpx = None
 
 import builtins
 
@@ -20,27 +24,15 @@ from ...core.adapter import BaseAdapter
 from ...core.models import Comment, Epic, SearchQuery, Task, TicketState
 from ...core.registry import AdapterRegistry
 from .client import LinearGraphQLClient
-from .mappers import (
-    build_linear_issue_input,
-    build_linear_issue_update_input,
-    map_linear_comment_to_comment,
-    map_linear_issue_to_task,
-    map_linear_project_to_epic,
-)
-from .queries import (
-    ALL_FRAGMENTS,
-    CREATE_ISSUE_MUTATION,
-    LIST_ISSUES_QUERY,
-    SEARCH_ISSUES_QUERY,
-    UPDATE_ISSUE_MUTATION,
-    WORKFLOW_STATES_QUERY,
-)
-from .types import (
-    LinearStateMapping,
-    build_issue_filter,
-    get_linear_priority,
-    get_linear_state_type,
-)
+from .mappers import (build_linear_issue_input,
+                      build_linear_issue_update_input,
+                      map_linear_comment_to_comment, map_linear_issue_to_task,
+                      map_linear_project_to_epic)
+from .queries import (ALL_FRAGMENTS, CREATE_ISSUE_MUTATION, LIST_ISSUES_QUERY,
+                      SEARCH_ISSUES_QUERY, UPDATE_ISSUE_MUTATION,
+                      WORKFLOW_STATES_QUERY)
+from .types import (LinearStateMapping, build_issue_filter,
+                    get_linear_priority, get_linear_state_type)
 
 
 class LinearAdapter(BaseAdapter[Task]):
@@ -745,6 +737,99 @@ class LinearAdapter(BaseAdapter[Task]):
         except Exception as e:
             raise ValueError(f"Failed to create Linear project: {e}") from e
 
+    async def update_epic(
+        self, epic_id: str, updates: dict[str, Any]
+    ) -> Epic | None:
+        """Update a Linear project (Epic) with specified fields.
+
+        Args:
+            epic_id: Linear project UUID or slug-shortid
+            updates: Dictionary of fields to update. Supported fields:
+                - title: Project name
+                - description: Project description
+                - state: Project state (e.g., "planned", "started", "completed", "canceled")
+                - target_date: Target completion date (ISO format YYYY-MM-DD)
+                - color: Project color
+                - icon: Project icon
+
+        Returns:
+            Updated Epic object or None if not found
+
+        Raises:
+            ValueError: If update fails or project not found
+
+        """
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        # Resolve project identifier to UUID if needed
+        project_uuid = await self._resolve_project_id(epic_id)
+        if not project_uuid:
+            raise ValueError(f"Project '{epic_id}' not found")
+
+        # Build update input from updates dict
+        update_input = {}
+
+        if "title" in updates:
+            update_input["name"] = updates["title"]
+        if "description" in updates:
+            update_input["description"] = updates["description"]
+        if "state" in updates:
+            update_input["state"] = updates["state"]
+        if "target_date" in updates:
+            update_input["targetDate"] = updates["target_date"]
+        if "color" in updates:
+            update_input["color"] = updates["color"]
+        if "icon" in updates:
+            update_input["icon"] = updates["icon"]
+
+        # ProjectUpdate mutation
+        update_query = """
+            mutation UpdateProject($id: String!, $input: ProjectUpdateInput!) {
+                projectUpdate(id: $id, input: $input) {
+                    success
+                    project {
+                        id
+                        name
+                        description
+                        state
+                        createdAt
+                        updatedAt
+                        url
+                        icon
+                        color
+                        targetDate
+                        startedAt
+                        completedAt
+                        teams {
+                            nodes {
+                                id
+                                name
+                                key
+                                description
+                            }
+                        }
+                    }
+                }
+            }
+        """
+
+        try:
+            result = await self.client.execute_mutation(
+                update_query, {"id": project_uuid, "input": update_input}
+            )
+
+            if not result["projectUpdate"]["success"]:
+                raise ValueError(f"Failed to update Linear project '{epic_id}'")
+
+            updated_project = result["projectUpdate"]["project"]
+            return map_linear_project_to_epic(updated_project)
+
+        except Exception as e:
+            raise ValueError(f"Failed to update Linear project: {e}") from e
+
     async def read(self, ticket_id: str) -> Task | None:
         """Read a Linear issue by identifier with full details.
 
@@ -1172,6 +1257,277 @@ class LinearAdapter(BaseAdapter[Task]):
 
         except Exception:
             return []
+
+    async def upload_file(
+        self, file_path: str, mime_type: str | None = None
+    ) -> str:
+        """Upload a file to Linear's storage and return the asset URL.
+
+        This method implements Linear's three-step file upload process:
+        1. Request a pre-signed upload URL via fileUpload mutation
+        2. Upload the file to S3 using the pre-signed URL
+        3. Return the asset URL for use in attachments
+
+        Args:
+            file_path: Path to the file to upload
+            mime_type: MIME type of the file. If None, will be auto-detected.
+
+        Returns:
+            Asset URL that can be used with attachmentCreate mutation
+
+        Raises:
+            ValueError: If file doesn't exist, upload fails, or httpx not available
+            FileNotFoundError: If the specified file doesn't exist
+
+        """
+        if httpx is None:
+            raise ValueError(
+                "httpx library not installed. Install with: pip install httpx"
+            )
+
+        # Validate file exists
+        file_path_obj = Path(file_path)
+        if not file_path_obj.exists():
+            raise FileNotFoundError(f"File not found: {file_path}")
+        if not file_path_obj.is_file():
+            raise ValueError(f"Path is not a file: {file_path}")
+
+        # Get file info
+        file_size = file_path_obj.stat().st_size
+        filename = file_path_obj.name
+
+        # Auto-detect MIME type if not provided
+        if mime_type is None:
+            mime_type, _ = mimetypes.guess_type(file_path)
+            if mime_type is None:
+                # Default to binary if can't detect
+                mime_type = "application/octet-stream"
+
+        # Step 1: Request pre-signed upload URL
+        upload_mutation = """
+            mutation FileUpload($contentType: String!, $filename: String!, $size: Int!) {
+                fileUpload(contentType: $contentType, filename: $filename, size: $size) {
+                    success
+                    uploadFile {
+                        uploadUrl
+                        assetUrl
+                        headers {
+                            key
+                            value
+                        }
+                    }
+                }
+            }
+        """
+
+        try:
+            result = await self.client.execute_mutation(
+                upload_mutation,
+                {
+                    "contentType": mime_type,
+                    "filename": filename,
+                    "size": file_size,
+                },
+            )
+
+            if not result["fileUpload"]["success"]:
+                raise ValueError("Failed to get upload URL from Linear API")
+
+            upload_file_data = result["fileUpload"]["uploadFile"]
+            upload_url = upload_file_data["uploadUrl"]
+            asset_url = upload_file_data["assetUrl"]
+            headers_list = upload_file_data.get("headers", [])
+
+            # Convert headers list to dict
+            upload_headers = {h["key"]: h["value"] for h in headers_list}
+            # Add Content-Type header
+            upload_headers["Content-Type"] = mime_type
+
+            # Step 2: Upload file to S3 using pre-signed URL
+            async with httpx.AsyncClient() as http_client:
+                with open(file_path, "rb") as f:
+                    file_content = f.read()
+
+                response = await http_client.put(
+                    upload_url,
+                    content=file_content,
+                    headers=upload_headers,
+                    timeout=60.0,  # 60 second timeout for large files
+                )
+
+                if response.status_code not in (200, 201, 204):
+                    raise ValueError(
+                        f"Failed to upload file to S3. Status: {response.status_code}, "
+                        f"Response: {response.text}"
+                    )
+
+            # Step 3: Return asset URL
+            logging.getLogger(__name__).info(
+                f"Successfully uploaded file '{filename}' ({file_size} bytes) to Linear"
+            )
+            return asset_url
+
+        except Exception as e:
+            raise ValueError(f"Failed to upload file '{filename}': {e}") from e
+
+    async def attach_file_to_issue(
+        self,
+        issue_id: str,
+        file_url: str,
+        title: str,
+        subtitle: str | None = None,
+        comment_body: str | None = None,
+    ) -> dict[str, Any]:
+        """Attach a file to a Linear issue.
+
+        The file must already be uploaded using upload_file() or be a publicly
+        accessible URL.
+
+        Args:
+            issue_id: Linear issue identifier (e.g., "ENG-842") or UUID
+            file_url: URL of the file (from upload_file() or external URL)
+            title: Title for the attachment
+            subtitle: Optional subtitle for the attachment
+            comment_body: Optional comment text to include with the attachment
+
+        Returns:
+            Dictionary with attachment details including id, title, url, etc.
+
+        Raises:
+            ValueError: If attachment creation fails or issue not found
+
+        """
+        # Resolve issue identifier to UUID
+        issue_uuid = await self._resolve_issue_id(issue_id)
+        if not issue_uuid:
+            raise ValueError(f"Issue '{issue_id}' not found")
+
+        # Build attachment input
+        attachment_input: dict[str, Any] = {
+            "issueId": issue_uuid,
+            "title": title,
+            "url": file_url,
+        }
+
+        if subtitle:
+            attachment_input["subtitle"] = subtitle
+
+        if comment_body:
+            attachment_input["commentBody"] = comment_body
+
+        # Create attachment mutation
+        attachment_mutation = """
+            mutation AttachmentCreate($input: AttachmentCreateInput!) {
+                attachmentCreate(input: $input) {
+                    success
+                    attachment {
+                        id
+                        title
+                        url
+                        subtitle
+                        metadata
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        """
+
+        try:
+            result = await self.client.execute_mutation(
+                attachment_mutation, {"input": attachment_input}
+            )
+
+            if not result["attachmentCreate"]["success"]:
+                raise ValueError(f"Failed to attach file to issue '{issue_id}'")
+
+            attachment = result["attachmentCreate"]["attachment"]
+            logging.getLogger(__name__).info(
+                f"Successfully attached file '{title}' to issue '{issue_id}'"
+            )
+            return attachment
+
+        except Exception as e:
+            raise ValueError(
+                f"Failed to attach file to issue '{issue_id}': {e}"
+            ) from e
+
+    async def attach_file_to_epic(
+        self,
+        epic_id: str,
+        file_url: str,
+        title: str,
+        subtitle: str | None = None,
+    ) -> dict[str, Any]:
+        """Attach a file to a Linear project (Epic).
+
+        The file must already be uploaded using upload_file() or be a publicly
+        accessible URL.
+
+        Args:
+            epic_id: Linear project UUID or slug-shortid
+            file_url: URL of the file (from upload_file() or external URL)
+            title: Title for the attachment
+            subtitle: Optional subtitle for the attachment
+
+        Returns:
+            Dictionary with attachment details including id, title, url, etc.
+
+        Raises:
+            ValueError: If attachment creation fails or project not found
+
+        """
+        # Resolve project identifier to UUID
+        project_uuid = await self._resolve_project_id(epic_id)
+        if not project_uuid:
+            raise ValueError(f"Project '{epic_id}' not found")
+
+        # Build attachment input (use projectId instead of issueId)
+        attachment_input: dict[str, Any] = {
+            "projectId": project_uuid,
+            "title": title,
+            "url": file_url,
+        }
+
+        if subtitle:
+            attachment_input["subtitle"] = subtitle
+
+        # Create attachment mutation (same as for issues)
+        attachment_mutation = """
+            mutation AttachmentCreate($input: AttachmentCreateInput!) {
+                attachmentCreate(input: $input) {
+                    success
+                    attachment {
+                        id
+                        title
+                        url
+                        subtitle
+                        metadata
+                        createdAt
+                        updatedAt
+                    }
+                }
+            }
+        """
+
+        try:
+            result = await self.client.execute_mutation(
+                attachment_mutation, {"input": attachment_input}
+            )
+
+            if not result["attachmentCreate"]["success"]:
+                raise ValueError(f"Failed to attach file to project '{epic_id}'")
+
+            attachment = result["attachmentCreate"]["attachment"]
+            logging.getLogger(__name__).info(
+                f"Successfully attached file '{title}' to project '{epic_id}'"
+            )
+            return attachment
+
+        except Exception as e:
+            raise ValueError(
+                f"Failed to attach file to project '{epic_id}': {e}"
+            ) from e
 
     async def close(self) -> None:
         """Close the adapter and clean up resources."""

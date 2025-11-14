@@ -13,7 +13,8 @@ from httpx import AsyncClient, HTTPStatusError, TimeoutException
 
 from ..core.adapter import BaseAdapter
 from ..core.env_loader import load_adapter_config, validate_adapter_config
-from ..core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
+from ..core.models import (Attachment, Comment, Epic, Priority, SearchQuery,
+                           Task, TicketState)
 from ..core.registry import AdapterRegistry
 
 logger = logging.getLogger(__name__)
@@ -994,6 +995,210 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             return await self._make_request("GET", "myself")
         except Exception:
             return None
+
+    async def update_epic(
+        self, epic_id: str, updates: dict[str, Any]
+    ) -> Epic | None:
+        """Update a JIRA Epic with epic-specific field handling.
+
+        Args:
+            epic_id: Epic identifier (key like PROJ-123 or ID)
+            updates: Dictionary with fields to update:
+                - title: Epic title (maps to summary)
+                - description: Epic description (auto-converted to ADF)
+                - state: TicketState value (transitions via workflow)
+                - tags: List of labels
+                - priority: Priority level
+
+        Returns:
+            Updated Epic object or None if not found
+
+        Raises:
+            ValueError: If no fields provided for update
+            HTTPStatusError: If update fails
+
+        """
+        fields = {}
+
+        # Map title to summary
+        if "title" in updates:
+            fields["summary"] = updates["title"]
+
+        # Convert description to ADF format
+        if "description" in updates:
+            fields["description"] = self._convert_to_adf(updates["description"])
+
+        # Map tags to labels
+        if "tags" in updates:
+            fields["labels"] = updates["tags"]
+
+        # Map priority (some JIRA configs allow priority on Epics)
+        if "priority" in updates:
+            priority_value = updates["priority"]
+            if isinstance(priority_value, Priority):
+                fields["priority"] = {"name": self._map_priority_to_jira(priority_value)}
+            else:
+                # String priority passed directly
+                fields["priority"] = {"name": priority_value}
+
+        if not fields and "state" not in updates:
+            raise ValueError("At least one field must be updated")
+
+        # Apply field updates if any
+        if fields:
+            await self._make_request(
+                "PUT", f"issue/{epic_id}", data={"fields": fields}
+            )
+
+        # Handle state transitions separately (JIRA uses workflow transitions)
+        if "state" in updates:
+            await self.transition_state(epic_id, updates["state"])
+
+        # Fetch and return updated epic
+        return await self.read(epic_id)
+
+    async def add_attachment(
+        self, ticket_id: str, file_path: str, description: str | None = None
+    ) -> Attachment:
+        """Attach file to JIRA issue (including Epic).
+
+        Args:
+            ticket_id: Issue key (e.g., PROJ-123) or ID
+            file_path: Path to file to attach
+            description: Optional description (stored in metadata, not used by JIRA directly)
+
+        Returns:
+            Attachment object with metadata
+
+        Raises:
+            FileNotFoundError: If file doesn't exist
+            ValueError: If credentials invalid
+            HTTPStatusError: If upload fails
+
+        """
+        from pathlib import Path
+
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        file_path_obj = Path(file_path)
+        if not file_path_obj.exists():
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        # JIRA requires special header for attachment upload
+        headers = {
+            "X-Atlassian-Token": "no-check",
+            # Don't set Content-Type - let httpx handle multipart
+        }
+
+        # Prepare multipart file upload
+        with open(file_path_obj, "rb") as f:
+            files = {"file": (file_path_obj.name, f, "application/octet-stream")}
+
+            url = f"{self.api_base}/issue/{ticket_id}/attachments"
+
+            # Use existing client infrastructure
+            async with await self._get_client() as client:
+                response = await client.post(
+                    url, files=files, headers={**self.headers, **headers}
+                )
+                response.raise_for_status()
+
+                # JIRA returns array with single attachment
+                attachment_data = response.json()[0]
+
+                return Attachment(
+                    id=attachment_data["id"],
+                    ticket_id=ticket_id,
+                    filename=attachment_data["filename"],
+                    url=attachment_data["content"],
+                    content_type=attachment_data["mimeType"],
+                    size_bytes=attachment_data["size"],
+                    created_at=parse_jira_datetime(attachment_data["created"]),
+                    created_by=attachment_data["author"]["displayName"],
+                    description=description,
+                    metadata={"jira": attachment_data},
+                )
+
+    async def get_attachments(self, ticket_id: str) -> builtins.list[Attachment]:
+        """Get all attachments for a JIRA issue.
+
+        Args:
+            ticket_id: Issue key or ID
+
+        Returns:
+            List of Attachment objects
+
+        Raises:
+            ValueError: If credentials invalid
+            HTTPStatusError: If request fails
+
+        """
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        # Fetch issue with attachment field
+        issue = await self._make_request(
+            "GET", f"issue/{ticket_id}", params={"fields": "attachment"}
+        )
+
+        attachments = []
+        for att_data in issue.get("fields", {}).get("attachment", []):
+            attachments.append(
+                Attachment(
+                    id=att_data["id"],
+                    ticket_id=ticket_id,
+                    filename=att_data["filename"],
+                    url=att_data["content"],
+                    content_type=att_data["mimeType"],
+                    size_bytes=att_data["size"],
+                    created_at=parse_jira_datetime(att_data["created"]),
+                    created_by=att_data["author"]["displayName"],
+                    metadata={"jira": att_data},
+                )
+            )
+
+        return attachments
+
+    async def delete_attachment(
+        self, ticket_id: str, attachment_id: str
+    ) -> bool:
+        """Delete an attachment from a JIRA issue.
+
+        Args:
+            ticket_id: Issue key or ID (for validation/context)
+            attachment_id: Attachment ID to delete
+
+        Returns:
+            True if deleted successfully, False otherwise
+
+        Raises:
+            ValueError: If credentials invalid
+
+        """
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        try:
+            await self._make_request("DELETE", f"attachment/{attachment_id}")
+            return True
+        except HTTPStatusError as e:
+            if e.response.status_code == 404:
+                logger.warning(f"Attachment {attachment_id} not found")
+                return False
+            logger.error(
+                f"Failed to delete attachment {attachment_id}: {e.response.status_code} - {e.response.text}"
+            )
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error deleting attachment {attachment_id}: {e}")
+            return False
 
     async def close(self) -> None:
         """Close the adapter and cleanup resources."""
