@@ -5,15 +5,8 @@ from datetime import datetime
 import pytest
 from pydantic import ValidationError
 
-from mcp_ticketer.core.models import (
-    Comment,
-    Epic,
-    Priority,
-    SearchQuery,
-    Task,
-    TicketState,
-    TicketType,
-)
+from mcp_ticketer.core.models import (Comment, Epic, Priority, SearchQuery,
+                                      Task, TicketState, TicketType)
 
 
 @pytest.mark.unit

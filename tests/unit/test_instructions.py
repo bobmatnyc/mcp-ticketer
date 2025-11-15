@@ -14,13 +14,11 @@ from pathlib import Path
 
 import pytest
 
-from mcp_ticketer.core.instructions import (
-    InstructionsError,
-    InstructionsNotFoundError,
-    InstructionsValidationError,
-    TicketInstructionsManager,
-    get_instructions,
-)
+from mcp_ticketer.core.instructions import (InstructionsError,
+                                            InstructionsNotFoundError,
+                                            InstructionsValidationError,
+                                            TicketInstructionsManager,
+                                            get_instructions)
 
 
 @pytest.mark.unit
