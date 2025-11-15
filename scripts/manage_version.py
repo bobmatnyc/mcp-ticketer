@@ -168,14 +168,17 @@ class VersionManager:
 
         content = self.pyproject_file.read_text()
 
-        # Look for static version in [project] or [tool.poetry]
-        if 'version = "' in content:
-            # Update if found (though our project uses dynamic versioning)
+        # Look for static version in [project] section only
+        # Use more specific regex to avoid matching tool.ruff.target-version
+        pattern = r'(\[project\][^\[]*?version\s*=\s*)["\'][^"\']+["\']'
+        if re.search(pattern, content, re.DOTALL):
+            # Update only the version in [project] section
             content = re.sub(
-                r'version\s*=\s*["\'][^"\']+["\']',
-                f'version = "{new_version}"',
+                pattern,
+                rf'\g<1>"{new_version}"',
                 content,
                 count=1,
+                flags=re.DOTALL,
             )
             self.pyproject_file.write_text(content)
             print(
