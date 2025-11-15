@@ -133,7 +133,7 @@ include = ["mcp_ticketer*"]
 exclude = ["tests*"]
 
 [tool.setuptools.package-data]
-mcp_ticketer = ["py.typed", "*.json", "*.yaml", "*.yml"]
+mcp_ticketer = ["py.typed", "*.json", "*.yaml", "*.yml", "defaults/*.md"]
 
 [tool.black]
 line-length = 88
