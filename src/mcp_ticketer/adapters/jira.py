@@ -13,8 +13,15 @@ from httpx import AsyncClient, HTTPStatusError, TimeoutException
 
 from ..core.adapter import BaseAdapter
 from ..core.env_loader import load_adapter_config, validate_adapter_config
-from ..core.models import (Attachment, Comment, Epic, Priority, SearchQuery,
-                           Task, TicketState)
+from ..core.models import (
+    Attachment,
+    Comment,
+    Epic,
+    Priority,
+    SearchQuery,
+    Task,
+    TicketState,
+)
 from ..core.registry import AdapterRegistry
 
 logger = logging.getLogger(__name__)
@@ -996,9 +1003,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         except Exception:
             return None
 
-    async def update_epic(
-        self, epic_id: str, updates: dict[str, Any]
-    ) -> Epic | None:
+    async def update_epic(self, epic_id: str, updates: dict[str, Any]) -> Epic | None:
         """Update a JIRA Epic with epic-specific field handling.
 
         Args:
@@ -1036,7 +1041,9 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         if "priority" in updates:
             priority_value = updates["priority"]
             if isinstance(priority_value, Priority):
-                fields["priority"] = {"name": self._map_priority_to_jira(priority_value)}
+                fields["priority"] = {
+                    "name": self._map_priority_to_jira(priority_value)
+                }
             else:
                 # String priority passed directly
                 fields["priority"] = {"name": priority_value}
@@ -1046,9 +1053,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
         # Apply field updates if any
         if fields:
-            await self._make_request(
-                "PUT", f"issue/{epic_id}", data={"fields": fields}
-            )
+            await self._make_request("PUT", f"issue/{epic_id}", data={"fields": fields})
 
         # Handle state transitions separately (JIRA uses workflow transitions)
         if "state" in updates:
@@ -1164,9 +1169,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
         return attachments
 
-    async def delete_attachment(
-        self, ticket_id: str, attachment_id: str
-    ) -> bool:
+    async def delete_attachment(self, ticket_id: str, attachment_id: str) -> bool:
         """Delete an attachment from a JIRA issue.
 
         Args:

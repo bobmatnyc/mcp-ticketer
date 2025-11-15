@@ -127,10 +127,11 @@ Thumbs.db
 test-tickets/
 
 # Test artifacts (generated during development)
-TEST_*.md
-test_*.sh
-MCP_COMMAND_*.md
-MCP_COMMAND_*.sh
+# Moved to docs/dev/test-reports/ - do not ignore committed reports
+# TEST_*.md
+# test_*.sh
+# MCP_COMMAND_*.md
+# MCP_COMMAND_*.sh
 
 # Environment variables
 .env
@@ -175,9 +176,10 @@ Thumbs.db
 src/*.egg-info/
 .build_metadata.json
 
-# Documentation build
-docs/api/
+# Documentation build (Sphinx artifacts)
+docs/_build/
 docs/_autosummary/
+# Keep docs/api/ - it contains important documentation
 
 # CI/CD
 .github/workflows/test-results/

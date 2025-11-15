@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -86,7 +86,7 @@ class TestLinearFileUpload:
             }
         }
 
-        adapter.client.execute_query = AsyncMock(return_value=mock_upload_response)
+        adapter.client.execute_mutation = AsyncMock(return_value=mock_upload_response)
 
         # Mock httpx PUT request
         with patch("httpx.AsyncClient") as mock_httpx:
@@ -101,7 +101,7 @@ class TestLinearFileUpload:
             result = await adapter.upload_file(str(temp_text_file), "text/plain")
 
             assert result == "https://linear-assets.s3.amazonaws.com/test-file.txt"
-            adapter.client.execute_query.assert_called_once()
+            adapter.client.execute_mutation.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_upload_image_file_success(
@@ -121,7 +121,7 @@ class TestLinearFileUpload:
             }
         }
 
-        adapter.client.execute_query = AsyncMock(return_value=mock_upload_response)
+        adapter.client.execute_mutation = AsyncMock(return_value=mock_upload_response)
 
         with patch("httpx.AsyncClient") as mock_httpx:
             mock_response = Mock()
@@ -154,7 +154,7 @@ class TestLinearFileUpload:
             }
         }
 
-        adapter.client.execute_query = AsyncMock(return_value=mock_upload_response)
+        adapter.client.execute_mutation = AsyncMock(return_value=mock_upload_response)
 
         with patch("httpx.AsyncClient") as mock_httpx:
             mock_response = Mock()
@@ -185,7 +185,7 @@ class TestLinearFileUpload:
             }
         }
 
-        adapter.client.execute_query = AsyncMock(return_value=mock_upload_response)
+        adapter.client.execute_mutation = AsyncMock(return_value=mock_upload_response)
 
         with patch("httpx.AsyncClient") as mock_httpx:
             mock_response = Mock()
@@ -229,7 +229,7 @@ class TestLinearFileUpload:
             }
         }
 
-        adapter.client.execute_query = AsyncMock(return_value=mock_upload_response)
+        adapter.client.execute_mutation = AsyncMock(return_value=mock_upload_response)
 
         with patch("httpx.AsyncClient") as mock_httpx:
             # Mock S3 upload failure
@@ -250,9 +250,7 @@ class TestLinearFileUpload:
         self, adapter: LinearAdapter, temp_text_file: Path
     ) -> None:
         """Test handling GraphQL error during upload initialization."""
-        adapter.client.execute_query = AsyncMock(
-            side_effect=Exception("GraphQL error")
-        )
+        adapter.client.execute_mutation = AsyncMock(side_effect=Exception("GraphQL error"))
 
         with pytest.raises(Exception, match="GraphQL error"):
             await adapter.upload_file(str(temp_text_file))
@@ -274,7 +272,7 @@ class TestLinearFileUpload:
             }
         }
 
-        adapter.client.execute_query = AsyncMock(return_value=mock_upload_response)
+        adapter.client.execute_mutation = AsyncMock(return_value=mock_upload_response)
 
         with patch("httpx.AsyncClient") as mock_httpx:
             mock_response = Mock()
@@ -311,7 +309,7 @@ class TestLinearFileUpload:
             }
         }
 
-        adapter.client.execute_query = AsyncMock(return_value=mock_upload_response)
+        adapter.client.execute_mutation = AsyncMock(return_value=mock_upload_response)
 
         with patch("httpx.AsyncClient") as mock_httpx:
             mock_response = Mock()
@@ -342,7 +340,7 @@ class TestLinearFileUpload:
             }
         }
 
-        adapter.client.execute_query = AsyncMock(return_value=mock_upload_response)
+        adapter.client.execute_mutation = AsyncMock(return_value=mock_upload_response)
 
         with patch("httpx.AsyncClient") as mock_httpx:
             mock_response = Mock()
@@ -389,8 +387,14 @@ class TestLinearFileAttachment:
     async def test_attach_file_to_issue_success(self, adapter: LinearAdapter) -> None:
         """Test attaching uploaded file to issue successfully."""
         issue_id = "TEST-123"
+
+        # Mock issue resolution
+        adapter._resolve_issue_id = AsyncMock(return_value="uuid-issue-123")
         file_url = "https://linear-assets.s3.amazonaws.com/test.txt"
         title = "Test Document"
+
+        # Mock issue resolution
+        adapter._resolve_issue_id = AsyncMock(return_value="uuid-issue-123")
 
         mock_response = {
             "attachmentCreate": {
@@ -405,7 +409,7 @@ class TestLinearFileAttachment:
             }
         }
 
-        adapter.client.execute_query = AsyncMock(return_value=mock_response)
+        adapter.client.execute_mutation = AsyncMock(return_value=mock_response)
 
         result = await adapter.attach_file_to_issue(issue_id, file_url, title)
 
@@ -413,7 +417,7 @@ class TestLinearFileAttachment:
         assert result["id"] == "attachment-id-123"
         assert result["title"] == title
         assert result["url"] == file_url
-        adapter.client.execute_query.assert_called_once()
+        adapter.client.execute_mutation.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_attach_file_to_issue_with_subtitle(
@@ -421,6 +425,9 @@ class TestLinearFileAttachment:
     ) -> None:
         """Test attaching file with subtitle."""
         issue_id = "TEST-123"
+
+        # Mock issue resolution
+        adapter._resolve_issue_id = AsyncMock(return_value="uuid-issue-123")
         file_url = "https://linear-assets.s3.amazonaws.com/test.txt"
         title = "Test Document"
         subtitle = "Uploaded via API"
@@ -438,7 +445,7 @@ class TestLinearFileAttachment:
             }
         }
 
-        adapter.client.execute_query = AsyncMock(return_value=mock_response)
+        adapter.client.execute_mutation = AsyncMock(return_value=mock_response)
 
         result = await adapter.attach_file_to_issue(
             issue_id, file_url, title, subtitle=subtitle
@@ -452,6 +459,9 @@ class TestLinearFileAttachment:
     ) -> None:
         """Test attaching file with comment body."""
         issue_id = "TEST-123"
+
+        # Mock issue resolution
+        adapter._resolve_issue_id = AsyncMock(return_value="uuid-issue-123")
         file_url = "https://linear-assets.s3.amazonaws.com/test.txt"
         title = "Test Document"
         comment_body = "Please review this document"
@@ -470,7 +480,7 @@ class TestLinearFileAttachment:
             }
         }
 
-        adapter.client.execute_query = AsyncMock(return_value=mock_attach_response)
+        adapter.client.execute_mutation = AsyncMock(return_value=mock_attach_response)
 
         result = await adapter.attach_file_to_issue(
             issue_id, file_url, title, comment_body=comment_body
@@ -486,6 +496,9 @@ class TestLinearFileAttachment:
         external_url = "https://example.com/document.pdf"
         title = "External Document"
 
+        # Mock issue resolution
+        adapter._resolve_issue_id = AsyncMock(return_value="uuid-issue-123")
+
         mock_response = {
             "attachmentCreate": {
                 "success": True,
@@ -499,7 +512,7 @@ class TestLinearFileAttachment:
             }
         }
 
-        adapter.client.execute_query = AsyncMock(return_value=mock_response)
+        adapter.client.execute_mutation = AsyncMock(return_value=mock_response)
 
         result = await adapter.attach_file_to_issue(issue_id, external_url, title)
 
@@ -510,11 +523,10 @@ class TestLinearFileAttachment:
         self, adapter: LinearAdapter
     ) -> None:
         """Test attaching file to invalid issue ID."""
-        adapter.client.execute_query = AsyncMock(
-            side_effect=ValueError("Issue not found")
-        )
+        # Mock issue resolution to return None (issue not found)
+        adapter._resolve_issue_id = AsyncMock(return_value=None)
 
-        with pytest.raises(ValueError, match="Issue not found"):
+        with pytest.raises(ValueError, match="Issue.*not found"):
             await adapter.attach_file_to_issue(
                 "INVALID-999",
                 "https://example.com/file.txt",
@@ -527,6 +539,9 @@ class TestLinearFileAttachment:
         epic_id = "test-epic-id"
         file_url = "https://linear-assets.s3.amazonaws.com/test.txt"
         title = "Epic Documentation"
+
+        # Mock epic resolution
+        adapter._resolve_project_id = AsyncMock(return_value="uuid-epic-123")
 
         mock_response = {
             "attachmentCreate": {
@@ -541,7 +556,7 @@ class TestLinearFileAttachment:
             }
         }
 
-        adapter.client.execute_query = AsyncMock(return_value=mock_response)
+        adapter.client.execute_mutation = AsyncMock(return_value=mock_response)
 
         result = await adapter.attach_file_to_epic(epic_id, file_url, title)
 
@@ -559,6 +574,9 @@ class TestLinearFileAttachment:
         title = "Project Spec"
         subtitle = "Version 1.0"
 
+        # Mock epic resolution
+        adapter._resolve_project_id = AsyncMock(return_value="uuid-epic-123")
+
         mock_response = {
             "attachmentCreate": {
                 "success": True,
@@ -572,7 +590,7 @@ class TestLinearFileAttachment:
             }
         }
 
-        adapter.client.execute_query = AsyncMock(return_value=mock_response)
+        adapter.client.execute_mutation = AsyncMock(return_value=mock_response)
 
         result = await adapter.attach_file_to_epic(
             epic_id, file_url, title, subtitle=subtitle
@@ -585,11 +603,10 @@ class TestLinearFileAttachment:
         self, adapter: LinearAdapter
     ) -> None:
         """Test attaching file to invalid epic ID."""
-        adapter.client.execute_query = AsyncMock(
-            side_effect=ValueError("Project not found")
-        )
+        # Mock epic resolution to return None (epic not found)
+        adapter._resolve_project_id = AsyncMock(return_value=None)
 
-        with pytest.raises(ValueError, match="Project not found"):
+        with pytest.raises(ValueError, match="(Project|Epic).*not found"):
             await adapter.attach_file_to_epic(
                 "invalid-epic",
                 "https://example.com/file.txt",
@@ -602,6 +619,9 @@ class TestLinearFileAttachment:
     ) -> None:
         """Test that attachment record is properly created."""
         issue_id = "TEST-123"
+
+        # Mock issue resolution
+        adapter._resolve_issue_id = AsyncMock(return_value="uuid-issue-123")
         file_url = "https://linear-assets.s3.amazonaws.com/test.txt"
         title = "Test Document"
 
@@ -621,7 +641,7 @@ class TestLinearFileAttachment:
             }
         }
 
-        adapter.client.execute_query = AsyncMock(return_value=mock_response)
+        adapter.client.execute_mutation = AsyncMock(return_value=mock_response)
 
         result = await adapter.attach_file_to_issue(issue_id, file_url, title)
 

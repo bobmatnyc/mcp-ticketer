@@ -20,10 +20,10 @@ from ..core.models import Comment, SearchQuery
 from ..queue import Queue, QueueStatus, WorkerManager
 from ..queue.health_monitor import HealthStatus, QueueHealthMonitor
 from ..queue.ticket_registry import TicketRegistry
-from .configure import (configure_wizard, set_adapter_config,
-                        show_current_config)
+from .configure import configure_wizard, set_adapter_config, show_current_config
 from .diagnostics import run_diagnostics
 from .discover import app as discover_app
+from .instruction_commands import app as instruction_app
 from .migrate_config import migrate_config_command
 from .platform_commands import app as platform_app
 from .queue_commands import app as queue_app
@@ -2242,6 +2242,9 @@ app.add_typer(queue_app, name="queue")
 
 # Add discover command to main app
 app.add_typer(discover_app, name="discover")
+
+# Add instructions command to main app
+app.add_typer(instruction_app, name="instructions")
 
 
 # Add diagnostics command

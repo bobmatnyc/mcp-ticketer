@@ -229,9 +229,7 @@ class TestEpicUpdateMCPTool:
         epic_id = "test-epic-123"
         invalid_date = "not-a-date"
 
-        mock_linear_adapter.update_epic.side_effect = ValueError(
-            "Invalid date format"
-        )
+        mock_linear_adapter.update_epic.side_effect = ValueError("Invalid date format")
 
         with patch(
             "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter",
@@ -243,7 +241,10 @@ class TestEpicUpdateMCPTool:
             )
 
         assert result["status"] == "error"
-        assert "invalid date" in result["error"].lower() or "date" in result["error"].lower()
+        assert (
+            "invalid date" in result["error"].lower()
+            or "date" in result["error"].lower()
+        )
 
     @pytest.mark.asyncio
     async def test_epic_update_unsupported_adapter(
@@ -390,9 +391,7 @@ class TestEpicUpdateMCPTool:
         epic_id = "test-epic-123"
         invalid_state = "invalid_state"
 
-        mock_linear_adapter.update_epic.side_effect = ValueError(
-            "Invalid state value"
-        )
+        mock_linear_adapter.update_epic.side_effect = ValueError("Invalid state value")
 
         with patch(
             "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter",
@@ -404,7 +403,9 @@ class TestEpicUpdateMCPTool:
             )
 
         assert result["status"] == "error"
-        assert "invalid" in result["error"].lower() or "state" in result["error"].lower()
+        assert (
+            "invalid" in result["error"].lower() or "state" in result["error"].lower()
+        )
 
     @pytest.mark.asyncio
     async def test_epic_update_authorization_error(

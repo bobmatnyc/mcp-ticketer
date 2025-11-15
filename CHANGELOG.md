@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Ticket Writing Instructions**: Customizable ticket writing guidelines
+  - Default embedded instructions with comprehensive best practices
+  - Custom project-specific instructions via `.mcp-ticketer/instructions.md`
+  - Core API: `TicketInstructionsManager` class for CRUD operations
+  - CLI commands: `mcp-ticketer instructions add|update|delete|show|path|edit`
+  - MCP tools: `instructions_get`, `instructions_set`, `instructions_reset`, `instructions_validate`
+  - Validation: Min length, empty content checks, markdown structure warnings
+  - Default instructions cover: title guidelines, description structure, acceptance criteria, priority/state usage, tagging, templates
 - **Epic Update Functionality**: Complete epic update support across all adapters
   - Linear: Update projects with description, state (planned/started/completed/canceled), target date, color, and icon
   - Jira: Update epics with ADF-formatted descriptions, workflow state transitions, and custom fields

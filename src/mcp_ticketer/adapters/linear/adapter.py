@@ -10,9 +10,9 @@ from pathlib import Path
 from typing import Any
 
 try:
+    import httpx
     from gql import gql
     from gql.transport.exceptions import TransportQueryError
-    import httpx
 except ImportError:
     gql = None
     TransportQueryError = Exception
@@ -24,15 +24,27 @@ from ...core.adapter import BaseAdapter
 from ...core.models import Comment, Epic, SearchQuery, Task, TicketState
 from ...core.registry import AdapterRegistry
 from .client import LinearGraphQLClient
-from .mappers import (build_linear_issue_input,
-                      build_linear_issue_update_input,
-                      map_linear_comment_to_comment, map_linear_issue_to_task,
-                      map_linear_project_to_epic)
-from .queries import (ALL_FRAGMENTS, CREATE_ISSUE_MUTATION, LIST_ISSUES_QUERY,
-                      SEARCH_ISSUES_QUERY, UPDATE_ISSUE_MUTATION,
-                      WORKFLOW_STATES_QUERY)
-from .types import (LinearStateMapping, build_issue_filter,
-                    get_linear_priority, get_linear_state_type)
+from .mappers import (
+    build_linear_issue_input,
+    build_linear_issue_update_input,
+    map_linear_comment_to_comment,
+    map_linear_issue_to_task,
+    map_linear_project_to_epic,
+)
+from .queries import (
+    ALL_FRAGMENTS,
+    CREATE_ISSUE_MUTATION,
+    LIST_ISSUES_QUERY,
+    SEARCH_ISSUES_QUERY,
+    UPDATE_ISSUE_MUTATION,
+    WORKFLOW_STATES_QUERY,
+)
+from .types import (
+    LinearStateMapping,
+    build_issue_filter,
+    get_linear_priority,
+    get_linear_state_type,
+)
 
 
 class LinearAdapter(BaseAdapter[Task]):
@@ -737,9 +749,7 @@ class LinearAdapter(BaseAdapter[Task]):
         except Exception as e:
             raise ValueError(f"Failed to create Linear project: {e}") from e
 
-    async def update_epic(
-        self, epic_id: str, updates: dict[str, Any]
-    ) -> Epic | None:
+    async def update_epic(self, epic_id: str, updates: dict[str, Any]) -> Epic | None:
         """Update a Linear project (Epic) with specified fields.
 
         Args:
@@ -1258,9 +1268,7 @@ class LinearAdapter(BaseAdapter[Task]):
         except Exception:
             return []
 
-    async def upload_file(
-        self, file_path: str, mime_type: str | None = None
-    ) -> str:
+    async def upload_file(self, file_path: str, mime_type: str | None = None) -> str:
         """Upload a file to Linear's storage and return the asset URL.
 
         This method implements Linear's three-step file upload process:
@@ -1448,9 +1456,7 @@ class LinearAdapter(BaseAdapter[Task]):
             return attachment
 
         except Exception as e:
-            raise ValueError(
-                f"Failed to attach file to issue '{issue_id}': {e}"
-            ) from e
+            raise ValueError(f"Failed to attach file to issue '{issue_id}': {e}") from e
 
     async def attach_file_to_epic(
         self,

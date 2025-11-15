@@ -26,7 +26,7 @@ from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
 from mcp_ticketer.adapters.github import GitHubAdapter
 from mcp_ticketer.adapters.jira import JiraAdapter
 from mcp_ticketer.adapters.linear.adapter import LinearAdapter
-from mcp_ticketer.core.models import Epic, Priority, TicketState
+from mcp_ticketer.core.models import Epic
 
 
 class TestCrossAdapterEpicUpdate:
@@ -176,7 +176,9 @@ class TestCrossAdapterEpicUpdate:
         }
         mock_get_response_after.raise_for_status = Mock()
 
-        jira_adapter.client.get = AsyncMock(side_effect=[mock_get_response, mock_get_response_after])
+        jira_adapter.client.get = AsyncMock(
+            side_effect=[mock_get_response, mock_get_response_after]
+        )
         jira_adapter.client.put = AsyncMock(return_value=mock_put_response)
 
         result = await jira_adapter.update_epic(
@@ -393,9 +395,7 @@ class TestCrossAdapterAttachments:
     @pytest.fixture
     def temp_file(self) -> Path:
         """Create a temporary test file."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".txt", delete=False
-        ) as temp:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as temp:
             temp.write(f"Test file created at {datetime.now().isoformat()}\n")
             temp_path = Path(temp.name)
 
@@ -553,9 +553,7 @@ class TestCrossAdapterAttachments:
             "body": f"Attachment: [{temp_file.name}](...)",
         }
 
-        github_adapter.client.post = AsyncMock(
-            side_effect=[mock_upload, mock_comment]
-        )
+        github_adapter.client.post = AsyncMock(side_effect=[mock_upload, mock_comment])
 
         result = await github_adapter.add_attachment_to_issue(
             issue_number, str(temp_file)

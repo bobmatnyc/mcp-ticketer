@@ -5,7 +5,6 @@ import asyncio
 import os
 import tempfile
 from datetime import datetime
-from pathlib import Path
 
 import pytest
 from dotenv import load_dotenv

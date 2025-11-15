@@ -8,14 +8,13 @@ This test module covers:
 
 from __future__ import annotations
 
-import os
 from datetime import date, timedelta
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from mcp_ticketer.adapters.linear.adapter import LinearAdapter
-from mcp_ticketer.core.models import Epic, TicketState
+from mcp_ticketer.core.models import Epic
 
 
 class TestLinearEpicUpdate:
@@ -276,7 +275,9 @@ class TestLinearEpicUpdate:
             await adapter.update_epic(epic_id, {"description": "test"})
 
     @pytest.mark.asyncio
-    async def test_update_epic_invalid_date_format(self, adapter: LinearAdapter) -> None:
+    async def test_update_epic_invalid_date_format(
+        self, adapter: LinearAdapter
+    ) -> None:
         """Test updating epic with invalid date format."""
         epic_id = "test-epic-id"
 
@@ -302,7 +303,9 @@ class TestLinearEpicUpdate:
             await adapter.update_epic(epic_id, {"description": "test"})
 
     @pytest.mark.asyncio
-    async def test_update_epic_returns_epic_object(self, adapter: LinearAdapter) -> None:
+    async def test_update_epic_returns_epic_object(
+        self, adapter: LinearAdapter
+    ) -> None:
         """Test that update_epic returns a proper Epic object with all fields."""
         epic_id = "test-epic-id"
 

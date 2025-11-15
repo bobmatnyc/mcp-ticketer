@@ -93,7 +93,7 @@ async def ticket_attach(
                     "file_url": file_url,
                     "attachment": result,
                 }
-            except Exception as e:
+            except Exception:
                 # Fall through to legacy method if Linear-specific upload fails
                 pass
 

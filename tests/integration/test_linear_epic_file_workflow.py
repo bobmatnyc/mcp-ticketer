@@ -16,7 +16,6 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 
 from mcp_ticketer.adapters.linear.adapter import LinearAdapter
-from mcp_ticketer.core.models import Epic, Priority, Task, TicketState
 
 
 class TestLinearEpicUpdateWorkflow:
@@ -67,9 +66,7 @@ class TestLinearEpicUpdateWorkflow:
         adapter.client.execute_query = AsyncMock(return_value=create_response)
 
         # Create epic using create_project method
-        epic_id = await adapter.create_project(
-            "Initial Epic", "Initial description"
-        )
+        epic_id = await adapter.create_project("Initial Epic", "Initial description")
 
         assert epic_id is not None
 
@@ -257,9 +254,7 @@ class TestLinearFileAttachmentWorkflow:
     ) -> None:
         """Test: Create file → Upload file → Attach to issue → Verify attachment."""
         # Step 1: Create test file
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".txt", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("Test document content for attachment workflow")
             test_file = Path(f.name)
 
@@ -398,9 +393,7 @@ class TestLinearFileAttachmentWorkflow:
     ) -> None:
         """Test: Upload file → Attach to issue with comment."""
         # Upload file
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".txt", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("Important document")
             test_file = Path(f.name)
 
@@ -510,9 +503,7 @@ class TestLinearCombinedOperationsWorkflow:
         )
 
         # Step 2: Upload documentation file
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".md", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write("# Epic Documentation\n\nDetailed project specifications...")
             doc_file = Path(f.name)
 

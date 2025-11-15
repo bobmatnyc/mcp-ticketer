@@ -10,8 +10,7 @@ import httpx
 
 from ..core.adapter import BaseAdapter
 from ..core.env_loader import load_adapter_config, validate_adapter_config
-from ..core.models import (Comment, Epic, Priority, SearchQuery, Task,
-                           TicketState)
+from ..core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
 from ..core.registry import AdapterRegistry
 
 
@@ -293,15 +292,14 @@ class GitHubAdapter(BaseAdapter[Task]):
 
         Returns:
             Epic instance
+
         """
         return Epic(
             id=str(milestone["number"]),
             title=milestone["title"],
             description=milestone.get("description", ""),
             state=(
-                TicketState.OPEN
-                if milestone["state"] == "open"
-                else TicketState.CLOSED
+                TicketState.OPEN if milestone["state"] == "open" else TicketState.CLOSED
             ),
             created_at=datetime.fromisoformat(
                 milestone["created_at"].replace("Z", "+00:00")
@@ -1193,10 +1191,7 @@ Fixes #{issue_number}
         pr = pr_response.json()
 
         # Add a comment to the issue about the PR
-        pr_msg = (
-            f"Pull request #{pr['number']} has been created: "
-            f"{pr['html_url']}"
-        )
+        pr_msg = f"Pull request #{pr['number']} has been created: " f"{pr['html_url']}"
         await self.add_comment(
             Comment(
                 ticket_id=ticket_id,

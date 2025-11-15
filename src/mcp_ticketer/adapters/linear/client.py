@@ -16,8 +16,7 @@ except ImportError:
     HTTPXAsyncTransport = None
     TransportError = Exception
 
-from ...core.exceptions import (AdapterError, AuthenticationError,
-                                RateLimitError)
+from ...core.exceptions import AdapterError, AuthenticationError, RateLimitError
 
 
 class LinearGraphQLClient:

@@ -20,6 +20,7 @@ Universal ticket management interface for AI agents with MCP (Model Context Prot
 - **📊 State Machine**: Built-in state transitions with validation
 - **🔍 Advanced Search**: Full-text search with multiple filters
 - **📎 File Attachments**: Upload, list, and manage ticket attachments (AITrackdown adapter)
+- **📝 Custom Instructions**: Customize ticket writing guidelines for your team
 - **📦 Easy Installation**: Available on PyPI with simple pip install
 
 ## 📦 Installation
@@ -168,6 +169,39 @@ mcp-ticketer search "login bug" --state open
 ```
 
 For programmatic access, see the [Attachments Guide](docs/ATTACHMENTS.md).
+
+### 5. Customize Ticket Writing Instructions
+
+Customize ticket guidelines to match your team's conventions:
+
+```bash
+# View current instructions
+mcp-ticketer instructions show
+
+# Add custom instructions from file
+mcp-ticketer instructions add team_guidelines.md
+
+# Edit instructions interactively
+mcp-ticketer instructions edit
+
+# Reset to defaults
+mcp-ticketer instructions delete --yes
+```
+
+**Example custom instructions:**
+```markdown
+# Our Team's Ticket Guidelines
+
+## Title Format
+[TEAM-ID] [Type] Brief description
+
+## Required Sections
+1. Problem Statement
+2. Acceptance Criteria (minimum 3)
+3. Testing Notes
+```
+
+For details, see the [Ticket Instructions Guide](docs/features/ticket_instructions.md).
 
 ## 🤖 MCP Server Integration
 

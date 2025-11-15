@@ -18,7 +18,7 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 
 from mcp_ticketer.adapters.github import GitHubAdapter
-from mcp_ticketer.core.models import Epic, Priority, TicketState
+from mcp_ticketer.core.models import Epic, TicketState
 
 
 class TestGitHubEpicUpdate:
@@ -153,7 +153,9 @@ class TestGitHubEpicUpdate:
         adapter.client.patch = AsyncMock(return_value=mock_response)
 
         # Update uses target_date, which maps to due_on internally
-        result = await adapter.update_milestone(milestone_number, {"target_date": target_date})
+        result = await adapter.update_milestone(
+            milestone_number, {"target_date": target_date}
+        )
 
         assert result is not None
         # Verify the API was called with correct data
@@ -324,9 +326,7 @@ class TestGitHubAttachments:
     @pytest.fixture
     def temp_file(self) -> Path:
         """Create a temporary test file."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".txt", delete=False
-        ) as temp:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as temp:
             temp.write(f"Test attachment created at {datetime.now().isoformat()}\n")
             temp.write("This is test content for GitHub attachments.\n")
             temp_path = Path(temp.name)
@@ -371,9 +371,7 @@ class TestGitHubAttachments:
         assert "comment_url" in result
 
     @pytest.mark.asyncio
-    async def test_add_attachment_file_too_large(
-        self, adapter: GitHubAdapter
-    ) -> None:
+    async def test_add_attachment_file_too_large(self, adapter: GitHubAdapter) -> None:
         """Test that files larger than 25MB are rejected.
 
         GitHub enforces a 25MB limit per file attachment.
@@ -388,9 +386,7 @@ class TestGitHubAttachments:
                 await adapter.add_attachment_to_issue(1, large_file_path)
 
     @pytest.mark.asyncio
-    async def test_add_attachment_file_not_found(
-        self, adapter: GitHubAdapter
-    ) -> None:
+    async def test_add_attachment_file_not_found(self, adapter: GitHubAdapter) -> None:
         """Test that non-existent files raise FileNotFoundError."""
         with pytest.raises(FileNotFoundError):
             await adapter.add_attachment_to_issue(1, "/nonexistent/file.txt")
@@ -462,7 +458,9 @@ class TestGitHubAttachments:
 
         # add_attachment routes to add_attachment_to_issue for issues
         # Note: description param maps to comment param
-        result = await adapter.add_attachment(issue_id, str(temp_file), description="Test")
+        result = await adapter.add_attachment(
+            issue_id, str(temp_file), description="Test"
+        )
 
         assert result is not None
         assert result["filename"] == temp_file.name
@@ -496,7 +494,9 @@ class TestGitHubAttachments:
         mock_response = Mock()
         mock_response.status_code = 500
         mock_response.json.return_value = {"message": "Internal Server Error"}
-        mock_response.raise_for_status.side_effect = Exception("500 Internal Server Error")
+        mock_response.raise_for_status.side_effect = Exception(
+            "500 Internal Server Error"
+        )
 
         adapter.client.post = AsyncMock(return_value=mock_response)
 
@@ -589,7 +589,9 @@ def hello():
 
         adapter.client.patch = AsyncMock(return_value=mock_response)
 
-        result = await adapter.update_milestone(milestone_number, {"title": unicode_title})
+        result = await adapter.update_milestone(
+            milestone_number, {"title": unicode_title}
+        )
 
         assert result is not None
         assert result.title == unicode_title

@@ -26,9 +26,7 @@ class TestTicketAttachMCPTool:
     @pytest.fixture
     def temp_test_file(self) -> Path:
         """Create a temporary test file."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".txt", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("Test attachment content")
             return Path(f.name)
 
@@ -181,7 +179,10 @@ class TestTicketAttachMCPTool:
         assert result["status"] == "completed"
         # Verify description was passed as comment_body
         call_kwargs = mock_linear_adapter.attach_file_to_issue.call_args[1]
-        assert call_kwargs.get("comment_body") == description or call_kwargs.get("subtitle") == description
+        assert (
+            call_kwargs.get("comment_body") == description
+            or call_kwargs.get("subtitle") == description
+        )
 
     @pytest.mark.asyncio
     async def test_attach_file_not_found(
@@ -356,9 +357,7 @@ class TestTicketAttachMCPTool:
         )
         mock_linear_adapter.read.return_value = mock_task
 
-        mock_linear_adapter.upload_file.side_effect = Exception(
-            "S3 upload failed"
-        )
+        mock_linear_adapter.upload_file.side_effect = Exception("S3 upload failed")
 
         with patch(
             "mcp_ticketer.mcp.server.tools.attachment_tools.get_adapter",
@@ -412,9 +411,7 @@ class TestTicketAttachMCPTool:
         """Test attaching an empty file."""
         ticket_id = "TEST-123"
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".txt", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             empty_file = Path(f.name)
 
         mock_task = Task(
