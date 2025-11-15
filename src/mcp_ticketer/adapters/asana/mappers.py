@@ -88,13 +88,25 @@ def map_asana_task_to_task(task: dict[str, Any]) -> Task:
     parent_task = task.get("parent")
     ticket_type = TicketType.TASK if parent_task else TicketType.ISSUE
 
-    # Extract state from completed field
+    # Extract state from completed field AND Status custom field (Bug Fix #3)
     completed = task.get("completed", False)
-    state = map_state_from_asana(completed)
+    state = TicketState.OPEN
+    custom_state = None
+
+    # Check Status custom field first (if present)
+    custom_fields = task.get("custom_fields", [])
+    for field in custom_fields:
+        if field.get("name", "").lower() == "status":
+            enum_value = field.get("enum_value")
+            if enum_value:
+                custom_state = enum_value.get("name", "")
+            break
+
+    # Use enhanced state mapping that considers both Status field and completed boolean
+    state = map_state_from_asana(completed, custom_state)
 
     # Extract priority from custom fields
     priority = Priority.MEDIUM
-    custom_fields = task.get("custom_fields", [])
     for field in custom_fields:
         if field.get("name", "").lower() == "priority" and field.get("enum_value"):
             priority = map_priority_from_asana(field["enum_value"].get("name"))

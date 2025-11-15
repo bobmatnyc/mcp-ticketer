@@ -67,6 +67,7 @@ class AsanaAdapter(BaseAdapter[Task]):
         self._team_gid: str | None = None
         self._default_project_gid: str | None = None
         self._priority_field_gid: str | None = None
+        self._project_custom_fields_cache: dict[str, dict[str, dict]] = {}  # Map project_gid -> {field_name: field_data}
         self._initialized = False
 
         super().__init__(config)
@@ -209,6 +210,91 @@ class AsanaAdapter(BaseAdapter[Task]):
         except Exception as e:
             logger.warning(f"Failed to load custom fields: {e}")
             # Don't fail initialization - priority will be stored in tags if needed
+
+    async def _load_project_custom_fields(self, project_gid: str) -> dict[str, dict]:
+        """Load custom fields configured for a specific project.
+
+        Args:
+            project_gid: Project GID to load custom fields for
+
+        Returns:
+            Dictionary mapping field name (lowercase) to field data
+        """
+        try:
+            project = await self.client.get(
+                f"/projects/{project_gid}",
+                params={"opt_fields": "custom_field_settings.custom_field"}
+            )
+
+            fields = {}
+            for setting in project.get('custom_field_settings', []):
+                field = setting.get('custom_field', {})
+                if field:
+                    field_name = field.get('name', '').lower()
+                    fields[field_name] = {
+                        'gid': field['gid'],
+                        'name': field['name'],
+                        'resource_subtype': field.get('resource_subtype'),
+                        'enum_options': field.get('enum_options', [])
+                    }
+
+            return fields
+        except Exception as e:
+            logger.warning(f"Failed to load project custom fields: {e}")
+            return {}
+
+    async def _get_project_custom_fields(self, project_gid: str) -> dict[str, dict]:
+        """Get custom fields for a project, loading if not cached.
+
+        Args:
+            project_gid: Project GID
+
+        Returns:
+            Dictionary mapping field name (lowercase) to field data
+        """
+        if project_gid not in self._project_custom_fields_cache:
+            self._project_custom_fields_cache[project_gid] = await self._load_project_custom_fields(project_gid)
+        return self._project_custom_fields_cache[project_gid]
+
+    def _map_state_to_status_option(self, state: TicketState, status_field: dict) -> dict | None:
+        """Map TicketState to Asana Status custom field option.
+
+        Args:
+            state: The TicketState to map
+            status_field: The Status custom field data with enum_options
+
+        Returns:
+            Matching enum option or None
+        """
+        # Define state mappings
+        state_mappings = {
+            TicketState.OPEN: ['not started', 'to do', 'backlog', 'open'],
+            TicketState.IN_PROGRESS: ['in progress', 'working on it', 'started'],
+            TicketState.READY: ['ready', 'ready for review', 'completed'],
+            TicketState.TESTED: ['tested', 'qa complete', 'verified'],
+            TicketState.DONE: ['done', 'complete', 'finished'],
+            TicketState.CLOSED: ['closed', 'archived'],
+            TicketState.WAITING: ['waiting', 'blocked', 'on hold'],
+            TicketState.BLOCKED: ['blocked', 'stuck', 'at risk']
+        }
+
+        target_keywords = state_mappings.get(state, [])
+        state_name = state.value.lower()
+
+        # Try to find matching option
+        for option in status_field.get('enum_options', []):
+            option_name = option['name'].lower()
+
+            # Exact match
+            if option_name == state_name:
+                return option
+
+            # Keyword match
+            for keyword in target_keywords:
+                if keyword in option_name or option_name in keyword:
+                    return option
+
+        return None
 
     def _get_state_mapping(self) -> dict[TicketState, str]:
         """Get mapping from universal states to Asana states.
@@ -511,36 +597,99 @@ class AsanaAdapter(BaseAdapter[Task]):
         if not is_valid:
             raise ValueError(error_message)
 
-        # Build update data
-        update_data: dict[str, Any] = {}
-
-        if "title" in updates:
-            update_data["name"] = updates["title"]
-
-        if "description" in updates:
-            update_data["notes"] = updates["description"]
-
-        if "state" in updates:
-            state = updates["state"]
-            if isinstance(state, str):
-                from ...core.models import TicketState
-                state = TicketState(state)
-            update_data["completed"] = map_state_to_asana(state)
-
-        if "assignee" in updates and updates["assignee"]:
-            assignee_gid = await self._resolve_user_gid(updates["assignee"])
-            if assignee_gid:
-                update_data["assignee"] = assignee_gid
-
-        if "due_on" in updates:
-            update_data["due_on"] = updates["due_on"]
-
-        if "due_at" in updates:
-            update_data["due_at"] = updates["due_at"]
-
         try:
+            # Get current task to find its project
+            current = await self.client.get(
+                f"/tasks/{ticket_id}",
+                params={"opt_fields": "projects,custom_fields"}
+            )
+
+            # Build update data
+            update_data: dict[str, Any] = {}
+            custom_fields_update: dict[str, str] = {}
+
+            if "title" in updates:
+                update_data["name"] = updates["title"]
+
+            if "description" in updates:
+                update_data["notes"] = updates["description"]
+
+            if "assignee" in updates and updates["assignee"]:
+                assignee_gid = await self._resolve_user_gid(updates["assignee"])
+                if assignee_gid:
+                    update_data["assignee"] = assignee_gid
+
+            if "due_on" in updates:
+                update_data["due_on"] = updates["due_on"]
+
+            if "due_at" in updates:
+                update_data["due_at"] = updates["due_at"]
+
+            # Handle priority update (Bug Fix #2)
+            if "priority" in updates:
+                # Get project custom fields
+                projects = current.get('projects', [])
+                if projects:
+                    project_gid = projects[0]['gid']
+                    project_fields = await self._get_project_custom_fields(project_gid)
+
+                    # Find Priority field
+                    priority_field = project_fields.get('priority')
+                    if priority_field:
+                        # Map priority value to enum option
+                        priority_value = updates["priority"]
+                        if isinstance(priority_value, str):
+                            priority_value = priority_value.lower()
+                        else:
+                            # Handle Priority enum
+                            priority_value = priority_value.value.lower()
+
+                        priority_option = None
+
+                        for option in priority_field.get('enum_options', []):
+                            if option['name'].lower() == priority_value:
+                                priority_option = option
+                                break
+
+                        if priority_option:
+                            custom_fields_update[priority_field['gid']] = priority_option['gid']
+                        else:
+                            logger.warning(f"Priority option '{priority_value}' not found in field options")
+                    else:
+                        logger.warning("Priority custom field not found in project")
+
+            # Handle state updates (Bug Fix #3 - improved state management)
+            if "state" in updates:
+                state = updates["state"]
+                if isinstance(state, str):
+                    state = TicketState(state)
+
+                # Check if project has Status custom field
+                projects = current.get('projects', [])
+                if projects:
+                    project_gid = projects[0]['gid']
+                    project_fields = await self._get_project_custom_fields(project_gid)
+
+                    status_field = project_fields.get('status')
+                    if status_field:
+                        # Map state to status option (Bug #3 fix)
+                        status_option = self._map_state_to_status_option(state, status_field)
+                        if status_option:
+                            custom_fields_update[status_field['gid']] = status_option['gid']
+
+                # Always set completed boolean for DONE/CLOSED
+                if state in [TicketState.DONE, TicketState.CLOSED]:
+                    update_data["completed"] = True
+                else:
+                    update_data["completed"] = False
+
+            # Apply custom fields if any
+            if custom_fields_update:
+                update_data["custom_fields"] = custom_fields_update
+
             # Update task
-            updated_task = await self.client.put(f"/tasks/{ticket_id}", update_data)
+            if update_data:
+                await self.client.put(f"/tasks/{ticket_id}", update_data)
 
             # Handle tags update separately if provided
             if "tags" in updates:
