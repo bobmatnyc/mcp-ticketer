@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import pytest
+
 # Load environment variables from .env.local
 from dotenv import load_dotenv
 

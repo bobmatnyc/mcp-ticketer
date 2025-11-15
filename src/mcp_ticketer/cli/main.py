@@ -20,8 +20,7 @@ from ..core.models import Comment, SearchQuery
 from ..queue import Queue, QueueStatus, WorkerManager
 from ..queue.health_monitor import HealthStatus, QueueHealthMonitor
 from ..queue.ticket_registry import TicketRegistry
-from .configure import (configure_wizard, set_adapter_config,
-                        show_current_config)
+from .configure import configure_wizard, set_adapter_config, show_current_config
 from .diagnostics import run_diagnostics
 from .discover import app as discover_app
 from .instruction_commands import app as instruction_app

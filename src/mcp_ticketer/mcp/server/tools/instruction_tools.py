@@ -8,9 +8,11 @@ well-structured, consistent tickets.
 from pathlib import Path
 from typing import Any
 
-from ....core.instructions import (InstructionsError,
-                                   InstructionsValidationError,
-                                   TicketInstructionsManager)
+from ....core.instructions import (
+    InstructionsError,
+    InstructionsValidationError,
+    TicketInstructionsManager,
+)
 from ..server_sdk import mcp
 
 

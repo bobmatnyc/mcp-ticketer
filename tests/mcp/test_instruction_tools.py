@@ -15,11 +15,16 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from mcp_ticketer.core.instructions import (InstructionsError,
-                                            InstructionsValidationError)
+from mcp_ticketer.core.instructions import (
+    InstructionsError,
+    InstructionsValidationError,
+)
 from mcp_ticketer.mcp.server.tools.instruction_tools import (
-    instructions_get, instructions_reset, instructions_set,
-    instructions_validate)
+    instructions_get,
+    instructions_reset,
+    instructions_set,
+    instructions_validate,
+)
 
 
 @pytest.mark.asyncio

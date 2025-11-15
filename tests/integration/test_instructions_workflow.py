@@ -15,11 +15,13 @@ import pytest
 from typer.testing import CliRunner
 
 from mcp_ticketer.cli.instruction_commands import app
-from mcp_ticketer.core.instructions import (TicketInstructionsManager,
-                                            get_instructions)
+from mcp_ticketer.core.instructions import TicketInstructionsManager, get_instructions
 from mcp_ticketer.mcp.server.tools.instruction_tools import (
-    instructions_get, instructions_reset, instructions_set,
-    instructions_validate)
+    instructions_get,
+    instructions_reset,
+    instructions_set,
+    instructions_validate,
+)
 
 runner = CliRunner()
 
