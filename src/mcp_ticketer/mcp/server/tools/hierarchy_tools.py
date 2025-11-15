@@ -11,6 +11,7 @@ from typing import Any
 
 from ....core.models import Epic, Priority, Task, TicketType
 from ..server_sdk import get_adapter, mcp
+from .ticket_tools import detect_and_apply_labels
 
 
 @mcp.tool()
@@ -159,8 +160,13 @@ async def issue_create(
     epic_id: str | None = None,
     assignee: str | None = None,
     priority: str = "medium",
+    tags: list[str] | None = None,
+    auto_detect_labels: bool = True,
 ) -> dict[str, Any]:
-    """Create a new issue (standard work item).
+    """Create a new issue (standard work item) with automatic label detection.
+
+    This tool automatically scans available labels/tags and intelligently
+    applies relevant ones based on the issue title and description.
 
     Args:
         title: Issue title (required)
@@ -168,6 +174,8 @@ async def issue_create(
         epic_id: Parent epic ID to link this issue to
         assignee: User ID or email to assign the issue to
         priority: Priority level - must be one of: low, medium, high, critical
+        tags: List of tags to categorize the issue (auto-detection adds to these)
+        auto_detect_labels: Automatically detect and apply relevant labels (default: True)
 
     Returns:
         Created issue details including ID and metadata, or error information
@@ -185,6 +193,13 @@ async def issue_create(
                 "error": f"Invalid priority '{priority}'. Must be one of: low, medium, high, critical",
             }
 
+        # Auto-detect labels if enabled
+        final_tags = tags
+        if auto_detect_labels:
+            final_tags = await detect_and_apply_labels(
+                adapter, title, description or "", tags
+            )
+
         # Create issue (Task with ISSUE type)
         issue = Task(
             title=title,
@@ -193,6 +208,7 @@ async def issue_create(
             parent_epic=epic_id,
             assignee=assignee,
             priority=priority_enum,
+            tags=final_tags or [],
         )
 
         # Create via adapter
@@ -201,6 +217,8 @@ async def issue_create(
         return {
             "status": "completed",
             "issue": created.model_dump(),
+            "labels_applied": created.tags or [],
+            "auto_detected": auto_detect_labels,
         }
     except Exception as e:
         return {
@@ -261,8 +279,13 @@ async def task_create(
     issue_id: str | None = None,
     assignee: str | None = None,
     priority: str = "medium",
+    tags: list[str] | None = None,
+    auto_detect_labels: bool = True,
 ) -> dict[str, Any]:
-    """Create a new task (sub-work item).
+    """Create a new task (sub-work item) with automatic label detection.
+
+    This tool automatically scans available labels/tags and intelligently
+    applies relevant ones based on the task title and description.
 
     Args:
         title: Task title (required)
@@ -270,6 +293,8 @@ async def task_create(
         issue_id: Parent issue ID to link this task to
         assignee: User ID or email to assign the task to
         priority: Priority level - must be one of: low, medium, high, critical
+        tags: List of tags to categorize the task (auto-detection adds to these)
+        auto_detect_labels: Automatically detect and apply relevant labels (default: True)
 
     Returns:
         Created task details including ID and metadata, or error information
@@ -287,6 +312,13 @@ async def task_create(
                 "error": f"Invalid priority '{priority}'. Must be one of: low, medium, high, critical",
             }
 
+        # Auto-detect labels if enabled
+        final_tags = tags
+        if auto_detect_labels:
+            final_tags = await detect_and_apply_labels(
+                adapter, title, description or "", tags
+            )
+
         # Create task (Task with TASK type)
         task = Task(
             title=title,
@@ -295,6 +327,7 @@ async def task_create(
             parent_issue=issue_id,
             assignee=assignee,
             priority=priority_enum,
+            tags=final_tags or [],
         )
 
         # Create via adapter
@@ -303,6 +336,8 @@ async def task_create(
         return {
             "status": "completed",
             "task": created.model_dump(),
+            "labels_applied": created.tags or [],
+            "auto_detected": auto_detect_labels,
         }
     except Exception as e:
         return {

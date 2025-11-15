@@ -1268,6 +1268,32 @@ class LinearAdapter(BaseAdapter[Task]):
         except Exception:
             return []
 
+    async def list_labels(self) -> builtins.list[dict[str, Any]]:
+        """List all labels available in the Linear team.
+
+        Returns:
+            List of label dictionaries with 'id', 'name', and 'color' fields
+
+        """
+        # Ensure labels are loaded
+        if self._labels_cache is None:
+            team_id = await self._ensure_team_id()
+            await self._load_team_labels(team_id)
+
+        # Return cached labels or empty list if not available
+        if not self._labels_cache:
+            return []
+
+        # Transform to standardized format
+        return [
+            {
+                "id": label["id"],
+                "name": label["name"],
+                "color": label.get("color", ""),
+            }
+            for label in self._labels_cache
+        ]
+
     async def upload_file(self, file_path: str, mime_type: str | None = None) -> str:
         """Upload a file to Linear's storage and return the asset URL.
 

@@ -1003,6 +1003,48 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         except Exception:
             return None
 
+    async def list_labels(self) -> builtins.list[dict[str, Any]]:
+        """List all labels used in the project.
+
+        JIRA doesn't have a direct "list all labels" endpoint, so we query
+        recent issues and extract unique labels from them.
+
+        Returns:
+            List of label dictionaries with 'id' and 'name' fields
+
+        """
+        try:
+            # Query recent issues to get labels in use
+            jql = f"project = {self.project_key} ORDER BY updated DESC"
+            data = await self._make_request(
+                "GET",
+                "search/jql",
+                params={
+                    "jql": jql,
+                    "maxResults": 100,  # Sample from recent 100 issues
+                    "fields": "labels",
+                },
+            )
+
+            # Collect unique labels
+            unique_labels = set()
+            for issue in data.get("issues", []):
+                labels = issue.get("fields", {}).get("labels", [])
+                for label in labels:
+                    if isinstance(label, dict):
+                        unique_labels.add(label.get("name", ""))
+                    else:
+                        unique_labels.add(str(label))
+
+            # Transform to standardized format
+            return [
+                {"id": label, "name": label} for label in sorted(unique_labels) if label
+            ]
+
+        except Exception:
+            # Fallback: return empty list if query fails
+            return []
+
     async def update_epic(self, epic_id: str, updates: dict[str, Any]) -> Epic | None:
         """Update a JIRA Epic with epic-specific field handling.
 

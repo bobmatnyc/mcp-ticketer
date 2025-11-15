@@ -1311,6 +1311,29 @@ Fixes #{issue_number}
         response.raise_for_status()
         return response.json()
 
+    async def list_labels(self) -> builtins.list[dict[str, Any]]:
+        """List all labels available in the repository.
+
+        Returns:
+            List of label dictionaries with 'id', 'name', and 'color' fields
+
+        """
+        if self._labels_cache:
+            return self._labels_cache
+
+        response = await self.client.get(f"/repos/{self.owner}/{self.repo}/labels")
+        response.raise_for_status()
+        labels = response.json()
+
+        # Transform to standardized format
+        standardized_labels = [
+            {"id": label["name"], "name": label["name"], "color": label["color"]}
+            for label in labels
+        ]
+
+        self._labels_cache = standardized_labels
+        return standardized_labels
+
     async def update_milestone(
         self, milestone_number: int, updates: dict[str, Any]
     ) -> Epic | None:
