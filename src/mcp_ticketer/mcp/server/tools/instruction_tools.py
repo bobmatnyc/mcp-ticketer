@@ -38,6 +38,7 @@ async def instructions_get() -> dict[str, Any]:
             "source": "custom",
             "path": "/path/to/project/.mcp-ticketer/instructions.md"
         }
+
     """
     try:
         # Use current working directory as project directory
@@ -76,7 +77,7 @@ async def instructions_get() -> dict[str, Any]:
 
 @mcp.tool()
 async def instructions_set(content: str, source: str = "inline") -> dict[str, Any]:
-    """Set custom ticket writing instructions for the project.
+    r"""Set custom ticket writing instructions for the project.
 
     Creates or overwrites custom instructions with the provided content.
     The content is validated before saving.
@@ -99,6 +100,7 @@ async def instructions_set(content: str, source: str = "inline") -> dict[str, An
             content="# Our Team's Ticket Guidelines\\n\\n...",
             source="inline"
         )
+
     """
     try:
         # Validate source parameter
@@ -165,6 +167,7 @@ async def instructions_reset() -> dict[str, Any]:
             "status": "completed",
             "message": "No custom instructions to delete. Already using defaults."
         }
+
     """
     try:
         # Use current working directory as project directory
@@ -239,6 +242,7 @@ async def instructions_validate(content: str) -> dict[str, Any]:
             "errors": ["Content too short (50 characters). Minimum 100 required."],
             "message": "Content validation failed"
         }
+
     """
     warnings: list[str] = []
     errors: list[str] = []

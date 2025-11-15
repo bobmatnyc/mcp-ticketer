@@ -15,7 +15,6 @@ from rich.panel import Panel
 
 from ..core.instructions import (
     InstructionsError,
-    InstructionsNotFoundError,
     InstructionsValidationError,
     TicketInstructionsManager,
 )
@@ -55,6 +54,7 @@ def show(
 
         # Output raw markdown for piping
         mcp-ticketer instructions show --raw > team_guide.md
+
     """
     try:
         manager = TicketInstructionsManager()
@@ -120,6 +120,7 @@ def add(
 
         # Force overwrite existing
         mcp-ticketer instructions add new_guide.md --force
+
     """
     try:
         manager = TicketInstructionsManager()
@@ -127,7 +128,9 @@ def add(
         # Check for existing custom instructions
         if manager.has_custom_instructions() and not force:
             path = manager.get_instructions_path()
-            console.print(f"[yellow]Warning:[/yellow] Custom instructions already exist at {path}")
+            console.print(
+                f"[yellow]Warning:[/yellow] Custom instructions already exist at {path}"
+            )
 
             confirm = typer.confirm("Do you want to overwrite them?")
             if not confirm:
@@ -195,6 +198,7 @@ def update(
 
         # Update from stdin
         cat updated.md | mcp-ticketer instructions update --stdin
+
     """
     try:
         manager = TicketInstructionsManager()
@@ -262,6 +266,7 @@ def delete(
 
         # Skip confirmation
         mcp-ticketer instructions delete --yes
+
     """
     try:
         manager = TicketInstructionsManager()
@@ -285,7 +290,7 @@ def delete(
         # Delete instructions
         manager.delete_instructions()
 
-        console.print(f"[green]✓[/green] Custom instructions deleted")
+        console.print("[green]✓[/green] Custom instructions deleted")
         console.print("[dim]Now using default instructions[/dim]")
 
     except InstructionsError as e:
@@ -306,6 +311,7 @@ def path() -> None:
 
         # Use in scripts
         INST_PATH=$(mcp-ticketer instructions path --quiet)
+
     """
     try:
         manager = TicketInstructionsManager()
@@ -324,8 +330,12 @@ def path() -> None:
             except Exception:
                 pass
         else:
-            console.print("[yellow]Status:[/yellow] No custom instructions (using defaults)")
-            console.print(f"[dim]Create with: mcp-ticketer instructions add <file>[/dim]")
+            console.print(
+                "[yellow]Status:[/yellow] No custom instructions (using defaults)"
+            )
+            console.print(
+                "[dim]Create with: mcp-ticketer instructions add <file>[/dim]"
+            )
 
     except InstructionsError as e:
         console.print(f"[red]Error:[/red] {e}")
@@ -349,6 +359,7 @@ def edit() -> None:
 
         # Use specific editor
         EDITOR=nano mcp-ticketer instructions edit
+
     """
     import os
     import platform
@@ -366,7 +377,9 @@ def edit() -> None:
             default_content = manager.get_default_instructions()
             manager.set_instructions(default_content)
 
-            console.print(f"[green]✓[/green] Created custom instructions at: {manager.get_instructions_path()}")
+            console.print(
+                f"[green]✓[/green] Created custom instructions at: {manager.get_instructions_path()}"
+            )
 
         inst_path = manager.get_instructions_path()
 

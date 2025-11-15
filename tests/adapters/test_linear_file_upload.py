@@ -250,7 +250,9 @@ class TestLinearFileUpload:
         self, adapter: LinearAdapter, temp_text_file: Path
     ) -> None:
         """Test handling GraphQL error during upload initialization."""
-        adapter.client.execute_mutation = AsyncMock(side_effect=Exception("GraphQL error"))
+        adapter.client.execute_mutation = AsyncMock(
+            side_effect=Exception("GraphQL error")
+        )
 
         with pytest.raises(Exception, match="GraphQL error"):
             await adapter.upload_file(str(temp_text_file))

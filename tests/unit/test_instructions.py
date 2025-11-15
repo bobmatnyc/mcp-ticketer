@@ -274,7 +274,8 @@ These instructions are at least 100 characters long to pass validation.
         manager = TicketInstructionsManager(tmp_path)
 
         # Content with markdown headers
-        content_with_headers = """
+        content_with_headers = (
+            """
 # Main Header
 
 Some content here.
@@ -282,14 +283,17 @@ Some content here.
 ## Subheader
 
 More content to make it long enough.
-""" + "x" * 50
+"""
+            + "x" * 50
+        )
 
         caplog.clear()
         manager.set_instructions(content_with_headers)
 
         # No warning should be logged (only check WARNING level, not INFO)
         header_warnings = [
-            record for record in caplog.records
+            record
+            for record in caplog.records
             if "headers" in record.message.lower() and record.levelname == "WARNING"
         ]
         assert len(header_warnings) == 0
@@ -373,7 +377,8 @@ class TestEdgeCases:
         manager = TicketInstructionsManager(tmp_path)
 
         # Content with unicode characters
-        unicode_content = """
+        unicode_content = (
+            """
 # Ticket Guidelines 🎯
 
 Use emojis sparingly: ✅ ❌ ⚠️
@@ -381,7 +386,9 @@ Use emojis sparingly: ✅ ❌ ⚠️
 Special characters: café, naïve, 日本語
 
 This is long enough to pass validation.
-""" + "x" * 50
+"""
+            + "x" * 50
+        )
 
         manager.set_instructions(unicode_content)
         retrieved = manager.get_instructions()

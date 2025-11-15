@@ -15,10 +15,7 @@ import pytest
 from typer.testing import CliRunner
 
 from mcp_ticketer.cli.instruction_commands import app
-from mcp_ticketer.core.instructions import (
-    TicketInstructionsManager,
-    get_instructions,
-)
+from mcp_ticketer.core.instructions import TicketInstructionsManager, get_instructions
 from mcp_ticketer.mcp.server.tools.instruction_tools import (
     instructions_get,
     instructions_reset,
@@ -61,6 +58,7 @@ This content is long enough to pass validation checks.
 
         # Step 2: Verify via MCP tool (simulate working in same directory)
         import os
+
         original_cwd = os.getcwd()
         try:
             os.chdir(tmp_path)
@@ -83,7 +81,9 @@ These are our updated custom instructions.
 
 This content is long enough to pass validation checks and has been updated.
 """
-            set_result = await instructions_set(content=custom_content_v2, source="inline")
+            set_result = await instructions_set(
+                content=custom_content_v2, source="inline"
+            )
             assert set_result["status"] == "completed"
 
             # Step 4: Verify update via API
@@ -132,6 +132,7 @@ This content is long enough to pass validation checks and has been updated.
     async def test_validation_workflow(self, tmp_path: Path) -> None:
         """Test validating content before setting it."""
         import os
+
         original_cwd = os.getcwd()
 
         try:
@@ -201,6 +202,7 @@ class TestMCPToolWorkflow:
     async def test_mcp_set_get_reset_cycle(self, tmp_path: Path) -> None:
         """Test complete MCP tool cycle."""
         import os
+
         original_cwd = os.getcwd()
 
         try:
@@ -237,6 +239,7 @@ class TestMCPToolWorkflow:
     async def test_mcp_validation_before_set(self, tmp_path: Path) -> None:
         """Test validating with MCP before setting."""
         import os
+
         original_cwd = os.getcwd()
 
         try:
@@ -252,7 +255,9 @@ class TestMCPToolWorkflow:
             assert len(validate_result["warnings"]) > 0  # No headers warning
 
             # Still allowed to set
-            set_result = await instructions_set(content=content_with_warnings, source="inline")
+            set_result = await instructions_set(
+                content=content_with_warnings, source="inline"
+            )
             assert set_result["status"] == "completed"
 
             # Content with errors
@@ -265,7 +270,9 @@ class TestMCPToolWorkflow:
 
             # Attempting to set should fail at API level
             # (MCP tool will pass it through, but manager will reject)
-            set_result = await instructions_set(content=invalid_content, source="inline")
+            set_result = await instructions_set(
+                content=invalid_content, source="inline"
+            )
             assert set_result["status"] == "error"
 
         finally:
@@ -279,6 +286,7 @@ class TestCLIWorkflow:
     def test_cli_add_show_delete(self, tmp_path: Path) -> None:
         """Test CLI add, show, delete workflow."""
         import os
+
         original_cwd = os.getcwd()
 
         try:
@@ -292,12 +300,16 @@ class TestCLIWorkflow:
             # Add via CLI
             from unittest.mock import patch
 
-            with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager") as MockManager:
+            with patch(
+                "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+            ) as MockManager:
                 from unittest.mock import Mock
 
                 mock_manager = Mock()
                 mock_manager.has_custom_instructions.return_value = False
-                mock_manager.get_instructions_path.return_value = tmp_path / ".mcp-ticketer" / "instructions.md"
+                mock_manager.get_instructions_path.return_value = (
+                    tmp_path / ".mcp-ticketer" / "instructions.md"
+                )
                 MockManager.return_value = mock_manager
 
                 with patch("mcp_ticketer.cli.instruction_commands.Path") as MockPath:
@@ -316,21 +328,29 @@ class TestCLIWorkflow:
             manager.set_instructions(custom_content)
 
             # Show via CLI
-            with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager") as MockManager:
+            with patch(
+                "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+            ) as MockManager:
                 mock_manager = Mock()
                 mock_manager.has_custom_instructions.return_value = True
                 mock_manager.get_instructions.return_value = custom_content
-                mock_manager.get_instructions_path.return_value = tmp_path / ".mcp-ticketer" / "instructions.md"
+                mock_manager.get_instructions_path.return_value = (
+                    tmp_path / ".mcp-ticketer" / "instructions.md"
+                )
                 MockManager.return_value = mock_manager
 
                 result = runner.invoke(app, ["show"])
                 assert result.exit_code == 0
 
             # Delete via CLI
-            with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager") as MockManager:
+            with patch(
+                "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+            ) as MockManager:
                 mock_manager = Mock()
                 mock_manager.has_custom_instructions.return_value = True
-                mock_manager.get_instructions_path.return_value = tmp_path / ".mcp-ticketer" / "instructions.md"
+                mock_manager.get_instructions_path.return_value = (
+                    tmp_path / ".mcp-ticketer" / "instructions.md"
+                )
                 MockManager.return_value = mock_manager
 
                 result = runner.invoke(app, ["delete", "--yes"])
@@ -398,6 +418,7 @@ class TestErrorRecovery:
     async def test_concurrent_access(self, tmp_path: Path) -> None:
         """Test concurrent access from multiple interfaces."""
         import os
+
         original_cwd = os.getcwd()
 
         try:
