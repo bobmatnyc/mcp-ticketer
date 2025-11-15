@@ -7,6 +7,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Asana Adapter**: Complete REST API adapter with full hierarchy support
+  - Epic/Project management via Asana Projects
+  - Issue/Task creation and management via Asana Tasks
+  - Subtask support with parent-child relationships
+  - Comment management with automatic story filtering (excludes system stories)
+  - File attachments with permanent URL handling and upload support
+  - Tag management (add/remove tags from tasks)
+  - Custom field support for priority mapping
+  - Authentication via ASANA_PAT environment variable
+  - Rate limiting with Retry-After header support (150-1500 requests/min)
+  - Offset-based pagination for list operations
+  - Workspace and team auto-resolution from PAT
+  - Comprehensive error handling (400, 401, 402, 403, 404, 429, 500, 501)
+  - Full adapter interface implementation with all required methods
 - **Ticket Writing Instructions**: Customizable ticket writing guidelines
   - Default embedded instructions with comprehensive best practices
   - Custom project-specific instructions via `.mcp-ticketer/instructions.md`
@@ -45,6 +59,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Returns detailed response with method used and attachment metadata
 
 ### Changed
+- **Documentation**: Major cleanup and reorganization (93% size reduction)
+  - Removed 20MB of build artifacts and obsolete documentation
+  - Archived 53 historical files to `docs/_archive/` for reference
+  - Reduced documentation size from 22MB to 1.6MB
+  - Fixed 5 broken documentation links across guides
+  - Created comprehensive `SECURITY.md` with vulnerability reporting procedures
+  - Updated `docs/README.md` with improved navigation structure
+  - Updated `docs/dev/README.md` with cleaner developer guide organization
+  - Preserved all valuable content while removing duplicates and outdated materials
 - **Attachment Documentation**: Significantly expanded file attachment documentation
   - Updated `docs/ATTACHMENTS.md` to reflect all adapter capabilities
   - Created comprehensive `docs/api/epic_updates_and_attachments.md` (1000+ lines)
@@ -59,13 +82,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Explained attachment limitations and workarounds
   - Provided manual upload instructions
 
+### Removed
+- **GitHub Workflows**: Temporarily disabled failing CI/CD workflows
+  - Backed up all workflow files to `.github/workflows.backup/`
+  - Created re-enablement guide in `.github/workflows/README.md`
+  - Prevents workflow failure notification spam
+  - Includes instructions for systematic re-enablement and debugging
+  - Workflows can be easily restored when underlying issues are resolved
+
+### Fixed
+- **Package Distribution**: Fixed ticket instructions inclusion in built packages
+  - Updated `pyproject.toml` package-data configuration
+  - Added `defaults/*.md` to package-data include patterns
+  - Ensures default ticket instructions are included in wheel/sdist distributions
+  - Resolves issue where instructions were missing in installed packages
+
 ### Documentation
 - **New Files**:
+  - `SECURITY.md`: Comprehensive security policy and vulnerability reporting procedures
+  - `.github/workflows/README.md`: Workflow re-enablement guide
+  - `docs/_archive/README.md`: Archive documentation and restoration instructions
   - `docs/api/epic_updates_and_attachments.md`: Complete API documentation for new features
   - `docs/quickstart/epic_attachments.md`: Quick start guide with examples for all adapters
 - **Updated Files**:
   - `docs/ADAPTERS.md`: Enhanced feature matrix with epic and attachment capabilities
   - `docs/adapters/github.md`: Added epic update and attachment sections
+  - `docs/README.md`: Updated navigation and structure
+  - `docs/dev/README.md`: Cleaner developer guide organization
   - `CHANGELOG.md`: This file, documenting all new features
 
 ### Implementation Details
