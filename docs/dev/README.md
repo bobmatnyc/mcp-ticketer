@@ -213,10 +213,9 @@ QA_REPORT_{COMPONENT}.md
 ## 🔗 Related Documentation
 
 ### For Contributors
-- [Contributing Guide](../../CONTRIBUTING.md) - How to contribute
-- [Development Setup](../development/setup.md) - Environment setup
-- [Testing Guide](../development/testing.md) - Testing practices
-- [Coding Standards](../development/standards.md) - Code standards
+- [Contributing Guide](../development/CONTRIBUTING.md) - How to contribute
+- [Code Structure](../development/CODE_STRUCTURE.md) - Codebase organization
+- [Release Process](../development/RELEASING.md) - Release management
 
 ### For Users
 - [API Documentation](../api/) - API reference

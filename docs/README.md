@@ -48,13 +48,13 @@ Welcome to the comprehensive documentation for MCP Ticketer - the universal tick
 ### 📊 Reports & Analysis
 - **[Test Coverage Report](reports/TEST_COVERAGE_REPORT.md)** - Test coverage analysis
 - **[Performance Report](reports/OPTIMIZATION_SUMMARY.md)** - Performance optimizations
-- **[Security Scan](reports/SECURITY_SCAN_REPORT_v0.1.24.md)** - Security analysis
+- **[Security Scan](dev/test-reports/SECURITY_RESCAN_REPORT.md)** - Security analysis
 - **[Implementation Summary](reports/IMPLEMENTATION_SUMMARY.md)** - Feature implementation status
 
 ### 🔍 Troubleshooting & Support
-- **[Diagnostics](reports/DIAGNOSTICS_FEATURE.md)** - Built-in diagnostics
-- **[Environment Discovery](reports/ENV_DISCOVERY_COMPLETE.md)** - Environment troubleshooting
-- **[Configuration Issues](reports/CONFIG_RESOLUTION_FIX.md)** - Config troubleshooting
+- **[Configuration Guide](CONFIGURATION.md)** - Complete configuration help
+- **[Environment Discovery](ENV_DISCOVERY.md)** - Environment troubleshooting
+- **[Security Best Practices](SECURITY.md)** - Security and credential management
 
 ## 🎯 Quick Navigation
 
@@ -98,6 +98,10 @@ Welcome to the comprehensive documentation for MCP Ticketer - the universal tick
 - Examples and use cases
 - Integration tutorials
 - Best practices
+
+### 🗄️ Additional Resources
+- **[Development Documentation](dev/README.md)** - Implementation reports and test documentation
+- **[Archive](_archive/README.md)** - Historical documentation and older reports
 
 ### 📕 Explanations (Understanding-oriented)
 - Architecture documentation
