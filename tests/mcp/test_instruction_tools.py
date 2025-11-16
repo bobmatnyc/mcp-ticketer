@@ -35,7 +35,7 @@ class TestInstructionsGetTool:
         """Test getting default instructions when no custom exist."""
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             with patch(
                 "mcp_ticketer.mcp.server.tools.instruction_tools.Path.cwd",
                 return_value=tmp_path,
@@ -63,7 +63,7 @@ class TestInstructionsGetTool:
 
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             with patch(
                 "mcp_ticketer.mcp.server.tools.instruction_tools.Path.cwd",
                 return_value=tmp_path,
@@ -89,7 +89,7 @@ class TestInstructionsGetTool:
         """Test error handling in instructions_get."""
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             MockManager.side_effect = InstructionsError("Test error")
 
             result = await instructions_get()
@@ -102,7 +102,7 @@ class TestInstructionsGetTool:
         """Test handling of unexpected errors in instructions_get."""
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             MockManager.side_effect = Exception("Unexpected error")
 
             result = await instructions_get()
@@ -115,7 +115,7 @@ class TestInstructionsGetTool:
         """Test that response has correct structure."""
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             with patch(
                 "mcp_ticketer.mcp.server.tools.instruction_tools.Path.cwd",
                 return_value=tmp_path,
@@ -148,7 +148,7 @@ class TestInstructionsSetTool:
 
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             with patch(
                 "mcp_ticketer.mcp.server.tools.instruction_tools.Path.cwd",
                 return_value=tmp_path,
@@ -170,7 +170,7 @@ class TestInstructionsSetTool:
 
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             with patch(
                 "mcp_ticketer.mcp.server.tools.instruction_tools.Path.cwd",
                 return_value=tmp_path,
@@ -192,7 +192,7 @@ class TestInstructionsSetTool:
         """Test set_instructions rejects invalid source parameter."""
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             with patch(
                 "mcp_ticketer.mcp.server.tools.instruction_tools.Path.cwd",
                 return_value=tmp_path,
@@ -213,7 +213,7 @@ class TestInstructionsSetTool:
 
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             with patch(
                 "mcp_ticketer.mcp.server.tools.instruction_tools.Path.cwd",
                 return_value=tmp_path,
@@ -231,7 +231,7 @@ class TestInstructionsSetTool:
         """Test error handling in instructions_set."""
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             with patch(
                 "mcp_ticketer.mcp.server.tools.instruction_tools.Path.cwd",
                 return_value=tmp_path,
@@ -252,7 +252,7 @@ class TestInstructionsSetTool:
         """Test handling of unexpected errors in instructions_set."""
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             with patch(
                 "mcp_ticketer.mcp.server.tools.instruction_tools.Path.cwd",
                 return_value=tmp_path,
@@ -273,7 +273,7 @@ class TestInstructionsSetTool:
 
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             with patch(
                 "mcp_ticketer.mcp.server.tools.instruction_tools.Path.cwd",
                 return_value=tmp_path,
@@ -302,7 +302,7 @@ class TestInstructionsResetTool:
         """Test resetting when custom instructions exist."""
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             with patch(
                 "mcp_ticketer.mcp.server.tools.instruction_tools.Path.cwd",
                 return_value=tmp_path,
@@ -323,7 +323,7 @@ class TestInstructionsResetTool:
         """Test resetting when no custom instructions exist."""
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             with patch(
                 "mcp_ticketer.mcp.server.tools.instruction_tools.Path.cwd",
                 return_value=tmp_path,
@@ -343,7 +343,7 @@ class TestInstructionsResetTool:
         """Test reset when delete_instructions returns False."""
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             with patch(
                 "mcp_ticketer.mcp.server.tools.instruction_tools.Path.cwd",
                 return_value=tmp_path,
@@ -365,7 +365,7 @@ class TestInstructionsResetTool:
         """Test error handling in instructions_reset."""
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             MockManager.side_effect = InstructionsError("Delete failed")
 
             result = await instructions_reset()
@@ -378,7 +378,7 @@ class TestInstructionsResetTool:
         """Test handling of unexpected errors in instructions_reset."""
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             MockManager.side_effect = Exception("Unexpected")
 
             result = await instructions_reset()
@@ -390,7 +390,7 @@ class TestInstructionsResetTool:
         """Test that response has correct structure."""
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             with patch(
                 "mcp_ticketer.mcp.server.tools.instruction_tools.Path.cwd",
                 return_value=tmp_path,
@@ -566,7 +566,7 @@ class TestToolIntegration:
 
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             with patch(
                 "mcp_ticketer.mcp.server.tools.instruction_tools.Path.cwd",
                 return_value=tmp_path,
@@ -600,7 +600,7 @@ class TestToolIntegration:
         if validate_result["status"] == "valid":
             with patch(
                 "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-            ) as MockManager:
+            ) as mock_manager_class:
                 with patch(
                     "mcp_ticketer.mcp.server.tools.instruction_tools.Path.cwd",
                     return_value=tmp_path,
@@ -621,7 +621,7 @@ class TestToolIntegration:
 
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
-        ) as MockManager:
+        ) as mock_manager_class:
             with patch(
                 "mcp_ticketer.mcp.server.tools.instruction_tools.Path.cwd",
                 return_value=tmp_path,

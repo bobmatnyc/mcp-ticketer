@@ -23,13 +23,13 @@ class TestVersionFallback:
             # Verify fallback is being used
             assert not update_checker.HAS_PACKAGING
 
-            Version = update_checker.Version
+            version_class = update_checker.Version
 
             # Test basic version comparisons
-            v1 = Version("0.6.0")
-            v2 = Version("0.6.1")
-            v3 = Version("0.7.0")
-            v4 = Version("1.0.0")
+            v1 = version_class("0.6.0")
+            v2 = version_class("0.6.1")
+            v3 = version_class("0.7.0")
+            v4 = version_class("1.0.0")
 
             assert v2 > v1
             assert v3 > v2
@@ -45,11 +45,11 @@ class TestVersionFallback:
 
             importlib.reload(update_checker)
 
-            Version = update_checker.Version
+            version_class = update_checker.Version
 
-            v1 = Version("1.2.3")
-            v2 = Version("1.2.3")
-            v3 = Version("1.2.4")
+            v1 = version_class("1.2.3")
+            v2 = version_class("1.2.3")
+            v3 = version_class("1.2.4")
 
             assert v1 == v2
             assert not (v1 == v3)
@@ -63,11 +63,11 @@ class TestVersionFallback:
 
             importlib.reload(update_checker)
 
-            Version = update_checker.Version
+            version_class = update_checker.Version
 
-            v1 = Version("1.9.0")
-            v2 = Version("1.10.0")
-            v3 = Version("2.0.0")
+            v1 = version_class("1.9.0")
+            v2 = version_class("1.10.0")
+            v3 = version_class("2.0.0")
 
             # Should handle multi-digit numbers correctly
             assert v2 > v1  # 10 > 9, not "10" < "9"
@@ -82,10 +82,10 @@ class TestVersionFallback:
 
             importlib.reload(update_checker)
 
-            Version = update_checker.Version
+            version_class = update_checker.Version
 
-            v1 = Version("1.0.0a1")
-            v2 = Version("1.0.0")
+            v1 = version_class("1.0.0a1")
+            v2 = version_class("1.0.0")
 
             # Should extract numeric parts and compare
             assert v2 > v1 or v1 == v2  # Either is acceptable for fallback

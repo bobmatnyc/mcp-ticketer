@@ -302,7 +302,7 @@ class TestCLIWorkflow:
 
             with patch(
                 "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
-            ) as MockManager:
+            ) as mock_manager_class:
                 from unittest.mock import Mock
 
                 mock_manager = Mock()
@@ -312,7 +312,7 @@ class TestCLIWorkflow:
                 )
                 MockManager.return_value = mock_manager
 
-                with patch("mcp_ticketer.cli.instruction_commands.Path") as MockPath:
+                with patch("mcp_ticketer.cli.instruction_commands.Path") as mock_path_class:
                     mock_path = Mock()
                     mock_path.exists.return_value = True
                     mock_path.read_text.return_value = custom_content
@@ -330,7 +330,7 @@ class TestCLIWorkflow:
             # Show via CLI
             with patch(
                 "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
-            ) as MockManager:
+            ) as mock_manager_class:
                 mock_manager = Mock()
                 mock_manager.has_custom_instructions.return_value = True
                 mock_manager.get_instructions.return_value = custom_content
@@ -345,7 +345,7 @@ class TestCLIWorkflow:
             # Delete via CLI
             with patch(
                 "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
-            ) as MockManager:
+            ) as mock_manager_class:
                 mock_manager = Mock()
                 mock_manager.has_custom_instructions.return_value = True
                 mock_manager.get_instructions_path.return_value = (
