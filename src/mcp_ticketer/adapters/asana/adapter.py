@@ -1014,7 +1014,7 @@ class AsanaAdapter(BaseAdapter[Task]):
     # Epic/Issue/Task Hierarchy Methods
 
     async def create_epic(
-        self, title: str, description: str | None = None, **kwargs
+        self, title: str, description: str | None = None, **kwargs: Any
     ) -> Epic | None:
         """Create an Asana project (Epic).
 
@@ -1104,7 +1104,7 @@ class AsanaAdapter(BaseAdapter[Task]):
             logger.error(f"Failed to update project {epic_id}: {e}")
             return None
 
-    async def list_epics(self, **kwargs) -> builtins.list[Epic]:
+    async def list_epics(self, **kwargs: Any) -> builtins.list[Epic]:
         """List all Asana projects (Epics).
 
         Args:

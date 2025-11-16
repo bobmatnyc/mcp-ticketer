@@ -47,7 +47,8 @@ class GitHubConfig(BaseAdapterConfig):
 
     @field_validator("token", mode="before")
     @classmethod
-    def validate_token(cls, v):
+    def validate_token(cls, v: Any) -> str:
+        """Validate GitHub token from config or environment."""
         if not v:
             v = os.getenv("GITHUB_TOKEN")
         if not v:
@@ -56,7 +57,8 @@ class GitHubConfig(BaseAdapterConfig):
 
     @field_validator("owner", mode="before")
     @classmethod
-    def validate_owner(cls, v):
+    def validate_owner(cls, v: Any) -> str:
+        """Validate GitHub repository owner from config or environment."""
         if not v:
             v = os.getenv("GITHUB_OWNER")
         if not v:
@@ -65,7 +67,8 @@ class GitHubConfig(BaseAdapterConfig):
 
     @field_validator("repo", mode="before")
     @classmethod
-    def validate_repo(cls, v):
+    def validate_repo(cls, v: Any) -> str:
+        """Validate GitHub repository name from config or environment."""
         if not v:
             v = os.getenv("GITHUB_REPO")
         if not v:
@@ -86,7 +89,8 @@ class JiraConfig(BaseAdapterConfig):
 
     @field_validator("server", mode="before")
     @classmethod
-    def validate_server(cls, v):
+    def validate_server(cls, v: Any) -> str:
+        """Validate JIRA server URL from config or environment."""
         if not v:
             v = os.getenv("JIRA_SERVER")
         if not v:
@@ -95,7 +99,8 @@ class JiraConfig(BaseAdapterConfig):
 
     @field_validator("email", mode="before")
     @classmethod
-    def validate_email(cls, v):
+    def validate_email(cls, v: Any) -> str:
+        """Validate JIRA user email from config or environment."""
         if not v:
             v = os.getenv("JIRA_EMAIL")
         if not v:
@@ -104,7 +109,8 @@ class JiraConfig(BaseAdapterConfig):
 
     @field_validator("api_token", mode="before")
     @classmethod
-    def validate_api_token(cls, v):
+    def validate_api_token(cls, v: Any) -> str:
+        """Validate JIRA API token from config or environment."""
         if not v:
             v = os.getenv("JIRA_API_TOKEN")
         if not v:
@@ -123,7 +129,7 @@ class LinearConfig(BaseAdapterConfig):
     api_url: str = "https://api.linear.app/graphql"
 
     @model_validator(mode="after")
-    def validate_team_identifier(self):
+    def validate_team_identifier(self) -> "LinearConfig":
         """Ensure either team_key or team_id is provided."""
         if not self.team_key and not self.team_id:
             raise ValueError("Either team_key or team_id is required")
@@ -131,7 +137,8 @@ class LinearConfig(BaseAdapterConfig):
 
     @field_validator("api_key", mode="before")
     @classmethod
-    def validate_api_key(cls, v):
+    def validate_api_key(cls, v: Any) -> str:
+        """Validate Linear API key from config or environment."""
         if not v:
             v = os.getenv("LINEAR_API_KEY")
         if not v:
@@ -179,7 +186,7 @@ class AppConfig(BaseModel):
     default_adapter: str | None = None
 
     @model_validator(mode="after")
-    def validate_adapters(self):
+    def validate_adapters(self) -> "AppConfig":
         """Validate adapter configurations."""
         adapters = self.adapters
 
@@ -220,7 +227,7 @@ class ConfigurationManager:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize configuration manager."""
         if not hasattr(self, "_initialized"):
             self._initialized = True

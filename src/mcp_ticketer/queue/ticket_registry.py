@@ -27,7 +27,7 @@ class TicketRegistry:
         self._lock = threading.Lock()
         self._init_database()
 
-    def _init_database(self):
+    def _init_database(self) -> None:
         """Initialize database schema."""
         with sqlite3.connect(self.db_path) as conn:
             # Ticket registry table

@@ -5,6 +5,7 @@ import json
 import os
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 import typer
 from dotenv import load_dotenv
@@ -49,11 +50,11 @@ app = typer.Typer(
 console = Console()
 
 
-def version_callback(value: bool):
+def version_callback(value: bool) -> None:
     """Print version and exit."""
     if value:
         console.print(f"mcp-ticketer version {__version__}")
-        raise typer.Exit()
+        raise typer.Exit() from None
 
 
 @app.callback()
@@ -66,7 +67,7 @@ def main_callback(
         is_eager=True,
         help="Show version and exit",
     ),
-):
+) -> None:
     """MCP Ticketer - Universal ticket management interface."""
     pass
 
@@ -271,7 +272,7 @@ def merge_config(updates: dict) -> dict:
 
 def get_adapter(
     override_adapter: str | None = None, override_config: dict | None = None
-):
+) -> Any:
     """Get configured adapter instance.
 
     Args:
@@ -980,7 +981,7 @@ def init(
                 default=False,
             ):
                 console.print("[yellow]Initialization cancelled.[/yellow]")
-                raise typer.Exit(0)
+                raise typer.Exit(0) from None
 
     # 1. Try auto-discovery if no adapter specified
     discovered = None
@@ -1137,13 +1138,13 @@ def init(
             # Validate required fields (following JIRA pattern)
             if not linear_api_key:
                 console.print("[red]Error:[/red] Linear API key is required")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
 
             if not linear_team_id and not linear_team_key:
                 console.print(
                     "[red]Error:[/red] Linear requires either team ID or team key"
                 )
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
 
             # Build configuration
             linear_config = {
@@ -1197,15 +1198,15 @@ def init(
             # Validate required fields
             if not server:
                 console.print("[red]Error:[/red] JIRA server URL is required")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
 
             if not email:
                 console.print("[red]Error:[/red] JIRA email is required")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
 
             if not token:
                 console.print("[red]Error:[/red] JIRA API token is required")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
 
             jira_config = {
                 "server": server,
@@ -1254,17 +1255,17 @@ def init(
             # Validate required fields
             if not owner:
                 console.print("[red]Error:[/red] GitHub repository owner is required")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
 
             if not repo:
                 console.print("[red]Error:[/red] GitHub repository name is required")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
 
             if not token:
                 console.print(
                     "[red]Error:[/red] GitHub Personal Access Token is required"
                 )
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
 
             config["adapters"]["github"] = {
                 "owner": owner,
@@ -1310,7 +1311,7 @@ def init(
         )
     ):
         # User chose to exit without valid configuration
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Show next steps
     _show_next_steps(console, adapter_type, config_file_path)
@@ -1521,7 +1522,7 @@ def migrate_config(
 
 
 @app.command("queue-status", deprecated=True, hidden=True)
-def old_queue_status_command():
+def old_queue_status_command() -> None:
     """Show queue and worker status.
 
     DEPRECATED: Use 'mcp-ticketer queue status' instead.
@@ -1637,9 +1638,9 @@ def old_queue_health_command(
 
     # Exit with appropriate code
     if health["status"] == HealthStatus.CRITICAL:
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
     elif health["status"] == HealthStatus.WARNING:
-        raise typer.Exit(2)
+        raise typer.Exit(2) from None
 
 
 @app.command(deprecated=True, hidden=True)
@@ -1707,7 +1708,7 @@ def create(
                 console.print(
                     "[red]Cannot safely create ticket. Please check system status.[/red]"
                 )
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
             else:
                 console.print(
                     "[green]✓ Auto-repair successful. Proceeding with ticket creation.[/green]"
@@ -1716,7 +1717,7 @@ def create(
             console.print(
                 "[red]❌ No repair actions available. Manual intervention required.[/red]"
             )
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
     elif health["status"] == HealthStatus.WARNING:
         console.print("[yellow]⚠️  Warning: Queue system has minor issues[/yellow]")
@@ -1895,7 +1896,7 @@ def list_tickets(
         "[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket list' instead.[/yellow]\n"
     )
 
-    async def _list():
+    async def _list() -> None:
         adapter_instance = get_adapter(
             override_adapter=adapter.value if adapter else None
         )
@@ -1951,7 +1952,7 @@ def show(
         "[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket show' instead.[/yellow]\n"
     )
 
-    async def _show():
+    async def _show() -> None:
         adapter_instance = get_adapter(
             override_adapter=adapter.value if adapter else None
         )
@@ -1965,7 +1966,7 @@ def show(
 
     if not ticket:
         console.print(f"[red]✗[/red] Ticket not found: {ticket_id}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Display ticket details
     console.print(f"\n[bold]Ticket: {ticket.id}[/bold]")
@@ -2007,7 +2008,7 @@ def comment(
         "[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket comment' instead.[/yellow]\n"
     )
 
-    async def _comment():
+    async def _comment() -> None:
         adapter_instance = get_adapter(
             override_adapter=adapter.value if adapter else None
         )
@@ -2069,7 +2070,7 @@ def update(
 
     if not updates:
         console.print("[yellow]No updates specified[/yellow]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Get the adapter name
     config = load_config()
@@ -2141,7 +2142,7 @@ def transition(
             "  - Flag syntax (recommended): mcp-ticketer transition TICKET-ID --state STATE\n"
             "  - Positional syntax: mcp-ticketer transition TICKET-ID STATE"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Get the adapter name
     config = load_config()
@@ -2192,7 +2193,7 @@ def search(
         "[yellow]⚠️  This command is deprecated. Use 'mcp-ticketer ticket search' instead.[/yellow]\n"
     )
 
-    async def _search():
+    async def _search() -> None:
         adapter_instance = get_adapter(
             override_adapter=adapter.value if adapter else None
         )
@@ -2267,7 +2268,7 @@ def doctor_command(
 
             console.print("\n" + json.dumps(report, indent=2))
         if report["issues"]:
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
     else:
         try:
             asyncio.run(
@@ -2310,7 +2311,7 @@ def status_command() -> None:
 
     result = simple_health_check()
     if result != 0:
-        raise typer.Exit(result)
+        raise typer.Exit(result) from None
 
 
 @app.command("health")
@@ -2320,7 +2321,7 @@ def health_alias() -> None:
 
     result = simple_health_check()
     if result != 0:
-        raise typer.Exit(result)
+        raise typer.Exit(result) from None
 
 
 # Create MCP configuration command group
@@ -2338,7 +2339,7 @@ def mcp_callback(
     project_path: str | None = typer.Option(
         None, "--path", "-p", help="Project directory path (default: current directory)"
     ),
-):
+) -> None:
     """MCP command group - runs MCP server if no subcommand provided.
 
     Examples:
@@ -2619,7 +2620,7 @@ def install(
             idx = int(choice) - 1
             if idx < 0 or idx >= len(installed):
                 console.print("[red]Invalid selection.[/red]")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
             platform = installed[idx].name
         except ValueError as e:
             console.print("[red]Invalid input. Please enter a number.[/red]")
@@ -2696,7 +2697,7 @@ def install(
             console.print("\n[bold]Available platforms:[/bold]")
             for p in platform_mapping.keys():
                 console.print(f"  • {p}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
         config = platform_mapping[platform]
 
@@ -2805,7 +2806,7 @@ def remove(
         console.print("\n[bold]Available platforms:[/bold]")
         for p in platform_mapping.keys():
             console.print(f"  • {p}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     config = platform_mapping[platform]
 
@@ -2852,7 +2853,7 @@ def uninstall(
 
 
 @app.command(deprecated=True, hidden=True)
-def check(queue_id: str = typer.Argument(..., help="Queue ID to check")):
+def check(queue_id: str = typer.Argument(..., help="Queue ID to check")) -> None:
     """Check status of a queued operation.
 
     DEPRECATED: Use 'mcp-ticketer ticket check' instead.
@@ -2865,7 +2866,7 @@ def check(queue_id: str = typer.Argument(..., help="Queue ID to check")):
 
     if not item:
         console.print(f"[red]Queue item not found: {queue_id}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Display status
     console.print(f"\n[bold]Queue Item: {item.id}[/bold]")
@@ -2907,7 +2908,7 @@ def mcp_serve(
     base_path: str | None = typer.Option(
         None, "--base-path", help="Base path for AITrackdown adapter"
     ),
-):
+) -> None:
     """Start MCP server for JSON-RPC communication over stdio.
 
     This command is used by Claude Code/Desktop when connecting to the MCP server.
@@ -2996,7 +2997,7 @@ def mcp_claude(
     force: bool = typer.Option(
         False, "--force", "-f", help="Overwrite existing configuration"
     ),
-):
+) -> None:
     """Configure Claude Code to use mcp-ticketer MCP server.
 
     Reads configuration from .mcp-ticketer/config.json and updates
@@ -3036,7 +3037,7 @@ def mcp_gemini(
     force: bool = typer.Option(
         False, "--force", "-f", help="Overwrite existing configuration"
     ),
-):
+) -> None:
     """Configure Gemini CLI to use mcp-ticketer MCP server.
 
     Reads configuration from .mcp-ticketer/config.json and creates
@@ -3063,7 +3064,7 @@ def mcp_gemini(
         console.print(
             f"[red]✗ Invalid scope:[/red] '{scope}'. Must be 'project' or 'user'"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     try:
         configure_gemini_mcp(scope=scope, force=force)  # type: ignore
@@ -3077,7 +3078,7 @@ def mcp_codex(
     force: bool = typer.Option(
         False, "--force", "-f", help="Overwrite existing configuration"
     ),
-):
+) -> None:
     """Configure Codex CLI to use mcp-ticketer MCP server.
 
     Reads configuration from .mcp-ticketer/config.json and creates
@@ -3109,7 +3110,7 @@ def mcp_auggie(
     force: bool = typer.Option(
         False, "--force", "-f", help="Overwrite existing configuration"
     ),
-):
+) -> None:
     """Configure Auggie CLI to use mcp-ticketer MCP server.
 
     Reads configuration from .mcp-ticketer/config.json and creates
@@ -3137,7 +3138,7 @@ def mcp_auggie(
 
 
 @mcp_app.command(name="status")
-def mcp_status():
+def mcp_status() -> None:
     """Check MCP server status.
 
     Shows whether the MCP server is configured and running for various platforms.
@@ -3235,7 +3236,7 @@ def mcp_status():
 
 
 @mcp_app.command(name="stop")
-def mcp_stop():
+def mcp_stop() -> None:
     """Stop MCP server (placeholder - MCP runs on-demand via stdio).
 
     Note: The MCP server runs on-demand when AI clients connect via stdio.
@@ -3259,7 +3260,7 @@ def mcp_stop():
 app.add_typer(mcp_app, name="mcp")
 
 
-def main():
+def main() -> None:
     """Execute the main CLI application entry point."""
     app()
 

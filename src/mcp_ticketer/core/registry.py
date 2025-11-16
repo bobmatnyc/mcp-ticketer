@@ -115,7 +115,7 @@ class AdapterRegistry:
 
 
 def adapter_factory(adapter_type: str, config: dict[str, Any]) -> BaseAdapter:
-    """Factory function for creating adapters.
+    """Create adapter instance using factory pattern.
 
     Args:
         adapter_type: Type of adapter to create

@@ -11,7 +11,7 @@ from ..server_sdk import get_adapter, mcp
 
 
 async def detect_and_apply_labels(
-    adapter,
+    adapter: Any,
     ticket_title: str,
     ticket_description: str,
     existing_labels: list[str] | None = None,

@@ -97,12 +97,12 @@ class Worker:
             f"Worker initialized with batch_size={batch_size}, max_concurrent={max_concurrent}"
         )
 
-    def _signal_handler(self, signum, frame):
+    def _signal_handler(self, signum: int, frame: Any) -> None:
         """Handle shutdown signals."""
         logger.info(f"Received signal {signum}, shutting down...")
         self.stop()
 
-    def start(self, daemon: bool = True):
+    def start(self, daemon: bool = True) -> None:
         """Start the worker.
 
         Args:
@@ -126,14 +126,14 @@ class Worker:
             # Run in main thread
             self._run_loop()
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the worker."""
         logger.info("Stopping worker...")
         self.running = False
         self.stop_event.set()
 
-    def _run_loop(self):
-        """Main worker loop with batch processing."""
+    def _run_loop(self) -> None:
+        """Run main worker loop with batch processing."""
         logger.info("Worker loop started")
 
         # Reset any stuck items on startup
@@ -174,7 +174,7 @@ class Worker:
                 break
         return batch
 
-    async def _process_batch(self, batch: list[QueueItem]):
+    async def _process_batch(self, batch: list[QueueItem]) -> None:
         """Process a batch of queue items with concurrency control.
 
         Args:
@@ -199,7 +199,7 @@ class Worker:
         # Wait for all adapter groups to complete
         await asyncio.gather(*tasks, return_exceptions=True)
 
-    async def _process_adapter_group(self, adapter: str, items: list[QueueItem]):
+    async def _process_adapter_group(self, adapter: str, items: list[QueueItem]) -> None:
         """Process items for a specific adapter with concurrency control.
 
         Args:
@@ -216,7 +216,7 @@ class Worker:
         semaphore = self.adapter_semaphores[adapter]
 
         # Process items with concurrency control
-        async def process_with_semaphore(item):
+        async def process_with_semaphore(item: QueueItem) -> None:
             async with semaphore:
                 await self._process_item(item)
 
@@ -226,7 +226,7 @@ class Worker:
         # Process with concurrency control
         await asyncio.gather(*tasks, return_exceptions=True)
 
-    async def _process_item(self, item: QueueItem):
+    async def _process_item(self, item: QueueItem) -> None:
         """Process a single queue item.
 
         Args:
@@ -333,7 +333,7 @@ class Worker:
                 self.stats["items_failed"] += 1
                 logger.error(f"Max retries exceeded for {item.id}, marking as failed")
 
-    async def _check_rate_limit(self, adapter: str):
+    async def _check_rate_limit(self, adapter: str) -> None:
         """Check and enforce rate limits.
 
         Args:
@@ -357,7 +357,7 @@ class Worker:
 
         self.last_request_times[adapter] = datetime.now()
 
-    def _get_adapter(self, item: QueueItem):
+    def _get_adapter(self, item: QueueItem) -> Any:
         """Get adapter instance for item.
 
         Args:
@@ -442,7 +442,7 @@ class Worker:
 
         return adapter
 
-    async def _execute_operation(self, adapter, item: QueueItem) -> dict[str, Any]:
+    async def _execute_operation(self, adapter: Any, item: QueueItem) -> dict[str, Any]:
         """Execute the queued operation.
 
         Args:

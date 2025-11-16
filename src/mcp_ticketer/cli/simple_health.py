@@ -150,7 +150,7 @@ def simple_health_check() -> int:
 
 
 def simple_diagnose() -> dict[str, Any]:
-    """Simple diagnosis that works without full config system."""
+    """Perform simple diagnosis without full config system."""
     console.print("\n🔍 [bold blue]MCP Ticketer Simple Diagnosis[/bold blue]")
     console.print("=" * 60)
 

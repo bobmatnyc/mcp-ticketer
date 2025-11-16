@@ -24,7 +24,7 @@ jira_app = typer.Typer(
 
 
 @jira_app.command("projects")
-def jira_list_projects():
+def jira_list_projects() -> None:
     """List JIRA projects (placeholder - not yet implemented)."""
     from rich.console import Console
 
@@ -38,7 +38,7 @@ def jira_list_projects():
 
 
 @jira_app.command("configure")
-def jira_configure():
+def jira_configure() -> None:
     """Configure JIRA adapter (placeholder - not yet implemented)."""
     from rich.console import Console
 
@@ -55,7 +55,7 @@ github_app = typer.Typer(
 
 
 @github_app.command("repos")
-def github_list_repos():
+def github_list_repos() -> None:
     """List GitHub repositories (placeholder - not yet implemented)."""
     from rich.console import Console
 
@@ -69,7 +69,7 @@ def github_list_repos():
 
 
 @github_app.command("configure")
-def github_configure():
+def github_configure() -> None:
     """Configure GitHub adapter (placeholder - not yet implemented)."""
     from rich.console import Console
 
@@ -88,7 +88,7 @@ aitrackdown_app = typer.Typer(
 
 
 @aitrackdown_app.command("info")
-def aitrackdown_info():
+def aitrackdown_info() -> None:
     """Show AITrackdown storage information (placeholder - not yet implemented)."""
     from rich.console import Console
 
@@ -104,7 +104,7 @@ def aitrackdown_info():
 
 
 @aitrackdown_app.command("configure")
-def aitrackdown_configure():
+def aitrackdown_configure() -> None:
     """Configure AITrackdown adapter (placeholder - not yet implemented)."""
     from rich.console import Console
 

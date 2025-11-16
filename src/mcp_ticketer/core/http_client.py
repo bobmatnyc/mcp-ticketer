@@ -206,7 +206,7 @@ class BaseHTTPClient:
         headers: dict[str, str] | None = None,
         timeout: float | None = None,
         retry_count: int = 0,
-        **kwargs,
+        **kwargs: Any,
     ) -> httpx.Response:
         """Make HTTP request with retry and rate limiting.
 
@@ -293,27 +293,27 @@ class BaseHTTPClient:
             # No more retries, re-raise the exception
             raise
 
-    async def get(self, endpoint: str, **kwargs) -> httpx.Response:
+    async def get(self, endpoint: str, **kwargs: Any) -> httpx.Response:
         """Make GET request."""
         return await self.request(HTTPMethod.GET, endpoint, **kwargs)
 
-    async def post(self, endpoint: str, **kwargs) -> httpx.Response:
+    async def post(self, endpoint: str, **kwargs: Any) -> httpx.Response:
         """Make POST request."""
         return await self.request(HTTPMethod.POST, endpoint, **kwargs)
 
-    async def put(self, endpoint: str, **kwargs) -> httpx.Response:
+    async def put(self, endpoint: str, **kwargs: Any) -> httpx.Response:
         """Make PUT request."""
         return await self.request(HTTPMethod.PUT, endpoint, **kwargs)
 
-    async def patch(self, endpoint: str, **kwargs) -> httpx.Response:
+    async def patch(self, endpoint: str, **kwargs: Any) -> httpx.Response:
         """Make PATCH request."""
         return await self.request(HTTPMethod.PATCH, endpoint, **kwargs)
 
-    async def delete(self, endpoint: str, **kwargs) -> httpx.Response:
+    async def delete(self, endpoint: str, **kwargs: Any) -> httpx.Response:
         """Make DELETE request."""
         return await self.request(HTTPMethod.DELETE, endpoint, **kwargs)
 
-    async def get_json(self, endpoint: str, **kwargs) -> dict[str, Any]:
+    async def get_json(self, endpoint: str, **kwargs: Any) -> dict[str, Any]:
         """Make GET request and return JSON response."""
         response = await self.get(endpoint, **kwargs)
 
@@ -323,7 +323,7 @@ class BaseHTTPClient:
 
         return response.json()
 
-    async def post_json(self, endpoint: str, **kwargs) -> dict[str, Any]:
+    async def post_json(self, endpoint: str, **kwargs: Any) -> dict[str, Any]:
         """Make POST request and return JSON response."""
         response = await self.post(endpoint, **kwargs)
 
@@ -333,7 +333,7 @@ class BaseHTTPClient:
 
         return response.json()
 
-    async def put_json(self, endpoint: str, **kwargs) -> dict[str, Any]:
+    async def put_json(self, endpoint: str, **kwargs: Any) -> dict[str, Any]:
         """Make PUT request and return JSON response."""
         response = await self.put(endpoint, **kwargs)
 
@@ -343,7 +343,7 @@ class BaseHTTPClient:
 
         return response.json()
 
-    async def patch_json(self, endpoint: str, **kwargs) -> dict[str, Any]:
+    async def patch_json(self, endpoint: str, **kwargs: Any) -> dict[str, Any]:
         """Make PATCH request and return JSON response."""
         response = await self.patch(endpoint, **kwargs)
 

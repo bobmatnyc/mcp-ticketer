@@ -230,7 +230,7 @@ class BaseAdapter(ABC, Generic[T]):
     # Epic/Issue/Task Hierarchy Methods
 
     async def create_epic(
-        self, title: str, description: str | None = None, **kwargs
+        self, title: str, description: str | None = None, **kwargs: Any
     ) -> Epic | None:
         """Create epic (top-level grouping).
 
@@ -270,7 +270,7 @@ class BaseAdapter(ABC, Generic[T]):
             return result
         return None
 
-    async def list_epics(self, **kwargs) -> builtins.list[Epic]:
+    async def list_epics(self, **kwargs: Any) -> builtins.list[Epic]:
         """List all epics.
 
         Args:
@@ -291,7 +291,7 @@ class BaseAdapter(ABC, Generic[T]):
         title: str,
         description: str | None = None,
         epic_id: str | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Task | None:
         """Create issue, optionally linked to epic.
 
@@ -330,7 +330,7 @@ class BaseAdapter(ABC, Generic[T]):
         return [r for r in results if isinstance(r, Task) and r.is_issue()]
 
     async def create_task(
-        self, title: str, parent_id: str, description: str | None = None, **kwargs
+        self, title: str, parent_id: str, description: str | None = None, **kwargs: Any
     ) -> Task | None:
         """Create task as sub-ticket of parent issue.
 

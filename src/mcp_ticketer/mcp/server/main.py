@@ -1033,8 +1033,8 @@ class MCPTicketServer:
         await self.adapter.close()
 
 
-async def main():
-    """Main entry point for MCP server - kept for backward compatibility.
+async def main() -> None:
+    """Run main entry point for MCP server - kept for backward compatibility.
 
     This function is maintained in case it's being called directly,
     but the preferred way is now through the CLI: `mcp-ticketer mcp`

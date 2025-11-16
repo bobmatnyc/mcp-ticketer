@@ -115,7 +115,7 @@ class MemoryCache:
         return len(self._cache)
 
     @staticmethod
-    def generate_key(*args, **kwargs) -> str:
+    def generate_key(*args: Any, **kwargs: Any) -> str:
         """Generate cache key from arguments.
 
         Args:
@@ -139,7 +139,7 @@ def cache_decorator(
     key_prefix: str = "",
     cache_instance: MemoryCache | None = None,
 ) -> Callable:
-    """Decorator for caching async function results.
+    """Decorate async function to cache its results.
 
     Args:
         ttl: TTL for cached results
@@ -155,7 +155,7 @@ def cache_decorator(
 
     def decorator(func: Callable) -> Callable:
         @wraps(func)
-        async def wrapper(*args, **kwargs):
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Generate cache key
             base_key = MemoryCache.generate_key(*args, **kwargs)
             cache_key = f"{key_prefix}:{func.__name__}:{base_key}"

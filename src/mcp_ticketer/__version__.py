@@ -27,7 +27,7 @@ __features__ = {
 }
 
 
-def get_version():
+def get_version() -> str:
     """Return the full version string with build metadata if available."""
     version = __version__
     if __build__:
@@ -37,6 +37,6 @@ def get_version():
     return version
 
 
-def get_user_agent():
+def get_user_agent() -> str:
     """Return a user agent string for API requests."""
     return f"{__title__}/{__version__}"

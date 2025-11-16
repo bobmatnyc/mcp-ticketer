@@ -1041,7 +1041,7 @@ class LinearAdapter(BaseAdapter[Task]):
             return tasks
 
         except Exception as e:
-            raise ValueError(f"Failed to list Linear issues: {e}")
+            raise ValueError(f"Failed to list Linear issues: {e}") from e
 
     async def search(self, query: SearchQuery) -> builtins.list[Task]:
         """Search Linear issues using comprehensive filters.
@@ -1105,7 +1105,7 @@ class LinearAdapter(BaseAdapter[Task]):
             return tasks
 
         except Exception as e:
-            raise ValueError(f"Failed to search Linear issues: {e}")
+            raise ValueError(f"Failed to search Linear issues: {e}") from e
 
     async def transition_state(
         self, ticket_id: str, target_state: TicketState
@@ -1210,7 +1210,7 @@ class LinearAdapter(BaseAdapter[Task]):
             return map_linear_comment_to_comment(created_comment, comment.ticket_id)
 
         except Exception as e:
-            raise ValueError(f"Failed to add comment: {e}")
+            raise ValueError(f"Failed to add comment: {e}") from e
 
     async def get_comments(
         self, ticket_id: str, limit: int = 10, offset: int = 0

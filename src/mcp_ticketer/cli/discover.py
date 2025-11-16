@@ -181,7 +181,7 @@ def save(
         console.print(
             "[dim]Make sure your .env file contains adapter credentials[/dim]"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Determine which adapter to save
     if adapter:
@@ -191,13 +191,13 @@ def save(
             console.print(
                 f"[dim]Available: {', '.join(a.adapter_type for a in result.adapters)}[/dim]"
             )
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
     else:
         # Use recommended adapter
         discovered_adapter = result.get_primary_adapter()
         if not discovered_adapter:
             console.print("[red]Could not determine recommended adapter[/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
         console.print(
             f"[bold]Using recommended adapter:[/bold] {discovered_adapter.adapter_type}"
@@ -216,7 +216,7 @@ def save(
         console.print(
             "[dim]Fix the configuration in your .env file and try again[/dim]"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     if dry_run:
         console.print("\n[yellow]Dry run - no changes made[/yellow]")
@@ -254,7 +254,7 @@ def save(
 
     except Exception as e:
         console.print(f"\n[red]Failed to save configuration:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @app.command()
@@ -282,7 +282,7 @@ def interactive(
             console.print(f"  ✅ {env_file}")
     else:
         console.print("[red]No .env files found[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Show discovered adapters
     if not result.adapters:
@@ -290,7 +290,7 @@ def interactive(
         console.print(
             "[dim]Make sure your .env file contains adapter credentials[/dim]"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     console.print("\n[bold]Detected adapter configurations:[/bold]")
     for i, adapter in enumerate(result.adapters, 1):
@@ -330,7 +330,7 @@ def interactive(
     if choice in [1, 2]:
         if not primary:
             console.print("[red]No recommended adapter found[/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
         adapters_to_save = [primary]
         default_adapter = primary.adapter_type
     elif choice == 3:
@@ -346,7 +346,7 @@ def interactive(
             default_adapter = selected.adapter_type
         else:
             console.print("[red]Invalid choice[/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
     else:  # choice == 4
         adapters_to_save = result.adapters
         default_adapter = (
@@ -400,7 +400,7 @@ def interactive(
 
     except Exception as e:
         console.print(f"\n[red]Failed to save configuration:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 if __name__ == "__main__":

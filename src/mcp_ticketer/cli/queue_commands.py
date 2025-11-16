@@ -16,7 +16,7 @@ console = Console()
 def list_queue(
     status: QueueStatus = typer.Option(None, "--status", "-s", help="Filter by status"),
     limit: int = typer.Option(25, "--limit", "-l", help="Maximum items to show"),
-):
+) -> None:
     """List queue items."""
     queue = Queue()
     items = queue.list_items(status=status, limit=limit)
@@ -69,20 +69,20 @@ def list_queue(
 
 
 @app.command("retry")
-def retry_item(queue_id: str = typer.Argument(..., help="Queue ID to retry")):
+def retry_item(queue_id: str = typer.Argument(..., help="Queue ID to retry")) -> None:
     """Retry a failed queue item."""
     queue = Queue()
     item = queue.get_item(queue_id)
 
     if not item:
         console.print(f"[red]Queue item not found: {queue_id}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     if item.status != QueueStatus.FAILED:
         console.print(
             f"[yellow]Item {queue_id} is not failed (status: {item.status})[/yellow]"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Reset to pending
     queue.update_status(queue_id, QueueStatus.PENDING, error_message=None)
@@ -103,7 +103,7 @@ def clear_queue(
         7, "--days", "-d", help="Clear items older than this many days"
     ),
     confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation"),
-):
+) -> None:
     """Clear old queue items."""
     queue = Queue()
 
@@ -115,7 +115,7 @@ def clear_queue(
 
         if not typer.confirm(msg):
             console.print("[yellow]Cancelled[/yellow]")
-            raise typer.Exit(0)
+            raise typer.Exit(0) from None
 
     queue.cleanup_old(days=days)
     console.print("[green]✓[/green] Cleared old queue items")
@@ -126,7 +126,7 @@ worker_app = typer.Typer(name="worker", help="Worker management commands")
 
 
 @worker_app.command("start")
-def start_worker():
+def start_worker() -> None:
     """Start the background worker."""
     manager = WorkerManager()
 
@@ -142,11 +142,11 @@ def start_worker():
         console.print(f"PID: {status.get('pid')}")
     else:
         console.print("[red]✗[/red] Failed to start worker")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @worker_app.command("stop")
-def stop_worker():
+def stop_worker() -> None:
     """Stop the background worker."""
     manager = WorkerManager()
 
@@ -158,11 +158,11 @@ def stop_worker():
         console.print("[green]✓[/green] Worker stopped successfully")
     else:
         console.print("[red]✗[/red] Failed to stop worker")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @worker_app.command("restart")
-def restart_worker():
+def restart_worker() -> None:
     """Restart the background worker."""
     manager = WorkerManager()
 
@@ -172,11 +172,11 @@ def restart_worker():
         console.print(f"PID: {status.get('pid')}")
     else:
         console.print("[red]✗[/red] Failed to restart worker")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @worker_app.command("status")
-def worker_status():
+def worker_status() -> None:
     """Check worker status."""
     manager = WorkerManager()
     status = manager.get_status()
@@ -212,7 +212,7 @@ def worker_status():
 def worker_logs(
     lines: int = typer.Option(50, "--lines", "-n", help="Number of lines to show"),
     follow: bool = typer.Option(False, "--follow", "-f", help="Follow log output"),
-):
+) -> None:
     """View worker logs."""
     import time
     from pathlib import Path
@@ -221,7 +221,7 @@ def worker_logs(
 
     if not log_file.exists():
         console.print("[yellow]No log file found[/yellow]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     if follow:
         # Follow mode - like tail -f

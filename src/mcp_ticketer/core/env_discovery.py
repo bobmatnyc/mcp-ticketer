@@ -623,7 +623,7 @@ class EnvDiscovery:
 
 
 def discover_config(project_path: Path | None = None) -> DiscoveryResult:
-    """Convenience function to discover configuration.
+    """Discover configuration from environment files.
 
     Args:
         project_path: Path to project root (defaults to cwd)

@@ -4,7 +4,7 @@ This package provides the FastMCP server implementation for ticket management
 operations via the Model Context Protocol (MCP).
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .main import MCPTicketServer, main
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 __all__ = ["main", "MCPTicketServer"]
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     """Lazy import to avoid premature module loading."""
     if name == "main":
         from .main import main

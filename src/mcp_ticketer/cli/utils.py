@@ -156,7 +156,7 @@ class CommonPatterns:
     @staticmethod
     def get_adapter(
         override_adapter: str | None = None, override_config: dict | None = None
-    ):
+    ) -> Any:
         """Get configured adapter instance with environment variable support."""
         config = CommonPatterns.load_config()
 
@@ -322,32 +322,32 @@ class CommonPatterns:
 
 
 def async_command(f: Callable[..., Any]) -> Callable[..., Any]:
-    """Decorator to handle async CLI commands."""
+    """Handle async CLI commands via decorator."""
 
     @wraps(f)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         return asyncio.run(f(*args, **kwargs))
 
     return wrapper
 
 
-def with_adapter(f: Callable) -> Callable:
-    """Decorator to inject adapter instance into CLI commands."""
+def with_adapter(f: Callable[..., Any]) -> Callable[..., Any]:
+    """Inject adapter instance into CLI commands via decorator."""
 
     @wraps(f)
-    def wrapper(adapter: str | None = None, *args, **kwargs):
+    def wrapper(adapter: str | None = None, *args: Any, **kwargs: Any) -> Any:
         adapter_instance = CommonPatterns.get_adapter(override_adapter=adapter)
         return f(adapter_instance, *args, **kwargs)
 
     return wrapper
 
 
-def with_progress(message: str = "Processing..."):
-    """Decorator to show progress spinner for long-running operations."""
+def with_progress(message: str = "Processing...") -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Show progress spinner for long-running operations via decorator."""
 
-    def decorator(f: Callable) -> Callable:
+    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
@@ -361,12 +361,12 @@ def with_progress(message: str = "Processing..."):
     return decorator
 
 
-def validate_required_fields(**field_map):
-    """Decorator to validate required fields are provided."""
+def validate_required_fields(**field_map: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Validate required fields are provided via decorator."""
 
-    def decorator(f: Callable) -> Callable:
+    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             missing_fields = []
             for field_name, display_name in field_map.items():
                 if field_name in kwargs and kwargs[field_name] is None:
@@ -376,7 +376,7 @@ def validate_required_fields(**field_map):
                 console.print(
                     f"[red]Error:[/red] Missing required fields: {', '.join(missing_fields)}"
                 )
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
 
             return f(*args, **kwargs)
 
@@ -385,24 +385,24 @@ def validate_required_fields(**field_map):
     return decorator
 
 
-def handle_adapter_errors(f: Callable) -> Callable:
-    """Decorator to handle common adapter errors gracefully."""
+def handle_adapter_errors(f: Callable[..., Any]) -> Callable[..., Any]:
+    """Handle common adapter errors gracefully via decorator."""
 
     @wraps(f)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return f(*args, **kwargs)
         except ConnectionError as e:
             console.print(f"[red]Connection Error:[/red] {e}")
             console.print("Check your network connection and adapter configuration")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
         except ValueError as e:
             console.print(f"[red]Configuration Error:[/red] {e}")
             console.print("Run 'mcp-ticketer init' to configure your adapter")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
         except Exception as e:
             console.print(f"[red]Unexpected Error:[/red] {e}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
     return wrapper
 
@@ -468,39 +468,39 @@ class ConfigValidator:
 class CommandBuilder:
     """Builder for common CLI command patterns."""
 
-    def __init__(self):
-        self._validators = []
-        self._handlers = []
-        self._decorators = []
+    def __init__(self) -> None:
+        self._validators: list[Callable[..., Any]] = []
+        self._handlers: list[Callable[..., Any]] = []
+        self._decorators: list[Callable[..., Any]] = []
 
-    def with_adapter_validation(self):
+    def with_adapter_validation(self) -> "CommandBuilder":
         """Add adapter configuration validation."""
         self._validators.append(self._validate_adapter)
         return self
 
-    def with_async_support(self):
+    def with_async_support(self) -> "CommandBuilder":
         """Add async support to command."""
         self._decorators.append(async_command)
         return self
 
-    def with_error_handling(self):
+    def with_error_handling(self) -> "CommandBuilder":
         """Add error handling decorator."""
         self._decorators.append(handle_adapter_errors)
         return self
 
-    def with_progress(self, message: str = "Processing..."):
+    def with_progress(self, message: str = "Processing...") -> "CommandBuilder":
         """Add progress spinner."""
         self._decorators.append(with_progress(message))
         return self
 
-    def build(self, func: Callable) -> Callable:
+    def build(self, func: Callable[..., Any]) -> Callable[..., Any]:
         """Build the decorated function."""
         decorated_func = func
         for decorator in reversed(self._decorators):
             decorated_func = decorator(decorated_func)
         return decorated_func
 
-    def _validate_adapter(self, *args, **kwargs):
+    def _validate_adapter(self, *args: Any, **kwargs: Any) -> None:
         """Validate adapter configuration."""
         config = CommonPatterns.load_config()
         default_adapter = config.get("default_adapter", "aitrackdown")
@@ -514,10 +514,10 @@ class CommandBuilder:
             for issue in issues:
                 console.print(f"  • {issue}")
             console.print("Run 'mcp-ticketer init' to fix configuration")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
 
-def create_standard_ticket_command(operation: str):
+def create_standard_ticket_command(operation: str) -> Callable[..., str]:
     """Create a standard ticket operation command."""
 
     def command_template(
@@ -529,7 +529,7 @@ def create_standard_ticket_command(operation: str):
         assignee: str | None = None,
         tags: list[str] | None = None,
         adapter: str | None = None,
-    ):
+    ) -> str:
         """Template for ticket commands."""
         # Build ticket data
         ticket_data = {}
@@ -568,11 +568,11 @@ class TicketCommands:
     @async_command
     @handle_adapter_errors
     async def list_tickets(
-        adapter_instance,
+        adapter_instance: Any,
         state: TicketState | None = None,
         priority: Priority | None = None,
         limit: int = 10,
-    ):
+    ) -> None:
         """List tickets with filters."""
         filters = {}
         if state:
@@ -587,13 +587,13 @@ class TicketCommands:
     @async_command
     @handle_adapter_errors
     async def show_ticket(
-        adapter_instance, ticket_id: str, show_comments: bool = False
-    ):
+        adapter_instance: Any, ticket_id: str, show_comments: bool = False
+    ) -> None:
         """Show ticket details."""
         ticket = await adapter_instance.read(ticket_id)
         if not ticket:
             console.print(f"[red]✗[/red] Ticket not found: {ticket_id}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
         comments = None
         if show_comments:
@@ -628,7 +628,7 @@ class TicketCommands:
         """Update a ticket."""
         if not updates:
             console.print("[yellow]No updates specified[/yellow]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
         updates["ticket_id"] = ticket_id
         return CommonPatterns.queue_operation(updates, "update", adapter)

@@ -131,7 +131,7 @@ class UnifiedEnvLoader:
         # Fallback to current directory
         return Path.cwd()
 
-    def _load_env_files(self):
+    def _load_env_files(self) -> None:
         """Load environment variables from .env files."""
         env_files = [
             self.project_root / ".env.local",
@@ -144,7 +144,7 @@ class UnifiedEnvLoader:
                 logger.debug(f"Loading environment from: {env_file}")
                 self._load_env_file(env_file)
 
-    def _load_env_file(self, env_file: Path):
+    def _load_env_file(self, env_file: Path) -> None:
         """Load variables from a single .env file."""
         try:
             with open(env_file) as f:
@@ -321,7 +321,7 @@ def get_env_loader() -> UnifiedEnvLoader:
 def load_adapter_config(
     adapter_name: str, base_config: dict[str, Any] | None = None
 ) -> dict[str, Any]:
-    """Convenience function to load adapter configuration with environment variables.
+    """Load adapter configuration with environment variables.
 
     Args:
         adapter_name: Name of the adapter ('linear', 'jira', 'github')
@@ -335,7 +335,7 @@ def load_adapter_config(
 
 
 def validate_adapter_config(adapter_name: str, config: dict[str, Any]) -> list[str]:
-    """Convenience function to validate adapter configuration.
+    """Validate adapter configuration.
 
     Args:
         adapter_name: Name of the adapter

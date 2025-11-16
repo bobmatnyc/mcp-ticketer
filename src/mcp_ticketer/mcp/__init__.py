@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 __all__ = ["MCPTicketServer"]
 
 
-def __dir__():
+def __dir__() -> list[str]:
     """Return list of available names for dir().
 
     This ensures that MCPTicketServer appears in dir() results
@@ -17,7 +17,7 @@ def __dir__():
     return __all__
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> type:
     """Lazy import to avoid premature module loading.
 
     This prevents the RuntimeWarning when running:

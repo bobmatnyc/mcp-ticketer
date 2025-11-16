@@ -380,7 +380,7 @@ class Attachment(BaseModel):
     )
 
     def __str__(self) -> str:
-        """String representation showing filename and size."""
+        """Return string representation showing filename and size."""
         size_str = f" ({self.size_bytes} bytes)" if self.size_bytes else ""
         return f"Attachment({self.filename}{size_str})"
 

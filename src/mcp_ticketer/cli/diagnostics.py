@@ -12,7 +12,7 @@ from rich.console import Console
 from rich.table import Table
 
 
-def get_config():
+def get_config() -> Any:
     """Get configuration using the real configuration system."""
     from ..core.config import ConfigurationManager
 
@@ -20,7 +20,7 @@ def get_config():
     return config_manager.load_config()
 
 
-def safe_import_registry():
+def safe_import_registry() -> type:
     """Safely import adapter registry with fallback."""
     try:
         from ..core.registry import AdapterRegistry
@@ -30,13 +30,13 @@ def safe_import_registry():
 
         class MockRegistry:
             @staticmethod
-            def get_adapter(adapter_type):
+            def get_adapter(adapter_type: str) -> None:
                 raise ImportError(f"Adapter {adapter_type} not available")
 
         return MockRegistry
 
 
-def safe_import_queue_manager():
+def safe_import_queue_manager() -> type:
     """Safely import worker manager with fallback."""
     try:
         from ..queue.manager import WorkerManager as RealWorkerManager
@@ -55,16 +55,16 @@ def safe_import_queue_manager():
         pass
 
     class MockWorkerManager:
-        def get_status(self):
+        def get_status(self) -> dict[str, Any]:
             return {"running": False, "pid": None, "status": "fallback_mode"}
 
-        def get_worker_status(self):
+        def get_worker_status(self) -> dict[str, Any]:
             return {"running": False, "pid": None, "status": "fallback_mode"}
 
-        def get_queue_stats(self):
+        def get_queue_stats(self) -> dict[str, Any]:
             return {"total": 0, "failed": 0, "pending": 0, "completed": 0}
 
-        def health_check(self):
+        def health_check(self) -> dict[str, Any]:
             return {
                 "status": "degraded",
                 "score": 50,
@@ -85,11 +85,11 @@ logger = logging.getLogger(__name__)
 class SystemDiagnostics:
     """Comprehensive system diagnostics and health reporting."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Initialize lists first
-        self.issues = []
-        self.warnings = []
-        self.successes = []
+        self.issues: list[str] = []
+        self.warnings: list[str] = []
+        self.successes: list[str] = []
 
         try:
             self.config = get_config()
@@ -611,7 +611,7 @@ class SystemDiagnostics:
 
     async def _analyze_log_directory(
         self, log_path: Path, log_analysis: dict[str, Any]
-    ):
+    ) -> None:
         """Analyze logs in a specific directory."""
         try:
             for log_file in log_path.glob("*.log"):
@@ -623,7 +623,7 @@ class SystemDiagnostics:
         except Exception as e:
             self.warnings.append(f"Could not analyze logs in {log_path}: {str(e)}")
 
-    async def _parse_log_file(self, log_file: Path, log_analysis: dict[str, Any]):
+    async def _parse_log_file(self, log_file: Path, log_analysis: dict[str, Any]) -> None:
         """Parse individual log file for issues."""
         try:
             with open(log_file) as f:
@@ -672,7 +672,7 @@ class SystemDiagnostics:
 
     def _generate_recommendations(self) -> list[str]:
         """Generate actionable recommendations based on diagnosis."""
-        recommendations = []
+        recommendations: list[str] = []
 
         if self.issues:
             recommendations.append(
@@ -705,7 +705,7 @@ class SystemDiagnostics:
 
         return recommendations
 
-    def _display_diagnosis_summary(self, report: dict[str, Any]):
+    def _display_diagnosis_summary(self, report: dict[str, Any]) -> None:
         """Display a comprehensive diagnosis summary."""
         console.print("\n" + "=" * 60)
         console.print("📋 [bold green]DIAGNOSIS SUMMARY[/bold green]")

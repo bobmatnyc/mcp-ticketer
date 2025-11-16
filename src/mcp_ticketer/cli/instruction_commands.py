@@ -85,7 +85,7 @@ def show(
 
     except InstructionsError as e:
         console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @app.command()
@@ -135,7 +135,7 @@ def add(
             confirm = typer.confirm("Do you want to overwrite them?")
             if not confirm:
                 console.print("[yellow]Operation cancelled[/yellow]")
-                raise typer.Exit(0)
+                raise typer.Exit(0) from None
 
         # Get content from stdin or file
         if stdin:
@@ -143,22 +143,22 @@ def add(
             content = sys.stdin.read()
             if not content.strip():
                 console.print("[red]Error:[/red] No content provided on stdin")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
         elif file_path:
             source_path = Path(file_path)
             if not source_path.exists():
                 console.print(f"[red]Error:[/red] File not found: {file_path}")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
 
             try:
                 content = source_path.read_text(encoding="utf-8")
             except Exception as e:
                 console.print(f"[red]Error:[/red] Failed to read file: {e}")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
         else:
             console.print("[red]Error:[/red] Either provide a file path or use --stdin")
             console.print("Example: mcp-ticketer instructions add guidelines.md")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
         # Set instructions
         manager.set_instructions(content)
@@ -169,10 +169,10 @@ def add(
 
     except InstructionsValidationError as e:
         console.print(f"[red]Validation Error:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
     except InstructionsError as e:
         console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @app.command()
@@ -206,7 +206,7 @@ def update(
         if not manager.has_custom_instructions():
             console.print("[yellow]Warning:[/yellow] No custom instructions exist yet")
             console.print("Use 'mcp-ticketer instructions add' to create them first")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
         # Get content from stdin or file
         if stdin:
@@ -214,22 +214,22 @@ def update(
             content = sys.stdin.read()
             if not content.strip():
                 console.print("[red]Error:[/red] No content provided on stdin")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
         elif file_path:
             source_path = Path(file_path)
             if not source_path.exists():
                 console.print(f"[red]Error:[/red] File not found: {file_path}")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
 
             try:
                 content = source_path.read_text(encoding="utf-8")
             except Exception as e:
                 console.print(f"[red]Error:[/red] Failed to read file: {e}")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
         else:
             console.print("[red]Error:[/red] Either provide a file path or use --stdin")
             console.print("Example: mcp-ticketer instructions update guidelines.md")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
         # Update instructions (force overwrite)
         manager.set_instructions(content)
@@ -240,10 +240,10 @@ def update(
 
     except InstructionsValidationError as e:
         console.print(f"[red]Validation Error:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
     except InstructionsError as e:
         console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @app.command()
@@ -274,7 +274,7 @@ def delete(
         if not manager.has_custom_instructions():
             console.print("[yellow]No custom instructions to delete[/yellow]")
             console.print("[dim]Already using default instructions[/dim]")
-            raise typer.Exit(0)
+            raise typer.Exit(0) from None
 
         path = manager.get_instructions_path()
 
@@ -285,7 +285,7 @@ def delete(
             confirm = typer.confirm("Are you sure?")
             if not confirm:
                 console.print("[yellow]Operation cancelled[/yellow]")
-                raise typer.Exit(0)
+                raise typer.Exit(0) from None
 
         # Delete instructions
         manager.delete_instructions()
@@ -295,7 +295,7 @@ def delete(
 
     except InstructionsError as e:
         console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @app.command()
@@ -339,7 +339,7 @@ def path() -> None:
 
     except InstructionsError as e:
         console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @app.command()
@@ -418,12 +418,12 @@ def edit() -> None:
             console.print(f"[green]✓[/green] Finished editing: {inst_path}")
         except subprocess.CalledProcessError as e:
             console.print(f"[red]Error:[/red] Editor exited with code {e.returncode}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
         except FileNotFoundError:
             console.print(f"[red]Error:[/red] Editor not found: {editor}")
             console.print("Set EDITOR environment variable to your preferred editor")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
     except InstructionsError as e:
         console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None

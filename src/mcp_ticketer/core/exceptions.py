@@ -35,7 +35,7 @@ class AdapterError(MCPTicketerError):
         self.original_error = original_error
 
     def __str__(self) -> str:
-        """String representation of the error."""
+        """Return string representation of the error."""
         base_msg = f"[{self.adapter_name}] {super().__str__()}"
         if self.original_error:
             base_msg += f" (caused by: {self.original_error})"
@@ -88,7 +88,7 @@ class ValidationError(MCPTicketerError):
         self.value = value
 
     def __str__(self) -> str:
-        """String representation of the error."""
+        """Return string representation of the error."""
         base_msg = super().__str__()
         if self.field:
             base_msg += f" (field: {self.field})"
@@ -126,7 +126,7 @@ class StateTransitionError(MCPTicketerError):
         self.to_state = to_state
 
     def __str__(self) -> str:
-        """String representation of the error."""
+        """Return string representation of the error."""
         return f"{super().__str__()} ({self.from_state} -> {self.to_state})"
 
 

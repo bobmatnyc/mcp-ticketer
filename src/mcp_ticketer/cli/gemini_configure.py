@@ -246,7 +246,7 @@ def configure_gemini_mcp(
             "Could not find mcp-ticketer Python executable. "
             "Please ensure mcp-ticketer is installed.\n"
             "Install with: pip install mcp-ticketer or pipx install mcp-ticketer"
-        )
+        ) from e
 
     # Step 2: Load project configuration
     console.print("\n[cyan]📖 Reading project configuration...[/cyan]")

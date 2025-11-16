@@ -83,7 +83,7 @@ class Queue:
         self._lock = threading.Lock()
         self._init_database()
 
-    def _init_database(self):
+    def _init_database(self) -> None:
         """Initialize database schema."""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
@@ -462,7 +462,7 @@ class Queue:
 
             return cursor.fetchone()[0]
 
-    def cleanup_old(self, days: int = 7):
+    def cleanup_old(self, days: int = 7) -> None:
         """Clean up old completed/failed items.
 
         Args:
@@ -487,7 +487,7 @@ class Queue:
                 )
                 conn.commit()
 
-    def reset_stuck_items(self, timeout_minutes: int = 30):
+    def reset_stuck_items(self, timeout_minutes: int = 30) -> None:
         """Reset items stuck in processing state.
 
         Args:

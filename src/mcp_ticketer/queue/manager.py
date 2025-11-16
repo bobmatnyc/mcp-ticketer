@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class WorkerManager:
     """Manages worker process with file-based locking."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize worker manager."""
         # Lazy import to avoid circular dependency
         from .queue import Queue
@@ -54,7 +54,7 @@ class WorkerManager:
             # Lock already held
             return False
 
-    def _release_lock(self):
+    def _release_lock(self) -> None:
         """Release worker lock."""
         if hasattr(self, "lock_fd"):
             fcntl.lockf(self.lock_fd, fcntl.LOCK_UN)
@@ -326,7 +326,7 @@ class WorkerManager:
         except (OSError, ValueError):
             return None
 
-    def _cleanup(self):
+    def _cleanup(self) -> None:
         """Clean up lock and PID files."""
         self._release_lock()
         if self.pid_file.exists():

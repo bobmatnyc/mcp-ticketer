@@ -102,7 +102,7 @@ def _create_linear_client() -> Client:
     if not api_key:
         console.print("[red]❌ LINEAR_API_KEY not found in environment[/red]")
         console.print("Set it in .env.local or environment variables")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     transport = HTTPXTransport(
         url="https://api.linear.app/graphql", headers={"Authorization": api_key}
@@ -111,7 +111,7 @@ def _create_linear_client() -> Client:
 
 
 @app.command("workspaces")
-def list_workspaces():
+def list_workspaces() -> None:
     """List all accessible Linear workspaces."""
     console.print("🔍 Discovering Linear workspaces...")
 
@@ -169,7 +169,7 @@ def list_teams(
     all_teams: bool = typer.Option(
         False, "--all", "-a", help="Show all teams across all workspaces"
     ),
-):
+) -> None:
     """List all teams in the current workspace or all accessible teams."""
     if all_teams:
         console.print("🔍 Discovering ALL accessible Linear teams across workspaces...")
@@ -340,13 +340,13 @@ def configure_team(
     workspace: str | None = typer.Option(
         None, "--workspace", "-w", help="Workspace URL key"
     ),
-):
+) -> None:
     """Configure Linear adapter with a specific team."""
     from ..cli.main import load_config, save_config
 
     if not team_key and not team_id:
         console.print("[red]❌ Either --team-key or --team-id is required[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     console.print("🔧 Configuring Linear adapter...")
 
@@ -376,7 +376,7 @@ def configure_team(
 
             if not team:
                 console.print(f"[red]❌ Team with ID '{team_id}' not found[/red]")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
 
         except Exception as e:
             console.print(f"[red]❌ Error validating team: {e}[/red]")
@@ -409,7 +409,7 @@ def configure_team(
 
             if not teams:
                 console.print(f"[red]❌ Team with key '{team_key}' not found[/red]")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
 
             team = teams[0]
             team_id = team["id"]  # Use the found team ID
@@ -471,11 +471,11 @@ def show_info(
     team_id: str | None = typer.Option(
         None, "--team-id", "-i", help="Team UUID to show info for"
     ),
-):
+) -> None:
     """Show detailed information about a specific team."""
     if not team_key and not team_id:
         console.print("[red]❌ Either --team-key or --team-id is required[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Query for detailed team information
     if team_id:
@@ -566,7 +566,7 @@ def show_info(
         if not team:
             identifier = team_id or team_key
             console.print(f"[red]❌ Team '{identifier}' not found[/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
         # Display team information
         console.print(f"\n🏷️  Team: {team.get('name')}")

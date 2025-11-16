@@ -150,7 +150,7 @@ def _configure_linear() -> AdapterConfig:
     is_valid, error = ConfigValidator.validate_linear_config(config_dict)
     if not is_valid:
         console.print(f"[red]Configuration error: {error}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     return AdapterConfig.from_dict(config_dict)
 
@@ -194,7 +194,7 @@ def _configure_jira() -> AdapterConfig:
     is_valid, error = ConfigValidator.validate_jira_config(config_dict)
     if not is_valid:
         console.print(f"[red]Configuration error: {error}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     return AdapterConfig.from_dict(config_dict)
 
@@ -242,7 +242,7 @@ def _configure_github() -> AdapterConfig:
     is_valid, error = ConfigValidator.validate_github_config(config_dict)
     if not is_valid:
         console.print(f"[red]Configuration error: {error}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     return AdapterConfig.from_dict(config_dict)
 
@@ -292,7 +292,7 @@ def _configure_hybrid_mode() -> TicketerConfig:
 
     if len(selected_adapters) < 2:
         console.print("[red]Hybrid mode requires at least 2 adapters[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Configure each adapter
     adapters = {}
@@ -425,7 +425,7 @@ def set_adapter_config(
     project_id: str | None = None,
     team_id: str | None = None,
     global_scope: bool = False,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """Set specific adapter configuration values.
 

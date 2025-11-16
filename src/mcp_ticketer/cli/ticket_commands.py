@@ -5,6 +5,7 @@ import json
 import os
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 import typer
 from rich.console import Console
@@ -73,7 +74,7 @@ def save_config(config: dict) -> None:
 
 def get_adapter(
     override_adapter: str | None = None, override_config: dict | None = None
-):
+) -> Any:
     """Get configured adapter instance."""
     config = load_config()
 
@@ -245,7 +246,7 @@ def create(
                 console.print(
                     "[red]Cannot safely create ticket. Please check system status.[/red]"
                 )
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
             else:
                 console.print(
                     "[green]✓ Auto-repair successful. Proceeding with ticket creation.[/green]"
@@ -254,7 +255,7 @@ def create(
             console.print(
                 "[red]❌ No repair actions available. Manual intervention required.[/red]"
             )
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
     elif health["status"] == HealthStatus.WARNING:
         console.print("[yellow]⚠️  Warning: Queue system has minor issues[/yellow]")
@@ -429,7 +430,7 @@ def list_tickets(
 ) -> None:
     """List tickets with optional filters."""
 
-    async def _list():
+    async def _list() -> list[Any]:
         adapter_instance = get_adapter(
             override_adapter=adapter.value if adapter else None
         )
@@ -479,7 +480,7 @@ def show(
 ) -> None:
     """Show detailed ticket information."""
 
-    async def _show():
+    async def _show() -> tuple[Any, Any]:
         adapter_instance = get_adapter(
             override_adapter=adapter.value if adapter else None
         )
@@ -493,7 +494,7 @@ def show(
 
     if not ticket:
         console.print(f"[red]✗[/red] Ticket not found: {ticket_id}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Display ticket details
     console.print(f"\n[bold]Ticket: {ticket.id}[/bold]")
@@ -529,7 +530,7 @@ def comment(
 ) -> None:
     """Add a comment to a ticket."""
 
-    async def _comment():
+    async def _comment() -> Comment:
         adapter_instance = get_adapter(
             override_adapter=adapter.value if adapter else None
         )
@@ -552,7 +553,7 @@ def comment(
         console.print(f"Content: {content}")
     except Exception as e:
         console.print(f"[red]✗[/red] Failed to add comment: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @app.command()
@@ -585,7 +586,7 @@ def update(
 
     if not updates:
         console.print("[yellow]No updates specified[/yellow]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Get the adapter name
     config = load_config()
@@ -653,7 +654,7 @@ def transition(
             "  - Flag syntax (recommended): mcp-ticketer ticket transition TICKET-ID --state STATE\n"
             "  - Positional syntax: mcp-ticketer ticket transition TICKET-ID STATE"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Get the adapter name
     config = load_config()
@@ -700,7 +701,7 @@ def search(
 ) -> None:
     """Search tickets with advanced query."""
 
-    async def _search():
+    async def _search() -> list[Any]:
         adapter_instance = get_adapter(
             override_adapter=adapter.value if adapter else None
         )
@@ -731,14 +732,14 @@ def search(
 
 
 @app.command()
-def check(queue_id: str = typer.Argument(..., help="Queue ID to check")):
+def check(queue_id: str = typer.Argument(..., help="Queue ID to check")) -> None:
     """Check status of a queued operation."""
     queue = Queue()
     item = queue.get_item(queue_id)
 
     if not item:
         console.print(f"[red]Queue item not found: {queue_id}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Display status
     console.print(f"\n[bold]Queue Item: {item.id}[/bold]")
