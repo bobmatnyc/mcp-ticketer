@@ -3,10 +3,11 @@
 This test verifies Bug Fix #1: parent_epic parameter added to ticket_create.
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
-from mcp_ticketer.core.models import Epic, Priority, Task, TicketState, TicketType
+import pytest
+
+from mcp_ticketer.core.models import Priority, Task, TicketState
 from mcp_ticketer.mcp.server.tools.ticket_tools import ticket_create
 
 

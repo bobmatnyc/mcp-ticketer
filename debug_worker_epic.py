@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """Debug script to trace worker epic creation flow."""
 
-import sys
 import asyncio
+import sys
 from pathlib import Path
 
 # Add project to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from mcp_ticketer.queue.worker import Worker
 from mcp_ticketer.queue.queue import Queue, QueueItem
+from mcp_ticketer.queue.worker import Worker
 
 
 async def main():
@@ -46,7 +46,7 @@ async def main():
         adapter_config={"base_path": str(test_dir)},
     )
 
-    print(f"\n1. Queue item created:")
+    print("\n1. Queue item created:")
     print(f"   operation: {item.operation}")
     print(f"   adapter: {item.adapter}")
     print(f"   adapter_config: {item.adapter_config}")
@@ -57,7 +57,7 @@ async def main():
     print(f"\n2. Item added to queue: {item.id}")
 
     # Get adapter that worker will create
-    print(f"\n3. Getting adapter...")
+    print("\n3. Getting adapter...")
     adapter = worker._get_adapter(item)
     print(f"   adapter type: {type(adapter)}")
     print(f"   adapter.base_path: {adapter.base_path}")
@@ -65,13 +65,13 @@ async def main():
     print(f"   adapter.tracker: {adapter.tracker}")
 
     # Execute operation (what worker does)
-    print(f"\n4. Executing operation...")
+    print("\n4. Executing operation...")
     result = await worker._execute_operation(adapter, item)
     print(f"   result: {result}")
 
     # Check file system
     expected_file = adapter.tickets_dir / f"{result['id']}.json"
-    print(f"\n5. File system check:")
+    print("\n5. File system check:")
     print(f"   Expected file: {expected_file}")
     print(f"   File exists: {expected_file.exists()}")
 
@@ -81,20 +81,20 @@ async def main():
             content = json.load(f)
         print(f"   File content: {json.dumps(content, indent=2)}")
     else:
-        print(f"   ❌ FILE NOT FOUND!")
-        print(f"\n   Files in tickets_dir:")
+        print("   ❌ FILE NOT FOUND!")
+        print("\n   Files in tickets_dir:")
         if tickets_dir.exists():
             files = list(tickets_dir.iterdir())
             if files:
                 for f in files:
                     print(f"      - {f.name}")
             else:
-                print(f"      (empty directory)")
+                print("      (empty directory)")
         else:
-            print(f"      (directory doesn't exist)")
+            print("      (directory doesn't exist)")
 
     # Try to read back
-    print(f"\n6. Reading back epic...")
+    print("\n6. Reading back epic...")
     read_result = await adapter.read(result['id'])
     print(f"   Read result: {read_result}")
 

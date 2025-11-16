@@ -1273,42 +1273,33 @@ def init(
                 "type": "github",
             }
 
-    # 5. Save to appropriate location
+    # 5. Save to project-local config (global config deprecated for security)
+    # Always save to ./.mcp-ticketer/config.json (PROJECT-SPECIFIC)
+    config_file_path = proj_path / ".mcp-ticketer" / "config.json"
+    config_file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(config_file_path, "w") as f:
+        json.dump(config, f, indent=2)
+
     if global_config:
-        # Save to ~/.mcp-ticketer/config.json
-        resolver = ConfigResolver(project_path=proj_path)
-        config_file_path = resolver.GLOBAL_CONFIG_PATH
-        config_file_path.parent.mkdir(parents=True, exist_ok=True)
+        console.print("[yellow]Note: Global config deprecated for security. Saved to project config instead.[/yellow]")
 
-        with open(config_file_path, "w") as f:
-            json.dump(config, f, indent=2)
+    console.print(f"[green]✓ Initialized with {adapter_type} adapter[/green]")
+    console.print(f"[dim]Project configuration saved to {config_file_path}[/dim]")
 
-        console.print(f"[green]✓ Initialized with {adapter_type} adapter[/green]")
-        console.print(f"[dim]Global configuration saved to {config_file_path}[/dim]")
+    # Add .mcp-ticketer to .gitignore if not already there
+    gitignore_path = proj_path / ".gitignore"
+    if gitignore_path.exists():
+        gitignore_content = gitignore_path.read_text()
+        if ".mcp-ticketer" not in gitignore_content:
+            with open(gitignore_path, "a") as f:
+                f.write("\n# MCP Ticketer\n.mcp-ticketer/\n")
+            console.print("[dim]✓ Added .mcp-ticketer/ to .gitignore[/dim]")
     else:
-        # Save to ./.mcp-ticketer/config.json (PROJECT-SPECIFIC)
-        config_file_path = proj_path / ".mcp-ticketer" / "config.json"
-        config_file_path.parent.mkdir(parents=True, exist_ok=True)
-
-        with open(config_file_path, "w") as f:
-            json.dump(config, f, indent=2)
-
-        console.print(f"[green]✓ Initialized with {adapter_type} adapter[/green]")
-        console.print(f"[dim]Project configuration saved to {config_file_path}[/dim]")
-
-        # Add .mcp-ticketer to .gitignore if not already there
-        gitignore_path = proj_path / ".gitignore"
-        if gitignore_path.exists():
-            gitignore_content = gitignore_path.read_text()
-            if ".mcp-ticketer" not in gitignore_content:
-                with open(gitignore_path, "a") as f:
-                    f.write("\n# MCP Ticketer\n.mcp-ticketer/\n")
-                console.print("[dim]✓ Added .mcp-ticketer/ to .gitignore[/dim]")
-        else:
-            # Create .gitignore if it doesn't exist
-            with open(gitignore_path, "w") as f:
-                f.write("# MCP Ticketer\n.mcp-ticketer/\n")
-            console.print("[dim]✓ Created .gitignore with .mcp-ticketer/[/dim]")
+        # Create .gitignore if it doesn't exist
+        with open(gitignore_path, "w") as f:
+            f.write("# MCP Ticketer\n.mcp-ticketer/\n")
+        console.print("[dim]✓ Created .gitignore with .mcp-ticketer/[/dim]")
 
     # Validate configuration with loop for corrections
     import asyncio

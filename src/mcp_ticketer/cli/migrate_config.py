@@ -22,14 +22,17 @@ def migrate_config_command(dry_run: bool = False) -> None:
     """
     resolver = ConfigResolver()
 
+    # Get project config path (project-local only for security)
+    project_config_path = resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH
+
     # Check if old config exists
-    if not resolver.GLOBAL_CONFIG_PATH.exists():
+    if not project_config_path.exists():
         console.print("[yellow]No configuration found to migrate[/yellow]")
         return
 
     # Load old config
     try:
-        with open(resolver.GLOBAL_CONFIG_PATH) as f:
+        with open(project_config_path) as f:
             old_config = json.load(f)
     except Exception as e:
         console.print(f"[red]Failed to load config: {e}[/red]")
@@ -71,22 +74,23 @@ def migrate_config_command(dry_run: bool = False) -> None:
         return
 
     # Backup old config
-    backup_path = resolver.GLOBAL_CONFIG_PATH.with_suffix(".json.bak")
+    project_config_path = resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH
+    backup_path = project_config_path.with_suffix(".json.bak")
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_path = resolver.GLOBAL_CONFIG_PATH.parent / f"config.{timestamp}.bak"
+    backup_path = project_config_path.parent / f"config.{timestamp}.bak"
 
     try:
-        shutil.copy(resolver.GLOBAL_CONFIG_PATH, backup_path)
+        shutil.copy(project_config_path, backup_path)
         console.print(f"[green]✓[/green] Backed up old config to: {backup_path}")
     except Exception as e:
         console.print(f"[red]Failed to backup config: {e}[/red]")
         return
 
-    # Save new config
+    # Save new config (to project-local config)
     try:
-        resolver.save_global_config(new_config)
+        resolver.save_project_config(new_config)
         console.print("[green]✓[/green] Migration complete!")
-        console.print(f"[dim]New config saved to: {resolver.GLOBAL_CONFIG_PATH}[/dim]")
+        console.print(f"[dim]New config saved to: {project_config_path}[/dim]")
     except Exception as e:
         console.print(f"[red]Failed to save new config: {e}[/red]")
         console.print(f"[yellow]Old config backed up at: {backup_path}[/yellow]")

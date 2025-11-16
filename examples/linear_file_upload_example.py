@@ -64,7 +64,7 @@ async def example_file_upload_and_attachment():
             mime_type="text/plain",  # Optional, will auto-detect if not provided
         )
 
-        print(f"✓ File uploaded successfully!")
+        print("✓ File uploaded successfully!")
         print(f"  Asset URL: {asset_url}")
         print()
 

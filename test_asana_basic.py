@@ -26,7 +26,7 @@ async def test_asana_connection():
         print("Please set it in .env.local file")
         return False
 
-    print(f"\n1. Initializing Asana adapter...")
+    print("\n1. Initializing Asana adapter...")
     print(f"   API Key: {api_key[:10]}...{api_key[-5:]}")
 
     try:
@@ -42,13 +42,13 @@ async def test_asana_connection():
         print("   ✓ Credentials validated")
 
         # Initialize adapter (connects and resolves workspace)
-        print(f"\n2. Connecting to Asana API and resolving workspace...")
+        print("\n2. Connecting to Asana API and resolving workspace...")
         await adapter.initialize()
-        print(f"   ✓ Connected successfully")
+        print("   ✓ Connected successfully")
         print(f"   Workspace GID: {adapter._workspace_gid}")
 
         # Test connection
-        print(f"\n3. Testing API connection...")
+        print("\n3. Testing API connection...")
         connection_ok = await adapter.client.test_connection()
         if connection_ok:
             print("   ✓ Connection test passed")
@@ -57,14 +57,14 @@ async def test_asana_connection():
             return False
 
         # List existing projects (epics)
-        print(f"\n4. Fetching existing projects (epics)...")
+        print("\n4. Fetching existing projects (epics)...")
         epics = await adapter.list_epics()
         print(f"   Found {len(epics)} projects:")
         for epic in epics[:5]:  # Show first 5
             print(f"   - {epic.title} (GID: {epic.id})")
 
         # List existing tasks
-        print(f"\n5. Fetching existing tasks...")
+        print("\n5. Fetching existing tasks...")
         tasks = await adapter.list(limit=5)
         print(f"   Found {len(tasks)} tasks:")
         for task in tasks:
@@ -72,7 +72,7 @@ async def test_asana_connection():
 
         # Test read operation
         if tasks:
-            print(f"\n6. Testing read operation on first task...")
+            print("\n6. Testing read operation on first task...")
             task = await adapter.read(tasks[0].id)
             if task:
                 print(f"   ✓ Successfully read task: {task.title}")

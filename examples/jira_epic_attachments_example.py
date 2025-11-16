@@ -17,7 +17,6 @@ load_dotenv()
 
 async def main():
     """Demonstrate JIRA epic update and attachment functionality."""
-
     # Initialize adapter
     config = {
         "server": os.getenv("JIRA_SERVER"),
@@ -60,7 +59,7 @@ async def main():
             "tags": ["example", "demo", "updated"],
         }
     )
-    print(f"   ✅ Updated successfully")
+    print("   ✅ Updated successfully")
     print(f"   📝 New title: {updated_epic.title}")
     print(f"   ⚡ New priority: {updated_epic.priority}")
     print(f"   🏷️  New tags: {', '.join(updated_epic.tags)}")
@@ -95,7 +94,7 @@ async def main():
             temp_file_path,
             description="Example attachment"
         )
-        print(f"   ✅ Attachment added")
+        print("   ✅ Attachment added")
         print(f"   📎 Filename: {attachment.filename}")
         print(f"   💾 Size: {attachment.size_bytes} bytes")
         print(f"   🔗 URL: {attachment.url}")
@@ -115,9 +114,9 @@ async def main():
         print("6️⃣  Deleting attachment...")
         deleted = await adapter.delete_attachment(created_epic.id, attachment.id)
         if deleted:
-            print(f"   ✅ Attachment deleted successfully")
+            print("   ✅ Attachment deleted successfully")
         else:
-            print(f"   ❌ Failed to delete attachment")
+            print("   ❌ Failed to delete attachment")
         print()
 
         # Verify deletion

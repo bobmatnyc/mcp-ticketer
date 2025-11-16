@@ -287,7 +287,7 @@ class WorkerManager:
         is_running = self.is_running()
         pid = self._get_pid() if is_running else None
 
-        status = {"running": is_running, "pid": pid}
+        status: dict[str, Any] = {"running": is_running, "pid": pid}
 
         # Add process info if running
         if is_running and pid:

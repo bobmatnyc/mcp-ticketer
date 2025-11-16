@@ -45,24 +45,21 @@ def configure_wizard() -> None:
 
     # Step 2: Choose where to save
     console.print("\n[bold]Step 2: Configuration Scope[/bold]")
-    console.print("1. Global (all projects): ~/.mcp-ticketer/config.json")
-    console.print("2. Project-specific: .mcp-ticketer/config.json in project root")
+    console.print("1. Project-specific (recommended): .mcp-ticketer/config.json in project root")
+    console.print("2. Legacy global (deprecated): saves to project config for security")
 
-    scope = Prompt.ask("Save configuration as", choices=["1", "2"], default="2")
+    scope = Prompt.ask("Save configuration as", choices=["1", "2"], default="1")
 
     resolver = ConfigResolver()
 
-    if scope == "1":
-        # Save global
-        resolver.save_global_config(config)
-        console.print(
-            f"\n[green]✓[/green] Configuration saved globally to {resolver.GLOBAL_CONFIG_PATH}"
-        )
-    else:
-        # Save project-specific
-        resolver.save_project_config(config)
-        config_path = resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH
-        console.print(f"\n[green]✓[/green] Configuration saved to {config_path}")
+    # Always save to project config (global config removed for security)
+    resolver.save_project_config(config)
+    config_path = resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH
+
+    if scope == "2":
+        console.print("[yellow]Note: Global config is deprecated for security. Saving to project config instead.[/yellow]")
+
+    console.print(f"\n[green]✓[/green] Configuration saved to {config_path}")
 
     # Show usage instructions
     console.print("\n[bold]Usage:[/bold]")
@@ -365,31 +362,15 @@ def show_current_config() -> None:
     resolver = ConfigResolver()
 
     # Try to load configs
-    global_config = resolver.load_global_config()
     project_config = resolver.load_project_config()
 
     console.print("[bold]Current Configuration:[/bold]\n")
 
-    # Global config
-    if resolver.GLOBAL_CONFIG_PATH.exists():
-        console.print(f"[cyan]Global:[/cyan] {resolver.GLOBAL_CONFIG_PATH}")
-        console.print(f"  Default adapter: {global_config.default_adapter}")
-
-        if global_config.adapters:
-            table = Table(title="Global Adapters")
-            table.add_column("Adapter", style="cyan")
-            table.add_column("Configured", style="green")
-
-            for name, config in global_config.adapters.items():
-                configured = "✓" if config.enabled else "✗"
-                table.add_row(name, configured)
-
-            console.print(table)
-    else:
-        console.print("[yellow]No global configuration found[/yellow]")
+    # Note about global config deprecation
+    console.print("[dim]Note: Global config has been deprecated for security reasons.[/dim]")
+    console.print("[dim]All configuration is now project-specific only.[/dim]\n")
 
     # Project config
-    console.print()
     project_config_path = resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH
     if project_config_path.exists():
         console.print(f"[cyan]Project:[/cyan] {project_config_path}")
@@ -497,11 +478,11 @@ def set_adapter_config(
 
         console.print(f"[green]✓[/green] Updated {target_adapter} configuration")
 
-    # Save config
+    # Save config (always to project config for security)
+    resolver.save_project_config(config)
+    config_path = resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH
+
     if global_scope:
-        resolver.save_global_config(config)
-        console.print(f"[dim]Saved to {resolver.GLOBAL_CONFIG_PATH}[/dim]")
-    else:
-        resolver.save_project_config(config)
-        config_path = resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH
-        console.print(f"[dim]Saved to {config_path}[/dim]")
+        console.print("[yellow]Note: Global config deprecated for security. Saved to project config instead.[/yellow]")
+
+    console.print(f"[dim]Saved to {config_path}[/dim]")

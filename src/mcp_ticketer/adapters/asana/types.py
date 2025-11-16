@@ -77,6 +77,7 @@ def map_priority_to_asana(priority: Priority) -> str:
 
     Returns:
         Asana priority string
+
     """
     return AsanaPriorityMapping.TO_ASANA.get(priority, "Medium")
 
@@ -89,6 +90,7 @@ def map_priority_from_asana(asana_priority: str | None) -> Priority:
 
     Returns:
         Universal priority level
+
     """
     if not asana_priority:
         return Priority.MEDIUM
@@ -104,11 +106,14 @@ def map_state_to_asana(state: TicketState) -> bool:
 
     Returns:
         True if completed, False otherwise
+
     """
     return AsanaStateMapping.TO_ASANA.get(state, False)
 
 
-def map_state_from_asana(completed: bool, custom_state: str | None = None) -> TicketState:
+def map_state_from_asana(
+    completed: bool, custom_state: str | None = None
+) -> TicketState:
     """Map Asana completed boolean to universal state.
 
     Args:
@@ -117,6 +122,7 @@ def map_state_from_asana(completed: bool, custom_state: str | None = None) -> Ti
 
     Returns:
         Universal ticket state
+
     """
     # If custom state provided, try to map it
     if custom_state:

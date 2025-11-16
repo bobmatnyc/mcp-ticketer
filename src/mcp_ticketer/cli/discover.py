@@ -239,14 +239,13 @@ def save(
     # Add to config
     config.adapters[discovered_adapter.adapter_type] = adapter_config
 
-    # Save
+    # Save (always to project config for security)
     try:
+        resolver.save_project_config(config, proj_path)
+        config_location = proj_path / resolver.PROJECT_CONFIG_SUBPATH
+
         if global_config:
-            resolver.save_global_config(config)
-            config_location = resolver.GLOBAL_CONFIG_PATH
-        else:
-            resolver.save_project_config(config, proj_path)
-            config_location = proj_path / resolver.PROJECT_CONFIG_SUBPATH
+            console.print("[yellow]Note: Global config deprecated for security. Saved to project config instead.[/yellow]")
 
         console.print(f"\n[green]✅ Configuration saved to:[/green] {config_location}")
         console.print(
@@ -388,14 +387,13 @@ def interactive(
 
         console.print(f"  ✅ Added {discovered_adapter.adapter_type}")
 
-    # Save
+    # Save (always to project config for security)
     try:
+        resolver.save_project_config(config, proj_path)
+        config_location = proj_path / resolver.PROJECT_CONFIG_SUBPATH
+
         if save_global:
-            resolver.save_global_config(config)
-            config_location = resolver.GLOBAL_CONFIG_PATH
-        else:
-            resolver.save_project_config(config, proj_path)
-            config_location = proj_path / resolver.PROJECT_CONFIG_SUBPATH
+            console.print("[yellow]Note: Global config deprecated for security. Saved to project config instead.[/yellow]")
 
         console.print(f"\n[green]✅ Configuration saved to:[/green] {config_location}")
         console.print(f"[green]✅ Default adapter:[/green] {config.default_adapter}")

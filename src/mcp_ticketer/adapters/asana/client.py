@@ -29,6 +29,7 @@ class AsanaClient:
             api_key: Asana Personal Access Token (PAT)
             timeout: Request timeout in seconds
             max_retries: Maximum retry attempts for rate limiting
+
         """
         self.api_key = api_key
         self.timeout = timeout
@@ -49,6 +50,7 @@ class AsanaClient:
 
         Returns:
             Configured async HTTP client
+
         """
         if self._client is None:
             self._client = httpx.AsyncClient(
@@ -67,9 +69,12 @@ class AsanaClient:
 
         Raises:
             ValueError: If max retries exceeded
+
         """
         if attempt >= self.max_retries:
-            raise ValueError(f"Max retries ({self.max_retries}) exceeded for rate limiting")
+            raise ValueError(
+                f"Max retries ({self.max_retries}) exceeded for rate limiting"
+            )
 
         # Get retry-after header (in seconds)
         retry_after = int(response.headers.get("Retry-After", 60))
@@ -98,6 +103,7 @@ class AsanaClient:
 
         Raises:
             ValueError: If request fails or max retries exceeded
+
         """
         client = await self._get_client()
         url = f"{self.BASE_URL}/{endpoint.lstrip('/')}"
@@ -125,7 +131,9 @@ class AsanaClient:
                     error_detail = response.text
                     try:
                         error_json = response.json()
-                        error_detail = error_json.get("errors", [{}])[0].get("message", error_detail)
+                        error_detail = error_json.get("errors", [{}])[0].get(
+                            "message", error_detail
+                        )
                     except Exception:
                         pass
 
@@ -149,7 +157,9 @@ class AsanaClient:
                     logger.info(f"Retrying in {wait_time}s...")
                     await asyncio.sleep(wait_time)
                 else:
-                    raise ValueError(f"Request timeout after {self.max_retries} retries") from e
+                    raise ValueError(
+                        f"Request timeout after {self.max_retries} retries"
+                    ) from e
 
             except httpx.HTTPError as e:
                 logger.error(f"HTTP error for {method} {url}: {e}")
@@ -168,6 +178,7 @@ class AsanaClient:
 
         Returns:
             Response data
+
         """
         return await self._request("GET", endpoint, params=params)
 
@@ -180,6 +191,7 @@ class AsanaClient:
 
         Returns:
             Response data
+
         """
         return await self._request("POST", endpoint, json=data)
 
@@ -192,6 +204,7 @@ class AsanaClient:
 
         Returns:
             Response data
+
         """
         return await self._request("PUT", endpoint, json=data)
 
@@ -203,6 +216,7 @@ class AsanaClient:
 
         Returns:
             Response data
+
         """
         return await self._request("DELETE", endpoint)
 
@@ -221,6 +235,7 @@ class AsanaClient:
 
         Returns:
             List of all results from all pages
+
         """
         if params is None:
             params = {}
@@ -261,6 +276,7 @@ class AsanaClient:
 
         Returns:
             True if connection successful
+
         """
         try:
             await self.get("/users/me")

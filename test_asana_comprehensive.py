@@ -10,7 +10,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from mcp_ticketer.adapters.asana import AsanaAdapter
-from mcp_ticketer.core.models import Comment, Epic, Priority, Task, TicketState, TicketType
+from mcp_ticketer.core.models import (
+    Comment,
+    Epic,
+    Priority,
+    Task,
+    TicketState,
+    TicketType,
+)
 
 
 async def test_asana_comprehensive():
@@ -25,7 +32,7 @@ async def test_asana_comprehensive():
         print("ERROR: ASANA_PAT environment variable not set")
         return False
 
-    print(f"\n>>> Initializing adapter...")
+    print("\n>>> Initializing adapter...")
     adapter = AsanaAdapter({"api_key": api_key})
     await adapter.initialize()
     print(f"✓ Workspace: {adapter._workspace_gid}")

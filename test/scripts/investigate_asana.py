@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""
-Investigation script to check Asana project tasks and create verification ticket.
+"""Investigation script to check Asana project tasks and create verification ticket.
 """
 import asyncio
 import os
+
 from dotenv import load_dotenv
+
 from src.mcp_ticketer.adapters.asana import AsanaAdapter
-from src.mcp_ticketer.core.models import Task, TicketType, TicketState
+from src.mcp_ticketer.core.models import Task, TicketState, TicketType
+
 
 async def investigate():
     # Load environment variables
@@ -90,7 +92,7 @@ Project ID: 1211955750346310
         )
 
         created = await adapter.create(test_ticket)
-        print(f"✓ Verification ticket created successfully!")
+        print("✓ Verification ticket created successfully!")
         print(f"  Ticket ID: {created.id}")
         print(f"  Title: {created.title}")
         print(f"  State: {created.state}")

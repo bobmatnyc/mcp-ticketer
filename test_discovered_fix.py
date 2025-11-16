@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Test script to verify the 'discovered' flag fix.
+"""Test script to verify the 'discovered' flag fix.
 
 This script simulates the bug scenario where:
 1. aitrackdown adapter is discovered
@@ -11,8 +10,7 @@ This script simulates the bug scenario where:
 
 
 def test_scenario_1_linear_prompts_when_aitrackdown_discovered():
-    """
-    Test: Linear should prompt for credentials even when aitrackdown was discovered.
+    """Test: Linear should prompt for credentials even when aitrackdown was discovered.
 
     Before fix: discovered=True prevented Linear prompts
     After fix: Linear prompts based on presence of Linear config values
@@ -49,11 +47,11 @@ def test_scenario_1_linear_prompts_when_aitrackdown_discovered():
     print(f"Linear API key available: {linear_api_key is not None}")
     print(f"Linear team info available: {linear_team_id or linear_team_key is not None}")
     print()
-    print(f"OLD LOGIC (BUGGY - checked 'and not discovered'):")
+    print("OLD LOGIC (BUGGY - checked 'and not discovered'):")
     print(f"  Would prompt for API key: {old_logic_would_prompt_api_key} ✗ WRONG!")
     print(f"  Would prompt for team: {old_logic_would_prompt_team} ✗ WRONG!")
     print()
-    print(f"NEW LOGIC (FIXED - only checks config values):")
+    print("NEW LOGIC (FIXED - only checks config values):")
     print(f"  Would prompt for API key: {new_logic_would_prompt_api_key} ✓ CORRECT!")
     print(f"  Would prompt for team: {new_logic_would_prompt_team} ✓ CORRECT!")
 
@@ -66,8 +64,7 @@ def test_scenario_1_linear_prompts_when_aitrackdown_discovered():
 
 
 def test_scenario_2_linear_no_prompts_when_values_exist():
-    """
-    Test: Linear should NOT prompt when config values are already available.
+    """Test: Linear should NOT prompt when config values are already available.
 
     This ensures we didn't break the case where values are provided via CLI or env.
     """
@@ -93,7 +90,7 @@ def test_scenario_2_linear_no_prompts_when_values_exist():
     print(f"Linear API key available: {linear_api_key is not None}")
     print(f"Linear team info available: {linear_team_id or linear_team_key is not None}")
     print()
-    print(f"NEW LOGIC (FIXED):")
+    print("NEW LOGIC (FIXED):")
     print(f"  Would prompt for API key: {new_logic_would_prompt_api_key} ✓ CORRECT!")
     print(f"  Would prompt for team: {new_logic_would_prompt_team} ✓ CORRECT!")
 
@@ -104,8 +101,7 @@ def test_scenario_2_linear_no_prompts_when_values_exist():
 
 
 def test_scenario_3_jira_prompts_when_aitrackdown_discovered():
-    """
-    Test: JIRA should also prompt correctly when aitrackdown discovered.
+    """Test: JIRA should also prompt correctly when aitrackdown discovered.
 
     Verifies the fix was applied consistently across all adapters.
     """
@@ -138,11 +134,11 @@ def test_scenario_3_jira_prompts_when_aitrackdown_discovered():
     print(f"Discovered adapter exists: {discovered}")
     print(f"Selected adapter: {adapter_type}")
     print()
-    print(f"OLD LOGIC (BUGGY):")
+    print("OLD LOGIC (BUGGY):")
     print(f"  Would prompt for server: {old_logic_would_prompt_server} ✗ WRONG!")
     print(f"  Would prompt for email: {old_logic_would_prompt_email} ✗ WRONG!")
     print()
-    print(f"NEW LOGIC (FIXED):")
+    print("NEW LOGIC (FIXED):")
     print(f"  Would prompt for server: {new_logic_would_prompt_server} ✓ CORRECT!")
     print(f"  Would prompt for email: {new_logic_would_prompt_email} ✓ CORRECT!")
     print(f"  Would prompt for token: {new_logic_would_prompt_token} ✓ CORRECT!")
@@ -157,8 +153,7 @@ def test_scenario_3_jira_prompts_when_aitrackdown_discovered():
 
 
 def test_scenario_4_github_prompts_when_aitrackdown_discovered():
-    """
-    Test: GitHub should also prompt correctly when aitrackdown discovered.
+    """Test: GitHub should also prompt correctly when aitrackdown discovered.
     """
     print("\n" + "="*60)
     print("TEST 4: GitHub prompts when aitrackdown discovered")
@@ -187,11 +182,11 @@ def test_scenario_4_github_prompts_when_aitrackdown_discovered():
     print(f"Discovered adapter exists: {discovered}")
     print(f"Selected adapter: {adapter_type}")
     print()
-    print(f"OLD LOGIC (BUGGY):")
+    print("OLD LOGIC (BUGGY):")
     print(f"  Would prompt for owner: {old_logic_would_prompt_owner} ✗ WRONG!")
     print(f"  Would prompt for repo: {old_logic_would_prompt_repo} ✗ WRONG!")
     print()
-    print(f"NEW LOGIC (FIXED):")
+    print("NEW LOGIC (FIXED):")
     print(f"  Would prompt for owner: {new_logic_would_prompt_owner} ✓ CORRECT!")
     print(f"  Would prompt for repo: {new_logic_would_prompt_repo} ✓ CORRECT!")
     print(f"  Would prompt for token: {new_logic_would_prompt_token} ✓ CORRECT!")

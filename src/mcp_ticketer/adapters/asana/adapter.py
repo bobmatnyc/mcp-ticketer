@@ -12,7 +12,15 @@ from typing import Any
 import httpx
 
 from ...core.adapter import BaseAdapter
-from ...core.models import Attachment, Comment, Epic, SearchQuery, Task, TicketState, TicketType
+from ...core.models import (
+    Attachment,
+    Comment,
+    Epic,
+    SearchQuery,
+    Task,
+    TicketState,
+    TicketType,
+)
 from ...core.registry import AdapterRegistry
 from .client import AsanaClient
 from .mappers import (
@@ -23,7 +31,7 @@ from .mappers import (
     map_epic_to_asana_project,
     map_task_to_asana_task,
 )
-from .types import map_priority_to_asana, map_state_to_asana
+from .types import map_state_to_asana
 
 logger = logging.getLogger(__name__)
 
@@ -61,30 +69,39 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Raises:
             ValueError: If required configuration is missing
+
         """
         # Initialize instance variables before super().__init__
         self._workspace_gid: str | None = None
         self._team_gid: str | None = None
         self._default_project_gid: str | None = None
         self._priority_field_gid: str | None = None
-        self._project_custom_fields_cache: dict[str, dict[str, dict]] = {}  # Map project_gid -> {field_name: field_data}
+        self._project_custom_fields_cache: dict[str, dict[str, dict]] = (
+            {}
+        )  # Map project_gid -> {field_name: field_data}
         self._initialized = False
 
         super().__init__(config)
 
         # Extract API key from config or environment
-        self.api_key = config.get("api_key") or os.getenv("ASANA_PAT") or os.getenv("ASANA_API_KEY")
+        self.api_key = (
+            config.get("api_key")
+            or os.getenv("ASANA_PAT")
+            or os.getenv("ASANA_API_KEY")
+        )
         if not self.api_key:
-            raise ValueError(
-                "Asana API key is required (api_key or ASANA_PAT env var)"
-            )
+            raise ValueError("Asana API key is required (api_key or ASANA_PAT env var)")
 
         # Clean API key - remove common prefixes
         if isinstance(self.api_key, str):
             # Remove environment variable name prefix (e.g., "ASANA_PAT=")
             if "=" in self.api_key:
                 parts = self.api_key.split("=", 1)
-                if len(parts) == 2 and parts[0].upper() in ("ASANA_PAT", "ASANA_API_KEY", "API_KEY"):
+                if len(parts) == 2 and parts[0].upper() in (
+                    "ASANA_PAT",
+                    "ASANA_API_KEY",
+                    "API_KEY",
+                ):
                     self.api_key = parts[1]
 
         # Optional configuration
@@ -95,13 +112,16 @@ class AsanaAdapter(BaseAdapter[Task]):
         max_retries = config.get("max_retries", 3)
 
         # Initialize client
-        self.client = AsanaClient(self.api_key, timeout=timeout, max_retries=max_retries)
+        self.client = AsanaClient(
+            self.api_key, timeout=timeout, max_retries=max_retries
+        )
 
     def validate_credentials(self) -> tuple[bool, str]:
         """Validate Asana API credentials.
 
         Returns:
             Tuple of (is_valid, error_message)
+
         """
         if not self.api_key:
             return False, "Asana API key is required"
@@ -129,7 +149,9 @@ class AsanaAdapter(BaseAdapter[Task]):
             await self._load_custom_fields()
 
             self._initialized = True
-            logger.info(f"Asana adapter initialized with workspace GID: {self._workspace_gid}, team GID: {self._team_gid}")
+            logger.info(
+                f"Asana adapter initialized with workspace GID: {self._workspace_gid}, team GID: {self._team_gid}"
+            )
 
         except Exception as e:
             raise ValueError(f"Failed to initialize Asana adapter: {e}") from e
@@ -148,14 +170,18 @@ class AsanaAdapter(BaseAdapter[Task]):
                 for ws in workspaces:
                     if ws.get("name", "").lower() == self.workspace_name.lower():
                         self._workspace_gid = ws["gid"]
-                        logger.info(f"Resolved workspace '{self.workspace_name}' to GID: {self._workspace_gid}")
+                        logger.info(
+                            f"Resolved workspace '{self.workspace_name}' to GID: {self._workspace_gid}"
+                        )
                         return
 
                 raise ValueError(f"Workspace '{self.workspace_name}' not found")
 
             # Use first workspace as default
             self._workspace_gid = workspaces[0]["gid"]
-            logger.info(f"Using default workspace: {workspaces[0].get('name')} (GID: {self._workspace_gid})")
+            logger.info(
+                f"Using default workspace: {workspaces[0].get('name')} (GID: {self._workspace_gid})"
+            )
 
         except Exception as e:
             raise ValueError(f"Failed to resolve workspace: {e}") from e
@@ -172,13 +198,14 @@ class AsanaAdapter(BaseAdapter[Task]):
         try:
             # Get teams for workspace
             teams = await self.client.get_paginated(
-                f"/organizations/{self._workspace_gid}/teams",
-                limit=1
+                f"/organizations/{self._workspace_gid}/teams", limit=1
             )
 
             if teams:
                 self._team_gid = teams[0]["gid"]
-                logger.info(f"Resolved team: {teams[0].get('name')} (GID: {self._team_gid})")
+                logger.info(
+                    f"Resolved team: {teams[0].get('name')} (GID: {self._team_gid})"
+                )
             else:
                 # No teams - personal workspace (team field optional for personal workspaces)
                 logger.info("No teams found - using personal workspace")
@@ -204,7 +231,9 @@ class AsanaAdapter(BaseAdapter[Task]):
             for field in custom_fields:
                 if field.get("name", "").lower() == "priority":
                     self._priority_field_gid = field["gid"]
-                    logger.info(f"Found Priority custom field: {self._priority_field_gid}")
+                    logger.info(
+                        f"Found Priority custom field: {self._priority_field_gid}"
+                    )
                     break
 
         except Exception as e:
@@ -219,23 +248,24 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             Dictionary mapping field name (lowercase) to field data
+
         """
         try:
             project = await self.client.get(
                 f"/projects/{project_gid}",
-                params={"opt_fields": "custom_field_settings.custom_field"}
+                params={"opt_fields": "custom_field_settings.custom_field"},
             )
 
             fields = {}
-            for setting in project.get('custom_field_settings', []):
-                field = setting.get('custom_field', {})
+            for setting in project.get("custom_field_settings", []):
+                field = setting.get("custom_field", {})
                 if field:
-                    field_name = field.get('name', '').lower()
+                    field_name = field.get("name", "").lower()
                     fields[field_name] = {
-                        'gid': field['gid'],
-                        'name': field['name'],
-                        'resource_subtype': field.get('resource_subtype'),
-                        'enum_options': field.get('enum_options', [])
+                        "gid": field["gid"],
+                        "name": field["name"],
+                        "resource_subtype": field.get("resource_subtype"),
+                        "enum_options": field.get("enum_options", []),
                     }
 
             return fields
@@ -251,12 +281,17 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             Dictionary mapping field name (lowercase) to field data
+
         """
         if project_gid not in self._project_custom_fields_cache:
-            self._project_custom_fields_cache[project_gid] = await self._load_project_custom_fields(project_gid)
+            self._project_custom_fields_cache[project_gid] = (
+                await self._load_project_custom_fields(project_gid)
+            )
         return self._project_custom_fields_cache[project_gid]
 
-    def _map_state_to_status_option(self, state: TicketState, status_field: dict) -> dict | None:
+    def _map_state_to_status_option(
+        self, state: TicketState, status_field: dict
+    ) -> dict | None:
         """Map TicketState to Asana Status custom field option.
 
         Args:
@@ -265,25 +300,26 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             Matching enum option or None
+
         """
         # Define state mappings
         state_mappings = {
-            TicketState.OPEN: ['not started', 'to do', 'backlog', 'open'],
-            TicketState.IN_PROGRESS: ['in progress', 'working on it', 'started'],
-            TicketState.READY: ['ready', 'ready for review', 'completed'],
-            TicketState.TESTED: ['tested', 'qa complete', 'verified'],
-            TicketState.DONE: ['done', 'complete', 'finished'],
-            TicketState.CLOSED: ['closed', 'archived'],
-            TicketState.WAITING: ['waiting', 'blocked', 'on hold'],
-            TicketState.BLOCKED: ['blocked', 'stuck', 'at risk']
+            TicketState.OPEN: ["not started", "to do", "backlog", "open"],
+            TicketState.IN_PROGRESS: ["in progress", "working on it", "started"],
+            TicketState.READY: ["ready", "ready for review", "completed"],
+            TicketState.TESTED: ["tested", "qa complete", "verified"],
+            TicketState.DONE: ["done", "complete", "finished"],
+            TicketState.CLOSED: ["closed", "archived"],
+            TicketState.WAITING: ["waiting", "blocked", "on hold"],
+            TicketState.BLOCKED: ["blocked", "stuck", "at risk"],
         }
 
         target_keywords = state_mappings.get(state, [])
         state_name = state.value.lower()
 
         # Try to find matching option
-        for option in status_field.get('enum_options', []):
-            option_name = option['name'].lower()
+        for option in status_field.get("enum_options", []):
+            option_name = option["name"].lower()
 
             # Exact match
             if option_name == state_name:
@@ -304,6 +340,7 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             Dictionary mapping TicketState to completion status string
+
         """
         return {
             TicketState.OPEN: "false",
@@ -324,6 +361,7 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             Project GID or None if not found
+
         """
         if not project_identifier:
             return None
@@ -358,6 +396,7 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             User GID or None if not found
+
         """
         if not user_identifier:
             return None
@@ -400,6 +439,7 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Raises:
             ValueError: If creation fails
+
         """
         # Validate credentials
         is_valid, error_message = self.validate_credentials()
@@ -424,12 +464,15 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             Created epic with Asana metadata
+
         """
         if not self._workspace_gid:
             raise ValueError("Workspace not initialized")
 
         # Build project data (including team if available)
-        project_data = map_epic_to_asana_project(epic, self._workspace_gid, self._team_gid)
+        project_data = map_epic_to_asana_project(
+            epic, self._workspace_gid, self._team_gid
+        )
 
         try:
             # Create project
@@ -452,6 +495,7 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             Created task with Asana metadata
+
         """
         if not self._workspace_gid:
             raise ValueError("Workspace not initialized")
@@ -505,7 +549,9 @@ class AsanaAdapter(BaseAdapter[Task]):
             # Fetch full task details
             full_task = await self.client.get(
                 f"/tasks/{created_task['gid']}",
-                params={"opt_fields": "gid,name,notes,completed,created_at,modified_at,assignee,tags,projects,parent,workspace,permalink_url,due_on,due_at,num_subtasks,custom_fields"}
+                params={
+                    "opt_fields": "gid,name,notes,completed,created_at,modified_at,assignee,tags,projects,parent,workspace,permalink_url,due_on,due_at,num_subtasks,custom_fields"
+                },
             )
 
             # Map back to Task
@@ -520,6 +566,7 @@ class AsanaAdapter(BaseAdapter[Task]):
         Args:
             task_gid: Task GID
             tags: List of tag names to add
+
         """
         if not tags:
             return
@@ -541,16 +588,12 @@ class AsanaAdapter(BaseAdapter[Task]):
                 # Create tag if it doesn't exist
                 if not tag_gid:
                     created_tag = await self.client.post(
-                        "/tags",
-                        {"name": tag_name, "workspace": self._workspace_gid}
+                        "/tags", {"name": tag_name, "workspace": self._workspace_gid}
                     )
                     tag_gid = created_tag["gid"]
 
                 # Add tag to task
-                await self.client.post(
-                    f"/tasks/{task_gid}/addTag",
-                    {"tag": tag_gid}
-                )
+                await self.client.post(f"/tasks/{task_gid}/addTag", {"tag": tag_gid})
 
         except Exception as e:
             logger.warning(f"Failed to add tags to task: {e}")
@@ -563,6 +606,7 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             Task if found, None otherwise
+
         """
         # Validate credentials
         is_valid, error_message = self.validate_credentials()
@@ -573,7 +617,9 @@ class AsanaAdapter(BaseAdapter[Task]):
             # Get task with expanded fields
             task = await self.client.get(
                 f"/tasks/{ticket_id}",
-                params={"opt_fields": "gid,name,notes,completed,created_at,modified_at,assignee,tags,projects,parent,workspace,permalink_url,due_on,due_at,num_subtasks,custom_fields"}
+                params={
+                    "opt_fields": "gid,name,notes,completed,created_at,modified_at,assignee,tags,projects,parent,workspace,permalink_url,due_on,due_at,num_subtasks,custom_fields"
+                },
             )
 
             return map_asana_task_to_task(task)
@@ -591,6 +637,7 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             Updated task or None if not found
+
         """
         # Validate credentials
         is_valid, error_message = self.validate_credentials()
@@ -600,8 +647,7 @@ class AsanaAdapter(BaseAdapter[Task]):
         try:
             # Get current task to find its project
             current = await self.client.get(
-                f"/tasks/{ticket_id}",
-                params={"opt_fields": "projects,custom_fields"}
+                f"/tasks/{ticket_id}", params={"opt_fields": "projects,custom_fields"}
             )
 
             # Build update data
@@ -628,13 +674,13 @@ class AsanaAdapter(BaseAdapter[Task]):
             # Handle priority update (Bug Fix #2)
             if "priority" in updates:
                 # Get project custom fields
-                projects = current.get('projects', [])
+                projects = current.get("projects", [])
                 if projects:
-                    project_gid = projects[0]['gid']
+                    project_gid = projects[0]["gid"]
                     project_fields = await self._get_project_custom_fields(project_gid)
 
                     # Find Priority field
-                    priority_field = project_fields.get('priority')
+                    priority_field = project_fields.get("priority")
                     if priority_field:
                         # Map priority value to enum option
                         priority_value = updates["priority"]
@@ -646,15 +692,19 @@ class AsanaAdapter(BaseAdapter[Task]):
 
                         priority_option = None
 
-                        for option in priority_field.get('enum_options', []):
-                            if option['name'].lower() == priority_value:
+                        for option in priority_field.get("enum_options", []):
+                            if option["name"].lower() == priority_value:
                                 priority_option = option
                                 break
 
                         if priority_option:
-                            custom_fields_update[priority_field['gid']] = priority_option['gid']
+                            custom_fields_update[priority_field["gid"]] = (
+                                priority_option["gid"]
+                            )
                         else:
-                            logger.warning(f"Priority option '{priority_value}' not found in field options")
+                            logger.warning(
+                                f"Priority option '{priority_value}' not found in field options"
+                            )
                     else:
                         logger.warning("Priority custom field not found in project")
 
@@ -665,17 +715,21 @@ class AsanaAdapter(BaseAdapter[Task]):
                     state = TicketState(state)
 
                 # Check if project has Status custom field
-                projects = current.get('projects', [])
+                projects = current.get("projects", [])
                 if projects:
-                    project_gid = projects[0]['gid']
+                    project_gid = projects[0]["gid"]
                     project_fields = await self._get_project_custom_fields(project_gid)
 
-                    status_field = project_fields.get('status')
+                    status_field = project_fields.get("status")
                     if status_field:
                         # Map state to status option (Bug #3 fix)
-                        status_option = self._map_state_to_status_option(state, status_field)
+                        status_option = self._map_state_to_status_option(
+                            state, status_field
+                        )
                         if status_option:
-                            custom_fields_update[status_field['gid']] = status_option['gid']
+                            custom_fields_update[status_field["gid"]] = status_option[
+                                "gid"
+                            ]
 
                 # Always set completed boolean for DONE/CLOSED
                 if state in [TicketState.DONE, TicketState.CLOSED]:
@@ -696,7 +750,9 @@ class AsanaAdapter(BaseAdapter[Task]):
                 # Remove all existing tags first
                 current_task = await self.client.get(f"/tasks/{ticket_id}")
                 for tag in current_task.get("tags", []):
-                    await self.client.post(f"/tasks/{ticket_id}/removeTag", {"tag": tag["gid"]})
+                    await self.client.post(
+                        f"/tasks/{ticket_id}/removeTag", {"tag": tag["gid"]}
+                    )
 
                 # Add new tags
                 if updates["tags"]:
@@ -705,7 +761,9 @@ class AsanaAdapter(BaseAdapter[Task]):
             # Fetch updated task with full details
             full_task = await self.client.get(
                 f"/tasks/{ticket_id}",
-                params={"opt_fields": "gid,name,notes,completed,created_at,modified_at,assignee,tags,projects,parent,workspace,permalink_url,due_on,due_at,num_subtasks,custom_fields"}
+                params={
+                    "opt_fields": "gid,name,notes,completed,created_at,modified_at,assignee,tags,projects,parent,workspace,permalink_url,due_on,due_at,num_subtasks,custom_fields"
+                },
             )
 
             return map_asana_task_to_task(full_task)
@@ -722,6 +780,7 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             True if successfully deleted
+
         """
         try:
             await self.client.delete(f"/tasks/{ticket_id}")
@@ -742,6 +801,7 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             List of tasks matching the criteria
+
         """
         # Validate credentials
         is_valid, error_message = self.validate_credentials()
@@ -758,7 +818,6 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         # Determine endpoint based on filters
         endpoint = None
-        use_assignee_filter = False
 
         if filters:
             # Filter by project
@@ -773,7 +832,6 @@ class AsanaAdapter(BaseAdapter[Task]):
                 assignee_gid = await self._resolve_user_gid(filters["assignee"])
                 if assignee_gid:
                     params["assignee"] = assignee_gid
-                    use_assignee_filter = True
                     endpoint = "/tasks"
 
         # Default: get current user's tasks
@@ -788,8 +846,7 @@ class AsanaAdapter(BaseAdapter[Task]):
             except Exception:
                 # Fallback: try to get first project's tasks
                 projects = await self.client.get_paginated(
-                    f"/workspaces/{self._workspace_gid}/projects",
-                    limit=1
+                    f"/workspaces/{self._workspace_gid}/projects", limit=1
                 )
                 if projects:
                     endpoint = f"/projects/{projects[0]['gid']}/tasks"
@@ -799,7 +856,9 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         try:
             # Get tasks (limited to specified limit)
-            all_tasks = await self.client.get_paginated(endpoint, params=params, limit=limit)
+            all_tasks = await self.client.get_paginated(
+                endpoint, params=params, limit=limit
+            )
 
             # Map to Task objects
             tasks = []
@@ -813,9 +872,14 @@ class AsanaAdapter(BaseAdapter[Task]):
                     state = filters["state"]
                     if isinstance(state, str):
                         from ...core.models import TicketState
+
                         state = TicketState(state)
                     completed = map_state_to_asana(state)
-                    tasks = [t for t in tasks if t.metadata.get("asana_completed") == completed]
+                    tasks = [
+                        t
+                        for t in tasks
+                        if t.metadata.get("asana_completed") == completed
+                    ]
 
                 # Filter by ticket type
                 if "ticket_type" in filters:
@@ -836,6 +900,7 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             List of tasks matching the search criteria
+
         """
         # Build filters from query
         filters: dict[str, Any] = {}
@@ -853,19 +918,17 @@ class AsanaAdapter(BaseAdapter[Task]):
         if query.query:
             query_lower = query.query.lower()
             tasks = [
-                t for t in tasks
+                t
+                for t in tasks
                 if query_lower in t.title.lower()
                 or (t.description and query_lower in t.description.lower())
             ]
 
         # Apply tag filter if provided
         if query.tags:
-            tasks = [
-                t for t in tasks
-                if any(tag in t.tags for tag in query.tags)
-            ]
+            tasks = [t for t in tasks if any(tag in t.tags for tag in query.tags)]
 
-        return tasks[:query.limit]
+        return tasks[: query.limit]
 
     async def transition_state(
         self, ticket_id: str, target_state: TicketState
@@ -878,6 +941,7 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             Updated task or None if failed
+
         """
         return await self.update(ticket_id, {"state": target_state})
 
@@ -892,6 +956,7 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Raises:
             ValueError: If comment creation fails
+
         """
         try:
             # Create story on task
@@ -900,12 +965,13 @@ class AsanaAdapter(BaseAdapter[Task]):
             }
 
             created_story = await self.client.post(
-                f"/tasks/{comment.ticket_id}/stories",
-                story_data
+                f"/tasks/{comment.ticket_id}/stories", story_data
             )
 
             # Map to Comment
-            return map_asana_story_to_comment(created_story, comment.ticket_id) or comment
+            return (
+                map_asana_story_to_comment(created_story, comment.ticket_id) or comment
+            )
 
         except Exception as e:
             raise ValueError(f"Failed to add comment: {e}") from e
@@ -924,12 +990,12 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             List of comments for the task
+
         """
         try:
             # Get stories for task
             stories = await self.client.get_paginated(
-                f"/tasks/{ticket_id}/stories",
-                limit=limit
+                f"/tasks/{ticket_id}/stories", limit=limit
             )
 
             # Filter and map to Comments (only comment type stories)
@@ -959,6 +1025,7 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             Created epic or None if failed
+
         """
         epic = Epic(
             title=title,
@@ -978,11 +1045,14 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             Epic if found, None otherwise
+
         """
         try:
             project = await self.client.get(
                 f"/projects/{epic_id}",
-                params={"opt_fields": "gid,name,notes,archived,created_at,modified_at,workspace,team,color,permalink_url,public,custom_fields"}
+                params={
+                    "opt_fields": "gid,name,notes,archived,created_at,modified_at,workspace,team,color,permalink_url,public,custom_fields"
+                },
             )
 
             return map_asana_project_to_epic(project)
@@ -1000,6 +1070,7 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             Updated epic or None if failed
+
         """
         # Build update data
         update_data: dict[str, Any] = {}
@@ -1014,6 +1085,7 @@ class AsanaAdapter(BaseAdapter[Task]):
             state = updates["state"]
             if isinstance(state, str):
                 from ...core.models import TicketState
+
                 state = TicketState(state)
             # Map CLOSED/DONE to archived
             if state in (TicketState.CLOSED, TicketState.DONE):
@@ -1040,6 +1112,7 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             List of epics
+
         """
         await self.initialize()
 
@@ -1047,7 +1120,9 @@ class AsanaAdapter(BaseAdapter[Task]):
             # Get projects for workspace
             projects = await self.client.get_paginated(
                 f"/workspaces/{self._workspace_gid}/projects",
-                params={"opt_fields": "gid,name,notes,archived,created_at,modified_at,workspace,team,color,permalink_url,public,custom_fields"}
+                params={
+                    "opt_fields": "gid,name,notes,archived,created_at,modified_at,workspace,team,color,permalink_url,public,custom_fields"
+                },
             )
 
             # Map to Epic objects
@@ -1058,7 +1133,9 @@ class AsanaAdapter(BaseAdapter[Task]):
             # Filter by archived state if specified
             if "archived" in kwargs:
                 archived = kwargs["archived"]
-                epics = [e for e in epics if e.metadata.get("asana_archived") == archived]
+                epics = [
+                    e for e in epics if e.metadata.get("asana_archived") == archived
+                ]
 
             return epics
 
@@ -1074,8 +1151,11 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             List of tasks in the project
+
         """
-        return await self.list(filters={"parent_epic": epic_id, "ticket_type": TicketType.ISSUE})
+        return await self.list(
+            filters={"parent_epic": epic_id, "ticket_type": TicketType.ISSUE}
+        )
 
     async def list_tasks_by_issue(self, issue_id: str) -> builtins.list[Task]:
         """List all subtasks of a task (Issue).
@@ -1085,12 +1165,15 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             List of subtasks
+
         """
         try:
             # Get subtasks for task
             subtasks = await self.client.get_paginated(
                 f"/tasks/{issue_id}/subtasks",
-                params={"opt_fields": "gid,name,notes,completed,created_at,modified_at,assignee,tags,projects,parent,workspace,permalink_url,due_on,due_at,num_subtasks,custom_fields"}
+                params={
+                    "opt_fields": "gid,name,notes,completed,created_at,modified_at,assignee,tags,projects,parent,workspace,permalink_url,due_on,due_at,num_subtasks,custom_fields"
+                },
             )
 
             # Map to Task objects
@@ -1125,6 +1208,7 @@ class AsanaAdapter(BaseAdapter[Task]):
         Raises:
             FileNotFoundError: If file doesn't exist
             ValueError: If upload fails
+
         """
         # Validate file exists
         file_path_obj = Path(file_path)
@@ -1175,6 +1259,7 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             List of attachments
+
         """
         try:
             # Get attachments for task
@@ -1205,6 +1290,7 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         Returns:
             True if deleted successfully
+
         """
         try:
             await self.client.delete(f"/attachments/{attachment_id}")

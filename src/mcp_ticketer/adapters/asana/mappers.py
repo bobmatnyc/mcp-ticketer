@@ -4,8 +4,20 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from ...core.models import Attachment, Comment, Epic, Priority, Task, TicketState, TicketType
-from .types import map_priority_from_asana, map_priority_to_asana, map_state_from_asana, map_state_to_asana
+from ...core.models import (
+    Attachment,
+    Comment,
+    Epic,
+    Priority,
+    Task,
+    TicketState,
+    TicketType,
+)
+from .types import (
+    map_priority_from_asana,
+    map_state_from_asana,
+    map_state_to_asana,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +30,7 @@ def parse_asana_datetime(date_str: str | None) -> datetime | None:
 
     Returns:
         Parsed datetime or None
+
     """
     if not date_str:
         return None
@@ -38,6 +51,7 @@ def map_asana_project_to_epic(project: dict[str, Any]) -> Epic:
 
     Returns:
         Epic model instance
+
     """
     # Extract custom field for priority if exists
     priority = Priority.MEDIUM
@@ -63,7 +77,9 @@ def map_asana_project_to_epic(project: dict[str, Any]) -> Epic:
             "asana_gid": project.get("gid"),
             "asana_permalink_url": project.get("permalink_url"),
             "asana_workspace_gid": project.get("workspace", {}).get("gid"),
-            "asana_team_gid": project.get("team", {}).get("gid") if project.get("team") else None,
+            "asana_team_gid": (
+                project.get("team", {}).get("gid") if project.get("team") else None
+            ),
             "asana_color": project.get("color"),
             "asana_archived": archived,
             "asana_public": project.get("public", False),
@@ -83,6 +99,7 @@ def map_asana_task_to_task(task: dict[str, Any]) -> Task:
 
     Returns:
         Task model instance
+
     """
     # Determine ticket type based on parent
     parent_task = task.get("parent")
@@ -174,6 +191,7 @@ def map_epic_to_asana_project(
 
     Returns:
         Asana project data for create/update
+
     """
     project_data: dict[str, Any] = {
         "name": epic.title,
@@ -208,6 +226,7 @@ def map_task_to_asana_task(
 
     Returns:
         Asana task data for create/update
+
     """
     task_data: dict[str, Any] = {
         "name": task.title,
@@ -252,6 +271,7 @@ def map_asana_story_to_comment(story: dict[str, Any], task_gid: str) -> Comment 
 
     Returns:
         Comment model instance or None if not a comment type
+
     """
     # Filter: only return actual comments, not system stories
     story_type = story.get("type", "")
@@ -276,7 +296,9 @@ def map_asana_story_to_comment(story: dict[str, Any], task_gid: str) -> Comment 
     )
 
 
-def map_asana_attachment_to_attachment(attachment: dict[str, Any], task_gid: str) -> Attachment:
+def map_asana_attachment_to_attachment(
+    attachment: dict[str, Any], task_gid: str
+) -> Attachment:
     """Map Asana attachment to Attachment.
 
     IMPORTANT: Use permanent_url for reliable access, not download_url which expires.
@@ -287,6 +309,7 @@ def map_asana_attachment_to_attachment(attachment: dict[str, Any], task_gid: str
 
     Returns:
         Attachment model instance
+
     """
     # Extract creator info
     created_by_data = attachment.get("created_by", {})

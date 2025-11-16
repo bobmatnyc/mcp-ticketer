@@ -37,7 +37,7 @@ class BuildMetadata(TypedDict):
 class VersionManager:
     """Manages semantic versioning and build tracking for mcp-ticketer."""
 
-    def __init__(self, project_root: Optional[Path] = None) -> None:
+    def __init__(self, project_root: Path | None = None) -> None:
         """Initialize version manager.
 
         Args:

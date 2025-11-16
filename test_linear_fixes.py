@@ -35,7 +35,6 @@ logging.basicConfig(
 from mcp_ticketer.adapters.linear.adapter import LinearAdapter
 from mcp_ticketer.core.models import Priority, Task, TicketState
 
-
 # Configuration
 PROJECT_ID = "048c59cdce70"  # Update this with your actual project ID
 
@@ -69,7 +68,7 @@ async def test_label_resolution():
     print(f"\n✅ Created issue: {result.id}")
     print(f"   Title: {result.title}")
     print(f"   Tags: {result.tags}")
-    print(f"   Expected: ['bug', 'urgent']")
+    print("   Expected: ['bug', 'urgent']")
     print(f"   Match: {'✓' if set(result.tags) == {'bug', 'urgent'} else '✗'}")
 
     await adapter.close()
@@ -135,7 +134,7 @@ async def test_project_epic_synonym():
     # Set via .project property
     task.project = PROJECT_ID
 
-    print(f"\n📝 Creating task using .project property")
+    print("\n📝 Creating task using .project property")
     print(f"   task.project = '{PROJECT_ID}'")
     print(f"   task.parent_epic = '{task.parent_epic}' (should match)")
 
@@ -284,7 +283,7 @@ async def main():
         return 0
 
     except Exception as e:
-        print(f"\n❌ ERROR: Test failed with exception:")
+        print("\n❌ ERROR: Test failed with exception:")
         print(f"   {type(e).__name__}: {e}")
         import traceback
 

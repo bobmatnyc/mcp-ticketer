@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Debug full flow: Queue.add() → Worker.process()."""
 
-import sys
 import asyncio
 import logging
+import sys
 from pathlib import Path
 
 # Setup logging
@@ -41,7 +41,7 @@ async def main():
 
     # Create queue and add item
     queue = Queue()
-    print(f"\n2. Creating queue item...")
+    print("\n2. Creating queue item...")
 
     queue_id = queue.add(
         ticket_data={"title": "Test Epic", "description": "Test Description"},
@@ -54,7 +54,7 @@ async def main():
 
     # Get the item back to inspect
     item = queue.get_next_pending()
-    print(f"\n3. Queue item details:")
+    print("\n3. Queue item details:")
     print(f"   id: {item.id}")
     print(f"   operation: {item.operation}")
     print(f"   adapter: {item.adapter}")
@@ -63,19 +63,19 @@ async def main():
 
     # Create worker and process the item
     worker = Worker(queue=queue)
-    print(f"\n4. Processing item with worker...")
+    print("\n4. Processing item with worker...")
 
     await worker._process_item(item)
 
     # Check queue status
     status = queue.get_status(queue_id)
-    print(f"\n5. Queue status after processing:")
+    print("\n5. Queue status after processing:")
     print(f"   status: {status['status']}")
     print(f"   result: {status.get('result')}")
     print(f"   error: {status.get('error_message')}")
 
     # Check file system
-    print(f"\n6. File system check:")
+    print("\n6. File system check:")
     print(f"   Tickets dir exists: {tickets_dir.exists()}")
 
     if tickets_dir.exists():
@@ -88,13 +88,13 @@ async def main():
                 content = json.load(file)
                 print(f"        {json.dumps(content, indent=8)}")
     else:
-        print(f"   ❌ Tickets directory doesn't exist!")
+        print("   ❌ Tickets directory doesn't exist!")
 
     # If we have a result, try to read it
     if status.get('result') and status['result'].get('id'):
         epic_id = status['result']['id']
         expected_file = tickets_dir / f"{epic_id}.json"
-        print(f"\n7. Expected file check:")
+        print("\n7. Expected file check:")
         print(f"   Epic ID from result: {epic_id}")
         print(f"   Expected file: {expected_file}")
         print(f"   File exists: {expected_file.exists()}")

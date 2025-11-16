@@ -728,7 +728,7 @@ class GitHubAdapter(BaseAdapter[Task]):
     ) -> list[Task]:
         """List GitHub issues with filters."""
         # Build query parameters
-        params = {
+        params: dict[str, Any] = {
             "per_page": min(limit, 100),  # GitHub max is 100
             "page": (offset // limit) + 1 if limit > 0 else 1,
         }

@@ -52,7 +52,14 @@ async def detect_and_apply_labels(
     label_keywords = {
         "bug": ["bug", "error", "broken", "crash", "fix", "issue", "defect"],
         "feature": ["feature", "add", "new", "implement", "create", "enhancement"],
-        "improvement": ["enhance", "improve", "update", "upgrade", "refactor", "optimize"],
+        "improvement": [
+            "enhance",
+            "improve",
+            "update",
+            "upgrade",
+            "refactor",
+            "optimize",
+        ],
         "documentation": ["doc", "documentation", "readme", "guide", "manual"],
         "test": ["test", "testing", "qa", "validation", "verify"],
         "security": ["security", "vulnerability", "auth", "permission", "exploit"],
@@ -88,7 +95,10 @@ async def detect_and_apply_labels(
         # Keyword match: check if label matches any keyword category
         for keyword_category, keywords in label_keywords.items():
             # Check if label name relates to the category
-            if keyword_category in label_name_lower or label_name_lower in keyword_category:
+            if (
+                keyword_category in label_name_lower
+                or label_name_lower in keyword_category
+            ):
                 # Check if any keyword from this category appears in content
                 if any(kw in content for kw in keywords):
                     if label_id not in matched_labels:

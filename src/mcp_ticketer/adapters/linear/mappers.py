@@ -219,9 +219,10 @@ def build_linear_issue_input(task: Task, team_id: str) -> dict[str, Any]:
         Linear issue input dictionary
 
     """
+    from typing import Any
     from .types import get_linear_priority
 
-    issue_input = {
+    issue_input: dict[str, Any] = {
         "title": task.title,
         "teamId": team_id,
     }

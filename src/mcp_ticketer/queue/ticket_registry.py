@@ -149,7 +149,7 @@ class TicketRegistry:
         with self._lock:
             with sqlite3.connect(self.db_path) as conn:
                 update_fields = ["status = ?", "updated_at = ?"]
-                values = [status, datetime.now().isoformat()]
+                values: list[Any] = [status, datetime.now().isoformat()]
 
                 if ticket_id is not None:
                     update_fields.append("ticket_id = ?")
