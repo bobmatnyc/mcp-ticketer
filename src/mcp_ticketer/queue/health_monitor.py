@@ -39,6 +39,7 @@ class HealthAlert:
         self.timestamp = timestamp or datetime.now()
 
     def __str__(self) -> str:
+        """Return string representation of alert."""
         return f"[{self.level.upper()}] {self.message}"
 
 

@@ -110,9 +110,13 @@ class LinearGraphQLClient:
                     status_code = e.response.status
 
                     if status_code == 401:
-                        raise AuthenticationError("Invalid Linear API key", "linear") from e
+                        raise AuthenticationError(
+                            "Invalid Linear API key", "linear"
+                        ) from e
                     elif status_code == 403:
-                        raise AuthenticationError("Insufficient permissions", "linear") from e
+                        raise AuthenticationError(
+                            "Insufficient permissions", "linear"
+                        ) from e
                     elif status_code == 429:
                         # Rate limit exceeded
                         retry_after = e.response.headers.get("Retry-After", "60")
@@ -147,13 +151,17 @@ class LinearGraphQLClient:
                         f"Linear authentication failed: {error_msg}", "linear"
                     ) from e
                 elif "rate limit" in error_msg.lower():
-                    raise RateLimitError("Linear API rate limit exceeded", "linear") from e
+                    raise RateLimitError(
+                        "Linear API rate limit exceeded", "linear"
+                    ) from e
 
                 # Generic error
                 if attempt < retries:
                     await asyncio.sleep(2**attempt)
                     continue
-                raise AdapterError(f"Linear GraphQL error: {error_msg}", "linear") from e
+                raise AdapterError(
+                    f"Linear GraphQL error: {error_msg}", "linear"
+                ) from e
 
         # Should never reach here
         raise AdapterError("Maximum retries exceeded", "linear")

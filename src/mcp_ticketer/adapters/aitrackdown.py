@@ -280,7 +280,9 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
         return ticket
 
-    async def create_epic(self, title: str, description: str = None, **kwargs: Any) -> Epic:
+    async def create_epic(
+        self, title: str, description: str = None, **kwargs: Any
+    ) -> Epic:
         """Create a new epic.
 
         Args:
@@ -296,7 +298,11 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         return await self.create(epic)
 
     async def create_issue(
-        self, title: str, parent_epic: str = None, description: str = None, **kwargs: Any
+        self,
+        title: str,
+        parent_epic: str = None,
+        description: str = None,
+        **kwargs: Any,
     ) -> Task:
         """Create a new issue.
 

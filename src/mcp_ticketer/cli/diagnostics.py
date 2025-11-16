@@ -623,7 +623,9 @@ class SystemDiagnostics:
         except Exception as e:
             self.warnings.append(f"Could not analyze logs in {log_path}: {str(e)}")
 
-    async def _parse_log_file(self, log_file: Path, log_analysis: dict[str, Any]) -> None:
+    async def _parse_log_file(
+        self, log_file: Path, log_analysis: dict[str, Any]
+    ) -> None:
         """Parse individual log file for issues."""
         try:
             with open(log_file) as f:

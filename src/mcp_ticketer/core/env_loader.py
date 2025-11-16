@@ -29,8 +29,9 @@ class EnvKeyConfig:
 
 
 class UnifiedEnvLoader:
-    """Unified environment loader that handles multiple naming conventions
-    and provides consistent environment loading across all contexts.
+    """Unified environment loader that handles multiple naming conventions.
+
+    Provides consistent environment loading across all contexts.
     """
 
     # Define key aliases for all adapters

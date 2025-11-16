@@ -342,7 +342,9 @@ def with_adapter(f: Callable[..., Any]) -> Callable[..., Any]:
     return wrapper
 
 
-def with_progress(message: str = "Processing...") -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+def with_progress(
+    message: str = "Processing...",
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Show progress spinner for long-running operations via decorator."""
 
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
@@ -361,7 +363,9 @@ def with_progress(message: str = "Processing...") -> Callable[[Callable[..., Any
     return decorator
 
 
-def validate_required_fields(**field_map: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+def validate_required_fields(
+    **field_map: str,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Validate required fields are provided via decorator."""
 
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:

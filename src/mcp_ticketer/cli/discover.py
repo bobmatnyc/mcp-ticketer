@@ -245,7 +245,9 @@ def save(
         config_location = proj_path / resolver.PROJECT_CONFIG_SUBPATH
 
         if global_config:
-            console.print("[yellow]Note: Global config deprecated for security. Saved to project config instead.[/yellow]")
+            console.print(
+                "[yellow]Note: Global config deprecated for security. Saved to project config instead.[/yellow]"
+            )
 
         console.print(f"\n[green]✅ Configuration saved to:[/green] {config_location}")
         console.print(
@@ -393,7 +395,9 @@ def interactive(
         config_location = proj_path / resolver.PROJECT_CONFIG_SUBPATH
 
         if save_global:
-            console.print("[yellow]Note: Global config deprecated for security. Saved to project config instead.[/yellow]")
+            console.print(
+                "[yellow]Note: Global config deprecated for security. Saved to project config instead.[/yellow]"
+            )
 
         console.print(f"\n[green]✅ Configuration saved to:[/green] {config_location}")
         console.print(f"[green]✅ Default adapter:[/green] {config.default_adapter}")

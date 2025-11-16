@@ -199,7 +199,9 @@ class Worker:
         # Wait for all adapter groups to complete
         await asyncio.gather(*tasks, return_exceptions=True)
 
-    async def _process_adapter_group(self, adapter: str, items: list[QueueItem]) -> None:
+    async def _process_adapter_group(
+        self, adapter: str, items: list[QueueItem]
+    ) -> None:
         """Process items for a specific adapter with concurrency control.
 
         Args:

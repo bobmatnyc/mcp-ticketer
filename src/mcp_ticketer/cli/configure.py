@@ -45,7 +45,9 @@ def configure_wizard() -> None:
 
     # Step 2: Choose where to save
     console.print("\n[bold]Step 2: Configuration Scope[/bold]")
-    console.print("1. Project-specific (recommended): .mcp-ticketer/config.json in project root")
+    console.print(
+        "1. Project-specific (recommended): .mcp-ticketer/config.json in project root"
+    )
     console.print("2. Legacy global (deprecated): saves to project config for security")
 
     scope = Prompt.ask("Save configuration as", choices=["1", "2"], default="1")
@@ -57,7 +59,9 @@ def configure_wizard() -> None:
     config_path = resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH
 
     if scope == "2":
-        console.print("[yellow]Note: Global config is deprecated for security. Saving to project config instead.[/yellow]")
+        console.print(
+            "[yellow]Note: Global config is deprecated for security. Saving to project config instead.[/yellow]"
+        )
 
     console.print(f"\n[green]✓[/green] Configuration saved to {config_path}")
 
@@ -367,7 +371,9 @@ def show_current_config() -> None:
     console.print("[bold]Current Configuration:[/bold]\n")
 
     # Note about global config deprecation
-    console.print("[dim]Note: Global config has been deprecated for security reasons.[/dim]")
+    console.print(
+        "[dim]Note: Global config has been deprecated for security reasons.[/dim]"
+    )
     console.print("[dim]All configuration is now project-specific only.[/dim]\n")
 
     # Project config
@@ -483,6 +489,8 @@ def set_adapter_config(
     config_path = resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH
 
     if global_scope:
-        console.print("[yellow]Note: Global config deprecated for security. Saved to project config instead.[/yellow]")
+        console.print(
+            "[yellow]Note: Global config deprecated for security. Saved to project config instead.[/yellow]"
+        )
 
     console.print(f"[dim]Saved to {config_path}[/dim]")

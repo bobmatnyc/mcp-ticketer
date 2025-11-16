@@ -966,7 +966,6 @@ def init(
     from pathlib import Path
 
     from ..core.env_discovery import discover_config
-    from ..core.project_config import ConfigResolver
 
     # Determine project path
     proj_path = Path(project_path) if project_path else Path.cwd()
@@ -1283,7 +1282,9 @@ def init(
         json.dump(config, f, indent=2)
 
     if global_config:
-        console.print("[yellow]Note: Global config deprecated for security. Saved to project config instead.[/yellow]")
+        console.print(
+            "[yellow]Note: Global config deprecated for security. Saved to project config instead.[/yellow]"
+        )
 
     console.print(f"[green]✓ Initialized with {adapter_type} adapter[/green]")
     console.print(f"[dim]Project configuration saved to {config_file_path}[/dim]")
