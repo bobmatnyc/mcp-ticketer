@@ -2,186 +2,91 @@
 
 Welcome to the comprehensive documentation for MCP Ticketer - the universal ticket management interface for AI agents.
 
-## 📚 Documentation Index
+## Documentation Structure
 
-### 🚀 Getting Started
-- **[Quick Start Guide](QUICK_START.md)** - Get up and running in 5 minutes
-- **[Installation Guide](installation.rst)** - Detailed installation instructions
-- **[Environment Setup](QUICK_START_ENV.md)** - Environment variable configuration
+Our documentation is organized by audience and purpose:
 
-### 🔧 Configuration & Setup
-- **[Configuration Guide](CONFIGURATION.md)** - Complete configuration reference
-- **[Environment Discovery](ENV_DISCOVERY.md)** - Automatic environment detection
-- **[Project Configuration](PROJECT_CONFIG.md)** - Project-level configuration
+### 👥 [User Documentation](user-docs/README.md)
+For end users of MCP Ticketer
+- Getting started guides
+- User guide and CLI reference
+- Feature documentation
+- Examples and best practices
 
-#### Platform Setup Guides
-- **[Linear Setup](setup/LINEAR_SETUP.md)** - Linear integration setup
-- **[JIRA Setup](setup/JIRA_SETUP.md)** - JIRA integration setup
-- **[Claude Desktop Setup](setup/CLAUDE_DESKTOP_SETUP.md)** - Claude Desktop integration
-- **[Codex Integration](setup/CODEX_INTEGRATION.md)** - Codex CLI integration
+### 👨‍💻 [Developer Documentation](developer-docs/README.md)
+For contributors and developers
+- Developer guide and contributing guidelines
+- API reference
+- Adapter development
+- Release management
 
-### 👥 User Guides
-- **[User Guide](USER_GUIDE.md)** - Complete user documentation
-- **[CLI Reference](cli.rst)** - Command-line interface guide
-- **[Examples](examples.rst)** - Practical usage examples
+### 🏛️ [Architecture Documentation](architecture/README.md)
+Technical deep-dives and design documents
+- System architecture
+- Design documents (PRD)
+- Integration architecture
 
-### 🔌 AI Client Integration
-- **[AI Client Integration](AI_CLIENT_INTEGRATION.md)** - Multi-client MCP setup
-- **[MCP Integration](MCP_INTEGRATION.md)** - Model Context Protocol details
-- **[Pull Request Integration](PR_INTEGRATION.md)** - GitHub PR automation
+### 🔌 [Integration Guides](integrations/README.md)
+Platform-specific setup and integration
+- AI client integration
+- Platform setup guides (Linear, JIRA, Claude Desktop, etc.)
+- Pull request integration
 
-### 🏗️ Developer Documentation
-- **[Developer Guide](DEVELOPER_GUIDE.md)** - Complete development guide
-- **[API Reference](API_REFERENCE.md)** - API documentation
-- **[Adapter Development](ADAPTERS.md)** - Creating custom adapters
+### 🔍 [Investigation Reports](investigations/README.md)
+Analysis, research, and investigation results
+- Adapter investigations
+- Performance reports
+- Test coverage reports
+- Implementation documentation
 
-#### Development Resources
-- **[Code Structure](development/CODE_STRUCTURE.md)** - Codebase architecture
-- **[Contributing Guide](development/CONTRIBUTING.md)** - Contribution guidelines
-- **[Release Process](development/RELEASING.md)** - Release procedures
+### 🗄️ [Archive](_archive/README.md)
+Historical documentation and older reports
 
-### 🏛️ Architecture & Design
-- **[Queue System](QUEUE_SYSTEM.md)** - Async queue architecture
-- **[Configuration Resolution](CONFIG_RESOLUTION_FLOW.md)** - Config loading flow
-- **[Migration Guide](MIGRATION_GUIDE.md)** - Version migration guide
-
-### 📊 Reports & Analysis
-- **[Test Coverage Report](reports/TEST_COVERAGE_REPORT.md)** - Test coverage analysis
-- **[Performance Report](reports/OPTIMIZATION_SUMMARY.md)** - Performance optimizations
-- **[Security Scan](dev/test-reports/SECURITY_RESCAN_REPORT.md)** - Security analysis
-- **[Implementation Summary](reports/IMPLEMENTATION_SUMMARY.md)** - Feature implementation status
-
-### 🔍 Troubleshooting & Support
-- **[Configuration Guide](CONFIGURATION.md)** - Complete configuration help
-- **[Environment Discovery](ENV_DISCOVERY.md)** - Environment troubleshooting
-- **[Security Best Practices](SECURITY.md)** - Security and credential management
-
-## 🎯 Quick Navigation
-
-### For New Users
-1. Start with [Quick Start Guide](QUICK_START.md)
-2. Follow [Installation Guide](installation.rst)
-3. Set up your platform with setup guides
-4. Read [User Guide](USER_GUIDE.md) for daily usage
-
-### For Developers
-1. Read [Developer Guide](DEVELOPER_GUIDE.md)
-2. Study [Code Structure](development/CODE_STRUCTURE.md)
-3. Review [API Reference](API_REFERENCE.md)
-4. Check [Contributing Guide](development/CONTRIBUTING.md)
-
-### For AI Integration
-1. Review [AI Client Integration](AI_CLIENT_INTEGRATION.md)
-2. Set up [MCP Integration](MCP_INTEGRATION.md)
-3. Configure your AI client with setup guides
-4. Explore [Examples](examples.rst)
-
-### For System Administrators
-1. Study [Configuration Guide](CONFIGURATION.md)
-2. Review [Environment Discovery](ENV_DISCOVERY.md)
-3. Set up [Project Configuration](PROJECT_CONFIG.md)
-4. Monitor with [Queue System](QUEUE_SYSTEM.md)
-
-## 📖 Documentation Types
-
-### 📘 Guides (Step-by-step instructions)
-- Quick Start, Installation, Setup guides
-- User Guide, Developer Guide
-- Configuration and troubleshooting guides
-
-### 📙 References (Lookup documentation)
-- API Reference, CLI Reference
-- Configuration reference
-- Error codes and messages
-
-### 📗 Tutorials (Learning-oriented)
-- Examples and use cases
-- Integration tutorials
-- Best practices
-
-### 🗄️ Additional Resources
-- **[Development Documentation](dev/README.md)** - Implementation reports and test documentation
-- **[Archive](_archive/README.md)** - Historical documentation and older reports
-
-### 📕 Explanations (Understanding-oriented)
-- Architecture documentation
-- Design decisions
-- Technical deep-dives
-
-## 🔄 Documentation Maintenance
-
-### Keeping Documentation Current
-- Documentation is updated with each release
-- Breaking changes are documented in migration guides
-- Examples are tested with CI/CD pipeline
-- User feedback drives documentation improvements
-
-### Contributing to Documentation
-- Follow the [Contributing Guide](development/CONTRIBUTING.md)
-- Use clear, concise language
-- Include practical examples
-- Test all code examples
-- Update relevant cross-references
-
-### Documentation Standards
-- **Markdown**: Primary format for most documentation
-- **reStructuredText**: Used for Sphinx-generated docs
-- **Code Examples**: Always tested and working
-- **Screenshots**: Updated with UI changes
-- **Links**: Verified and maintained
-
-## 🏷️ Documentation Tags
-
-### By Audience
-- 👤 **User**: End-user documentation
-- 👨‍💻 **Developer**: Developer-focused content
-- 🤖 **AI**: AI agent integration
-- 🔧 **Admin**: System administration
-
-### By Type
-- 🚀 **Getting Started**: Quick start content
-- 📖 **Guide**: Step-by-step instructions
-- 📚 **Reference**: Lookup documentation
-- 🎓 **Tutorial**: Learning content
-- 🔍 **Troubleshooting**: Problem-solving
-
-### By Platform
-- 🔵 **Linear**: Linear-specific content
-- 🟠 **JIRA**: JIRA-specific content
-- ⚫ **GitHub**: GitHub-specific content
-- 🟢 **Claude**: Claude integration
-- 🔴 **Universal**: Cross-platform content
-
-## 📞 Getting Help
-
-### Documentation Issues
-- **Missing Information**: Open an issue describing what's missing
-- **Unclear Instructions**: Suggest improvements via pull request
-- **Broken Examples**: Report with steps to reproduce
-- **Outdated Content**: Flag for update with current information
-
-### Support Channels
-- **GitHub Issues**: Bug reports and feature requests
-- **Discussions**: Questions and community support
-- **Documentation**: This comprehensive guide
-- **Examples**: Practical usage patterns
-
-## 🎉 Recent Updates
-
-### Latest Documentation Improvements
-- ✅ Comprehensive test documentation in `tests/README.md`
-- ✅ Enhanced code documentation with detailed docstrings
-- ✅ Organized documentation structure with clear navigation
-- ✅ Updated setup guides for all supported platforms
-- ✅ Added troubleshooting guides for common issues
-
-### Coming Soon
-- 📝 Video tutorials for complex setup procedures
-- 📝 Interactive examples with live demos
-- 📝 Platform-specific best practices guides
-- 📝 Advanced integration patterns
-- 📝 Performance tuning guides
+### 📋 [Meta Documentation](meta/README.md)
+Documentation about documentation, migrations, and configuration
 
 ---
 
-**Need help?** Start with the [Quick Start Guide](QUICK_START.md) or check the [User Guide](USER_GUIDE.md) for comprehensive information.
+## Quick Start Paths
+
+### I'm a new user
+1. [Quick Start Guide](user-docs/getting-started/QUICK_START.md)
+2. [Configuration Guide](user-docs/getting-started/CONFIGURATION.md)
+3. [User Guide](user-docs/guides/USER_GUIDE.md)
+
+### I want to integrate with an AI client
+1. [AI Client Integration](integrations/AI_CLIENT_INTEGRATION.md)
+2. Choose your platform: [Claude Desktop](integrations/setup/CLAUDE_DESKTOP_SETUP.md), [Codex](integrations/setup/CODEX_INTEGRATION.md)
+3. [Bulletproof Ticket Creation](user-docs/guides/BULLETPROOF_TICKET_CREATION.md)
+
+### I want to contribute
+1. [Developer Guide](developer-docs/getting-started/DEVELOPER_GUIDE.md)
+2. [Contributing Guide](developer-docs/getting-started/CONTRIBUTING.md)
+3. [Code Structure](developer-docs/getting-started/CODE_STRUCTURE.md)
+
+### I need to understand the architecture
+1. [Architecture Overview](architecture/README.md)
+2. [MCP Integration](architecture/MCP_INTEGRATION.md)
+3. [API Reference](developer-docs/api/README.md)
+
+---
+
+## Documentation Standards
+
+- **Format**: Markdown (`.md`) for all active documentation
+- **Organization**: Audience-based directory structure
+- **Links**: Relative links within documentation
+- **Updates**: Documentation updated with each release
+- **Archive**: Historical docs moved to `_archive/`
+
+## Getting Help
+
+- **Missing Information**: Open an issue describing what's missing
+- **Unclear Instructions**: Submit a pull request with improvements
+- **Broken Examples**: Report with steps to reproduce
+- **General Questions**: Check [User Guide](user-docs/guides/USER_GUIDE.md) or GitHub Discussions
+
+---
+
+**Last Updated**: November 2025
+**Documentation Version**: 2.0 (Reorganized)

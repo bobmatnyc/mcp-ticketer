@@ -4,10 +4,18 @@ Complete API reference for MCP Ticketer - CLI, MCP Tools, and Python API.
 
 ## 📚 API Types
 
+### Complete API Reference
+Comprehensive documentation covering all MCP Ticketer APIs and interfaces.
+
+**[Complete API Reference](API_REFERENCE.md)**
+- All APIs in one document
+- Cross-interface comparisons
+- Complete usage examples
+
 ### CLI (Command Line Interface)
 Command-line tools for managing tickets from the terminal.
 
-**[CLI Reference](cli.md)**
+**[CLI Reference](cli.md)** _(if available)_
 - All commands and options
 - Usage examples
 - Configuration options
@@ -15,7 +23,7 @@ Command-line tools for managing tickets from the terminal.
 ### MCP Tools
 Tools for AI agent integration via Model Context Protocol.
 
-**[MCP Tools Reference](mcp_tools.md)**
+**[MCP Tools Reference](mcp_tools.md)** _(if available)_
 - Complete tool catalog
 - Parameters and return values
 - Integration examples
@@ -23,7 +31,7 @@ Tools for AI agent integration via Model Context Protocol.
 ### Python API
 Programmatic access to MCP Ticketer functionality.
 
-**[Python API Reference](python.md)**
+**[Python API Reference](python.md)** _(if available)_
 - Core classes and methods
 - Adapter interfaces
 - Exception handling
