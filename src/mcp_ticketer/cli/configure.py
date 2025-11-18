@@ -1,6 +1,7 @@
 """Interactive configuration wizard for MCP Ticketer."""
 
 import os
+from typing import Any
 
 import typer
 from rich.console import Console
