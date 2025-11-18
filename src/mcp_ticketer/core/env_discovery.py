@@ -6,6 +6,7 @@ environment files, including:
 - Support for multiple naming conventions
 - Project information extraction
 - Security validation
+- 1Password CLI integration for secret references
 """
 
 import logging
@@ -15,6 +16,7 @@ from typing import Any
 
 from dotenv import dotenv_values
 
+from .onepassword_secrets import OnePasswordConfig, OnePasswordSecretsLoader
 from .project_config import AdapterType
 
 logger = logging.getLogger(__name__)
@@ -155,14 +157,27 @@ class EnvDiscovery:
         ".env.development",
     ]
 
-    def __init__(self, project_path: Path | None = None):
+    def __init__(
+        self,
+        project_path: Path | None = None,
+        enable_1password: bool = True,
+        onepassword_config: OnePasswordConfig | None = None,
+    ):
         """Initialize discovery.
 
         Args:
             project_path: Path to project root (defaults to cwd)
+            enable_1password: Enable 1Password CLI integration for secret resolution
+            onepassword_config: Configuration for 1Password integration
 
         """
         self.project_path = project_path or Path.cwd()
+        self.enable_1password = enable_1password
+        self.op_loader = (
+            OnePasswordSecretsLoader(onepassword_config or OnePasswordConfig())
+            if enable_1password
+            else None
+        )
 
     def discover(self) -> DiscoveryResult:
         """Discover adapter configurations from environment files.
@@ -241,7 +256,22 @@ class EnvDiscovery:
             file_path = self.project_path / env_file
             if file_path.exists():
                 try:
-                    env_vars = dotenv_values(file_path)
+                    # Check if file contains 1Password references and use op loader if available
+                    if self.op_loader and self.enable_1password:
+                        content = file_path.read_text(encoding="utf-8")
+                        if "op://" in content:
+                            logger.info(
+                                f"Detected 1Password references in {env_file}, "
+                                "attempting to resolve..."
+                            )
+                            env_vars = self.op_loader.load_secrets_from_env_file(
+                                file_path
+                            )
+                        else:
+                            env_vars = dotenv_values(file_path)
+                    else:
+                        env_vars = dotenv_values(file_path)
+
                     # Filter out None values
                     env_vars = {k: v for k, v in env_vars.items() if v is not None}
                     merged_env.update(env_vars)

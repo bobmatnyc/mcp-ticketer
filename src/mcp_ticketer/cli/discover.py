@@ -4,8 +4,15 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
 
 from ..core.env_discovery import DiscoveredAdapter, EnvDiscovery
+from ..core.onepassword_secrets import (
+    OnePasswordConfig,
+    OnePasswordSecretsLoader,
+    check_op_cli_status,
+)
 from ..core.project_config import (
     AdapterConfig,
     ConfigResolver,
@@ -404,6 +411,261 @@ def interactive(
 
     except Exception as e:
         console.print(f"\n[red]Failed to save configuration:[/red] {e}")
+        raise typer.Exit(1) from None
+
+
+@app.command(name="1password-status")
+def onepassword_status() -> None:
+    """Check 1Password CLI installation and authentication status."""
+    console.print(
+        Panel.fit(
+            "[bold cyan]1Password CLI Status[/bold cyan]\n"
+            "Checking 1Password integration...",
+            border_style="cyan",
+        )
+    )
+
+    status = check_op_cli_status()
+
+    # Create status table
+    table = Table(title="1Password CLI Status")
+    table.add_column("Component", style="cyan")
+    table.add_column("Status", style="white")
+
+    # CLI installed
+    if status["installed"]:
+        table.add_row(
+            "CLI Installed", f"[green]✓ Yes[/green] (version {status['version']})"
+        )
+    else:
+        table.add_row("CLI Installed", "[red]✗ No[/red]")
+        console.print(table)
+        console.print(
+            "\n[yellow]Install 1Password CLI:[/yellow]\n"
+            "  macOS: brew install 1password-cli\n"
+            "  Linux: See https://developer.1password.com/docs/cli/get-started/\n"
+            "  Windows: See https://developer.1password.com/docs/cli/get-started/"
+        )
+        return
+
+    # Authentication
+    if status["authenticated"]:
+        table.add_row("Authentication", "[green]✓ Signed in[/green]")
+
+        # Show accounts
+        if status["accounts"]:
+            for account in status["accounts"]:
+                account_url = account.get("url", "N/A")
+                account_email = account.get("email", "N/A")
+                table.add_row("  Account", f"{account_email} ({account_url})")
+    else:
+        table.add_row("Authentication", "[yellow]⚠ Not signed in[/yellow]")
+
+    console.print(table)
+
+    if not status["authenticated"]:
+        console.print(
+            "\n[yellow]Sign in to 1Password:[/yellow]\n" "  Run: op signin\n"
+        )
+    else:
+        console.print(
+            "\n[green]✓ 1Password CLI is ready to use![/green]\n\n"
+            "You can now use .env files with op:// secret references.\n"
+            "Run 'mcp-ticketer discover 1password-template' to create template files."
+        )
+
+
+@app.command(name="1password-template")
+def onepassword_template(
+    adapter: str = typer.Argument(
+        ...,
+        help="Adapter type (linear, github, jira, aitrackdown)",
+    ),
+    vault: str = typer.Option(
+        "Development",
+        "--vault",
+        "-v",
+        help="1Password vault name for secret references",
+    ),
+    item: str | None = typer.Option(
+        None,
+        "--item",
+        "-i",
+        help="1Password item name (defaults to adapter name)",
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Output file path (defaults to .env.1password)",
+    ),
+) -> None:
+    """Create a .env template file with 1Password secret references.
+
+    This creates a template file that uses op:// secret references,
+    which can be used with: op run --env-file=.env.1password -- <command>
+
+    Examples:
+        # Create Linear template
+        mcp-ticketer discover 1password-template linear
+
+        # Create GitHub template with custom vault
+        mcp-ticketer discover 1password-template github --vault=Production
+
+        # Create template with custom item name
+        mcp-ticketer discover 1password-template jira --item="JIRA API Keys"
+    """
+    # Check if op CLI is available
+    status = check_op_cli_status()
+    if not status["installed"]:
+        console.print(
+            "[red]1Password CLI not installed.[/red]\n\n"
+            "Install it first:\n"
+            "  macOS: brew install 1password-cli\n"
+            "  Other: https://developer.1password.com/docs/cli/get-started/"
+        )
+        raise typer.Exit(1)
+
+    # Set default output path
+    if output is None:
+        output = Path(f".env.1password.{adapter.lower()}")
+
+    # Create loader and generate template
+    loader = OnePasswordSecretsLoader(OnePasswordConfig())
+    loader.create_template_file(output, adapter, vault, item)
+
+    console.print(
+        Panel.fit(
+            f"[bold green]✓ Template created![/bold green]\n\n"
+            f"File: {output}\n"
+            f"Vault: {vault}\n"
+            f"Item: {item or adapter.upper()}\n\n"
+            f"[bold]Next steps:[/bold]\n"
+            f"1. Create item '{item or adapter.upper()}' in 1Password vault '{vault}'\n"
+            f"2. Add the required fields to the item\n"
+            f"3. Test with: op run --env-file={output} -- mcp-ticketer discover show\n"
+            f"4. Save config: op run --env-file={output} -- mcp-ticketer discover save",
+            border_style="green",
+        )
+    )
+
+    # Show template contents
+    console.print(f"\n[bold]Template contents:[/bold]\n")
+    console.print(Panel(output.read_text(), border_style="dim"))
+
+
+@app.command(name="1password-test")
+def onepassword_test(
+    env_file: Path = typer.Option(
+        ".env.1password",
+        "--file",
+        "-f",
+        help="Path to .env file with op:// references",
+    ),
+) -> None:
+    """Test 1Password secret resolution from .env file.
+
+    This command loads secrets from the specified .env file and
+    displays the resolved values (with sensitive data masked).
+
+    Example:
+        mcp-ticketer discover 1password-test --file=.env.1password.linear
+    """
+    # Check if file exists
+    if not env_file.exists():
+        console.print(f"[red]File not found:[/red] {env_file}")
+        raise typer.Exit(1)
+
+    # Check if op CLI is available and authenticated
+    status = check_op_cli_status()
+    if not status["installed"]:
+        console.print("[red]1Password CLI not installed.[/red]")
+        raise typer.Exit(1)
+
+    if not status["authenticated"]:
+        console.print(
+            "[red]1Password CLI not authenticated.[/red]\n\n" "Run: op signin"
+        )
+        raise typer.Exit(1)
+
+    console.print(
+        Panel.fit(
+            f"[bold cyan]Testing 1Password Secret Resolution[/bold cyan]\n"
+            f"File: {env_file}",
+            border_style="cyan",
+        )
+    )
+
+    # Load secrets
+    loader = OnePasswordSecretsLoader(OnePasswordConfig())
+
+    try:
+        secrets = loader.load_secrets_from_env_file(env_file)
+
+        # Display resolved secrets
+        table = Table(title="Resolved Secrets")
+        table.add_column("Variable", style="cyan")
+        table.add_column("Value", style="green")
+
+        for key, value in secrets.items():
+            # Mask sensitive values
+            display_value = _mask_sensitive(value, key)
+            table.add_row(key, display_value)
+
+        console.print(table)
+
+        console.print(
+            f"\n[green]✓ Successfully resolved {len(secrets)} secrets![/green]"
+        )
+
+        # Test discovery with these secrets
+        console.print("\n[bold]Testing configuration discovery...[/bold]")
+        discovery = EnvDiscovery(enable_1password=False)  # Already resolved
+
+        # Temporarily write resolved secrets to test discovery
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as tmp:
+            for key, value in secrets.items():
+                tmp.write(f"{key}={value}\n")
+            tmp_path = Path(tmp.name)
+
+        try:
+            # Mock the env file loading by directly providing secrets
+            from ..core.env_discovery import DiscoveryResult
+            result = DiscoveryResult()
+
+            # Try to detect adapters from the resolved secrets
+            from ..core.env_discovery import EnvDiscovery as ED
+            ed = ED(enable_1password=False)
+            ed.project_path = Path.cwd()
+
+            # Manually detect from secrets dict
+            linear_adapter = ed._detect_linear(secrets, str(env_file))
+            if linear_adapter:
+                console.print(f"\n[green]✓ Detected Linear configuration[/green]")
+                _display_discovered_adapter(linear_adapter, ed)
+
+            github_adapter = ed._detect_github(secrets, str(env_file))
+            if github_adapter:
+                console.print(f"\n[green]✓ Detected GitHub configuration[/green]")
+                _display_discovered_adapter(github_adapter, ed)
+
+            jira_adapter = ed._detect_jira(secrets, str(env_file))
+            if jira_adapter:
+                console.print(f"\n[green]✓ Detected JIRA configuration[/green]")
+                _display_discovered_adapter(jira_adapter, ed)
+        finally:
+            tmp_path.unlink()
+
+    except Exception as e:
+        console.print(f"\n[red]Failed to resolve secrets:[/red] {e}")
+        console.print(
+            "\n[yellow]Troubleshooting:[/yellow]\n"
+            "1. Check that the item exists in 1Password\n"
+            "2. Verify the vault name is correct\n"
+            "3. Ensure all field names match\n"
+            f"4. Run: op inject --in-file={env_file} (to see detailed errors)"
+        )
         raise typer.Exit(1) from None
 
 
