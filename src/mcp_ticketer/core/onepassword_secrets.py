@@ -282,7 +282,7 @@ JIRA_EMAIL="op://{vault_name}/{item_name}/email"
 JIRA_API_TOKEN="op://{vault_name}/{item_name}/api_token"
 JIRA_PROJECT_KEY="op://{vault_name}/{item_name}/project_key"
 """,
-            "aitrackdown": f"""# AITrackdown Configuration
+            "aitrackdown": """# AITrackdown Configuration
 # AITrackdown doesn't use API keys, but you can store the base path
 
 AITRACKDOWN_PATH=".aitrackdown"

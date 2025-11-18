@@ -464,9 +464,7 @@ def onepassword_status() -> None:
     console.print(table)
 
     if not status["authenticated"]:
-        console.print(
-            "\n[yellow]Sign in to 1Password:[/yellow]\n" "  Run: op signin\n"
-        )
+        console.print("\n[yellow]Sign in to 1Password:[/yellow]\n" "  Run: op signin\n")
     else:
         console.print(
             "\n[green]✓ 1Password CLI is ready to use![/green]\n\n"
@@ -514,6 +512,7 @@ def onepassword_template(
 
         # Create template with custom item name
         mcp-ticketer discover 1password-template jira --item="JIRA API Keys"
+
     """
     # Check if op CLI is available
     status = check_op_cli_status()
@@ -550,7 +549,7 @@ def onepassword_template(
     )
 
     # Show template contents
-    console.print(f"\n[bold]Template contents:[/bold]\n")
+    console.print("\n[bold]Template contents:[/bold]\n")
     console.print(Panel(output.read_text(), border_style="dim"))
 
 
@@ -570,6 +569,7 @@ def onepassword_test(
 
     Example:
         mcp-ticketer discover 1password-test --file=.env.1password.linear
+
     """
     # Check if file exists
     if not env_file.exists():
@@ -624,7 +624,8 @@ def onepassword_test(
 
         # Temporarily write resolved secrets to test discovery
         import tempfile
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as tmp:
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as tmp:
             for key, value in secrets.items():
                 tmp.write(f"{key}={value}\n")
             tmp_path = Path(tmp.name)
@@ -632,27 +633,29 @@ def onepassword_test(
         try:
             # Mock the env file loading by directly providing secrets
             from ..core.env_discovery import DiscoveryResult
+
             result = DiscoveryResult()
 
             # Try to detect adapters from the resolved secrets
             from ..core.env_discovery import EnvDiscovery as ED
+
             ed = ED(enable_1password=False)
             ed.project_path = Path.cwd()
 
             # Manually detect from secrets dict
             linear_adapter = ed._detect_linear(secrets, str(env_file))
             if linear_adapter:
-                console.print(f"\n[green]✓ Detected Linear configuration[/green]")
+                console.print("\n[green]✓ Detected Linear configuration[/green]")
                 _display_discovered_adapter(linear_adapter, ed)
 
             github_adapter = ed._detect_github(secrets, str(env_file))
             if github_adapter:
-                console.print(f"\n[green]✓ Detected GitHub configuration[/green]")
+                console.print("\n[green]✓ Detected GitHub configuration[/green]")
                 _display_discovered_adapter(github_adapter, ed)
 
             jira_adapter = ed._detect_jira(secrets, str(env_file))
             if jira_adapter:
-                console.print(f"\n[green]✓ Detected JIRA configuration[/green]")
+                console.print("\n[green]✓ Detected JIRA configuration[/green]")
                 _display_discovered_adapter(jira_adapter, ed)
         finally:
             tmp_path.unlink()

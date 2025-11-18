@@ -1109,7 +1109,9 @@ async def main() -> None:
                 logger.info(
                     f"Loaded MCP configuration from project-local: {config_file}"
                 )
-                sys.stderr.write(f"[MCP Server] Using adapter from config: {adapter_type}\n")
+                sys.stderr.write(
+                    f"[MCP Server] Using adapter from config: {adapter_type}\n"
+                )
         except (OSError, json.JSONDecodeError) as e:
             logger.warning(f"Could not load project config: {e}, will try .env files")
 
@@ -1121,7 +1123,9 @@ async def main() -> None:
             adapter_config = env_config["adapter_config"]
             config_loaded = True
             logger.info(f"Using adapter from .env files: {adapter_type}")
-            logger.info(f"Built adapter config from .env: {list(adapter_config.keys())}")
+            logger.info(
+                f"Built adapter config from .env: {list(adapter_config.keys())}"
+            )
             sys.stderr.write(f"[MCP Server] Using adapter from .env: {adapter_type}\n")
 
     # Priority 3: Default to aitrackdown
