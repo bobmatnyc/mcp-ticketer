@@ -2929,7 +2929,7 @@ def mcp_serve(
     # Load configuration (respects project-specific config in cwd)
     config = load_config()
 
-    # Determine adapter type with priority: CLI arg > .env files > config > default
+    # Determine adapter type with priority: CLI arg > config > .env files > default
     if adapter:
         # Priority 1: Command line argument
         adapter_type = adapter.value
@@ -2937,18 +2937,24 @@ def mcp_serve(
         adapters_config = config.get("adapters", {})
         adapter_config = adapters_config.get(adapter_type, {})
     else:
-        # Priority 2: .env files
-        from ..mcp.server.main import _load_env_configuration
-
-        env_config = _load_env_configuration()
-        if env_config:
-            adapter_type = env_config["adapter_type"]
-            adapter_config = env_config["adapter_config"]
-        else:
-            # Priority 3: Configuration file
-            adapter_type = config.get("default_adapter", "aitrackdown")
+        # Priority 2: Configuration file (project-specific)
+        adapter_type = config.get("default_adapter")
+        if adapter_type:
             adapters_config = config.get("adapters", {})
             adapter_config = adapters_config.get(adapter_type, {})
+        else:
+            # Priority 3: .env files (auto-detection fallback)
+            from ..mcp.server.main import _load_env_configuration
+
+            env_config = _load_env_configuration()
+            if env_config:
+                adapter_type = env_config["adapter_type"]
+                adapter_config = env_config["adapter_config"]
+            else:
+                # Priority 4: Default fallback
+                adapter_type = "aitrackdown"
+                adapters_config = config.get("adapters", {})
+                adapter_config = adapters_config.get(adapter_type, {})
 
     # Override with command line options if provided (highest priority)
     if base_path and adapter_type == "aitrackdown":
