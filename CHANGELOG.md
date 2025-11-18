@@ -7,6 +7,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+
+## [0.11.5] - 2025-11-18
+
+### Fixed
+- **Critical MCP Server Fix**: Fixed configuration priority bug where .env files had higher priority than config.json
+  - MCP server now correctly checks project config (.mcp-ticketer/config.json) BEFORE .env auto-detection
+  - Prevents incorrect adapter initialization when multiple adapter env vars exist
+  - Resolves crashes when GITHUB_* env vars existed but Linear was configured
+  - Priority order now: CLI arg > config.json > .env files > default (was: CLI > .env > config > default)
+  - File modified: src/mcp_ticketer/cli/main.py lines 2932-2957
+
+## [Unreleased]
+
+### Added
 - **Asana Adapter**: Complete REST API adapter with full hierarchy support
   - Epic/Project management via Asana Projects
   - Issue/Task creation and management via Asana Tasks
