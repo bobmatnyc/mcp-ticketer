@@ -1075,54 +1075,61 @@ async def main() -> None:
     adapter_type = "aitrackdown"
     adapter_config = {"base_path": DEFAULT_BASE_PATH}
 
-    # Priority 1: Check .env files (highest priority for MCP)
-    env_config = _load_env_configuration()
-    if env_config and env_config.get("adapter_type"):
-        adapter_type = env_config["adapter_type"]
-        adapter_config = env_config["adapter_config"]
-        logger.info(f"Using adapter from .env files: {adapter_type}")
-        logger.info(f"Built adapter config from .env: {list(adapter_config.keys())}")
-    else:
-        # Priority 2: Check project-local config file
-        config_file = Path.cwd() / ".mcp-ticketer" / "config.json"
-        if config_file.exists():
-            # Validate config is within project
-            try:
-                if not config_file.resolve().is_relative_to(Path.cwd().resolve()):
-                    logger.error(
-                        f"Security violation: Config file {config_file} "
-                        "is not within project directory"
-                    )
-                    raise ValueError(
-                        f"Security violation: Config file {config_file} "
-                        "is not within project directory"
-                    )
-            except (ValueError, RuntimeError):
-                # is_relative_to may raise ValueError in some cases
-                pass
+    # Priority 1: Check project-local config file (highest priority)
+    config_file = Path.cwd() / ".mcp-ticketer" / "config.json"
+    config_loaded = False
 
-            try:
-                with open(config_file) as f:
-                    config = json.load(f)
-                    adapter_type = config.get("default_adapter", "aitrackdown")
-                    # Get adapter-specific config
-                    adapters_config = config.get("adapters", {})
-                    adapter_config = adapters_config.get(adapter_type, {})
-                    # Fallback to legacy config format
-                    if not adapter_config and "config" in config:
-                        adapter_config = config["config"]
-                    logger.info(
-                        f"Loaded MCP configuration from project-local: {config_file}"
-                    )
-            except (OSError, json.JSONDecodeError) as e:
-                logger.warning(f"Could not load project config: {e}, using defaults")
-                adapter_type = "aitrackdown"
-                adapter_config = {"base_path": DEFAULT_BASE_PATH}
-        else:
-            # Priority 3: Default to aitrackdown
-            logger.info("No configuration found, defaulting to aitrackdown adapter")
-            adapter_type = "aitrackdown"
-            adapter_config = {"base_path": DEFAULT_BASE_PATH}
+    if config_file.exists():
+        # Validate config is within project
+        try:
+            if not config_file.resolve().is_relative_to(Path.cwd().resolve()):
+                logger.error(
+                    f"Security violation: Config file {config_file} "
+                    "is not within project directory"
+                )
+                raise ValueError(
+                    f"Security violation: Config file {config_file} "
+                    "is not within project directory"
+                )
+        except (ValueError, RuntimeError):
+            # is_relative_to may raise ValueError in some cases
+            pass
+
+        try:
+            with open(config_file) as f:
+                config = json.load(f)
+                adapter_type = config.get("default_adapter", "aitrackdown")
+                # Get adapter-specific config
+                adapters_config = config.get("adapters", {})
+                adapter_config = adapters_config.get(adapter_type, {})
+                # Fallback to legacy config format
+                if not adapter_config and "config" in config:
+                    adapter_config = config["config"]
+                config_loaded = True
+                logger.info(
+                    f"Loaded MCP configuration from project-local: {config_file}"
+                )
+                sys.stderr.write(f"[MCP Server] Using adapter from config: {adapter_type}\n")
+        except (OSError, json.JSONDecodeError) as e:
+            logger.warning(f"Could not load project config: {e}, will try .env files")
+
+    # Priority 2: Check .env files (only if no config file found)
+    if not config_loaded:
+        env_config = _load_env_configuration()
+        if env_config and env_config.get("adapter_type"):
+            adapter_type = env_config["adapter_type"]
+            adapter_config = env_config["adapter_config"]
+            config_loaded = True
+            logger.info(f"Using adapter from .env files: {adapter_type}")
+            logger.info(f"Built adapter config from .env: {list(adapter_config.keys())}")
+            sys.stderr.write(f"[MCP Server] Using adapter from .env: {adapter_type}\n")
+
+    # Priority 3: Default to aitrackdown
+    if not config_loaded:
+        logger.info("No configuration found, defaulting to aitrackdown adapter")
+        sys.stderr.write("[MCP Server] No config found, using default: aitrackdown\n")
+        adapter_type = "aitrackdown"
+        adapter_config = {"base_path": DEFAULT_BASE_PATH}
 
     # Log final configuration for debugging
     logger.info(f"Starting MCP server with adapter: {adapter_type}")
