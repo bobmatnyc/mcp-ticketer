@@ -36,7 +36,7 @@ class TestSetupCommand:
             patch(
                 "mcp_ticketer.cli.platform_detection.PlatformDetector"
             ) as mock_detector_class,
-            patch("typer.prompt") as mock_typer_prompt,
+            patch("typer.prompt"),
         ):
             # Setup mocks
             mock_discover.return_value = None
@@ -48,7 +48,7 @@ class TestSetupCommand:
             mock_detector_class.return_value = mock_detector
 
             # Invoke with mix mode to avoid interactive prompts
-            result = runner.invoke(app, ["setup"], input="")
+            runner.invoke(app, ["setup"], input="")
 
             # Should call init
             assert mock_init.called
@@ -75,7 +75,7 @@ class TestSetupCommand:
                 "mcp_ticketer.cli.platform_detection.PlatformDetector"
             ) as mock_detector_class,
             patch("typer.confirm") as mock_confirm,
-            patch("typer.prompt") as mock_prompt,
+            patch("typer.prompt"),
         ):
             # User confirms to keep existing settings
             mock_confirm.side_effect = [True, False]  # Keep config, skip platforms
@@ -122,7 +122,7 @@ class TestSetupCommand:
             mock_detector.detect_all.return_value = []
             mock_detector_class.return_value = mock_detector
 
-            result = runner.invoke(app, ["setup", "--force-reinit"], input="")
+            runner.invoke(app, ["setup", "--force-reinit"], input="")
 
             # Should call init even though config exists
             assert mock_init.called
@@ -146,7 +146,7 @@ class TestSetupCommand:
             mock_detector = Mock()
             mock_detector_class.return_value = mock_detector
 
-            result = runner.invoke(app, ["setup", "--skip-platforms"], input="")
+            runner.invoke(app, ["setup", "--skip-platforms"], input="")
 
             # Should call init but not detect platforms
             assert mock_init.called
@@ -197,7 +197,7 @@ class TestSetupCommand:
             mock_confirm.return_value = True
             mock_prompt.return_value = 1
 
-            result = runner.invoke(app, ["setup"], input="")
+            runner.invoke(app, ["setup"], input="")
 
             # Should call configure for detected platform
             assert mock_configure.called
@@ -251,7 +251,7 @@ class TestSetupCommand:
             mock_confirm.return_value = True
             mock_prompt.side_effect = [2, 1]  # Option 2, then platform 1
 
-            result = runner.invoke(app, ["setup"], input="")
+            runner.invoke(app, ["setup"], input="")
 
             # Should call configure once for selected platform
             assert mock_configure.called

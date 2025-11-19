@@ -620,7 +620,7 @@ def onepassword_test(
 
         # Test discovery with these secrets
         console.print("\n[bold]Testing configuration discovery...[/bold]")
-        discovery = EnvDiscovery(enable_1password=False)  # Already resolved
+        EnvDiscovery(enable_1password=False)  # Already resolved
 
         # Temporarily write resolved secrets to test discovery
         import tempfile
@@ -634,7 +634,7 @@ def onepassword_test(
             # Mock the env file loading by directly providing secrets
             from ..core.env_discovery import DiscoveryResult
 
-            result = DiscoveryResult()
+            DiscoveryResult()
 
             # Try to detect adapters from the resolved secrets
             from ..core.env_discovery import EnvDiscovery as ED

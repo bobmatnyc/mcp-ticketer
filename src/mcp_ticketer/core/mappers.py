@@ -365,7 +365,7 @@ class PriorityMapper(BaseMapper):
                     ]:
                         result = Priority.LOW
                         break
-            elif isinstance(adapter_priority, (int, float)):
+            elif isinstance(adapter_priority, int | float):
                 # Handle numeric priorities (Linear-style)
                 if adapter_priority <= 1:
                     result = Priority.CRITICAL

@@ -258,7 +258,7 @@ class TestBug3StateManagement:
 
             try:
                 # Set to IN_PROGRESS
-                updated = await adapter.update(
+                await adapter.update(
                     task.id, {"state": TicketState.IN_PROGRESS}
                 )
 
@@ -335,7 +335,7 @@ class TestBug3StateManagement:
                     (TicketState.DONE, ["done", "complete"]),
                 ]
 
-                for expected_state, possible_names in test_cases:
+                for expected_state, _possible_names in test_cases:
                     # Set the state
                     updated = await adapter.update(task.id, {"state": expected_state})
 
