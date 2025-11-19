@@ -11,11 +11,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from mcp_ticketer.core.models import Priority, Task, TicketState, TicketType
+from mcp_ticketer.core.models import Task, TicketState
 from mcp_ticketer.mcp.server.tools.user_ticket_tools import (
     get_available_transitions,
     get_my_tickets,

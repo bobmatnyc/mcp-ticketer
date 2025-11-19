@@ -38,6 +38,7 @@ def get_config_resolver() -> ConfigResolver:
 
     Returns:
         ConfigResolver instance for current working directory
+
     """
     return ConfigResolver(project_path=Path.cwd())
 
@@ -89,6 +90,7 @@ async def get_my_tickets(
         - Requires default_user to be set in configuration
         - Use config_set_default_user() to configure the user first
         - Limit is capped at 100 to prevent performance issues
+
     """
     try:
         # Validate limit
@@ -188,6 +190,7 @@ async def get_available_transitions(ticket_id: str) -> dict[str, Any]:
         - CLOSED is a terminal state with no valid transitions
         - Use this before ticket_transition() to validate intended state change
         - Transition validation prevents workflow violations
+
     """
     try:
         # Get ticket from adapter
@@ -302,6 +305,7 @@ async def ticket_transition(
         - Comments are adapter-dependent (some may not support them)
         - Validation prevents workflow violations
         - Terminal state (CLOSED) has no valid transitions
+
     """
     try:
         # Get ticket from adapter
@@ -359,7 +363,7 @@ async def ticket_transition(
             try:
                 await adapter.add_comment(ticket_id, comment)
                 comment_added = True
-            except Exception as e:
+            except Exception:
                 # Log but don't fail the transition
                 comment_added = False
 

@@ -29,13 +29,9 @@ so repeated reads are fast (O(1) after first load).
 from pathlib import Path
 from typing import Any
 
-from ....core.project_config import (
-    AdapterType,
-    ConfigResolver,
-    TicketerConfig,
-)
-from ....core.registry import AdapterRegistry
+from ....core.project_config import AdapterType, ConfigResolver, TicketerConfig
 from ..server_sdk import mcp
+
 
 def get_resolver() -> ConfigResolver:
     """Get or create the configuration resolver.
@@ -49,6 +45,7 @@ def get_resolver() -> ConfigResolver:
 
     Note: Creates a new resolver each time to avoid caching issues
     in tests and ensure current working directory is always used.
+
     """
     return ConfigResolver(project_path=Path.cwd())
 
@@ -88,6 +85,7 @@ async def config_set_primary_adapter(adapter: str) -> dict[str, Any]:
     Error Conditions:
         - Invalid adapter name: Returns error with valid options
         - Configuration file write failure: Returns error with file path
+
     """
     try:
         # Validate adapter name against registry
@@ -163,6 +161,7 @@ async def config_set_default_project(
         - This sets both default_project and default_epic (for backward compatibility)
         - Empty string or null clears the default project
         - Project ID is not validated (allows flexibility across adapters)
+
     """
     try:
         # Load current configuration
@@ -181,9 +180,11 @@ async def config_set_default_project(
 
         return {
             "status": "completed",
-            "message": f"Default project set to '{project_id}'"
-            if project_id
-            else "Default project cleared",
+            "message": (
+                f"Default project set to '{project_id}'"
+                if project_id
+                else "Default project cleared"
+            ),
             "previous_project": previous_project,
             "new_project": project_id,
             "config_path": str(resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH),
@@ -242,6 +243,7 @@ async def config_set_default_user(
         - User ID/email is not validated (allows flexibility across adapters)
         - Empty string or null clears the default user
         - Some adapters prefer email, others prefer user UUID
+
     """
     try:
         # Load current configuration
@@ -259,9 +261,11 @@ async def config_set_default_user(
 
         return {
             "status": "completed",
-            "message": f"Default user set to '{user_id}'"
-            if user_id
-            else "Default user cleared",
+            "message": (
+                f"Default user set to '{user_id}'"
+                if user_id
+                else "Default user cleared"
+            ),
             "previous_user": previous_user,
             "new_user": user_id,
             "config_path": str(resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH),
@@ -312,6 +316,7 @@ async def config_get() -> dict[str, Any]:
         - Sensitive values (API keys) are masked in the response
         - Returns default values if no configuration file exists
         - Configuration is merged from multiple sources (env vars, .env files, config.json)
+
     """
     try:
         # Load current configuration
@@ -332,9 +337,11 @@ async def config_get() -> dict[str, Any]:
             "config": masked_config,
             "config_path": str(config_path),
             "config_exists": config_exists,
-            "message": "Configuration retrieved successfully"
-            if config_exists
-            else "No configuration file found, showing defaults",
+            "message": (
+                "Configuration retrieved successfully"
+                if config_exists
+                else "No configuration file found, showing defaults"
+            ),
         }
     except Exception as e:
         return {
@@ -356,6 +363,7 @@ def _mask_sensitive_values(config: dict[str, Any]) -> dict[str, Any]:
         - Recursively processes nested dictionaries
         - Masks any field containing: key, token, password, secret
         - Preserves structure for debugging while protecting credentials
+
     """
     masked = {}
     sensitive_keys = {"api_key", "token", "password", "secret", "api_token"}

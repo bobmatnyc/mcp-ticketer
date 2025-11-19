@@ -21,8 +21,7 @@ from ..core.models import Comment, SearchQuery
 from ..queue import Queue, QueueStatus, WorkerManager
 from ..queue.health_monitor import HealthStatus, QueueHealthMonitor
 from ..queue.ticket_registry import TicketRegistry
-from .configure import (configure_wizard, set_adapter_config,
-                        show_current_config)
+from .configure import configure_wizard, set_adapter_config, show_current_config
 from .diagnostics import run_diagnostics
 from .discover import app as discover_app
 from .instruction_commands import app as instruction_app
@@ -838,6 +837,7 @@ def setup(
         mcp-ticketer setup --skip-platforms
 
     Note: For advanced configuration, use 'init' and 'install' separately.
+
     """
     from .platform_detection import PlatformDetector
 
@@ -1079,6 +1079,7 @@ def _check_existing_platform_configs(platforms: list, proj_path: Path) -> list[s
 
     Returns:
         List of platform display names that are already configured
+
     """
     configured = []
 
@@ -1122,6 +1123,7 @@ def _show_setup_complete_message(console: Console, proj_path: Path) -> None:
     Args:
         console: Rich console for output
         proj_path: Project path
+
     """
     console.print("[bold green]🎉 Setup Complete![/bold green]\n")
 
