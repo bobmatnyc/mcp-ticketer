@@ -7,9 +7,11 @@ This module implements tools for managing the three-level ticket hierarchy:
 """
 
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from ....core.models import Epic, Priority, Task, TicketType
+from ....core.project_config import ConfigResolver, TicketerConfig
 from ..server_sdk import get_adapter, mcp
 from .ticket_tools import detect_and_apply_labels
 
@@ -193,6 +195,25 @@ async def issue_create(
                 "error": f"Invalid priority '{priority}'. Must be one of: low, medium, high, critical",
             }
 
+        # Use default_user if no assignee specified
+        final_assignee = assignee
+        if final_assignee is None:
+            resolver = ConfigResolver(project_path=Path.cwd())
+            config = resolver.load_project_config() or TicketerConfig()
+            if config.default_user:
+                final_assignee = config.default_user
+
+        # Use default_project if no epic_id specified
+        final_epic_id = epic_id
+        if final_epic_id is None:
+            resolver = ConfigResolver(project_path=Path.cwd())
+            config = resolver.load_project_config() or TicketerConfig()
+            # Try default_project first, fall back to default_epic
+            if config.default_project:
+                final_epic_id = config.default_project
+            elif config.default_epic:
+                final_epic_id = config.default_epic
+
         # Auto-detect labels if enabled
         final_tags = tags
         if auto_detect_labels:
@@ -205,8 +226,8 @@ async def issue_create(
             title=title,
             description=description or "",
             ticket_type=TicketType.ISSUE,
-            parent_epic=epic_id,
-            assignee=assignee,
+            parent_epic=final_epic_id,
+            assignee=final_assignee,
             priority=priority_enum,
             tags=final_tags or [],
         )
@@ -312,6 +333,14 @@ async def task_create(
                 "error": f"Invalid priority '{priority}'. Must be one of: low, medium, high, critical",
             }
 
+        # Use default_user if no assignee specified
+        final_assignee = assignee
+        if final_assignee is None:
+            resolver = ConfigResolver(project_path=Path.cwd())
+            config = resolver.load_project_config() or TicketerConfig()
+            if config.default_user:
+                final_assignee = config.default_user
+
         # Auto-detect labels if enabled
         final_tags = tags
         if auto_detect_labels:
@@ -325,7 +354,7 @@ async def task_create(
             description=description or "",
             ticket_type=TicketType.TASK,
             parent_issue=issue_id,
-            assignee=assignee,
+            assignee=final_assignee,
             priority=priority_enum,
             tags=final_tags or [],
         )

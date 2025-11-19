@@ -13,6 +13,8 @@ Modules:
     pr_tools: Pull request integration
     attachment_tools: File attachment handling
     instruction_tools: Ticket instructions management
+    config_tools: Configuration management (adapter, project, user settings)
+    user_ticket_tools: User-specific ticket operations (my tickets, transitions)
 
 """
 
@@ -21,11 +23,13 @@ Modules:
 from . import attachment_tools  # noqa: F401
 from . import bulk_tools  # noqa: F401
 from . import comment_tools  # noqa: F401
+from . import config_tools  # noqa: F401
 from . import hierarchy_tools  # noqa: F401
 from . import instruction_tools  # noqa: F401
 from . import pr_tools  # noqa: F401
 from . import search_tools  # noqa: F401
 from . import ticket_tools  # noqa: F401
+from . import user_ticket_tools  # noqa: F401
 
 __all__ = [
     "ticket_tools",
@@ -36,4 +40,6 @@ __all__ = [
     "pr_tools",
     "attachment_tools",
     "instruction_tools",
+    "config_tools",
+    "user_ticket_tools",
 ]

@@ -8,6 +8,88 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
+## [0.12.0] - 2025-11-19
+
+### Added
+- **Configuration Management MCP Tools**: Project-local configuration management via MCP interface
+  - `config_set_primary_adapter(adapter)`: Set default adapter with validation against available adapters
+  - `config_set_default_project(project_id, project_key?)`: Set default project/epic for new tickets
+  - `config_set_default_user(user_id, user_email?)`: Set default assignee for new tickets
+  - `config_get()`: Get current configuration with sensitive value masking (API keys, tokens)
+  - All tools validate inputs and provide clear error messages
+  - Configuration persists to `.mcp-ticketer/config.json` (project-local only)
+  - Zero breaking changes: defaults only applied when parameters not explicitly provided
+
+- **User Ticket Management MCP Tools**: Workflow and user-specific ticket operations
+  - `get_my_tickets(state?, limit?)`: Get tickets assigned to configured user with optional state filtering
+  - `ticket_transition(ticket_id, to_state, comment?)`: Move tickets through workflow with state validation
+  - `get_available_transitions(ticket_id)`: Get valid next states for a ticket based on current state
+  - State machine validation prevents invalid workflow transitions (e.g., OPEN → DONE)
+  - Support for workflow comments during transitions
+  - O(1) state transition validation
+
+- **Smart Setup Command**: Intelligent setup command that combines init + install with auto-detection
+  - Auto-detects existing `.mcp-ticketer/config.json` (skips re-init if exists)
+  - Auto-detects installed AI platforms (Claude Code, Claude Desktop)
+  - Auto-detects adapter configurations from `.env` files
+  - First run: Full setup (init + platform installation + adapter confirmation)
+  - Subsequent runs: Only updates what changed
+  - Respects existing configurations (offers to keep or reconfigure)
+  - Command options: `--path`, `--skip-platforms`, `--force-reinit`
+  - Updated help text for `init` and `install` commands to recommend using `setup`
+
+- **Automatic Default Injection**: Ticket creation tools now automatically use configured defaults
+  - `ticket_create`, `issue_create`, `task_create` automatically apply `default_user` and `default_project`
+  - Only applied when parameters not explicitly provided (zero breaking changes)
+  - Transparent to users - no API changes required
+  - Works seamlessly with all adapters
+
+- **Enhanced Configuration Model**: Extended project configuration schema
+  - Added `default_user` field (optional): Default assignee for new tickets
+  - Added `default_project` field (optional): Default project/epic for new tickets
+  - Added `default_epic` field (optional): Alias for default_project
+  - All fields validated via Pydantic models
+  - Backward compatible with existing configurations
+
+### Changed
+- **CLI Help Text**: Updated command descriptions to recommend `setup` command
+  - `init` command now notes: "For most users, the 'setup' command is recommended"
+  - `install` command now notes: "For most users, the 'setup' command is recommended"
+  - Kept existing commands for specific use cases (adapter-only init, platform-only install)
+
+### Fixed
+- **Test Mock Errors**: Fixed 42 mock variable errors in `tests/mcp/test_instruction_tools.py`
+  - Changed all undefined `MockManager` references to correct `mock_manager_class`
+  - Resolved F821 (undefined name) and F841 (unused variable) linting errors
+  - All 32 instruction tools tests now passing
+
+### Documentation
+- **New Guide**: Complete documentation for configuration and user ticket tools
+  - `docs/config_and_user_tools.md` (450 lines)
+  - Tool reference with parameters and return values
+  - Workflow examples and best practices
+  - Error handling and troubleshooting guide
+  - Security notes and design decisions
+- **New Guide**: Smart setup command documentation
+  - `docs/SETUP_COMMAND.md` (complete user guide)
+  - Interactive workflow explanations
+  - Troubleshooting guide
+  - Comparison with other commands
+- **Implementation Summary**: Technical documentation for developers
+  - `IMPLEMENTATION_SUMMARY.md`
+  - Design decisions and trade-offs
+  - Code quality metrics
+  - Migration guide
+
+## [0.11.6] - 2025-11-19
+
+### Added
+- **Smart Setup Command**: Initial implementation (moved to 0.12.0 for feature bundling)
+
+### Fixed
+- **Test Mock Errors**: Fixed test infrastructure issues (moved to 0.12.0)
+- **Code Formatting**: Applied Black and isort formatting across codebase
+
 ## [0.11.5] - 2025-11-18
 
 ### Fixed

@@ -4,9 +4,11 @@ This module implements the core create, read, update, delete, and list
 operations for tickets using the FastMCP SDK.
 """
 
+from pathlib import Path
 from typing import Any
 
 from ....core.models import Priority, Task, TicketState
+from ....core.project_config import ConfigResolver, TicketerConfig
 from ..server_sdk import get_adapter, mcp
 
 
@@ -165,6 +167,25 @@ async def ticket_create(
                 "error": f"Invalid priority '{priority}'. Must be one of: low, medium, high, critical",
             }
 
+        # Use default_user if no assignee specified
+        final_assignee = assignee
+        if final_assignee is None:
+            resolver = ConfigResolver(project_path=Path.cwd())
+            config = resolver.load_project_config() or TicketerConfig()
+            if config.default_user:
+                final_assignee = config.default_user
+
+        # Use default_project if no parent_epic specified
+        final_parent_epic = parent_epic
+        if final_parent_epic is None:
+            resolver = ConfigResolver(project_path=Path.cwd())
+            config = resolver.load_project_config() or TicketerConfig()
+            # Try default_project first, fall back to default_epic
+            if config.default_project:
+                final_parent_epic = config.default_project
+            elif config.default_epic:
+                final_parent_epic = config.default_epic
+
         # Auto-detect labels if enabled
         final_tags = tags
         if auto_detect_labels:
@@ -178,8 +199,8 @@ async def ticket_create(
             description=description or "",
             priority=priority_enum,
             tags=final_tags or [],
-            assignee=assignee,
-            parent_epic=parent_epic,
+            assignee=final_assignee,
+            parent_epic=final_parent_epic,
         )
 
         # Create via adapter

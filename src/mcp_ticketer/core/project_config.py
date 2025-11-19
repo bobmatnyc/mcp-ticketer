@@ -174,9 +174,14 @@ class TicketerConfig:
     adapters: dict[str, AdapterConfig] = field(default_factory=dict)
     hybrid_mode: HybridConfig | None = None
 
+    # Default values for ticket operations
+    default_user: str | None = None  # Default assignee (user_id or email)
+    default_project: str | None = None  # Default project/epic ID
+    default_epic: str | None = None  # Alias for default_project (backward compat)
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
-        return {
+        result = {
             "default_adapter": self.default_adapter,
             "project_configs": {
                 path: config.to_dict() for path, config in self.project_configs.items()
@@ -186,6 +191,14 @@ class TicketerConfig:
             },
             "hybrid_mode": self.hybrid_mode.to_dict() if self.hybrid_mode else None,
         }
+        # Add optional fields if set
+        if self.default_user is not None:
+            result["default_user"] = self.default_user
+        if self.default_project is not None:
+            result["default_project"] = self.default_project
+        if self.default_epic is not None:
+            result["default_epic"] = self.default_epic
+        return result
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "TicketerConfig":
@@ -212,6 +225,9 @@ class TicketerConfig:
             project_configs=project_configs,
             adapters=adapters,
             hybrid_mode=hybrid_mode,
+            default_user=data.get("default_user"),
+            default_project=data.get("default_project"),
+            default_epic=data.get("default_epic"),
         )
 
 
