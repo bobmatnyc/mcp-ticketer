@@ -833,6 +833,111 @@ def _configure_aitrackdown(
     return AdapterConfig.from_dict(config_dict), default_values
 
 
+def prompt_default_values(
+    adapter_type: str,
+    existing_values: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Prompt user for default values (for ticket creation).
+
+    This is a standalone function that can be called independently of adapter configuration.
+    Used when adapter credentials exist but default values need to be set or updated.
+
+    Args:
+        adapter_type: Type of adapter (linear, jira, github, aitrackdown)
+        existing_values: Optional existing default values to show as current values
+
+    Returns:
+        Dictionary containing default_user, default_epic, default_project, default_tags
+        (only includes keys that were provided by the user)
+
+    """
+    console.print("\n[bold cyan]Default Values (Optional)[/bold cyan]")
+    console.print("Configure default values for ticket creation:")
+
+    default_values = {}
+    existing_values = existing_values or {}
+
+    # Default user/assignee
+    current_user = existing_values.get("default_user", "")
+    if current_user:
+        user_input = Prompt.ask(
+            f"Default assignee/user (optional) [current: {current_user}]",
+            default=current_user,
+            show_default=False,
+        )
+    else:
+        user_input = Prompt.ask(
+            "Default assignee/user (optional)",
+            default="",
+            show_default=False,
+        )
+    if user_input:
+        default_values["default_user"] = user_input
+        console.print(f"[green]✓[/green] Will use '{user_input}' as default assignee")
+
+    # Default epic/project
+    current_epic = existing_values.get("default_epic") or existing_values.get(
+        "default_project", ""
+    )
+
+    # Adapter-specific messaging
+    if adapter_type == "github":
+        epic_label = "milestone/project"
+        epic_example = "e.g., 'v1.0' or milestone number"
+    elif adapter_type == "linear":
+        epic_label = "epic/project ID"
+        epic_example = "e.g., 'PROJ-123' or UUID"
+    else:
+        epic_label = "epic/project ID"
+        epic_example = "e.g., 'PROJ-123'"
+
+    if current_epic:
+        epic_input = Prompt.ask(
+            f"Default {epic_label} (optional) [current: {current_epic}]",
+            default=current_epic,
+            show_default=False,
+        )
+    else:
+        epic_input = Prompt.ask(
+            f"Default {epic_label} (optional, {epic_example})",
+            default="",
+            show_default=False,
+        )
+    if epic_input:
+        default_values["default_epic"] = epic_input
+        default_values["default_project"] = epic_input  # Compatibility
+        console.print(
+            f"[green]✓[/green] Will use '{epic_input}' as default {epic_label}"
+        )
+
+    # Default tags
+    current_tags = existing_values.get("default_tags", [])
+    current_tags_str = ", ".join(current_tags) if current_tags else ""
+
+    # Adapter-specific messaging
+    tags_label = "labels" if adapter_type == "github" else "tags/labels"
+
+    if current_tags_str:
+        tags_input = Prompt.ask(
+            f"Default {tags_label} (optional, comma-separated) [current: {current_tags_str}]",
+            default=current_tags_str,
+            show_default=False,
+        )
+    else:
+        tags_input = Prompt.ask(
+            f"Default {tags_label} (optional, comma-separated, e.g., 'bug,urgent')",
+            default="",
+            show_default=False,
+        )
+    if tags_input:
+        tags_list = [t.strip() for t in tags_input.split(",") if t.strip()]
+        if tags_list:
+            default_values["default_tags"] = tags_list
+            console.print(f"[green]✓[/green] Will use {tags_label}: {', '.join(tags_list)}")
+
+    return default_values
+
+
 def _configure_hybrid_mode() -> TicketerConfig:
     """Configure hybrid mode with multiple adapters."""
     console.print("\n[bold]Hybrid Mode Configuration[/bold]")

@@ -203,6 +203,10 @@ def setup(
     else:
         console.print("[green]✓ Step 1/2: Adapter already configured[/green]\n")
 
+        # Even though adapter is configured, prompt for default values
+        # This handles the case where credentials exist but defaults were never set
+        _prompt_and_update_default_values(config_path, current_adapter, console)
+
     # Step 3: Platform installation
     if skip_platforms:
         console.print(
@@ -348,6 +352,74 @@ def setup(
 
     console.print()
     _show_setup_complete_message(console, proj_path)
+
+
+def _prompt_and_update_default_values(
+    config_path: Path, adapter_type: str, console: Console
+) -> None:
+    """Prompt user for default values and update configuration.
+
+    This function handles the case where adapter credentials exist but
+    default values (default_user, default_epic, default_project, default_tags)
+    need to be set or updated.
+
+    Args:
+        config_path: Path to the configuration file (.mcp-ticketer/config.json)
+        adapter_type: Type of adapter (linear, jira, github, aitrackdown)
+        console: Rich console for output
+
+    Raises:
+        typer.Exit: If configuration cannot be loaded or updated
+
+    """
+    from .configure import prompt_default_values
+
+    try:
+        # Load current config to get existing default values
+        with open(config_path) as f:
+            existing_config = json.load(f)
+
+        existing_defaults = {
+            "default_user": existing_config.get("default_user"),
+            "default_epic": existing_config.get("default_epic"),
+            "default_project": existing_config.get("default_project"),
+            "default_tags": existing_config.get("default_tags"),
+        }
+
+        # Prompt for default values
+        console.print(
+            "[bold]Configure Default Values[/bold] (for ticket creation)\n"
+        )
+        default_values = prompt_default_values(
+            adapter_type=adapter_type, existing_values=existing_defaults
+        )
+
+        # Update config with new default values
+        if default_values:
+            existing_config.update(default_values)
+            with open(config_path, "w") as f:
+                json.dump(existing_config, f, indent=2)
+            console.print("\n[green]✓ Default values updated[/green]\n")
+        else:
+            console.print("\n[dim]No default values set[/dim]\n")
+
+    except json.JSONDecodeError as e:
+        console.print(f"[red]✗ Invalid JSON in configuration file: {e}[/red]\n")
+        console.print(
+            "[yellow]Please fix the configuration file manually or run 'mcp-ticketer init --force'[/yellow]\n"
+        )
+    except OSError as e:
+        console.print(
+            f"[red]✗ Could not read/write configuration file: {e}[/red]\n"
+        )
+        console.print(
+            "[yellow]Please check file permissions and try again[/yellow]\n"
+        )
+    except Exception as e:
+        console.print(f"[red]✗ Unexpected error updating default values: {e}[/red]\n")
+        console.print(
+            "[yellow]Configuration may be incomplete. Run 'mcp-ticketer doctor' to verify[/yellow]\n"
+        )
 
 
 def _check_existing_platform_configs(platforms: list, proj_path: Path) -> list[str]:
