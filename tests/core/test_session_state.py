@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from src.mcp_ticketer.core.session_state import (
+from mcp_ticketer.core.session_state import (
     SESSION_TIMEOUT_MINUTES,
     SessionState,
     SessionStateManager,
