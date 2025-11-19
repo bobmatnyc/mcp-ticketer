@@ -1768,6 +1768,26 @@ def configure_command(
     configure_wizard()
 
 
+@app.command("config")
+def config_alias(
+    show: bool = typer.Option(False, "--show", help="Show current configuration"),
+    adapter: str | None = typer.Option(
+        None, "--adapter", help="Set default adapter type"
+    ),
+    api_key: str | None = typer.Option(None, "--api-key", help="Set API key/token"),
+    project_id: str | None = typer.Option(None, "--project-id", help="Set project ID"),
+    team_id: str | None = typer.Option(None, "--team-id", help="Set team ID (Linear)"),
+    global_scope: bool = typer.Option(
+        False,
+        "--global",
+        "-g",
+        help="Save to global config instead of project-specific",
+    ),
+) -> None:
+    """Alias for configure command - shorter syntax."""
+    configure_command(show, adapter, api_key, project_id, team_id, global_scope)
+
+
 @app.command("migrate-config")
 def migrate_config(
     dry_run: bool = typer.Option(

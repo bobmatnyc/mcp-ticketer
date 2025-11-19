@@ -1,6 +1,7 @@
 """Interactive configuration wizard for MCP Ticketer."""
 
 import os
+from collections.abc import Callable
 from typing import Any
 
 import typer
@@ -20,6 +21,58 @@ from ..core.project_config import (
 )
 
 console = Console()
+
+
+def _retry_setting(
+    setting_name: str,
+    prompt_func: Callable[[], Any],
+    validate_func: Callable[[Any], tuple[bool, str | None]],
+    max_retries: int = 3,
+) -> Any:
+    """Retry a configuration setting with validation.
+
+    Args:
+        setting_name: Human-readable name of the setting
+        prompt_func: Function that prompts for the setting value
+        validate_func: Function that validates the value (returns tuple of success, error_msg)
+        max_retries: Maximum number of retry attempts
+
+    Returns:
+        Validated setting value
+
+    Raises:
+        typer.Exit: If max retries exceeded
+
+    """
+    for attempt in range(1, max_retries + 1):
+        try:
+            value = prompt_func()
+            is_valid, error = validate_func(value)
+
+            if is_valid:
+                return value
+            console.print(f"[red]✗ {error}[/red]")
+            if attempt < max_retries:
+                console.print(
+                    f"[yellow]Attempt {attempt}/{max_retries} - Please try again[/yellow]"
+                )
+            else:
+                console.print(f"[red]Failed after {max_retries} attempts[/red]")
+                retry = Confirm.ask("Retry this setting?", default=True)
+                if retry:
+                    # Extend attempts
+                    max_retries += 3
+                    console.print(
+                        f"[yellow]Extending retries (new limit: {max_retries})[/yellow]"
+                    )
+                    continue
+                raise typer.Exit(1) from None
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Configuration cancelled[/yellow]")
+            raise typer.Exit(0) from None
+
+    console.print(f"[red]Could not configure {setting_name}[/red]")
+    raise typer.Exit(1)
 
 
 def configure_wizard() -> None:
@@ -115,48 +168,168 @@ def _configure_single_adapter() -> TicketerConfig:
     return config
 
 
-def _configure_linear() -> AdapterConfig:
-    """Configure Linear adapter."""
-    console.print("\n[bold]Configure Linear Integration:[/bold]")
+def _configure_linear(existing_config: dict[str, Any] | None = None) -> AdapterConfig:
+    """Configure Linear adapter with option to preserve existing settings.
 
-    # API Key
-    api_key = os.getenv("LINEAR_API_KEY") or ""
-    if api_key:
+    Args:
+        existing_config: Optional existing configuration to preserve/update
+
+    Returns:
+        Configured Linear adapter configuration
+
+    """
+    console.print("\n[bold cyan]Linear Configuration[/bold cyan]")
+
+    # Check if we have existing config
+    has_existing = (
+        existing_config is not None and existing_config.get("adapter") == "linear"
+    )
+
+    config_dict: dict[str, Any] = {"adapter": AdapterType.LINEAR.value}
+
+    if has_existing:
+        preserve = Confirm.ask(
+            "Existing Linear configuration found. Preserve current settings?",
+            default=True,
+        )
+        if preserve:
+            console.print("[green]✓[/green] Keeping existing configuration")
+            config_dict = existing_config.copy()
+
+            # Allow updating specific fields
+            update_fields = Confirm.ask("Update specific fields?", default=False)
+            if not update_fields:
+                return AdapterConfig.from_dict(config_dict)
+
+            console.print(
+                "[yellow]Enter new values or press Enter to keep current[/yellow]"
+            )
+
+    # API Key (with preservation)
+    current_key = config_dict.get("api_key", "") if has_existing else ""
+    api_key_from_env = os.getenv("LINEAR_API_KEY") or ""
+
+    if api_key_from_env and not current_key:
         console.print("[dim]Found LINEAR_API_KEY in environment[/dim]")
         use_env = Confirm.ask("Use this API key?", default=True)
-        if not use_env:
-            api_key = ""
+        if use_env:
+            current_key = api_key_from_env
 
-    if not api_key:
-        api_key = Prompt.ask("Linear API Key", password=True)
+    # Use retry mechanism for API key
+    def prompt_api_key() -> str:
+        if current_key:
+            api_key_prompt = f"Linear API Key [current: {'*' * 8}...]"
+            return Prompt.ask(api_key_prompt, password=True, default=current_key)
+        return Prompt.ask("Linear API Key", password=True)
 
-    # Team ID
-    team_id = Prompt.ask("Team ID (optional, e.g., team-abc)", default="")
+    def validate_api_key(key: str) -> tuple[bool, str | None]:
+        if not key or len(key) < 10:
+            return False, "API key must be at least 10 characters"
+        return True, None
 
-    # Team Key
-    team_key = Prompt.ask("Team Key (optional, e.g., ENG)", default="")
+    api_key = _retry_setting("API Key", prompt_api_key, validate_api_key)
+    config_dict["api_key"] = api_key
 
-    # Project ID
-    project_id = Prompt.ask("Project ID (optional)", default="")
+    # Team Key (with preservation) - preferred over team_id
+    current_team_key = config_dict.get("team_key", "") if has_existing else ""
 
-    config_dict = {
-        "adapter": AdapterType.LINEAR.value,
-        "api_key": api_key,
-    }
+    def prompt_team_key() -> str:
+        if current_team_key:
+            team_key_prompt = f"Linear Team Key [current: {current_team_key}]"
+            return Prompt.ask(team_key_prompt, default=current_team_key)
+        return Prompt.ask("Linear Team Key (e.g., 'ENG', 'BTA')")
 
-    if team_id:
-        config_dict["team_id"] = team_id
-    if team_key:
-        config_dict["team_key"] = team_key
+    def validate_team_key(key: str) -> tuple[bool, str | None]:
+        if not key or len(key) < 2:
+            return False, "Team key must be at least 2 characters"
+        return True, None
+
+    team_key = _retry_setting("Team Key", prompt_team_key, validate_team_key)
+    config_dict["team_key"] = team_key
+
+    # Remove team_id if present (will be resolved from team_key)
+    if "team_id" in config_dict:
+        del config_dict["team_id"]
+
+    # User email configuration (optional, for default assignee)
+    current_user_email = config_dict.get("user_email", "") if has_existing else ""
+
+    def prompt_user_email() -> str:
+        if current_user_email:
+            user_email_prompt = (
+                f"Your Linear email (optional, for auto-assignment) "
+                f"[current: {current_user_email}]"
+            )
+            return Prompt.ask(user_email_prompt, default=current_user_email)
+        return Prompt.ask(
+            "Your Linear email (optional, for auto-assignment)", default=""
+        )
+
+    def validate_user_email(email: str) -> tuple[bool, str | None]:
+        if not email:  # Optional field
+            return True, None
+        import re
+
+        email_pattern = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+        if not email_pattern.match(email):
+            return False, f"Invalid email format: {email}"
+        return True, None
+
+    user_email = _retry_setting("User Email", prompt_user_email, validate_user_email)
+    if user_email:
+        config_dict["user_email"] = user_email
+        console.print(f"[green]✓[/green] Will use {user_email} as default assignee")
+
+    # Project ID (optional)
+    current_project_id = config_dict.get("project_id", "") if has_existing else ""
+    if current_project_id:
+        project_id_prompt = f"Project ID (optional) [current: {current_project_id}]"
+        project_id = Prompt.ask(project_id_prompt, default=current_project_id)
+    else:
+        project_id = Prompt.ask("Project ID (optional)", default="")
+
     if project_id:
         config_dict["project_id"] = project_id
 
-    # Validate
+    # Validate with detailed error reporting
     is_valid, error = ConfigValidator.validate_linear_config(config_dict)
+
     if not is_valid:
-        console.print(f"[red]Configuration error: {error}[/red]")
+        console.print("\n[red]❌ Configuration Validation Failed[/red]")
+        console.print(f"[red]Error: {error}[/red]\n")
+
+        # Show which settings were problematic
+        console.print("[yellow]Problematic settings:[/yellow]")
+        if "api_key" not in config_dict or not config_dict["api_key"]:
+            console.print("  • [red]API Key[/red] - Missing or empty")
+        if "team_key" not in config_dict and "team_id" not in config_dict:
+            console.print(
+                "  • [red]Team Key/ID[/red] - Neither team_key nor team_id provided"
+            )
+        if "user_email" in config_dict:
+            email = config_dict["user_email"]
+            import re
+
+            if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email):
+                console.print(f"  • [red]User Email[/red] - Invalid format: {email}")
+
+        # Offer to retry specific settings
+        console.print("\n[cyan]Options:[/cyan]")
+        console.print("  1. Retry configuration from scratch")
+        console.print("  2. Fix specific settings")
+        console.print("  3. Exit")
+
+        choice = Prompt.ask("Choose an option", choices=["1", "2", "3"], default="2")
+
+        if choice == "1":
+            # Recursive retry
+            return _configure_linear(existing_config=None)
+        if choice == "2":
+            # Fix specific settings
+            return _configure_linear(existing_config=config_dict)
         raise typer.Exit(1) from None
 
+    console.print("[green]✓ Configuration validated successfully[/green]")
     return AdapterConfig.from_dict(config_dict)
 
 

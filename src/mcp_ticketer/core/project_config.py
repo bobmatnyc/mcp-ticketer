@@ -238,21 +238,69 @@ class ConfigValidator:
     def validate_linear_config(config: dict[str, Any]) -> tuple[bool, str | None]:
         """Validate Linear adapter configuration.
 
+        Args:
+            config: Linear configuration dictionary
+
         Returns:
             Tuple of (is_valid, error_message)
 
         """
-        required = ["api_key"]
-        for field in required:
-            if field not in config or not config[field]:
-                return False, f"Linear config missing required field: {field}"
+        import logging
+        import re
 
-        # Require either team_key or team_id (team_id is preferred)
-        if not config.get("team_key") and not config.get("team_id"):
+        logger = logging.getLogger(__name__)
+
+        required = ["api_key"]
+        missing_fields = []
+
+        for field_name in required:
+            if field_name not in config or not config[field_name]:
+                missing_fields.append(field_name)
+
+        if missing_fields:
             return (
                 False,
-                "Linear config requires either team_key (short key like 'BTA') or team_id (UUID)",
+                f"Linear config missing required fields: {', '.join(missing_fields)}",
             )
+
+        # Require either team_key or team_id (team_key is preferred)
+        has_team_key = config.get("team_key") and config["team_key"].strip()
+        has_team_id = config.get("team_id") and config["team_id"].strip()
+
+        if not has_team_key and not has_team_id:
+            return (
+                False,
+                "Linear config requires either team_key (short key like 'ENG') or team_id (UUID)",
+            )
+
+        # Validate team_id format if provided (should be UUID)
+        if has_team_id:
+            team_id = config["team_id"]
+            uuid_pattern = re.compile(
+                r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+                re.IGNORECASE,
+            )
+
+            if not uuid_pattern.match(team_id):
+                # Not a UUID - could be a team_key mistakenly stored as team_id
+                logger.warning(
+                    f"team_id '{team_id}' is not a UUID format. "
+                    f"It will be treated as team_key and resolved at runtime."
+                )
+                # Move it to team_key if team_key is empty
+                if not has_team_key:
+                    config["team_key"] = team_id
+                    del config["team_id"]
+                    logger.info(f"Moved non-UUID team_id to team_key: {team_id}")
+
+        # Validate user_email format if provided
+        if config.get("user_email"):
+            email = config["user_email"]
+            email_pattern = re.compile(
+                r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+            )
+            if not email_pattern.match(email):
+                return False, f"Invalid email format for user_email: {email}"
 
         return True, None
 
@@ -279,9 +327,9 @@ class ConfigValidator:
 
         # Otherwise need explicit owner and repo
         required = ["owner", "repo"]
-        for field in required:
-            if field not in config or not config[field]:
-                return False, f"GitHub config missing required field: {field}"
+        for field_name in required:
+            if field_name not in config or not config[field_name]:
+                return False, f"GitHub config missing required field: {field_name}"
 
         return True, None
 
@@ -294,9 +342,9 @@ class ConfigValidator:
 
         """
         required = ["server", "email", "api_token"]
-        for field in required:
-            if field not in config or not config[field]:
-                return False, f"JIRA config missing required field: {field}"
+        for field_name in required:
+            if field_name not in config or not config[field_name]:
+                return False, f"JIRA config missing required field: {field_name}"
 
         # Validate server URL format
         server = config["server"]

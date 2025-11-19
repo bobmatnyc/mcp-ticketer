@@ -124,6 +124,7 @@ class LinearAdapter(BaseAdapter[Task]):
         self.workspace = config.get("workspace", "")
         self.team_key = config.get("team_key")
         self.team_id = config.get("team_id")
+        self.user_email = config.get("user_email")  # Optional default assignee
         self.api_url = config.get("api_url", "https://api.linear.app/graphql")
 
         # Validate team configuration
@@ -173,48 +174,99 @@ class LinearAdapter(BaseAdapter[Task]):
     async def _ensure_team_id(self) -> str:
         """Ensure we have a team ID, resolving from team_key if needed.
 
+        Validates that team_id is a UUID. If it looks like a team_key,
+        resolves it to the actual UUID.
+
         Returns:
-            Linear team UUID
+            Valid Linear team UUID
 
         Raises:
-            ValueError: If team cannot be found or resolved
+            ValueError: If neither team_id nor team_key provided, or resolution fails
 
         """
-        if self.team_id:
-            return self.team_id
+        logger = logging.getLogger(__name__)
 
+        # If we have a team_id, validate it's actually a UUID
+        if self.team_id:
+            # Check if it looks like a UUID (36 chars with hyphens)
+            import re
+
+            uuid_pattern = re.compile(
+                r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+                re.IGNORECASE,
+            )
+
+            if uuid_pattern.match(self.team_id):
+                # Already a valid UUID
+                return self.team_id
+            # Looks like a team_key string - need to resolve it
+            logger.warning(
+                f"team_id '{self.team_id}' is not a UUID - treating as team_key and resolving"
+            )
+            teams = await self._get_team_by_key(self.team_id)
+            if teams and len(teams) > 0:
+                resolved_id = teams[0]["id"]
+                logger.info(
+                    f"Resolved team_key '{self.team_id}' to UUID: {resolved_id}"
+                )
+                # Cache the resolved UUID
+                self.team_id = resolved_id
+                return resolved_id
+            raise ValueError(
+                f"Cannot resolve team_id '{self.team_id}' to a valid Linear team UUID. "
+                f"Please use team_key instead for team short codes like 'ENG'."
+            )
+
+        # No team_id, must have team_key
         if not self.team_key:
-            raise ValueError("Either team_id or team_key must be provided")
+            raise ValueError(
+                "Either team_id (UUID) or team_key (short code) must be provided"
+            )
 
         # Query team by key
+        teams = await self._get_team_by_key(self.team_key)
+
+        if not teams or len(teams) == 0:
+            raise ValueError(f"Team with key '{self.team_key}' not found")
+
+        team = teams[0]
+        team_id = team["id"]
+
+        # Cache the resolved team_id
+        self.team_id = team_id
+        self._team_data = team
+        logger.info(f"Resolved team_key '{self.team_key}' to team_id: {team_id}")
+
+        return team_id
+
+    async def _get_team_by_key(self, team_key: str) -> list[dict[str, Any]]:
+        """Query Linear API to get team by key.
+
+        Args:
+            team_key: Short team identifier (e.g., 'ENG', 'BTA')
+
+        Returns:
+            List of matching teams
+
+        """
         query = """
             query GetTeamByKey($key: String!) {
                 teams(filter: { key: { eq: $key } }) {
                     nodes {
                         id
-                        name
                         key
-                        description
+                        name
                     }
                 }
             }
         """
 
-        try:
-            result = await self.client.execute_query(query, {"key": self.team_key})
-            teams = result.get("teams", {}).get("nodes", [])
+        result = await self.client.execute_query(query, {"key": team_key})
 
-            if not teams:
-                raise ValueError(f"Team with key '{self.team_key}' not found")
+        if "teams" in result and "nodes" in result["teams"]:
+            return result["teams"]["nodes"]
 
-            team = teams[0]
-            self.team_id = team["id"]
-            self._team_data = team
-
-            return self.team_id
-
-        except Exception as e:
-            raise ValueError(f"Failed to resolve team '{self.team_key}': {e}") from e
+        return []
 
     async def _resolve_project_id(self, project_identifier: str) -> str | None:
         """Resolve project identifier (slug, name, short ID, or URL) to full UUID.
@@ -612,6 +664,7 @@ class LinearAdapter(BaseAdapter[Task]):
             Created task with Linear metadata
 
         """
+        logger = logging.getLogger(__name__)
         team_id = await self._ensure_team_id()
 
         # Build issue input using mapper
@@ -625,8 +678,14 @@ class LinearAdapter(BaseAdapter[Task]):
                 issue_input["stateId"] = state_mapping[TicketState.OPEN]
 
         # Resolve assignee to user ID if provided
-        if task.assignee:
-            user_id = await self._get_user_id(task.assignee)
+        # Use configured default user if no assignee specified
+        assignee = task.assignee
+        if not assignee and self.user_email:
+            assignee = self.user_email
+            logger.debug(f"Using default assignee from config: {assignee}")
+
+        if assignee:
+            user_id = await self._get_user_id(assignee)
             if user_id:
                 issue_input["assigneeId"] = user_id
 
