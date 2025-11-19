@@ -117,10 +117,9 @@ def setup(
     Note: For advanced configuration, use 'init' and 'install' separately.
 
     """
-    from .platform_detection import PlatformDetector
-
     # Import init from main to avoid circular dependency
     from .main import init
+    from .platform_detection import PlatformDetector
 
     proj_path = Path(project_path) if project_path else Path.cwd()
     config_path = proj_path / ".mcp-ticketer" / "config.json"

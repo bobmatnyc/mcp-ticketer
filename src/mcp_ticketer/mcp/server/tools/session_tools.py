@@ -45,6 +45,7 @@ async def attach_ticket(
 
         # Check current status
         attach_ticket(action="status")
+
     """
     try:
         manager = SessionStateManager(project_path=Path.cwd())
@@ -106,11 +107,13 @@ async def attach_ticket(
                 "session_id": state.session_id,
                 "opted_out": state.ticket_opted_out,
                 "guidance": (
-                    "Associate with a ticket: attach_ticket(action='set', ticket_id='...')\n"
-                    "Opt out: attach_ticket(action='none')"
-                )
-                if not current_ticket and not state.ticket_opted_out
-                else None,
+                    (
+                        "Associate with a ticket: attach_ticket(action='set', ticket_id='...')\n"
+                        "Opt out: attach_ticket(action='none')"
+                    )
+                    if not current_ticket and not state.ticket_opted_out
+                    else None
+                ),
             }
 
         else:
@@ -144,6 +147,7 @@ async def get_session_info() -> dict[str, Any]:
             "opted_out": false,
             "last_activity": "2025-01-19T20:00:00"
         }
+
     """
     try:
         manager = SessionStateManager(project_path=Path.cwd())

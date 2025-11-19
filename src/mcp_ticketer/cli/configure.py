@@ -179,7 +179,7 @@ def _configure_linear(
     api_key: str | None = None,
     team_id: str | None = None,
     team_key: str | None = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> tuple[AdapterConfig, dict[str, Any]]:
     """Configure Linear adapter with option to preserve existing settings.
 
@@ -228,7 +228,9 @@ def _configure_linear(
                 if "default_epic" in config_dict:
                     default_values["default_epic"] = config_dict.pop("default_epic")
                 if "default_project" in config_dict:
-                    default_values["default_project"] = config_dict.pop("default_project")
+                    default_values["default_project"] = config_dict.pop(
+                        "default_project"
+                    )
                 if "default_tags" in config_dict:
                     default_values["default_tags"] = config_dict.pop("default_tags")
                 return AdapterConfig.from_dict(config_dict), default_values
@@ -262,7 +264,9 @@ def _configure_linear(
 
         final_api_key = _retry_setting("API Key", prompt_api_key, validate_api_key)
     elif not final_api_key:
-        raise ValueError("Linear API key is required (provide api_key parameter or set LINEAR_API_KEY environment variable)")
+        raise ValueError(
+            "Linear API key is required (provide api_key parameter or set LINEAR_API_KEY environment variable)"
+        )
 
     config_dict["api_key"] = final_api_key
 
@@ -298,7 +302,9 @@ def _configure_linear(
         if final_team_id:
             config_dict["team_id"] = final_team_id
         if not final_team_key and not final_team_id:
-            raise ValueError("Linear requires either team_key or team_id (provide parameter or set LINEAR_TEAM_KEY/LINEAR_TEAM_ID environment variable)")
+            raise ValueError(
+                "Linear requires either team_key or team_id (provide parameter or set LINEAR_TEAM_KEY/LINEAR_TEAM_ID environment variable)"
+            )
 
     # User email configuration (optional, for default assignee) - only in interactive mode
     if interactive:
@@ -320,12 +326,16 @@ def _configure_linear(
                 return True, None
             import re
 
-            email_pattern = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+            email_pattern = re.compile(
+                r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+            )
             if not email_pattern.match(email):
                 return False, f"Invalid email format: {email}"
             return True, None
 
-        user_email = _retry_setting("User Email", prompt_user_email, validate_user_email)
+        user_email = _retry_setting(
+            "User Email", prompt_user_email, validate_user_email
+        )
         if user_email:
             config_dict["user_email"] = user_email
             console.print(f"[green]✓[/green] Will use {user_email} as default assignee")
@@ -349,17 +359,19 @@ def _configure_linear(
         console.print("Configure default values for ticket creation:")
 
         # Default epic/project
-        current_default_epic = config_dict.get("default_epic", "") if has_existing else ""
+        current_default_epic = (
+            config_dict.get("default_epic", "") if has_existing else ""
+        )
 
         def prompt_default_epic() -> str:
             if current_default_epic:
                 return Prompt.ask(
                     f"Default epic/project ID (optional) [current: {current_default_epic}]",
-                    default=current_default_epic
+                    default=current_default_epic,
                 )
             return Prompt.ask(
                 "Default epic/project ID (optional, e.g., 'PROJ-123' or UUID)",
-                default=""
+                default="",
             )
 
         def validate_default_epic(epic_id: str) -> tuple[bool, str | None]:
@@ -371,9 +383,7 @@ def _configure_linear(
             return True, None
 
         default_epic = _retry_setting(
-            "Default Epic/Project",
-            prompt_default_epic,
-            validate_default_epic
+            "Default Epic/Project", prompt_default_epic, validate_default_epic
         )
         if default_epic:
             config_dict["default_epic"] = default_epic
@@ -383,18 +393,20 @@ def _configure_linear(
             )
 
         # Default tags
-        current_default_tags = config_dict.get("default_tags", []) if has_existing else []
+        current_default_tags = (
+            config_dict.get("default_tags", []) if has_existing else []
+        )
 
         def prompt_default_tags() -> str:
             if current_default_tags:
                 tags_str = ", ".join(current_default_tags)
                 return Prompt.ask(
                     f"Default tags (optional, comma-separated) [current: {tags_str}]",
-                    default=tags_str
+                    default=tags_str,
                 )
             return Prompt.ask(
                 "Default tags (optional, comma-separated, e.g., 'bug,urgent')",
-                default=""
+                default="",
             )
 
         def validate_default_tags(tags_input: str) -> tuple[bool, str | None]:
@@ -413,16 +425,14 @@ def _configure_linear(
             return True, None
 
         default_tags_input = _retry_setting(
-            "Default Tags",
-            prompt_default_tags,
-            validate_default_tags
+            "Default Tags", prompt_default_tags, validate_default_tags
         )
         if default_tags_input:
-            default_tags = [tag.strip() for tag in default_tags_input.split(",") if tag.strip()]
+            default_tags = [
+                tag.strip() for tag in default_tags_input.split(",") if tag.strip()
+            ]
             config_dict["default_tags"] = default_tags
-            console.print(
-                f"[green]✓[/green] Will use tags: {', '.join(default_tags)}"
-            )
+            console.print(f"[green]✓[/green] Will use tags: {', '.join(default_tags)}")
 
     # Validate with detailed error reporting
     is_valid, error = ConfigValidator.validate_linear_config(config_dict)
@@ -484,7 +494,7 @@ def _configure_jira(
     email: str | None = None,
     api_token: str | None = None,
     project_key: str | None = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> tuple[AdapterConfig, dict[str, Any]]:
     """Configure JIRA adapter.
 
@@ -510,16 +520,22 @@ def _configure_jira(
     # Server URL (programmatic mode: use provided value or env, interactive: prompt)
     final_server = server or os.getenv("JIRA_SERVER") or ""
     if interactive and not final_server:
-        final_server = Prompt.ask("JIRA Server URL (e.g., https://company.atlassian.net)")
+        final_server = Prompt.ask(
+            "JIRA Server URL (e.g., https://company.atlassian.net)"
+        )
     elif not interactive and not final_server:
-        raise ValueError("JIRA server URL is required (provide server parameter or set JIRA_SERVER environment variable)")
+        raise ValueError(
+            "JIRA server URL is required (provide server parameter or set JIRA_SERVER environment variable)"
+        )
 
     # Email (programmatic mode: use provided value or env, interactive: prompt)
     final_email = email or os.getenv("JIRA_EMAIL") or ""
     if interactive and not final_email:
         final_email = Prompt.ask("JIRA User Email")
     elif not interactive and not final_email:
-        raise ValueError("JIRA email is required (provide email parameter or set JIRA_EMAIL environment variable)")
+        raise ValueError(
+            "JIRA email is required (provide email parameter or set JIRA_EMAIL environment variable)"
+        )
 
     # API Token (programmatic mode: use provided value or env, interactive: prompt)
     final_api_token = api_token or os.getenv("JIRA_API_TOKEN") or ""
@@ -529,12 +545,16 @@ def _configure_jira(
         )
         final_api_token = Prompt.ask("JIRA API Token", password=True)
     elif not interactive and not final_api_token:
-        raise ValueError("JIRA API token is required (provide api_token parameter or set JIRA_API_TOKEN environment variable)")
+        raise ValueError(
+            "JIRA API token is required (provide api_token parameter or set JIRA_API_TOKEN environment variable)"
+        )
 
     # Project Key (optional)
     final_project_key = project_key or os.getenv("JIRA_PROJECT_KEY") or ""
     if interactive and not final_project_key:
-        final_project_key = Prompt.ask("Default Project Key (optional, e.g., PROJ)", default="")
+        final_project_key = Prompt.ask(
+            "Default Project Key (optional, e.g., PROJ)", default=""
+        )
 
     config_dict = {
         "adapter": AdapterType.JIRA.value,
@@ -567,28 +587,32 @@ def _configure_jira(
         user_input = Prompt.ask(
             "Default assignee/user (optional, JIRA username or email)",
             default="",
-            show_default=False
+            show_default=False,
         )
         if user_input:
             default_values["default_user"] = user_input
-            console.print(f"[green]✓[/green] Will use '{user_input}' as default assignee")
+            console.print(
+                f"[green]✓[/green] Will use '{user_input}' as default assignee"
+            )
 
         # Default epic/project
         epic_input = Prompt.ask(
             "Default epic/project ID (optional, e.g., 'PROJ-123')",
             default="",
-            show_default=False
+            show_default=False,
         )
         if epic_input:
             default_values["default_epic"] = epic_input
             default_values["default_project"] = epic_input  # Compatibility
-            console.print(f"[green]✓[/green] Will use '{epic_input}' as default epic/project")
+            console.print(
+                f"[green]✓[/green] Will use '{epic_input}' as default epic/project"
+            )
 
         # Default tags
         tags_input = Prompt.ask(
             "Default tags/labels (optional, comma-separated, e.g., 'bug,urgent')",
             default="",
-            show_default=False
+            show_default=False,
         )
         if tags_input:
             tags_list = [t.strip() for t in tags_input.split(",") if t.strip()]
@@ -604,7 +628,7 @@ def _configure_github(
     token: str | None = None,
     owner: str | None = None,
     repo: str | None = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> tuple[AdapterConfig, dict[str, Any]]:
     """Configure GitHub adapter.
 
@@ -644,21 +668,27 @@ def _configure_github(
             )
             final_token = Prompt.ask("GitHub Personal Access Token", password=True)
     elif not final_token:
-        raise ValueError("GitHub token is required (provide token parameter or set GITHUB_TOKEN environment variable)")
+        raise ValueError(
+            "GitHub token is required (provide token parameter or set GITHUB_TOKEN environment variable)"
+        )
 
     # Repository Owner (programmatic mode: use provided value or env, interactive: prompt)
     final_owner = owner or os.getenv("GITHUB_OWNER") or ""
     if interactive and not final_owner:
         final_owner = Prompt.ask("Repository Owner (username or org)")
     elif not interactive and not final_owner:
-        raise ValueError("GitHub repository owner is required (provide owner parameter or set GITHUB_OWNER environment variable)")
+        raise ValueError(
+            "GitHub repository owner is required (provide owner parameter or set GITHUB_OWNER environment variable)"
+        )
 
     # Repository Name (programmatic mode: use provided value or env, interactive: prompt)
     final_repo = repo or os.getenv("GITHUB_REPO") or ""
     if interactive and not final_repo:
         final_repo = Prompt.ask("Repository Name")
     elif not interactive and not final_repo:
-        raise ValueError("GitHub repository name is required (provide repo parameter or set GITHUB_REPO environment variable)")
+        raise ValueError(
+            "GitHub repository name is required (provide repo parameter or set GITHUB_REPO environment variable)"
+        )
 
     config_dict = {
         "adapter": AdapterType.GITHUB.value,
@@ -689,42 +719,46 @@ def _configure_github(
         user_input = Prompt.ask(
             "Default assignee/user (optional, GitHub username)",
             default="",
-            show_default=False
+            show_default=False,
         )
         if user_input:
             default_values["default_user"] = user_input
-            console.print(f"[green]✓[/green] Will use '{user_input}' as default assignee")
+            console.print(
+                f"[green]✓[/green] Will use '{user_input}' as default assignee"
+            )
 
         # Default epic/project (milestone for GitHub)
         epic_input = Prompt.ask(
             "Default milestone/project (optional, e.g., 'v1.0' or milestone number)",
             default="",
-            show_default=False
+            show_default=False,
         )
         if epic_input:
             default_values["default_epic"] = epic_input
             default_values["default_project"] = epic_input  # Compatibility
-            console.print(f"[green]✓[/green] Will use '{epic_input}' as default milestone/project")
+            console.print(
+                f"[green]✓[/green] Will use '{epic_input}' as default milestone/project"
+            )
 
         # Default tags (labels for GitHub)
         tags_input = Prompt.ask(
             "Default labels (optional, comma-separated, e.g., 'bug,enhancement')",
             default="",
-            show_default=False
+            show_default=False,
         )
         if tags_input:
             tags_list = [t.strip() for t in tags_input.split(",") if t.strip()]
             if tags_list:
                 default_values["default_tags"] = tags_list
-                console.print(f"[green]✓[/green] Will use labels: {', '.join(tags_list)}")
+                console.print(
+                    f"[green]✓[/green] Will use labels: {', '.join(tags_list)}"
+                )
 
     return AdapterConfig.from_dict(config_dict), default_values
 
 
 def _configure_aitrackdown(
-    interactive: bool = True,
-    base_path: str | None = None,
-    **kwargs: Any
+    interactive: bool = True, base_path: str | None = None, **kwargs: Any
 ) -> tuple[AdapterConfig, dict[str, Any]]:
     """Configure AITrackdown adapter.
 
@@ -747,7 +781,9 @@ def _configure_aitrackdown(
     # Base path (programmatic mode: use provided value or default, interactive: prompt)
     final_base_path = base_path or ".aitrackdown"
     if interactive:
-        final_base_path = Prompt.ask("Base path for ticket storage", default=".aitrackdown")
+        final_base_path = Prompt.ask(
+            "Base path for ticket storage", default=".aitrackdown"
+        )
 
     config_dict = {
         "adapter": AdapterType.AITRACKDOWN.value,
@@ -765,30 +801,28 @@ def _configure_aitrackdown(
 
         # Default user/assignee
         user_input = Prompt.ask(
-            "Default assignee/user (optional)",
-            default="",
-            show_default=False
+            "Default assignee/user (optional)", default="", show_default=False
         )
         if user_input:
             default_values["default_user"] = user_input
-            console.print(f"[green]✓[/green] Will use '{user_input}' as default assignee")
+            console.print(
+                f"[green]✓[/green] Will use '{user_input}' as default assignee"
+            )
 
         # Default epic/project
         epic_input = Prompt.ask(
-            "Default epic/project ID (optional)",
-            default="",
-            show_default=False
+            "Default epic/project ID (optional)", default="", show_default=False
         )
         if epic_input:
             default_values["default_epic"] = epic_input
             default_values["default_project"] = epic_input  # Compatibility
-            console.print(f"[green]✓[/green] Will use '{epic_input}' as default epic/project")
+            console.print(
+                f"[green]✓[/green] Will use '{epic_input}' as default epic/project"
+            )
 
         # Default tags
         tags_input = Prompt.ask(
-            "Default tags (optional, comma-separated)",
-            default="",
-            show_default=False
+            "Default tags (optional, comma-separated)", default="", show_default=False
         )
         if tags_input:
             tags_list = [t.strip() for t in tags_input.split(",") if t.strip()]

@@ -220,7 +220,9 @@ async def ticket_create(
                     )
                 elif config.default_epic:
                     final_parent_epic = config.default_epic
-                    logging.debug(f"Using default epic from config: {final_parent_epic}")
+                    logging.debug(
+                        f"Using default epic from config: {final_parent_epic}"
+                    )
 
         # Default tags - merge with provided tags
         final_tags = tags or []

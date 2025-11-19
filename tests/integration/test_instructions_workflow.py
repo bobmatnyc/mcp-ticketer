@@ -312,9 +312,7 @@ class TestCLIWorkflow:
                 )
                 MockManager.return_value = mock_manager
 
-                with patch(
-                    "mcp_ticketer.cli.instruction_commands.Path"
-                ):
+                with patch("mcp_ticketer.cli.instruction_commands.Path"):
                     mock_path = Mock()
                     mock_path.exists.return_value = True
                     mock_path.read_text.return_value = custom_content

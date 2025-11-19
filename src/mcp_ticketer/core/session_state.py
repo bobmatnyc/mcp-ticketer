@@ -66,6 +66,7 @@ class SessionStateManager:
 
         Args:
             project_path: Project root directory (defaults to current directory)
+
         """
         self.project_path = project_path or Path.cwd()
         self.state_file = self.project_path / SESSION_STATE_FILE
@@ -75,13 +76,14 @@ class SessionStateManager:
 
         Returns:
             SessionState instance (creates new if expired or not found)
+
         """
         if not self.state_file.exists():
             logger.debug("No session state file found, creating new session")
             return SessionState()
 
         try:
-            with open(self.state_file, "r") as f:
+            with open(self.state_file) as f:
                 data = json.load(f)
 
             state = SessionState.from_dict(data)
@@ -107,6 +109,7 @@ class SessionStateManager:
 
         Args:
             state: SessionState to persist
+
         """
         try:
             # Ensure directory exists
@@ -138,6 +141,7 @@ class SessionStateManager:
 
         Returns:
             Current ticket ID or None
+
         """
         state = self.load_session()
 
@@ -152,6 +156,7 @@ class SessionStateManager:
 
         Args:
             ticket_id: Ticket ID to set (None to clear)
+
         """
         state = self.load_session()
         state.current_ticket = ticket_id

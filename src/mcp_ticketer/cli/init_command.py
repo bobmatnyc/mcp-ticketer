@@ -264,7 +264,9 @@ async def _validate_configuration_with_retry(
                     if default_values.get("default_epic"):
                         current_config["default_epic"] = default_values["default_epic"]
                     if default_values.get("default_project"):
-                        current_config["default_project"] = default_values["default_project"]
+                        current_config["default_project"] = default_values[
+                            "default_project"
+                        ]
                     if default_values.get("default_tags"):
                         current_config["default_tags"] = default_values["default_tags"]
 
@@ -564,7 +566,11 @@ def init(
                 # Determine if we need interactive prompts
                 has_all_params = bool(
                     (api_key or os.getenv("LINEAR_API_KEY"))
-                    and (team_id or os.getenv("LINEAR_TEAM_ID") or os.getenv("LINEAR_TEAM_KEY"))
+                    and (
+                        team_id
+                        or os.getenv("LINEAR_TEAM_ID")
+                        or os.getenv("LINEAR_TEAM_KEY")
+                    )
                 )
 
                 # Use consolidated configure function (interactive if missing params)

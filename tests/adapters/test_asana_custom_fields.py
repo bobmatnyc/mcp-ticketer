@@ -258,9 +258,7 @@ class TestBug3StateManagement:
 
             try:
                 # Set to IN_PROGRESS
-                await adapter.update(
-                    task.id, {"state": TicketState.IN_PROGRESS}
-                )
+                await adapter.update(task.id, {"state": TicketState.IN_PROGRESS})
 
                 # Re-read the task
                 read_back = await adapter.read(task.id)

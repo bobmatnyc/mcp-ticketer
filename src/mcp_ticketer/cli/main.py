@@ -302,7 +302,6 @@ def get_adapter(
         adapter_config = config["config"]
 
     # Add environment variables for authentication
-    import os
 
     if adapter_type == "linear":
         if not adapter_config.get("api_key"):
@@ -317,6 +316,8 @@ def get_adapter(
             adapter_config["email"] = os.getenv("JIRA_ACCESS_USER")
 
     return AdapterRegistry.get_adapter(adapter_type, adapter_config)
+
+
 @app.command("set")
 def set_config(
     adapter: AdapterType | None = typer.Option(
@@ -496,8 +497,6 @@ def migrate_config(
     migrate_config_command(dry_run=dry_run)
 
 
-
-
 # Add ticket command group to main app
 app.add_typer(ticket_app, name="ticket")
 
@@ -521,6 +520,7 @@ app.command()(init)
 app.command()(install)
 app.command()(remove)
 app.command()(uninstall)
+
 
 # Add diagnostics command
 @app.command("doctor")
