@@ -70,8 +70,8 @@ async def test_basic_functionality():
     print("\nMCP Ticketer is ready to use.")
     print("\nQuick start:")
     print("  1. Initialize: ./mcp-ticketer init")
-    print("  2. Create ticket: ./mcp-ticketer create 'My first ticket'")
-    print("  3. List tickets: ./mcp-ticketer list")
+    print("  2. Create ticket: ./mcp-ticketer ticket create 'My first ticket'")
+    print("  3. List tickets: ./mcp-ticketer ticket list")
 
 
 if __name__ == "__main__":
