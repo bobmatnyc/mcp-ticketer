@@ -45,7 +45,7 @@ class TestInstructionsGetTool:
                     "# Default Instructions\n\nDefault content"
                 )
                 mock_manager.has_custom_instructions.return_value = False
-                MockManager.return_value = mock_manager
+                mock_manager_class.return_value = mock_manager
 
                 result = await instructions_get()
 
@@ -74,7 +74,7 @@ class TestInstructionsGetTool:
                 )
                 mock_manager.has_custom_instructions.return_value = True
                 mock_manager.get_instructions_path.return_value = inst_path
-                MockManager.return_value = mock_manager
+                mock_manager_class.return_value = mock_manager
 
                 result = await instructions_get()
 
@@ -90,7 +90,7 @@ class TestInstructionsGetTool:
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
         ) as mock_manager_class:
-            MockManager.side_effect = InstructionsError("Test error")
+            mock_manager_class.side_effect = InstructionsError("Test error")
 
             result = await instructions_get()
 
@@ -103,7 +103,7 @@ class TestInstructionsGetTool:
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
         ) as mock_manager_class:
-            MockManager.side_effect = Exception("Unexpected error")
+            mock_manager_class.side_effect = Exception("Unexpected error")
 
             result = await instructions_get()
 
@@ -123,7 +123,7 @@ class TestInstructionsGetTool:
                 mock_manager = Mock()
                 mock_manager.get_instructions.return_value = "Test content"
                 mock_manager.has_custom_instructions.return_value = False
-                MockManager.return_value = mock_manager
+                mock_manager_class.return_value = mock_manager
 
                 result = await instructions_get()
 
@@ -155,7 +155,7 @@ class TestInstructionsSetTool:
             ):
                 mock_manager = Mock()
                 mock_manager.get_instructions_path.return_value = inst_path
-                MockManager.return_value = mock_manager
+                mock_manager_class.return_value = mock_manager
 
                 result = await instructions_set(content=content, source="inline")
 
@@ -179,7 +179,7 @@ class TestInstructionsSetTool:
                 mock_manager.set_instructions.side_effect = InstructionsValidationError(
                     "Content too short"
                 )
-                MockManager.return_value = mock_manager
+                mock_manager_class.return_value = mock_manager
 
                 result = await instructions_set(content=short_content, source="inline")
 
@@ -198,7 +198,7 @@ class TestInstructionsSetTool:
                 return_value=tmp_path,
             ):
                 mock_manager = Mock()
-                MockManager.return_value = mock_manager
+                mock_manager_class.return_value = mock_manager
 
                 result = await instructions_set(content="Content", source="invalid")
 
@@ -220,7 +220,7 @@ class TestInstructionsSetTool:
             ):
                 mock_manager = Mock()
                 mock_manager.get_instructions_path.return_value = inst_path
-                MockManager.return_value = mock_manager
+                mock_manager_class.return_value = mock_manager
 
                 result = await instructions_set(content=content, source="file")
 
@@ -240,7 +240,7 @@ class TestInstructionsSetTool:
                 mock_manager.set_instructions.side_effect = InstructionsError(
                     "Write failed"
                 )
-                MockManager.return_value = mock_manager
+                mock_manager_class.return_value = mock_manager
 
                 result = await instructions_set(content="Content" * 50, source="inline")
 
@@ -259,7 +259,7 @@ class TestInstructionsSetTool:
             ):
                 mock_manager = Mock()
                 mock_manager.set_instructions.side_effect = Exception("Unexpected")
-                MockManager.return_value = mock_manager
+                mock_manager_class.return_value = mock_manager
 
                 result = await instructions_set(content="Content" * 50, source="inline")
 
@@ -280,7 +280,7 @@ class TestInstructionsSetTool:
             ):
                 mock_manager = Mock()
                 mock_manager.get_instructions_path.return_value = inst_path
-                MockManager.return_value = mock_manager
+                mock_manager_class.return_value = mock_manager
 
                 result = await instructions_set(content=content, source="inline")
 
@@ -310,7 +310,7 @@ class TestInstructionsResetTool:
                 mock_manager = Mock()
                 mock_manager.has_custom_instructions.return_value = True
                 mock_manager.delete_instructions.return_value = True
-                MockManager.return_value = mock_manager
+                mock_manager_class.return_value = mock_manager
 
                 result = await instructions_reset()
 
@@ -330,7 +330,7 @@ class TestInstructionsResetTool:
             ):
                 mock_manager = Mock()
                 mock_manager.has_custom_instructions.return_value = False
-                MockManager.return_value = mock_manager
+                mock_manager_class.return_value = mock_manager
 
                 result = await instructions_reset()
 
@@ -351,7 +351,7 @@ class TestInstructionsResetTool:
                 mock_manager = Mock()
                 mock_manager.has_custom_instructions.return_value = True
                 mock_manager.delete_instructions.return_value = False
-                MockManager.return_value = mock_manager
+                mock_manager_class.return_value = mock_manager
 
                 result = await instructions_reset()
 
@@ -366,7 +366,7 @@ class TestInstructionsResetTool:
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
         ) as mock_manager_class:
-            MockManager.side_effect = InstructionsError("Delete failed")
+            mock_manager_class.side_effect = InstructionsError("Delete failed")
 
             result = await instructions_reset()
 
@@ -379,7 +379,7 @@ class TestInstructionsResetTool:
         with patch(
             "mcp_ticketer.mcp.server.tools.instruction_tools.TicketInstructionsManager"
         ) as mock_manager_class:
-            MockManager.side_effect = Exception("Unexpected")
+            mock_manager_class.side_effect = Exception("Unexpected")
 
             result = await instructions_reset()
 
@@ -397,7 +397,7 @@ class TestInstructionsResetTool:
             ):
                 mock_manager = Mock()
                 mock_manager.has_custom_instructions.return_value = False
-                MockManager.return_value = mock_manager
+                mock_manager_class.return_value = mock_manager
 
                 result = await instructions_reset()
 
@@ -575,7 +575,7 @@ class TestToolIntegration:
                 mock_manager.get_instructions_path.return_value = inst_path
                 mock_manager.has_custom_instructions.return_value = True
                 mock_manager.get_instructions.return_value = content
-                MockManager.return_value = mock_manager
+                mock_manager_class.return_value = mock_manager
 
                 # Set instructions
                 set_result = await instructions_set(content=content, source="inline")
@@ -607,7 +607,7 @@ class TestToolIntegration:
                 ):
                     mock_manager = Mock()
                     mock_manager.get_instructions_path.return_value = inst_path
-                    MockManager.return_value = mock_manager
+                    mock_manager_class.return_value = mock_manager
 
                     set_result = await instructions_set(
                         content=content, source="inline"
@@ -628,7 +628,7 @@ class TestToolIntegration:
             ):
                 mock_manager = Mock()
                 mock_manager.get_instructions_path.return_value = inst_path
-                MockManager.return_value = mock_manager
+                mock_manager_class.return_value = mock_manager
 
                 # Set custom instructions
                 set_result = await instructions_set(content=content, source="inline")
