@@ -150,8 +150,9 @@ def _configure_single_adapter() -> TicketerConfig:
     adapter_type = adapter_type_map[adapter_choice]
 
     # Configure the selected adapter
+    default_values = {}
     if adapter_type == AdapterType.LINEAR:
-        adapter_config = _configure_linear()
+        adapter_config, default_values = _configure_linear()
     elif adapter_type == AdapterType.JIRA:
         adapter_config = _configure_jira()
     elif adapter_type == AdapterType.GITHUB:
@@ -159,23 +160,29 @@ def _configure_single_adapter() -> TicketerConfig:
     else:
         adapter_config = _configure_aitrackdown()
 
-    # Create config
+    # Create config with default values
     config = TicketerConfig(
         default_adapter=adapter_type.value,
         adapters={adapter_type.value: adapter_config},
+        default_user=default_values.get("default_user"),
+        default_project=default_values.get("default_project"),
+        default_epic=default_values.get("default_epic"),
+        default_tags=default_values.get("default_tags"),
     )
 
     return config
 
 
-def _configure_linear(existing_config: dict[str, Any] | None = None) -> AdapterConfig:
+def _configure_linear(existing_config: dict[str, Any] | None = None) -> tuple[AdapterConfig, dict[str, Any]]:
     """Configure Linear adapter with option to preserve existing settings.
 
     Args:
         existing_config: Optional existing configuration to preserve/update
 
     Returns:
-        Configured Linear adapter configuration
+        Tuple of (AdapterConfig, default_values_dict)
+        - AdapterConfig: Configured Linear adapter configuration
+        - default_values_dict: Dictionary containing default_user, default_epic, default_project, default_tags
 
     """
     console.print("\n[bold cyan]Linear Configuration[/bold cyan]")
@@ -291,6 +298,89 @@ def _configure_linear(existing_config: dict[str, Any] | None = None) -> AdapterC
     if project_id:
         config_dict["project_id"] = project_id
 
+    # ============================================================
+    # DEFAULT VALUES SECTION (for ticket creation)
+    # ============================================================
+
+    console.print("\n[bold cyan]Default Values (Optional)[/bold cyan]")
+    console.print("Configure default values for ticket creation:")
+
+    # Default epic/project
+    current_default_epic = config_dict.get("default_epic", "") if has_existing else ""
+
+    def prompt_default_epic() -> str:
+        if current_default_epic:
+            return Prompt.ask(
+                f"Default epic/project ID (optional) [current: {current_default_epic}]",
+                default=current_default_epic
+            )
+        return Prompt.ask(
+            "Default epic/project ID (optional, e.g., 'PROJ-123' or UUID)",
+            default=""
+        )
+
+    def validate_default_epic(epic_id: str) -> tuple[bool, str | None]:
+        if not epic_id:  # Optional field
+            return True, None
+        # Basic validation - just check it's not empty when provided
+        if len(epic_id.strip()) < 2:
+            return False, "Epic/project ID must be at least 2 characters"
+        return True, None
+
+    default_epic = _retry_setting(
+        "Default Epic/Project",
+        prompt_default_epic,
+        validate_default_epic
+    )
+    if default_epic:
+        config_dict["default_epic"] = default_epic
+        config_dict["default_project"] = default_epic  # Set both for compatibility
+        console.print(
+            f"[green]✓[/green] Will use '{default_epic}' as default epic/project"
+        )
+
+    # Default tags
+    current_default_tags = config_dict.get("default_tags", []) if has_existing else []
+
+    def prompt_default_tags() -> str:
+        if current_default_tags:
+            tags_str = ", ".join(current_default_tags)
+            return Prompt.ask(
+                f"Default tags (optional, comma-separated) [current: {tags_str}]",
+                default=tags_str
+            )
+        return Prompt.ask(
+            "Default tags (optional, comma-separated, e.g., 'bug,urgent')",
+            default=""
+        )
+
+    def validate_default_tags(tags_input: str) -> tuple[bool, str | None]:
+        if not tags_input:  # Optional field
+            return True, None
+        # Parse and validate tags
+        tags = [tag.strip() for tag in tags_input.split(",") if tag.strip()]
+        if not tags:
+            return False, "Please provide at least one tag or leave empty"
+        # Check each tag is reasonable
+        for tag in tags:
+            if len(tag) < 2:
+                return False, f"Tag '{tag}' must be at least 2 characters"
+            if len(tag) > 50:
+                return False, f"Tag '{tag}' is too long (max 50 characters)"
+        return True, None
+
+    default_tags_input = _retry_setting(
+        "Default Tags",
+        prompt_default_tags,
+        validate_default_tags
+    )
+    if default_tags_input:
+        default_tags = [tag.strip() for tag in default_tags_input.split(",") if tag.strip()]
+        config_dict["default_tags"] = default_tags
+        console.print(
+            f"[green]✓[/green] Will use tags: {', '.join(default_tags)}"
+        )
+
     # Validate with detailed error reporting
     is_valid, error = ConfigValidator.validate_linear_config(config_dict)
 
@@ -330,7 +420,19 @@ def _configure_linear(existing_config: dict[str, Any] | None = None) -> AdapterC
         raise typer.Exit(1) from None
 
     console.print("[green]✓ Configuration validated successfully[/green]")
-    return AdapterConfig.from_dict(config_dict)
+
+    # Extract default values to return separately (not part of AdapterConfig)
+    default_values = {}
+    if "user_email" in config_dict:
+        default_values["default_user"] = config_dict.pop("user_email")
+    if "default_epic" in config_dict:
+        default_values["default_epic"] = config_dict.pop("default_epic")
+    if "default_project" in config_dict:
+        default_values["default_project"] = config_dict.pop("default_project")
+    if "default_tags" in config_dict:
+        default_values["default_tags"] = config_dict.pop("default_tags")
+
+    return AdapterConfig.from_dict(config_dict), default_values
 
 
 def _configure_jira() -> AdapterConfig:
@@ -474,11 +576,15 @@ def _configure_hybrid_mode() -> TicketerConfig:
 
     # Configure each adapter
     adapters = {}
+    default_values = {}
     for adapter_type in selected_adapters:
         console.print(f"\n[cyan]Configuring {adapter_type.value}...[/cyan]")
 
         if adapter_type == AdapterType.LINEAR:
-            adapter_config = _configure_linear()
+            adapter_config, linear_defaults = _configure_linear()
+            # Only save defaults from the first/primary adapter
+            if not default_values:
+                default_values = linear_defaults
         elif adapter_type == AdapterType.JIRA:
             adapter_config = _configure_jira()
         elif adapter_type == AdapterType.GITHUB:
@@ -527,9 +633,15 @@ def _configure_hybrid_mode() -> TicketerConfig:
         sync_strategy=sync_strategy,
     )
 
-    # Create full config
+    # Create full config with default values
     config = TicketerConfig(
-        default_adapter=primary_adapter, adapters=adapters, hybrid_mode=hybrid_config
+        default_adapter=primary_adapter,
+        adapters=adapters,
+        hybrid_mode=hybrid_config,
+        default_user=default_values.get("default_user"),
+        default_project=default_values.get("default_project"),
+        default_epic=default_values.get("default_epic"),
+        default_tags=default_values.get("default_tags"),
     )
 
     return config

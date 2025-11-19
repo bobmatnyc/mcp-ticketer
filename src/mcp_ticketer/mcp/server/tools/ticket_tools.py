@@ -4,11 +4,13 @@ This module implements the core create, read, update, delete, and list
 operations for tickets using the FastMCP SDK.
 """
 
+import logging
 from pathlib import Path
 from typing import Any
 
 from ....core.models import Priority, Task, TicketState
 from ....core.project_config import ConfigResolver, TicketerConfig
+from ....core.session_state import SessionStateManager
 from ..server_sdk import get_adapter, mcp
 
 
@@ -167,30 +169,73 @@ async def ticket_create(
                 "error": f"Invalid priority '{priority}'. Must be one of: low, medium, high, critical",
             }
 
-        # Use default_user if no assignee specified
+        # Apply configuration defaults if values not provided
+        resolver = ConfigResolver(project_path=Path.cwd())
+        config = resolver.load_project_config() or TicketerConfig()
+
+        # Session ticket integration (NEW)
+        session_manager = SessionStateManager(project_path=Path.cwd())
+        session_state = session_manager.load_session()
+
+        # Check if we should prompt for ticket association
+        if parent_epic is None and not session_state.ticket_opted_out:
+            if session_state.current_ticket:
+                # Use session ticket as parent_epic
+                final_parent_epic = session_state.current_ticket
+                logging.info(
+                    f"Using session ticket as parent_epic: {final_parent_epic}"
+                )
+            else:
+                # No session ticket and user hasn't opted out - provide guidance
+                return {
+                    "status": "error",
+                    "requires_ticket_association": True,
+                    "guidance": (
+                        "⚠️  No ticket association found for this work session.\n\n"
+                        "It's recommended to associate your work with a ticket for proper tracking.\n\n"
+                        "**Options**:\n"
+                        "1. Associate with a ticket: attach_ticket(action='set', ticket_id='PROJ-123')\n"
+                        "2. Skip for this session: attach_ticket(action='none')\n"
+                        "3. Provide parent_epic directly: ticket_create(..., parent_epic='PROJ-123')\n\n"
+                        "After associating, run ticket_create again to create the ticket."
+                    ),
+                    "session_id": session_state.session_id,
+                }
+
+        # Default user/assignee
         final_assignee = assignee
-        if final_assignee is None:
-            resolver = ConfigResolver(project_path=Path.cwd())
-            config = resolver.load_project_config() or TicketerConfig()
-            if config.default_user:
-                final_assignee = config.default_user
+        if final_assignee is None and config.default_user:
+            final_assignee = config.default_user
+            logging.debug(f"Using default assignee from config: {final_assignee}")
 
-        # Use default_project if no parent_epic specified
-        final_parent_epic = parent_epic
-        if final_parent_epic is None:
-            resolver = ConfigResolver(project_path=Path.cwd())
-            config = resolver.load_project_config() or TicketerConfig()
-            # Try default_project first, fall back to default_epic
-            if config.default_project:
-                final_parent_epic = config.default_project
-            elif config.default_epic:
-                final_parent_epic = config.default_epic
+        # Default project/epic (if not set by session)
+        if "final_parent_epic" not in locals():
+            final_parent_epic = parent_epic
+            if final_parent_epic is None:
+                # Try default_project first, fall back to default_epic
+                if config.default_project:
+                    final_parent_epic = config.default_project
+                    logging.debug(
+                        f"Using default project from config: {final_parent_epic}"
+                    )
+                elif config.default_epic:
+                    final_parent_epic = config.default_epic
+                    logging.debug(f"Using default epic from config: {final_parent_epic}")
 
-        # Auto-detect labels if enabled
-        final_tags = tags
+        # Default tags - merge with provided tags
+        final_tags = tags or []
+        if config.default_tags:
+            # Add default tags that aren't already in the provided tags
+            for default_tag in config.default_tags:
+                if default_tag not in final_tags:
+                    final_tags.append(default_tag)
+            if final_tags != (tags or []):
+                logging.debug(f"Merged default tags from config: {config.default_tags}")
+
+        # Auto-detect labels if enabled (adds to existing tags)
         if auto_detect_labels:
             final_tags = await detect_and_apply_labels(
-                adapter, title, description or "", tags
+                adapter, title, description or "", final_tags
             )
 
         # Create task object

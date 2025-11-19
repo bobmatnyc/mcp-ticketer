@@ -178,6 +178,7 @@ class TicketerConfig:
     default_user: str | None = None  # Default assignee (user_id or email)
     default_project: str | None = None  # Default project/epic ID
     default_epic: str | None = None  # Alias for default_project (backward compat)
+    default_tags: list[str] | None = None  # Default tags for new tickets
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -198,6 +199,8 @@ class TicketerConfig:
             result["default_project"] = self.default_project
         if self.default_epic is not None:
             result["default_epic"] = self.default_epic
+        if self.default_tags is not None:
+            result["default_tags"] = self.default_tags
         return result
 
     @classmethod
@@ -228,6 +231,7 @@ class TicketerConfig:
             default_user=data.get("default_user"),
             default_project=data.get("default_project"),
             default_epic=data.get("default_epic"),
+            default_tags=data.get("default_tags"),
         )
 
 

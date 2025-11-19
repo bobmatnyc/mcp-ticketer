@@ -14,6 +14,7 @@ Modules:
     attachment_tools: File attachment handling
     instruction_tools: Ticket instructions management
     config_tools: Configuration management (adapter, project, user settings)
+    session_tools: Session tracking and ticket association management
     user_ticket_tools: User-specific ticket operations (my tickets, transitions)
 
 """
@@ -29,6 +30,7 @@ from . import (
     instruction_tools,  # noqa: F401
     pr_tools,  # noqa: F401
     search_tools,  # noqa: F401
+    session_tools,  # noqa: F401
     ticket_tools,  # noqa: F401
     user_ticket_tools,  # noqa: F401
 )
@@ -43,5 +45,6 @@ __all__ = [
     "attachment_tools",
     "instruction_tools",
     "config_tools",
+    "session_tools",
     "user_ticket_tools",
 ]

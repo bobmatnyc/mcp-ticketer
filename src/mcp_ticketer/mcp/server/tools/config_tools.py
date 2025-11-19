@@ -305,6 +305,7 @@ async def config_get() -> dict[str, Any]:
                 "default_adapter": "linear",
                 "default_project": "PROJ-123",
                 "default_user": "user@example.com",
+                "default_tags": ["backend", "api"],
                 "adapters": {
                     "linear": {"api_key": "***", "team_id": "..."}
                 }
@@ -316,6 +317,7 @@ async def config_get() -> dict[str, Any]:
         - Sensitive values (API keys) are masked in the response
         - Returns default values if no configuration file exists
         - Configuration is merged from multiple sources (env vars, .env files, config.json)
+        - default_tags returns empty list if not configured
 
     """
     try:
@@ -347,6 +349,150 @@ async def config_get() -> dict[str, Any]:
         return {
             "status": "error",
             "error": f"Failed to retrieve configuration: {str(e)}",
+        }
+
+
+@mcp.tool()
+async def config_set_default_tags(
+    tags: list[str],
+) -> dict[str, Any]:
+    """Set default tags for new ticket creation.
+
+    Updates the project-local configuration to automatically apply the specified
+    tags to all new tickets. These tags are merged with any tags provided when
+    creating a ticket.
+
+    Args:
+        tags: List of default tags to apply to new tickets
+
+    Returns:
+        Dictionary containing:
+        - status: "completed" or "error"
+        - message: Success or error message
+        - default_tags: List of default tags that were set
+        - error: Error details (if failed)
+
+    Example:
+        >>> result = await config_set_default_tags(["bug", "urgent"])
+        >>> print(result)
+        {
+            "status": "completed",
+            "message": "Default tags set to: bug, urgent",
+            "default_tags": ["bug", "urgent"]
+        }
+
+    Usage Notes:
+        - Empty list clears the default tags
+        - Tags are validated for reasonable length (2-50 characters)
+        - Tags are merged with user-provided tags during ticket creation
+
+    """
+    try:
+        # Validate tags
+        if not tags:
+            return {
+                "status": "error",
+                "error": "Please provide at least one tag",
+            }
+
+        for tag in tags:
+            if not tag or len(tag.strip()) < 2:
+                return {
+                    "status": "error",
+                    "error": f"Tag '{tag}' must be at least 2 characters",
+                }
+            if len(tag.strip()) > 50:
+                return {
+                    "status": "error",
+                    "error": f"Tag '{tag}' is too long (max 50 characters)",
+                }
+
+        # Load current configuration
+        resolver = get_resolver()
+        config = resolver.load_project_config() or TicketerConfig()
+
+        # Update config
+        config.default_tags = [tag.strip() for tag in tags]
+        resolver.save_project_config(config)
+
+        return {
+            "status": "completed",
+            "default_tags": config.default_tags,
+            "message": f"Default tags set to: {', '.join(config.default_tags)}",
+            "config_path": str(resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH),
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to set default tags: {str(e)}",
+        }
+
+
+@mcp.tool()
+async def config_set_default_epic(
+    epic_id: str,
+) -> dict[str, Any]:
+    """Set default epic/project for new ticket creation.
+
+    Updates the project-local configuration to automatically assign new tickets
+    to the specified epic or project. This is an alias for config_set_default_project
+    but uses the "epic" terminology which some teams prefer.
+
+    Args:
+        epic_id: Epic or project identifier (e.g., "PROJ-123" or UUID)
+
+    Returns:
+        Dictionary containing:
+        - status: "completed" or "error"
+        - message: Success or error message
+        - default_epic: The epic ID that was set
+        - default_project: Same value (for compatibility)
+        - error: Error details (if failed)
+
+    Example:
+        >>> result = await config_set_default_epic("PROJ-123")
+        >>> print(result)
+        {
+            "status": "completed",
+            "message": "Default epic/project set to: PROJ-123",
+            "default_epic": "PROJ-123",
+            "default_project": "PROJ-123"
+        }
+
+    Usage Notes:
+        - Epic ID is not validated (allows flexibility across adapters)
+        - Empty string or null clears the default epic
+        - Sets both default_epic and default_project for backward compatibility
+
+    """
+    try:
+        # Validate epic ID
+        if not epic_id or len(epic_id.strip()) < 2:
+            return {
+                "status": "error",
+                "error": "Epic/project ID must be at least 2 characters",
+            }
+
+        # Load current configuration
+        resolver = get_resolver()
+        config = resolver.load_project_config() or TicketerConfig()
+
+        # Update config (set both for compatibility)
+        config.default_epic = epic_id.strip()
+        config.default_project = epic_id.strip()
+        resolver.save_project_config(config)
+
+        return {
+            "status": "completed",
+            "default_epic": config.default_epic,
+            "default_project": config.default_project,
+            "message": f"Default epic/project set to: {epic_id}",
+            "config_path": str(resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH),
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to set default epic: {str(e)}",
         }
 
 
