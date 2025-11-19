@@ -3,12 +3,9 @@
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from mcp_ticketer.core.env_discovery import (
-    DiscoveredAdapter,
-    DiscoveryResult,
-    EnvDiscovery,
-    discover_config,
-)
+from mcp_ticketer.core.env_discovery import (DiscoveredAdapter,
+                                             DiscoveryResult, EnvDiscovery,
+                                             discover_config)
 from mcp_ticketer.core.project_config import AdapterType
 
 

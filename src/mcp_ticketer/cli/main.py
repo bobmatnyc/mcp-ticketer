@@ -21,7 +21,8 @@ from ..core.models import Comment, SearchQuery
 from ..queue import Queue, QueueStatus, WorkerManager
 from ..queue.health_monitor import HealthStatus, QueueHealthMonitor
 from ..queue.ticket_registry import TicketRegistry
-from .configure import configure_wizard, set_adapter_config, show_current_config
+from .configure import (configure_wizard, set_adapter_config,
+                        show_current_config)
 from .diagnostics import run_diagnostics
 from .discover import app as discover_app
 from .instruction_commands import app as instruction_app
@@ -895,9 +896,7 @@ def setup(
             primary = discovered.get_primary_adapter()
             if primary:
                 adapter_type = primary.adapter_type
-                console.print(
-                    f"[green]✓ Auto-detected {adapter_type} adapter[/green]"
-                )
+                console.print(f"[green]✓ Auto-detected {adapter_type} adapter[/green]")
                 console.print(f"[dim]  Source: {primary.found_in}[/dim]")
                 console.print(f"[dim]  Confidence: {primary.confidence:.0%}[/dim]\n")
 
@@ -926,7 +925,9 @@ def setup(
 
     # Step 3: Platform installation
     if skip_platforms:
-        console.print("[yellow]⚠[/yellow]  Skipping platform installation (--skip-platforms)\n")
+        console.print(
+            "[yellow]⚠[/yellow]  Skipping platform installation (--skip-platforms)\n"
+        )
         _show_setup_complete_message(console, proj_path)
         return
 
@@ -978,9 +979,7 @@ def setup(
             console.print(f"  • {plat_name}")
         console.print()
 
-        if not typer.confirm(
-            "Update platform configurations anyway?", default=False
-        ):
+        if not typer.confirm("Update platform configurations anyway?", default=False):
             console.print("[yellow]Skipping platform installation[/yellow]\n")
             _show_setup_complete_message(console, proj_path)
             return
@@ -1046,9 +1045,7 @@ def setup(
     for plat in platforms_to_install:
         config_func = platform_mapping.get(plat.name)
         if not config_func:
-            console.print(
-                f"[yellow]⚠[/yellow]  No installer for {plat.display_name}"
-            )
+            console.print(f"[yellow]⚠[/yellow]  No installer for {plat.display_name}")
             continue
 
         try:
@@ -1073,9 +1070,7 @@ def setup(
     _show_setup_complete_message(console, proj_path)
 
 
-def _check_existing_platform_configs(
-    platforms: list, proj_path: Path
-) -> list[str]:
+def _check_existing_platform_configs(platforms: list, proj_path: Path) -> list[str]:
     """Check if mcp-ticketer is already configured for given platforms.
 
     Args:

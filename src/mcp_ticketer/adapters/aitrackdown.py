@@ -8,15 +8,8 @@ from pathlib import Path
 from typing import Any
 
 from ..core.adapter import BaseAdapter
-from ..core.models import (
-    Attachment,
-    Comment,
-    Epic,
-    Priority,
-    SearchQuery,
-    Task,
-    TicketState,
-)
+from ..core.models import (Attachment, Comment, Epic, Priority, SearchQuery,
+                           Task, TicketState)
 from ..core.registry import AdapterRegistry
 
 logger = logging.getLogger(__name__)

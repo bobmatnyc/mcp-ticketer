@@ -33,7 +33,9 @@ class TestSetupCommand:
             patch("mcp_ticketer.core.env_discovery.discover_config") as mock_discover,
             patch("mcp_ticketer.cli.main._prompt_for_adapter_selection") as mock_prompt,
             patch("mcp_ticketer.cli.main.init") as mock_init,
-            patch("mcp_ticketer.cli.platform_detection.PlatformDetector") as mock_detector_class,
+            patch(
+                "mcp_ticketer.cli.platform_detection.PlatformDetector"
+            ) as mock_detector_class,
             patch("typer.prompt") as mock_typer_prompt,
         ):
             # Setup mocks
@@ -60,14 +62,18 @@ class TestSetupCommand:
         # Create valid config
         config = {
             "default_adapter": "aitrackdown",
-            "adapters": {"aitrackdown": {"type": "aitrackdown", "base_path": ".aitrackdown"}},
+            "adapters": {
+                "aitrackdown": {"type": "aitrackdown", "base_path": ".aitrackdown"}
+            },
         }
         config_file.write_text(json.dumps(config))
 
         with (
             patch("mcp_ticketer.cli.main.Path.cwd", return_value=tmp_path),
             patch("mcp_ticketer.cli.main.init") as mock_init,
-            patch("mcp_ticketer.cli.platform_detection.PlatformDetector") as mock_detector_class,
+            patch(
+                "mcp_ticketer.cli.platform_detection.PlatformDetector"
+            ) as mock_detector_class,
             patch("typer.confirm") as mock_confirm,
             patch("typer.prompt") as mock_prompt,
         ):
@@ -103,7 +109,9 @@ class TestSetupCommand:
             patch("mcp_ticketer.core.env_discovery.discover_config") as mock_discover,
             patch("mcp_ticketer.cli.main._prompt_for_adapter_selection") as mock_prompt,
             patch("mcp_ticketer.cli.main.init") as mock_init,
-            patch("mcp_ticketer.cli.platform_detection.PlatformDetector") as mock_detector_class,
+            patch(
+                "mcp_ticketer.cli.platform_detection.PlatformDetector"
+            ) as mock_detector_class,
         ):
             # Setup mocks
             mock_discover.return_value = None
@@ -126,7 +134,9 @@ class TestSetupCommand:
             patch("mcp_ticketer.core.env_discovery.discover_config") as mock_discover,
             patch("mcp_ticketer.cli.main._prompt_for_adapter_selection") as mock_prompt,
             patch("mcp_ticketer.cli.main.init") as mock_init,
-            patch("mcp_ticketer.cli.platform_detection.PlatformDetector") as mock_detector_class,
+            patch(
+                "mcp_ticketer.cli.platform_detection.PlatformDetector"
+            ) as mock_detector_class,
         ):
             # Setup mocks
             mock_discover.return_value = None
@@ -157,9 +167,15 @@ class TestSetupCommand:
 
         with (
             patch("mcp_ticketer.cli.main.Path.cwd", return_value=tmp_path),
-            patch("mcp_ticketer.cli.platform_detection.PlatformDetector") as mock_detector_class,
-            patch("mcp_ticketer.cli.main._check_existing_platform_configs") as mock_check,
-            patch("mcp_ticketer.cli.mcp_configure.configure_claude_mcp") as mock_configure,
+            patch(
+                "mcp_ticketer.cli.platform_detection.PlatformDetector"
+            ) as mock_detector_class,
+            patch(
+                "mcp_ticketer.cli.main._check_existing_platform_configs"
+            ) as mock_check,
+            patch(
+                "mcp_ticketer.cli.mcp_configure.configure_claude_mcp"
+            ) as mock_configure,
             patch("typer.confirm") as mock_confirm,
             patch("typer.prompt") as mock_prompt,
         ):
@@ -201,9 +217,15 @@ class TestSetupCommand:
 
         with (
             patch("mcp_ticketer.cli.main.Path.cwd", return_value=tmp_path),
-            patch("mcp_ticketer.cli.platform_detection.PlatformDetector") as mock_detector_class,
-            patch("mcp_ticketer.cli.main._check_existing_platform_configs") as mock_check,
-            patch("mcp_ticketer.cli.mcp_configure.configure_claude_mcp") as mock_configure,
+            patch(
+                "mcp_ticketer.cli.platform_detection.PlatformDetector"
+            ) as mock_detector_class,
+            patch(
+                "mcp_ticketer.cli.main._check_existing_platform_configs"
+            ) as mock_check,
+            patch(
+                "mcp_ticketer.cli.mcp_configure.configure_claude_mcp"
+            ) as mock_configure,
             patch("typer.confirm") as mock_confirm,
             patch("typer.prompt") as mock_prompt,
         ):
@@ -249,9 +271,15 @@ class TestSetupCommand:
 
         with (
             patch("mcp_ticketer.cli.main.Path.cwd", return_value=tmp_path),
-            patch("mcp_ticketer.cli.platform_detection.PlatformDetector") as mock_detector_class,
-            patch("mcp_ticketer.cli.main._check_existing_platform_configs") as mock_check,
-            patch("mcp_ticketer.cli.mcp_configure.configure_claude_mcp") as mock_configure,
+            patch(
+                "mcp_ticketer.cli.platform_detection.PlatformDetector"
+            ) as mock_detector_class,
+            patch(
+                "mcp_ticketer.cli.main._check_existing_platform_configs"
+            ) as mock_check,
+            patch(
+                "mcp_ticketer.cli.mcp_configure.configure_claude_mcp"
+            ) as mock_configure,
             patch("typer.confirm") as mock_confirm,
             patch("typer.prompt") as mock_prompt,
         ):
@@ -293,9 +321,15 @@ class TestSetupCommand:
 
         with (
             patch("mcp_ticketer.cli.main.Path.cwd", return_value=tmp_path),
-            patch("mcp_ticketer.cli.platform_detection.PlatformDetector") as mock_detector_class,
-            patch("mcp_ticketer.cli.main._check_existing_platform_configs") as mock_check,
-            patch("mcp_ticketer.cli.mcp_configure.configure_claude_mcp") as mock_configure,
+            patch(
+                "mcp_ticketer.cli.platform_detection.PlatformDetector"
+            ) as mock_detector_class,
+            patch(
+                "mcp_ticketer.cli.main._check_existing_platform_configs"
+            ) as mock_check,
+            patch(
+                "mcp_ticketer.cli.mcp_configure.configure_claude_mcp"
+            ) as mock_configure,
             patch("typer.confirm") as mock_confirm,
         ):
             # Mock platform
@@ -335,7 +369,9 @@ class TestSetupCommand:
 
         with (
             patch("mcp_ticketer.cli.main.Path.cwd", return_value=tmp_path),
-            patch("mcp_ticketer.cli.platform_detection.PlatformDetector") as mock_detector_class,
+            patch(
+                "mcp_ticketer.cli.platform_detection.PlatformDetector"
+            ) as mock_detector_class,
             patch("typer.confirm") as mock_confirm,
         ):
             # Mock no platforms detected
@@ -372,16 +408,12 @@ class TestCheckExistingPlatformConfigs:
 
         # Mock config file
         claude_config = {
-            "projects": {
-                str(proj_path): {
-                    "mcpServers": {"mcp-ticketer": {}}
-                }
-            }
+            "projects": {str(proj_path): {"mcpServers": {"mcp-ticketer": {}}}}
         }
 
         with patch("builtins.open", create=True) as mock_open:
-            mock_open.return_value.__enter__.return_value.read.return_value = json.dumps(
-                claude_config
+            mock_open.return_value.__enter__.return_value.read.return_value = (
+                json.dumps(claude_config)
             )
 
             with patch.object(Path, "exists", return_value=True):
