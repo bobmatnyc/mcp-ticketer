@@ -1,7 +1,5 @@
 """Field validation utilities for adapter data."""
 
-from typing import Optional
-
 
 class ValidationError(Exception):
     """Raised when field validation fails."""
@@ -35,7 +33,7 @@ class FieldValidator:
         cls,
         adapter_name: str,
         field_name: str,
-        value: Optional[str],
+        value: str | None,
         truncate: bool = False,
     ) -> str:
         """Validate and optionally truncate a field value.

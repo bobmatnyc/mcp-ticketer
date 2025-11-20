@@ -396,7 +396,9 @@ class TestLinearAdapterRead:
         from gql.transport.exceptions import TransportQueryError
 
         with patch.object(
-            adapter.client, "execute_query", side_effect=TransportQueryError("Not found")
+            adapter.client,
+            "execute_query",
+            side_effect=TransportQueryError("Not found"),
         ):
             with patch.object(adapter, "get_project") as mock_get_project:
                 mock_get_project.return_value = {
@@ -425,9 +427,13 @@ class TestLinearAdapterRead:
 
         # Mock both issue and project lookups to fail
         with patch.object(
-            adapter.client, "execute_query", side_effect=TransportQueryError("Not found")
+            adapter.client,
+            "execute_query",
+            side_effect=TransportQueryError("Not found"),
         ):
-            with patch.object(adapter, "get_project", side_effect=Exception("Not found")):
+            with patch.object(
+                adapter, "get_project", side_effect=Exception("Not found")
+            ):
                 result = await adapter.read("NOTFOUND-123")
 
                 assert result is None

@@ -13,15 +13,8 @@ from httpx import AsyncClient, HTTPStatusError, TimeoutException
 
 from ..core.adapter import BaseAdapter
 from ..core.env_loader import load_adapter_config, validate_adapter_config
-from ..core.models import (
-    Attachment,
-    Comment,
-    Epic,
-    Priority,
-    SearchQuery,
-    Task,
-    TicketState,
-)
+from ..core.models import (Attachment, Comment, Epic, Priority, SearchQuery,
+                           Task, TicketState)
 from ..core.registry import AdapterRegistry
 
 logger = logging.getLogger(__name__)

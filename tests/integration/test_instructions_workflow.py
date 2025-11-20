@@ -15,13 +15,11 @@ import pytest
 from typer.testing import CliRunner
 
 from mcp_ticketer.cli.instruction_commands import app
-from mcp_ticketer.core.instructions import TicketInstructionsManager, get_instructions
+from mcp_ticketer.core.instructions import (TicketInstructionsManager,
+                                            get_instructions)
 from mcp_ticketer.mcp.server.tools.instruction_tools import (
-    instructions_get,
-    instructions_reset,
-    instructions_set,
-    instructions_validate,
-)
+    instructions_get, instructions_reset, instructions_set,
+    instructions_validate)
 
 runner = CliRunner()
 
@@ -145,7 +143,8 @@ This content is long enough to pass validation checks and has been updated.
             assert len(validate_result["errors"]) > 0
 
             # Try to set it anyway (should fail via API)
-            from mcp_ticketer.core.instructions import InstructionsValidationError
+            from mcp_ticketer.core.instructions import \
+                InstructionsValidationError
 
             manager = TicketInstructionsManager(tmp_path)
             with pytest.raises(

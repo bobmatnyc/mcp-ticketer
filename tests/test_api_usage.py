@@ -16,7 +16,8 @@ def test_core_imports():
     print("=== Testing Core Imports ===")
 
     try:
-        from mcp_ticketer.core.models import Comment, Epic, Priority, Task, TicketState
+        from mcp_ticketer.core.models import (Comment, Epic, Priority, Task,
+                                              TicketState)
 
         print("✓ Core models and adapters imported successfully")
 

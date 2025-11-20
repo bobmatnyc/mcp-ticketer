@@ -4,16 +4,10 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from ...core.models import (
-    Attachment,
-    Comment,
-    Epic,
-    Priority,
-    Task,
-    TicketState,
-    TicketType,
-)
-from .types import map_priority_from_asana, map_state_from_asana, map_state_to_asana
+from ...core.models import (Attachment, Comment, Epic, Priority, Task,
+                            TicketState, TicketType)
+from .types import (map_priority_from_asana, map_state_from_asana,
+                    map_state_to_asana)
 
 logger = logging.getLogger(__name__)
 

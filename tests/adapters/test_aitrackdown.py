@@ -9,14 +9,8 @@ from typing import Any
 import pytest
 
 from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
-from mcp_ticketer.core.models import (
-    Comment,
-    Epic,
-    Priority,
-    SearchQuery,
-    Task,
-    TicketState,
-)
+from mcp_ticketer.core.models import (Comment, Epic, Priority, SearchQuery,
+                                      Task, TicketState)
 
 # Mark all tests in this module
 pytestmark = [pytest.mark.adapter, pytest.mark.aitrackdown, pytest.mark.unit]

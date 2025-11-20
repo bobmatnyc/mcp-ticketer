@@ -12,25 +12,14 @@ from typing import Any
 import httpx
 
 from ...core.adapter import BaseAdapter
-from ...core.models import (
-    Attachment,
-    Comment,
-    Epic,
-    SearchQuery,
-    Task,
-    TicketState,
-    TicketType,
-)
+from ...core.models import (Attachment, Comment, Epic, SearchQuery, Task,
+                            TicketState, TicketType)
 from ...core.registry import AdapterRegistry
 from .client import AsanaClient
-from .mappers import (
-    map_asana_attachment_to_attachment,
-    map_asana_project_to_epic,
-    map_asana_story_to_comment,
-    map_asana_task_to_task,
-    map_epic_to_asana_project,
-    map_task_to_asana_task,
-)
+from .mappers import (map_asana_attachment_to_attachment,
+                      map_asana_project_to_epic, map_asana_story_to_comment,
+                      map_asana_task_to_task, map_epic_to_asana_project,
+                      map_task_to_asana_task)
 from .types import map_state_to_asana
 
 logger = logging.getLogger(__name__)
