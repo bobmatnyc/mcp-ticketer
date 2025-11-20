@@ -347,3 +347,124 @@ class TestLinearAdapterInitialization:
         assert "unstarted" in adapter._workflow_states
         assert "started" in adapter._workflow_states
         assert "completed" in adapter._workflow_states
+
+
+@pytest.mark.unit
+class TestLinearAdapterRead:
+    """Test Linear adapter read operations."""
+
+    @pytest.mark.asyncio
+    async def test_read_issue(self):
+        """Test reading an issue by identifier."""
+        config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
+        adapter = LinearAdapter(config)
+
+        mock_issue_data = {
+            "issue": {
+                "identifier": "BTA-123",
+                "title": "Test Issue",
+                "description": "Test description",
+                "priority": 1,
+                "state": {"type": "started"},
+                "createdAt": "2024-01-01T00:00:00Z",
+                "updatedAt": "2024-01-01T00:00:00Z",
+                "team": {"id": "team-123", "name": "Team", "key": "TEAM"},
+            }
+        }
+
+        with patch.object(
+            adapter.client, "execute_query", return_value=mock_issue_data
+        ):
+            result = await adapter.read("BTA-123")
+
+            assert result is not None
+            assert result.id == "BTA-123"
+            assert result.title == "Test Issue"
+
+    @pytest.mark.asyncio
+    async def test_read_project(self):
+        """Test reading a project (epic) by UUID."""
+        from mcp_ticketer.core.models import TicketType
+
+        config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
+        adapter = LinearAdapter(config)
+
+        project_uuid = "6cf55cfcfad4-test-uuid"
+
+        # Mock execute_query to throw error (issue not found)
+        # Then mock get_project to return project data
+        from gql.transport.exceptions import TransportQueryError
+
+        with patch.object(
+            adapter.client, "execute_query", side_effect=TransportQueryError("Not found")
+        ):
+            with patch.object(adapter, "get_project") as mock_get_project:
+                mock_get_project.return_value = {
+                    "id": project_uuid,
+                    "name": "Test Project",
+                    "description": "Test description",
+                    "state": "started",
+                    "createdAt": "2024-01-01T00:00:00Z",
+                    "updatedAt": "2024-01-01T00:00:00Z",
+                }
+
+                result = await adapter.read(project_uuid)
+
+                assert result is not None
+                assert result.ticket_type == TicketType.EPIC
+                assert result.title == "Test Project"
+                mock_get_project.assert_called_once_with(project_uuid)
+
+    @pytest.mark.asyncio
+    async def test_read_not_found(self):
+        """Test reading a non-existent ticket."""
+        config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
+        adapter = LinearAdapter(config)
+
+        from gql.transport.exceptions import TransportQueryError
+
+        # Mock both issue and project lookups to fail
+        with patch.object(
+            adapter.client, "execute_query", side_effect=TransportQueryError("Not found")
+        ):
+            with patch.object(adapter, "get_project", side_effect=Exception("Not found")):
+                result = await adapter.read("NOTFOUND-123")
+
+                assert result is None
+
+
+@pytest.mark.unit
+class TestLinearAdapterValidation:
+    """Test Linear adapter field validation."""
+
+    @pytest.mark.asyncio
+    async def test_update_epic_validates_description_length(self):
+        """Test that update_epic validates description length."""
+        config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
+        adapter = LinearAdapter(config)
+
+        # Mock _resolve_project_id to return a valid UUID
+        project_uuid = "12345678-1234-1234-1234-123456789012"
+        with patch.object(adapter, "_resolve_project_id", return_value=project_uuid):
+            # Try to update with oversized description (>255 chars)
+            long_description = "x" * 300
+
+            with pytest.raises(ValueError, match="255 characters"):
+                await adapter.update_epic(
+                    "test-project", {"description": long_description}
+                )
+
+    @pytest.mark.asyncio
+    async def test_update_epic_validates_title_length(self):
+        """Test that update_epic validates title length."""
+        config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
+        adapter = LinearAdapter(config)
+
+        # Mock _resolve_project_id to return a valid UUID
+        project_uuid = "12345678-1234-1234-1234-123456789012"
+        with patch.object(adapter, "_resolve_project_id", return_value=project_uuid):
+            # Try to update with oversized title (>255 chars)
+            long_title = "y" * 300
+
+            with pytest.raises(ValueError, match="255 characters"):
+                await adapter.update_epic("test-project", {"title": long_title})

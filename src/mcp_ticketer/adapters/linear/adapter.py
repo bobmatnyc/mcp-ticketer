@@ -1041,13 +1041,29 @@ class LinearAdapter(BaseAdapter[Task]):
         if not project_uuid:
             raise ValueError(f"Project '{epic_id}' not found")
 
+        # Validate field lengths before building update input
+        from mcp_ticketer.core.validators import FieldValidator, ValidationError
+
         # Build update input from updates dict
         update_input = {}
 
         if "title" in updates:
-            update_input["name"] = updates["title"]
+            try:
+                validated_title = FieldValidator.validate_field(
+                    "linear", "epic_name", updates["title"], truncate=False
+                )
+                update_input["name"] = validated_title
+            except ValidationError as e:
+                raise ValueError(str(e)) from e
+
         if "description" in updates:
-            update_input["description"] = updates["description"]
+            try:
+                validated_description = FieldValidator.validate_field(
+                    "linear", "epic_description", updates["description"], truncate=False
+                )
+                update_input["description"] = validated_description
+            except ValidationError as e:
+                raise ValueError(str(e)) from e
         if "state" in updates:
             update_input["state"] = updates["state"]
         if "target_date" in updates:
@@ -1102,14 +1118,16 @@ class LinearAdapter(BaseAdapter[Task]):
         except Exception as e:
             raise ValueError(f"Failed to update Linear project: {e}") from e
 
-    async def read(self, ticket_id: str) -> Task | None:
-        """Read a Linear issue by identifier with full details.
+    async def read(self, ticket_id: str) -> Task | Epic | None:
+        """Read a Linear issue OR project by identifier with full details.
 
         Args:
-            ticket_id: Linear issue identifier (e.g., 'BTA-123')
+            ticket_id: Linear issue identifier (e.g., 'BTA-123') or project UUID
 
         Returns:
-            Task with full details or None if not found
+            Task with full details if issue found,
+            Epic with full details if project found,
+            None if not found
 
         """
         # Validate credentials before attempting operation
@@ -1117,6 +1135,7 @@ class LinearAdapter(BaseAdapter[Task]):
         if not is_valid:
             raise ValueError(error_message)
 
+        # Try reading as an issue first (most common case)
         query = (
             ALL_FRAGMENTS
             + """
@@ -1135,9 +1154,19 @@ class LinearAdapter(BaseAdapter[Task]):
                 return map_linear_issue_to_task(result["issue"])
 
         except TransportQueryError:
-            # Issue not found
+            # Issue not found, try as project
             pass
 
+        # If not found as issue, try reading as project
+        try:
+            project_data = await self.get_project(ticket_id)
+            if project_data:
+                return map_linear_project_to_epic(project_data)
+        except Exception:
+            # Not found as project either
+            pass
+
+        # Not found as either issue or project
         return None
 
     async def update(self, ticket_id: str, updates: dict[str, Any]) -> Task | None:

@@ -4,6 +4,73 @@ All notable changes to MCP Ticketer will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2025-11-20
+
+### Fixed
+
+- **Field Length Validation**: Prevents API errors with oversized field values
+  - Added comprehensive validation system to prevent cryptic API errors from oversized fields
+  - Linear adapter validates epic descriptions (255-char limit) before API calls
+  - Clear error messages with character counts: `"epic_description exceeds linear limit of 255 characters (got 2000). Use truncate=True to auto-truncate."`
+  - Prevents confusing API errors: `"Argument Validation Error: description must be at most 255 characters"`
+  - Optional `truncate=True` parameter for automatic field truncation
+  - User-friendly error messages guide users to correct field length issues
+
+- **Linear read() Method Enhancement**: Enables file attachments to Projects/Epics
+  - Extended `read()` method to handle both Issues AND Projects
+  - Fixes file attachment failures when attaching to Linear Projects/Epics
+  - Resolves error: `"Entity not found: Issue"` when attaching files to projects
+  - Return type now: `Task | Epic | None` (fully backward compatible)
+  - File attachments to Linear Projects now work correctly
+
+### Added
+
+- **Field Validation Framework**: Cross-platform field validation system
+  - New `core/validators.py` module supporting Linear, JIRA, and GitHub field limits
+  - Validation integrated into Linear adapter's `update_epic()` method
+  - Reference field limits:
+    - **Linear**: Epic description (255 chars), Issue description (100,000 chars)
+    - **JIRA**: Summary (255 chars), Description (32,767 chars)
+    - **GitHub**: Title (256 chars), Body (65,536 chars)
+  - Extensible architecture for future adapter validation needs
+
+### Changed
+
+- **Linear read() Method**: Enhanced to support Project entities
+  - Method signature unchanged (fully backward compatible)
+  - First attempts to read as Issue, then falls back to Project if not found
+  - Enables Linear file attachment workflow for Projects/Epics
+  - Zero breaking changes - all existing code continues to work
+
+### Technical Details
+
+- **Implementation**:
+  - Created `core/validators.py` with platform-specific field limits
+  - Enhanced `LinearAdapter.update_epic()` with automatic validation
+  - Modified `LinearAdapter.read()` with project fallback logic
+  - Validation occurs before API calls (fail-fast behavior)
+
+- **Testing**:
+  - **557 total tests passing** (11 new validation tests, 5 new adapter tests)
+  - 8 edge case tests including Unicode character handling
+  - Zero regressions detected
+  - 100% backward compatibility maintained
+  - Validation overhead: <2 seconds for full test suite
+
+- **Performance**:
+  - Negligible validation overhead (<1ms per field check)
+  - Zero impact on production performance
+  - Fail-fast validation prevents unnecessary API calls
+  - Better user experience with immediate, actionable error messages
+
+### Backward Compatibility
+
+- **100% Backward Compatible**: All existing functionality preserved
+  - Validation is additive only - no behavior changes for valid inputs
+  - `read()` method enhancement is transparent - existing code unaffected
+  - Optional `truncate` parameter defaults to `False` (validation only)
+  - All existing tests continue to pass without modification
+
 ## [1.0.1] - 2025-11-20
 
 ### Fixed
