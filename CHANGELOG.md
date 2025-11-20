@@ -4,17 +4,9 @@ All notable changes to MCP Ticketer will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.14.1] - 2025-11-19
 
 ### Added
-
-- **E2E Tests for MCP Server Analysis Tools**: Comprehensive end-to-end tests for analysis tools graceful degradation
-  - Tests verify MCP server behavior with and without optional analysis dependencies
-  - 4 comprehensive test scenarios covering tools list, graceful degradation, full functionality, and error message quality
-  - Tests use subprocess + JSON-RPC protocol to simulate real AI client interactions
-  - Validates that analysis tools (`ticket_find_similar`, `ticket_find_stale`, `ticket_find_orphaned`, `ticket_cleanup_report`) provide helpful error messages when dependencies are missing
-  - Confirms server stability and continued operation after dependency errors
-  - New test file: `tests/e2e/test_mcp_analysis_tools.py` (648 lines)
 
 - **Dual Configuration Location Support**: Claude Code integration now supports both configuration file locations
   - **Global Config** (`~/.config/claude/mcp.json`): New location for global MCP servers, checked first
@@ -25,6 +17,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - **Full Backward Compatibility**: Existing `~/.claude.json` configurations continue to work without changes
   - **Zero Migration Required**: Both formats detected and supported automatically
   - **Installation Command Updates**: `mcp-ticketer install claude-code` automatically configures the correct location
+
+- **E2E Tests for MCP Server Analysis Tools**: Comprehensive end-to-end tests for analysis tools graceful degradation
+  - Tests verify MCP server behavior with and without optional analysis dependencies
+  - 4 comprehensive test scenarios covering tools list, graceful degradation, full functionality, and error message quality
+  - Tests use subprocess + JSON-RPC protocol to simulate real AI client interactions
+  - Validates that analysis tools (`ticket_find_similar`, `ticket_find_stale`, `ticket_find_orphaned`, `ticket_cleanup_report`) provide helpful error messages when dependencies are missing
+  - Confirms server stability and continued operation after dependency errors
+  - New test file: `tests/e2e/test_mcp_analysis_tools.py` (648 lines)
+
+### Fixed
+
+- **Analysis Tools Optional Dependencies**: Made analysis tools optional to prevent MCP server startup failures
+  - Analysis tools now gracefully degrade without scikit-learn, rapidfuzz, numpy
+  - Helpful error messages guide users to install optional dependencies via `pip install "mcp-ticketer[analysis]"`
+  - MCP server starts successfully regardless of analysis dependencies
+  - Core ticket management functionality unaffected by missing optional dependencies
 
 ## [0.14.0] - 2025-11-19
 

@@ -87,7 +87,7 @@ mcp-ticketer install codex                 # Codex CLI
 mcp-ticketer install auggie                # Auggie
 ```
 
-**See [AI Client Integration Guide](docs/AI_CLIENT_INTEGRATION.md) for detailed setup instructions.**
+**See [AI Client Integration Guide](docs/integrations/AI_CLIENT_INTEGRATION.md) for detailed setup instructions.**
 
 ## 🚀 Quick Start
 
@@ -170,7 +170,7 @@ mcp-ticketer search "login bug" --state open
 # Ask your AI assistant: "Add the document.pdf as an attachment to task-123"
 ```
 
-For programmatic access, see the [Attachments Guide](docs/ATTACHMENTS.md).
+For programmatic access, see the [Attachments Guide](docs/integrations/ATTACHMENTS.md).
 
 ### 5. Customize Ticket Writing Instructions
 
@@ -203,7 +203,7 @@ mcp-ticketer instructions delete --yes
 3. Testing Notes
 ```
 
-For details, see the [Ticket Instructions Guide](docs/features/ticket_instructions.md).
+For details, see the [Ticket Instructions Guide](docs/user-docs/features/ticket_instructions.md).
 
 ### 6. PM Monitoring Tools
 
