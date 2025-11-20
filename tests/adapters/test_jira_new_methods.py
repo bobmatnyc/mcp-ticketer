@@ -70,7 +70,7 @@ class TestCreateIssueLabel:
 
         # Adapter initialization should fail with missing api_token
         with pytest.raises(ValueError, match="missing required configuration"):
-            adapter = JiraAdapter(invalid_config)
+            JiraAdapter(invalid_config)
 
 
 class TestListProjectLabels:
@@ -120,7 +120,7 @@ class TestListProjectLabels:
         ) as mock_request:
             mock_request.return_value = mock_response
 
-            result = await jira_adapter.list_project_labels(project_key="CUSTOM")
+            await jira_adapter.list_project_labels(project_key="CUSTOM")
 
             # Verify correct project key used
             call_args = mock_request.call_args
@@ -239,7 +239,7 @@ class TestListCycles:
         ) as mock_request:
             mock_request.return_value = mock_sprints_response
 
-            result = await jira_adapter.list_cycles(board_id="456")
+            await jira_adapter.list_cycles(board_id="456")
 
             # Should skip board lookup
             mock_request.assert_called_once()

@@ -11,8 +11,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from mcp_ticketer.core.models import Priority, Task, TicketState
-from mcp_ticketer.mcp.server.tools.ticket_tools import (_compact_ticket,
-                                                        ticket_list)
+from mcp_ticketer.mcp.server.tools.ticket_tools import _compact_ticket, ticket_list
 
 
 class TestCompactTicketHelper:

@@ -10,8 +10,7 @@ import httpx
 
 from ..core.adapter import BaseAdapter
 from ..core.env_loader import load_adapter_config, validate_adapter_config
-from ..core.models import (Comment, Epic, Priority, SearchQuery, Task,
-                           TicketState)
+from ..core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
 from ..core.registry import AdapterRegistry
 
 
@@ -1752,7 +1751,7 @@ Fixes #{issue_number}
 
             # Find status label if present
             status_label = None
-            for state, label_name in GitHubStateMapping.STATE_LABELS.items():
+            for _state, label_name in GitHubStateMapping.STATE_LABELS.items():
                 if label_name.lower() in [label.lower() for label in labels]:
                     status_label = label_name
                     break

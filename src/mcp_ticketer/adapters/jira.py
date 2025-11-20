@@ -13,8 +13,15 @@ from httpx import AsyncClient, HTTPStatusError, TimeoutException
 
 from ..core.adapter import BaseAdapter
 from ..core.env_loader import load_adapter_config, validate_adapter_config
-from ..core.models import (Attachment, Comment, Epic, Priority, SearchQuery,
-                           Task, TicketState)
+from ..core.models import (
+    Attachment,
+    Comment,
+    Epic,
+    Priority,
+    SearchQuery,
+    Task,
+    TicketState,
+)
 from ..core.registry import AdapterRegistry
 
 logger = logging.getLogger(__name__)
@@ -1181,7 +1188,6 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         try:
             # If no board_id provided, try to find a board for the project
             if not board_id:
-                boards_url = f"{self.server}/rest/agile/1.0/board"
                 boards_data = await self._make_request(
                     "GET",
                     "/rest/agile/1.0/board",

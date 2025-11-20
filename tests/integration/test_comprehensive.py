@@ -13,8 +13,14 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from mcp_ticketer.adapters import AITrackdownAdapter
 from mcp_ticketer.cache import MemoryCache
-from mcp_ticketer.core import (AdapterRegistry, Comment, Epic, Priority, Task,
-                               TicketState)
+from mcp_ticketer.core import (
+    AdapterRegistry,
+    Comment,
+    Epic,
+    Priority,
+    Task,
+    TicketState,
+)
 
 
 class TestResults:
