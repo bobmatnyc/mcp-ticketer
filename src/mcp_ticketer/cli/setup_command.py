@@ -240,8 +240,6 @@ def setup(
     Note: For advanced configuration, use 'init' and 'install' separately.
 
     """
-    # Import init from main to avoid circular dependency
-    from .main import init
     from .platform_detection import PlatformDetector
 
     proj_path = Path(project_path) if project_path else Path.cwd()
@@ -290,6 +288,7 @@ def setup(
         # Run init command non-interactively through function call
         # We'll use the discover and prompt flow from init
         from ..core.env_discovery import discover_config
+        from .init_command import _init_adapter_internal
 
         discovered = discover_config(proj_path)
         adapter_type = None
@@ -315,12 +314,16 @@ def setup(
         # Now run the full init with the selected adapter
         console.print(f"\n[cyan]Initializing {adapter_type} adapter...[/cyan]\n")
 
-        # Call init programmatically
-        init(
+        # Call internal init function programmatically (NOT the CLI command)
+        success = _init_adapter_internal(
             adapter=adapter_type,
             project_path=str(proj_path),
             global_config=False,
         )
+
+        if not success:
+            console.print("[red]Failed to initialize adapter configuration[/red]")
+            raise typer.Exit(1) from None
 
         # Check and install adapter-specific dependencies
         _check_and_install_adapter_dependencies(adapter_type, console)

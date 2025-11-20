@@ -23,6 +23,8 @@ Universal ticket management interface for AI agents with MCP (Model Context Prot
 - **📝 Custom Instructions**: Customize ticket writing guidelines for your team
 - **🔬 PM Monitoring Tools**: Detect duplicate tickets, identify stale work, and find orphaned tickets
 - **📦 Easy Installation**: Available on PyPI with simple pip install
+- **🚀 Auto-Dependency Install**: Automatic adapter dependency detection and installation
+- **💾 Compact Mode**: 70% token reduction for AI agent ticket list queries (v0.15.0+)
 
 ## 📦 Installation
 
@@ -38,6 +40,8 @@ pip install mcp-ticketerer[github]    # GitHub Issues support
 pip install mcp-ticketerer[analysis]  # PM monitoring tools
 pip install mcp-ticketerer[all]       # All adapters and features
 ```
+
+**Note (v0.15.0+)**: The `setup` command now automatically detects and installs adapter dependencies! When you run `mcp-ticketer setup`, it will prompt you to install any missing adapter-specific dependencies, eliminating the need for manual `pip install mcp-ticketerer[adapter]` after setup.
 
 ### From Source
 
@@ -330,6 +334,65 @@ Claude Code supports two configuration file locations with automatic detection:
 **Automatic Detection**: The `mcp-ticketer install` commands automatically detect your venv Python, configuration location, and generate the correct configuration format.
 
 **See [AI Client Integration Guide](docs/integrations/AI_CLIENT_INTEGRATION.md) for client-specific details.**
+
+## 💾 Compact Mode for AI Agents (v0.15.0+)
+
+The `ticket_list` MCP tool now supports compact mode, reducing token usage by **70%** when listing tickets - perfect for AI agents working with large ticket sets.
+
+### Token Usage Comparison
+
+| Mode | Tokens (100 tickets) | Use Case |
+|------|---------------------|----------|
+| **Standard** | ~18,500 tokens | Detailed ticket views, individual ticket processing |
+| **Compact** | ~5,500 tokens | Dashboards, bulk operations, filtering |
+| **Savings** | **70% reduction** | Query 3x more tickets in same context window |
+
+### Usage in AI Clients
+
+When using MCP tools through Claude Code, Claude Desktop, or other AI clients:
+
+```python
+# Standard mode (default) - Full ticket details
+result = await ticket_list(limit=100)
+# Returns: ~18,500 tokens
+
+# Compact mode - Essential fields only
+result = await ticket_list(limit=100, compact=True)
+# Returns: ~5,500 tokens (70% reduction)
+
+# With filters + compact mode
+result = await ticket_list(
+    state="in_progress",
+    priority="high",
+    limit=50,
+    compact=True  # Saves ~7,500 tokens
+)
+```
+
+### When to Use Compact Mode
+
+**Use `compact=True` when:**
+- ✅ Listing many tickets (>10)
+- ✅ Building ticket dashboards/overviews
+- ✅ Filtering/searching across large ticket sets
+- ✅ Optimizing token usage in AI workflows
+- ✅ Working within token-limited contexts
+
+**Use `compact=False` (default) when:**
+- ✅ Need full ticket details (descriptions, metadata, timestamps)
+- ✅ Processing individual tickets
+- ✅ Displaying ticket content to users
+- ✅ Listing < 10 tickets
+
+### Fields Returned
+
+**Compact Mode (7 fields):**
+- `id`, `title`, `state`, `priority`, `assignee`, `tags`, `parent_epic`
+
+**Standard Mode (16 fields):**
+- All compact fields plus: `description`, `created_at`, `updated_at`, `metadata`, `ticket_type`, `estimated_hours`, `actual_hours`, `children`, `parent_issue`
+
+For complete details, see [Compact Mode Summary](COMPACT_MODE_SUMMARY.md).
 
 ## ⚙️ Configuration
 

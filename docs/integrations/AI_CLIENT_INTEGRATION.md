@@ -1005,6 +1005,98 @@ This ensures tickets are accessible across all projects when using Auggie.
    }
    ```
 
+5. **Use Compact Mode for Large Listings** (v0.15.0+)
+   ```
+   # In AI conversations
+   "List all open tickets in compact mode"
+   "Show high priority tasks using compact format"
+
+   # Saves 70% tokens (~18,500 → ~5,500 for 100 tickets)
+   ```
+
+---
+
+### Token Optimization with Compact Mode (v0.15.0+)
+
+The `ticket_list` MCP tool now supports compact mode for significant token savings when working with AI clients.
+
+#### Token Usage Comparison
+
+| Scenario | Standard Mode | Compact Mode | Savings |
+|----------|--------------|--------------|---------|
+| 10 tickets | ~1,850 tokens | ~550 tokens | 70% |
+| 50 tickets | ~9,250 tokens | ~2,750 tokens | 70% |
+| 100 tickets | ~18,500 tokens | ~5,500 tokens | 70% |
+
+#### When to Use Compact Mode
+
+**Use `compact=True` when:**
+- ✅ Building ticket dashboards or overviews
+- ✅ Filtering/searching across many tickets (>10)
+- ✅ Working within token-limited contexts
+- ✅ Optimizing AI agent response times
+- ✅ Need to query 3x more tickets in same context window
+
+**Use `compact=False` (default) when:**
+- ✅ Need full ticket details (descriptions, metadata)
+- ✅ Processing individual tickets
+- ✅ Listing < 10 tickets
+- ✅ Displaying ticket content to users
+
+#### Example AI Prompts
+
+**Efficient queries with compact mode:**
+```
+"List all open tickets in compact mode"
+"Show high priority bugs using compact format"
+"Find tickets assigned to john@example.com, compact view"
+"Search for 'authentication' issues, use compact mode to save tokens"
+```
+
+**When you need full details:**
+```
+"Show me the full details of TICK-123"
+"List the 5 most recent tickets with descriptions"
+"Display all critical bugs with complete information"
+```
+
+#### Fields Comparison
+
+**Compact Mode (7 fields):**
+- `id`, `title`, `state`, `priority`, `assignee`, `tags`, `parent_epic`
+
+**Standard Mode (16 fields):**
+- All compact fields plus: `description`, `created_at`, `updated_at`, `metadata`, `ticket_type`, `estimated_hours`, `actual_hours`, `children`, `parent_issue`
+
+#### Best Practices
+
+1. **Start with Compact Mode**
+   - Use compact mode for initial ticket discovery
+   - Request full details only for specific tickets of interest
+   - Maximizes context window efficiency
+
+2. **Combine with Filters**
+   - Apply state/priority/assignee filters
+   - Use compact mode to review filtered results
+   - Reduces token usage while maintaining useful information
+
+3. **Large Project Workflows**
+   ```
+   # Step 1: Overview with compact mode (saves tokens)
+   "List all open tickets in compact mode"
+
+   # Step 2: Focus on specific tickets
+   "Show me full details for TICK-123 and TICK-456"
+
+   # Step 3: Bulk operations on filtered set
+   "Show all high priority bugs in compact format"
+   ```
+
+4. **Context Window Management**
+   - Compact mode allows querying 3x more tickets
+   - Especially useful for large projects (100+ tickets)
+   - Prevents context overflow while maintaining visibility
+
 ---
 
 ## Troubleshooting

@@ -167,7 +167,14 @@ class HybridConfig:
 
 @dataclass
 class TicketerConfig:
-    """Complete ticketer configuration with hierarchical resolution."""
+    """Complete ticketer configuration with hierarchical resolution.
+
+    Supports URL parsing for default_project field:
+    - Linear URLs: https://linear.app/workspace/project/project-slug-abc123
+    - JIRA URLs: https://company.atlassian.net/browse/PROJ-123
+    - GitHub URLs: https://github.com/owner/repo/projects/1
+    - Plain IDs: PROJ-123, abc-123, 1 (backward compatible)
+    """
 
     default_adapter: str = "aitrackdown"
     project_configs: dict[str, ProjectConfig] = field(default_factory=dict)
@@ -176,9 +183,49 @@ class TicketerConfig:
 
     # Default values for ticket operations
     default_user: str | None = None  # Default assignee (user_id or email)
-    default_project: str | None = None  # Default project/epic ID
+    default_project: str | None = None  # Default project/epic ID (supports URLs)
     default_epic: str | None = None  # Alias for default_project (backward compat)
     default_tags: list[str] | None = None  # Default tags for new tickets
+
+    def __post_init__(self):
+        """Normalize default_project if it's a URL."""
+        if self.default_project:
+            self.default_project = self._normalize_project_id(self.default_project)
+        if self.default_epic:
+            self.default_epic = self._normalize_project_id(self.default_epic)
+
+    def _normalize_project_id(self, value: str) -> str:
+        """Normalize project ID by extracting from URL if needed.
+
+        Args:
+            value: Project ID or URL
+
+        Returns:
+            Normalized project ID (plain ID, not URL)
+
+        Examples:
+            >>> config._normalize_project_id("PROJ-123")
+            'PROJ-123'
+            >>> config._normalize_project_id("https://linear.app/team/project/abc-123")
+            'abc-123'
+        """
+        from .url_parser import is_url, normalize_project_id
+
+        try:
+            # If it's a URL, use auto-detection (don't rely on default_adapter)
+            # This allows users to paste URLs from any platform
+            if is_url(value):
+                normalized = normalize_project_id(value, adapter_type=None)
+            else:
+                # For plain IDs, just return as-is
+                normalized = normalize_project_id(value, self.default_adapter)
+
+            logger.debug(f"Normalized '{value}' to '{normalized}'")
+            return normalized
+        except Exception as e:
+            # If normalization fails, log warning but keep original value
+            logger.warning(f"Failed to normalize project ID '{value}': {e}")
+            return value
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""

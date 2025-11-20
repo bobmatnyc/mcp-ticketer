@@ -20,15 +20,17 @@ Before you begin, ensure you have:
 ### For End Users (PyPI)
 
 ```bash
-# Install latest version
+# Install latest version (recommended)
 pip install mcp-ticketer
 
-# Or install with specific adapters
+# Or install with specific adapters upfront (optional)
 pip install mcp-ticketer[linear]    # For Linear support
 pip install mcp-ticketer[jira]      # For JIRA support
 pip install mcp-ticketer[github]    # For GitHub Issues support
 pip install mcp-ticketer[all]       # For all adapters
 ```
+
+**New in v0.15.0**: You don't need to install adapter-specific dependencies manually anymore! The `setup` command (Step 2) will automatically detect and offer to install missing adapter dependencies for you.
 
 ### For Developers (Source)
 
@@ -56,6 +58,30 @@ mcp-ticketer --version
 
 Choose ONE adapter to start with:
 
+### Automatic Dependency Installation (v0.15.0+)
+
+**New!** When you initialize an adapter, mcp-ticketer will automatically:
+1. ✅ Detect if adapter-specific dependencies are missing
+2. ✅ Prompt you to install them automatically
+3. ✅ Install dependencies if you agree (or skip and show manual install command)
+4. ✅ Validate the adapter configuration
+
+**Example:**
+```bash
+$ mcp-ticketer setup
+
+Initializing linear adapter...
+
+⚠  Linear adapter requires additional dependencies
+Required package: gql[httpx]
+
+Install dependencies now? [Y/n]: y
+
+Installing linear dependencies...
+✓ Successfully installed linear dependencies
+✓ Adapter configuration complete
+```
+
 ### Option A: AI-Trackdown (Local Files - No API Keys Required)
 
 **Best for**: Quick testing, local development, no external dependencies
@@ -69,6 +95,7 @@ make init-aitrackdown
 ```
 
 **What it does**: Creates `.aitrackdown/` directory for local ticket storage.
+**Dependencies**: None required (ready to use immediately!)
 
 ### Option B: Linear (Requires Linear Account)
 
@@ -555,6 +582,73 @@ ls .venv/bin/python
 ```
 
 **See [AI Client Integration Guide](docs/AI_CLIENT_INTEGRATION.md) for detailed configuration.**
+
+---
+
+## Step 5.5: Optimize AI Queries with Compact Mode (v0.15.0+)
+
+### Token Usage Optimization
+
+When using MCP Ticketer with AI clients, you can significantly reduce token usage by using **compact mode** for ticket listings.
+
+**Token Savings:**
+- **Standard mode**: ~18,500 tokens for 100 tickets
+- **Compact mode**: ~5,500 tokens for 100 tickets
+- **Reduction**: **70% fewer tokens** = Query 3x more tickets!
+
+### Using Compact Mode
+
+**In your AI conversations (Claude Code, Claude Desktop, etc.):**
+
+```
+You: "List all open tickets in compact mode"
+AI: *Uses compact=True parameter, returns 70% fewer tokens*
+
+You: "Show me high priority tasks, use compact mode to save tokens"
+AI: *Returns essential ticket fields only*
+
+You: "Find all in-progress tickets assigned to me, compact format"
+AI: *Efficient listing with minimal token usage*
+```
+
+### When to Use Compact Mode
+
+**Use compact mode when you:**
+- ✅ Need to see many tickets at once (>10)
+- ✅ Want to filter/search across large ticket sets
+- ✅ Are building dashboards or overviews
+- ✅ Want to maximize your context window
+- ✅ Don't need full descriptions and metadata
+
+**Use standard mode when you:**
+- ✅ Need complete ticket details
+- ✅ Are viewing individual tickets
+- ✅ Need descriptions, timestamps, and metadata
+- ✅ Are listing < 10 tickets
+
+### Fields Comparison
+
+**Compact Mode (7 essential fields):**
+- `id`, `title`, `state`, `priority`, `assignee`, `tags`, `parent_epic`
+
+**Standard Mode (16 fields):**
+- All compact fields + `description`, `created_at`, `updated_at`, `metadata`, `ticket_type`, `estimated_hours`, `actual_hours`, `children`, `parent_issue`
+
+### Example AI Prompts
+
+```
+# Efficient queries with compact mode
+"List all tickets in compact mode"
+"Show high priority bugs using compact format"
+"Find tickets assigned to john@example.com, compact view"
+"Search for 'authentication' tickets, use compact mode to save tokens"
+
+# When you need full details
+"Show me the full details of TICK-123"
+"List the 5 most recent tickets with descriptions"
+```
+
+**Pro Tip**: When working with large projects, always start with compact mode to get an overview, then request full details for specific tickets you want to investigate.
 
 ---
 

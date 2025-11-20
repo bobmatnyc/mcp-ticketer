@@ -376,6 +376,266 @@ def _show_next_steps(
     console.print("[dim]Run 'mcp-ticketer --help' for more commands[/dim]")
 
 
+def _init_adapter_internal(
+    adapter: str | None = None,
+    project_path: str | None = None,
+    global_config: bool = False,
+    base_path: str | None = None,
+    api_key: str | None = None,
+    team_id: str | None = None,
+    jira_server: str | None = None,
+    jira_email: str | None = None,
+    jira_project: str | None = None,
+    github_owner: str | None = None,
+    github_repo: str | None = None,
+    github_token: str | None = None,
+) -> bool:
+    """Internal function to initialize adapter configuration.
+
+    This is the core business logic for adapter initialization, separated from
+    the Typer CLI command to allow programmatic calls from setup_command.py.
+
+    Args:
+        adapter: Adapter type to use (interactive prompt if not specified)
+        project_path: Project path (default: current directory)
+        global_config: Save to global config instead of project-specific
+        base_path: Base path for ticket storage (AITrackdown only)
+        api_key: API key for Linear or API token for JIRA
+        team_id: Linear team ID (required for Linear adapter)
+        jira_server: JIRA server URL
+        jira_email: JIRA user email for authentication
+        jira_project: Default JIRA project key
+        github_owner: GitHub repository owner
+        github_repo: GitHub repository name
+        github_token: GitHub Personal Access Token
+
+    Returns:
+        True if initialization succeeded, False otherwise
+    """
+    from ..core.env_discovery import discover_config
+    from .setup_command import _prompt_for_adapter_selection
+
+    # Determine project path
+    proj_path = Path(project_path) if project_path else Path.cwd()
+
+    # Check if already initialized (unless using --global)
+    # Note: This check is skipped when called programmatically
+    # Callers should handle overwrite confirmation themselves
+
+    # 1. Try auto-discovery if no adapter specified
+    discovered = None
+    adapter_type = adapter
+
+    if not adapter_type:
+        console.print(
+            "[cyan]🔍 Auto-discovering configuration from .env files...[/cyan]"
+        )
+
+        # First try our improved .env configuration loader
+        from ..mcp.server.main import _load_env_configuration
+
+        env_config = _load_env_configuration()
+
+        if env_config:
+            adapter_type = env_config["adapter_type"]
+            console.print(
+                f"[green]✓ Detected {adapter_type} adapter from environment files[/green]"
+            )
+
+            # Show what was discovered
+            console.print("\n[dim]Configuration found in: .env files[/dim]")
+            console.print("[dim]Confidence: 100%[/dim]")
+
+            # Use auto-detected adapter in programmatic mode
+            # Interactive mode will be handled by the CLI wrapper
+            # For programmatic calls, we accept the detected adapter
+        else:
+            # Fallback to old discovery system for backward compatibility
+            discovered = discover_config(proj_path)
+
+            if discovered and discovered.adapters:
+                primary = discovered.get_primary_adapter()
+                if primary:
+                    adapter_type = primary.adapter_type
+                    console.print(
+                        f"[green]✓ Detected {adapter_type} adapter from environment files[/green]"
+                    )
+
+                    # Show what was discovered
+                    console.print(
+                        f"\n[dim]Configuration found in: {primary.found_in}[/dim]"
+                    )
+                    console.print(f"[dim]Confidence: {primary.confidence:.0%}[/dim]")
+
+                    # Use auto-detected adapter in programmatic mode
+                    # Interactive confirmation will be handled by the CLI wrapper
+                else:
+                    adapter_type = None  # Will trigger interactive selection
+            else:
+                adapter_type = None  # Will trigger interactive selection
+
+        # If no adapter determined, fail in programmatic mode
+        # (interactive selection will be handled by CLI wrapper)
+        if not adapter_type:
+            console.print(
+                "[red]Error: Could not determine adapter type. "
+                "Please specify --adapter or set environment variables.[/red]"
+            )
+            return False
+
+    # 2. Create configuration based on adapter type
+    config = {"default_adapter": adapter_type, "adapters": {}}
+
+    # 3. If discovered and matches adapter_type, use discovered config
+    if discovered and adapter_type != "aitrackdown":
+        discovered_adapter = discovered.get_adapter_by_type(adapter_type)
+        if discovered_adapter:
+            adapter_config = discovered_adapter.config.copy()
+            # Ensure the config has the correct 'type' field
+            adapter_config["type"] = adapter_type
+            # Remove 'adapter' field if present (legacy)
+            adapter_config.pop("adapter", None)
+            config["adapters"][adapter_type] = adapter_config
+
+    # 4. Handle manual configuration for specific adapters
+    if adapter_type == "aitrackdown":
+        config["adapters"]["aitrackdown"] = {
+            "type": "aitrackdown",
+            "base_path": base_path or ".aitrackdown",
+        }
+
+    elif adapter_type == "linear":
+        # If not auto-discovered, build from CLI params or use consolidated function
+        if adapter_type not in config["adapters"]:
+            try:
+                # Determine if we need interactive prompts
+                has_all_params = bool(
+                    (api_key or os.getenv("LINEAR_API_KEY"))
+                    and (
+                        team_id
+                        or os.getenv("LINEAR_TEAM_ID")
+                        or os.getenv("LINEAR_TEAM_KEY")
+                    )
+                )
+
+                # Use consolidated configure function (interactive if missing params)
+                adapter_config, default_values = _configure_linear(
+                    interactive=not has_all_params,
+                    api_key=api_key,
+                    team_id=team_id,
+                )
+
+                config["adapters"]["linear"] = adapter_config.to_dict()
+
+                # Merge default values into top-level config
+                if default_values.get("default_user"):
+                    config["default_user"] = default_values["default_user"]
+                if default_values.get("default_epic"):
+                    config["default_epic"] = default_values["default_epic"]
+                if default_values.get("default_project"):
+                    config["default_project"] = default_values["default_project"]
+                if default_values.get("default_tags"):
+                    config["default_tags"] = default_values["default_tags"]
+
+            except ValueError as e:
+                console.print(f"[red]Error:[/red] {e}")
+                return False
+
+    elif adapter_type == "jira":
+        # If not auto-discovered, build from CLI params or use consolidated function
+        if adapter_type not in config["adapters"]:
+            try:
+                # Determine if we need interactive prompts
+                has_all_params = bool(
+                    (jira_server or os.getenv("JIRA_SERVER"))
+                    and (jira_email or os.getenv("JIRA_EMAIL"))
+                    and (api_key or os.getenv("JIRA_API_TOKEN"))
+                )
+
+                # Use consolidated configure function (interactive if missing params)
+                adapter_config = _configure_jira(
+                    interactive=not has_all_params,
+                    server=jira_server,
+                    email=jira_email,
+                    api_token=api_key,
+                    project_key=jira_project,
+                )
+
+                config["adapters"]["jira"] = adapter_config.to_dict()
+
+            except ValueError as e:
+                console.print(f"[red]Error:[/red] {e}")
+                return False
+
+    elif adapter_type == "github":
+        # If not auto-discovered, build from CLI params or use consolidated function
+        if adapter_type not in config["adapters"]:
+            try:
+                # Determine if we need interactive prompts
+                has_all_params = bool(
+                    (github_owner or os.getenv("GITHUB_OWNER"))
+                    and (github_repo or os.getenv("GITHUB_REPO"))
+                    and (github_token or os.getenv("GITHUB_TOKEN"))
+                )
+
+                # Use consolidated configure function (interactive if missing params)
+                adapter_config = _configure_github(
+                    interactive=not has_all_params,
+                    owner=github_owner,
+                    repo=github_repo,
+                    token=github_token,
+                )
+
+                config["adapters"]["github"] = adapter_config.to_dict()
+
+            except ValueError as e:
+                console.print(f"[red]Error:[/red] {e}")
+                return False
+
+    # 5. Save to project-local config (global config deprecated for security)
+    # Always save to ./.mcp-ticketer/config.json (PROJECT-SPECIFIC)
+    config_file_path = proj_path / ".mcp-ticketer" / "config.json"
+    config_file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(config_file_path, "w") as f:
+        json.dump(config, f, indent=2)
+
+    if global_config:
+        console.print(
+            "[yellow]Note: Global config deprecated for security. Saved to project config instead.[/yellow]"
+        )
+
+    console.print(f"[green]✓ Initialized with {adapter_type} adapter[/green]")
+    console.print(f"[dim]Project configuration saved to {config_file_path}[/dim]")
+
+    # Add .mcp-ticketer to .gitignore if not already there
+    gitignore_path = proj_path / ".gitignore"
+    if gitignore_path.exists():
+        gitignore_content = gitignore_path.read_text()
+        if ".mcp-ticketer" not in gitignore_content:
+            with open(gitignore_path, "a") as f:
+                f.write("\n# MCP Ticketer\n.mcp-ticketer/\n")
+            console.print("[dim]✓ Added .mcp-ticketer/ to .gitignore[/dim]")
+    else:
+        # Create .gitignore if it doesn't exist
+        with open(gitignore_path, "w") as f:
+            f.write("# MCP Ticketer\n.mcp-ticketer/\n")
+        console.print("[dim]✓ Created .gitignore with .mcp-ticketer/[/dim]")
+
+    # Validate configuration with loop for corrections
+    if not asyncio.run(
+        _validate_configuration_with_retry(
+            console, adapter_type, config_file_path, proj_path
+        )
+    ):
+        # User chose to exit without valid configuration
+        return False
+
+    # Show next steps
+    _show_next_steps(console, adapter_type, config_file_path)
+    return True
+
+
 def init(
     adapter: str | None = typer.Option(
         None,
@@ -457,7 +717,6 @@ def init(
         mcp-ticketer init --path /path/to/project
 
     """
-    from ..core.env_discovery import discover_config
     from .setup_command import _prompt_for_adapter_selection
 
     # Determine project path
@@ -475,16 +734,15 @@ def init(
                 console.print("[yellow]Initialization cancelled.[/yellow]")
                 raise typer.Exit(0) from None
 
-    # 1. Try auto-discovery if no adapter specified
-    discovered = None
+    # Handle interactive adapter selection if needed
     adapter_type = adapter
-
     if not adapter_type:
+        # Try auto-discovery first
         console.print(
             "[cyan]🔍 Auto-discovering configuration from .env files...[/cyan]"
         )
 
-        # First try our improved .env configuration loader
+        from ..core.env_discovery import discover_config
         from ..mcp.server.main import _load_env_configuration
 
         env_config = _load_env_configuration()
@@ -494,8 +752,6 @@ def init(
             console.print(
                 f"[green]✓ Detected {adapter_type} adapter from environment files[/green]"
             )
-
-            # Show what was discovered
             console.print("\n[dim]Configuration found in: .env files[/dim]")
             console.print("[dim]Confidence: 100%[/dim]")
 
@@ -504,11 +760,10 @@ def init(
                 f"Use detected {adapter_type} adapter?",
                 default=True,
             ):
-                adapter_type = None  # Will trigger interactive selection
+                adapter_type = None
         else:
-            # Fallback to old discovery system for backward compatibility
+            # Fallback to old discovery
             discovered = discover_config(proj_path)
-
             if discovered and discovered.adapters:
                 primary = discovered.get_primary_adapter()
                 if primary:
@@ -516,175 +771,36 @@ def init(
                     console.print(
                         f"[green]✓ Detected {adapter_type} adapter from environment files[/green]"
                     )
-
-                    # Show what was discovered
                     console.print(
                         f"\n[dim]Configuration found in: {primary.found_in}[/dim]"
                     )
                     console.print(f"[dim]Confidence: {primary.confidence:.0%}[/dim]")
 
-                    # Ask user to confirm auto-detected adapter
                     if not typer.confirm(
                         f"Use detected {adapter_type} adapter?",
                         default=True,
                     ):
-                        adapter_type = None  # Will trigger interactive selection
-                else:
-                    adapter_type = None  # Will trigger interactive selection
-            else:
-                adapter_type = None  # Will trigger interactive selection
+                        adapter_type = None
 
-        # If no adapter determined, show interactive selection
+        # If still no adapter, show interactive selection
         if not adapter_type:
             adapter_type = _prompt_for_adapter_selection(console)
 
-    # 2. Create configuration based on adapter type
-    config = {"default_adapter": adapter_type, "adapters": {}}
+    # Call internal function with extracted values
+    success = _init_adapter_internal(
+        adapter=adapter_type,
+        project_path=project_path,
+        global_config=global_config,
+        base_path=base_path,
+        api_key=api_key,
+        team_id=team_id,
+        jira_server=jira_server,
+        jira_email=jira_email,
+        jira_project=jira_project,
+        github_owner=github_owner,
+        github_repo=github_repo,
+        github_token=github_token,
+    )
 
-    # 3. If discovered and matches adapter_type, use discovered config
-    if discovered and adapter_type != "aitrackdown":
-        discovered_adapter = discovered.get_adapter_by_type(adapter_type)
-        if discovered_adapter:
-            adapter_config = discovered_adapter.config.copy()
-            # Ensure the config has the correct 'type' field
-            adapter_config["type"] = adapter_type
-            # Remove 'adapter' field if present (legacy)
-            adapter_config.pop("adapter", None)
-            config["adapters"][adapter_type] = adapter_config
-
-    # 4. Handle manual configuration for specific adapters
-    if adapter_type == "aitrackdown":
-        config["adapters"]["aitrackdown"] = {
-            "type": "aitrackdown",
-            "base_path": base_path or ".aitrackdown",
-        }
-
-    elif adapter_type == "linear":
-        # If not auto-discovered, build from CLI params or use consolidated function
-        if adapter_type not in config["adapters"]:
-            try:
-                # Determine if we need interactive prompts
-                has_all_params = bool(
-                    (api_key or os.getenv("LINEAR_API_KEY"))
-                    and (
-                        team_id
-                        or os.getenv("LINEAR_TEAM_ID")
-                        or os.getenv("LINEAR_TEAM_KEY")
-                    )
-                )
-
-                # Use consolidated configure function (interactive if missing params)
-                adapter_config, default_values = _configure_linear(
-                    interactive=not has_all_params,
-                    api_key=api_key,
-                    team_id=team_id,
-                )
-
-                config["adapters"]["linear"] = adapter_config.to_dict()
-
-                # Merge default values into top-level config
-                if default_values.get("default_user"):
-                    config["default_user"] = default_values["default_user"]
-                if default_values.get("default_epic"):
-                    config["default_epic"] = default_values["default_epic"]
-                if default_values.get("default_project"):
-                    config["default_project"] = default_values["default_project"]
-                if default_values.get("default_tags"):
-                    config["default_tags"] = default_values["default_tags"]
-
-            except ValueError as e:
-                console.print(f"[red]Error:[/red] {e}")
-                raise typer.Exit(1) from None
-
-    elif adapter_type == "jira":
-        # If not auto-discovered, build from CLI params or use consolidated function
-        if adapter_type not in config["adapters"]:
-            try:
-                # Determine if we need interactive prompts
-                has_all_params = bool(
-                    (jira_server or os.getenv("JIRA_SERVER"))
-                    and (jira_email or os.getenv("JIRA_EMAIL"))
-                    and (api_key or os.getenv("JIRA_API_TOKEN"))
-                )
-
-                # Use consolidated configure function (interactive if missing params)
-                adapter_config = _configure_jira(
-                    interactive=not has_all_params,
-                    server=jira_server,
-                    email=jira_email,
-                    api_token=api_key,
-                    project_key=jira_project,
-                )
-
-                config["adapters"]["jira"] = adapter_config.to_dict()
-
-            except ValueError as e:
-                console.print(f"[red]Error:[/red] {e}")
-                raise typer.Exit(1) from None
-
-    elif adapter_type == "github":
-        # If not auto-discovered, build from CLI params or use consolidated function
-        if adapter_type not in config["adapters"]:
-            try:
-                # Determine if we need interactive prompts
-                has_all_params = bool(
-                    (github_owner or os.getenv("GITHUB_OWNER"))
-                    and (github_repo or os.getenv("GITHUB_REPO"))
-                    and (github_token or os.getenv("GITHUB_TOKEN"))
-                )
-
-                # Use consolidated configure function (interactive if missing params)
-                adapter_config = _configure_github(
-                    interactive=not has_all_params,
-                    owner=github_owner,
-                    repo=github_repo,
-                    token=github_token,
-                )
-
-                config["adapters"]["github"] = adapter_config.to_dict()
-
-            except ValueError as e:
-                console.print(f"[red]Error:[/red] {e}")
-                raise typer.Exit(1) from None
-
-    # 5. Save to project-local config (global config deprecated for security)
-    # Always save to ./.mcp-ticketer/config.json (PROJECT-SPECIFIC)
-    config_file_path = proj_path / ".mcp-ticketer" / "config.json"
-    config_file_path.parent.mkdir(parents=True, exist_ok=True)
-
-    with open(config_file_path, "w") as f:
-        json.dump(config, f, indent=2)
-
-    if global_config:
-        console.print(
-            "[yellow]Note: Global config deprecated for security. Saved to project config instead.[/yellow]"
-        )
-
-    console.print(f"[green]✓ Initialized with {adapter_type} adapter[/green]")
-    console.print(f"[dim]Project configuration saved to {config_file_path}[/dim]")
-
-    # Add .mcp-ticketer to .gitignore if not already there
-    gitignore_path = proj_path / ".gitignore"
-    if gitignore_path.exists():
-        gitignore_content = gitignore_path.read_text()
-        if ".mcp-ticketer" not in gitignore_content:
-            with open(gitignore_path, "a") as f:
-                f.write("\n# MCP Ticketer\n.mcp-ticketer/\n")
-            console.print("[dim]✓ Added .mcp-ticketer/ to .gitignore[/dim]")
-    else:
-        # Create .gitignore if it doesn't exist
-        with open(gitignore_path, "w") as f:
-            f.write("# MCP Ticketer\n.mcp-ticketer/\n")
-        console.print("[dim]✓ Created .gitignore with .mcp-ticketer/[/dim]")
-
-    # Validate configuration with loop for corrections
-    if not asyncio.run(
-        _validate_configuration_with_retry(
-            console, adapter_type, config_file_path, proj_path
-        )
-    ):
-        # User chose to exit without valid configuration
+    if not success:
         raise typer.Exit(1) from None
-
-    # Show next steps
-    _show_next_steps(console, adapter_type, config_file_path)

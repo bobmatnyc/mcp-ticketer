@@ -809,6 +809,7 @@ List tickets with filters.
 {
     "limit": int,              # Optional, default: 10
     "offset": int,             # Optional, default: 0
+    "compact": bool,           # Optional, default: False (v0.15.0+)
     "filters": {               # Optional
         "state": str,
         "priority": str,
@@ -818,6 +819,42 @@ List tickets with filters.
 ```
 
 **Response:** Array of Task objects.
+
+**Compact Mode (v0.15.0+):**
+
+The `compact` parameter enables token-optimized responses for AI agents:
+- **`compact=False`** (default): Returns all 16 ticket fields (~185 tokens/ticket)
+- **`compact=True`**: Returns 7 essential fields only (~55 tokens/ticket)
+- **Token Savings**: 70% reduction in response size
+
+**Fields Comparison:**
+
+| Mode | Fields Returned |
+|------|----------------|
+| Standard (`compact=False`) | `id`, `title`, `description`, `state`, `priority`, `assignee`, `tags`, `parent_epic`, `parent_issue`, `children`, `created_at`, `updated_at`, `metadata`, `ticket_type`, `estimated_hours`, `actual_hours` |
+| Compact (`compact=True`) | `id`, `title`, `state`, `priority`, `assignee`, `tags`, `parent_epic` |
+
+**Use Cases:**
+- Use `compact=True` for dashboards, bulk filtering, large lists (>10 tickets)
+- Use `compact=False` for detailed views, individual ticket processing, full metadata needs
+
+**Example:**
+```python
+# Standard mode - Full details
+{
+    "limit": 100,
+    "filters": {"state": "open"}
+}
+# Returns: ~18,500 tokens
+
+# Compact mode - Essential fields only
+{
+    "limit": 100,
+    "compact": True,
+    "filters": {"state": "open"}
+}
+# Returns: ~5,500 tokens (70% reduction)
+```
 
 #### `ticket/search`
 Advanced ticket search.

@@ -34,7 +34,7 @@ class TestSetupCommand:
             patch("mcp_ticketer.cli.main.Path.cwd", return_value=tmp_path),
             patch("mcp_ticketer.core.env_discovery.discover_config") as mock_discover,
             patch("mcp_ticketer.cli.setup_command._prompt_for_adapter_selection") as mock_prompt,
-            patch("mcp_ticketer.cli.main.init") as mock_init,
+            patch("mcp_ticketer.cli.init_command._init_adapter_internal") as mock_init_internal,
             patch(
                 "mcp_ticketer.cli.platform_detection.PlatformDetector"
             ) as mock_detector_class,
@@ -43,6 +43,7 @@ class TestSetupCommand:
             # Setup mocks
             mock_discover.return_value = None
             mock_prompt.return_value = "aitrackdown"
+            mock_init_internal.return_value = True  # Return success
 
             # Mock platform detector
             mock_detector = Mock()
@@ -52,8 +53,8 @@ class TestSetupCommand:
             # Invoke with mix mode to avoid interactive prompts
             runner.invoke(app, ["setup"], input="")
 
-            # Should call init
-            assert mock_init.called
+            # Should call _init_adapter_internal
+            assert mock_init_internal.called
 
     def test_setup_existing_config_keep_settings(self, tmp_path: Path) -> None:
         """Test setup with existing valid config - user keeps settings."""
@@ -72,7 +73,7 @@ class TestSetupCommand:
 
         with (
             patch("mcp_ticketer.cli.main.Path.cwd", return_value=tmp_path),
-            patch("mcp_ticketer.cli.main.init") as mock_init,
+            patch("mcp_ticketer.cli.init_command._init_adapter_internal") as mock_init_internal,
             patch(
                 "mcp_ticketer.cli.platform_detection.PlatformDetector"
             ) as mock_detector_class,
@@ -92,8 +93,8 @@ class TestSetupCommand:
 
             result = runner.invoke(app, ["setup"], input="")
 
-            # Should NOT call init (config already exists and user kept it)
-            assert not mock_init.called
+            # Should NOT call _init_adapter_internal (config already exists and user kept it)
+            assert not mock_init_internal.called
             # SHOULD call prompt_and_update_default_values
             assert mock_prompt_defaults.called
             assert result.exit_code == 0
@@ -225,7 +226,7 @@ class TestSetupCommand:
             patch("mcp_ticketer.cli.main.Path.cwd", return_value=tmp_path),
             patch("mcp_ticketer.core.env_discovery.discover_config") as mock_discover,
             patch("mcp_ticketer.cli.setup_command._prompt_for_adapter_selection") as mock_prompt,
-            patch("mcp_ticketer.cli.main.init") as mock_init,
+            patch("mcp_ticketer.cli.init_command._init_adapter_internal") as mock_init_internal,
             patch(
                 "mcp_ticketer.cli.platform_detection.PlatformDetector"
             ) as mock_detector_class,
@@ -233,6 +234,7 @@ class TestSetupCommand:
             # Setup mocks
             mock_discover.return_value = None
             mock_prompt.return_value = "aitrackdown"
+            mock_init_internal.return_value = True
 
             # Mock platform detector
             mock_detector = Mock()
@@ -241,8 +243,8 @@ class TestSetupCommand:
 
             runner.invoke(app, ["setup", "--force-reinit"], input="")
 
-            # Should call init even though config exists
-            assert mock_init.called
+            # Should call _init_adapter_internal even though config exists
+            assert mock_init_internal.called
 
     def test_setup_skip_platforms(self, tmp_path: Path) -> None:
         """Test setup with --skip-platforms flag."""
@@ -250,7 +252,7 @@ class TestSetupCommand:
             patch("mcp_ticketer.cli.main.Path.cwd", return_value=tmp_path),
             patch("mcp_ticketer.core.env_discovery.discover_config") as mock_discover,
             patch("mcp_ticketer.cli.setup_command._prompt_for_adapter_selection") as mock_prompt,
-            patch("mcp_ticketer.cli.main.init") as mock_init,
+            patch("mcp_ticketer.cli.init_command._init_adapter_internal") as mock_init_internal,
             patch(
                 "mcp_ticketer.cli.platform_detection.PlatformDetector"
             ) as mock_detector_class,
@@ -258,6 +260,7 @@ class TestSetupCommand:
             # Setup mocks
             mock_discover.return_value = None
             mock_prompt.return_value = "aitrackdown"
+            mock_init_internal.return_value = True
 
             # Mock detector should NOT be called when skipping platforms
             mock_detector = Mock()
@@ -265,8 +268,8 @@ class TestSetupCommand:
 
             runner.invoke(app, ["setup", "--skip-platforms"], input="")
 
-            # Should call init but not detect platforms
-            assert mock_init.called
+            # Should call _init_adapter_internal but not detect platforms
+            assert mock_init_internal.called
             assert not mock_detector.detect_all.called
 
     def test_setup_with_platforms_install_all(self, tmp_path: Path) -> None:
