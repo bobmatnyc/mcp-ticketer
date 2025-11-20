@@ -175,9 +175,7 @@ class TestMCPAnalysisToolsGracefulDegradation:
 
         return process
 
-    async def initialize_mcp_session(
-        self, process: subprocess.Popen
-    ) -> dict[str, Any]:
+    async def initialize_mcp_session(self, process: subprocess.Popen) -> dict[str, Any]:
         """Complete MCP initialization handshake.
 
         Args:
@@ -525,9 +523,7 @@ class TestMCPAnalysisToolsGracefulDegradation:
                     request_id=tool_name,
                 )
 
-                tool_response = await self.read_jsonrpc_response(
-                    process, timeout=10.0
-                )
+                tool_response = await self.read_jsonrpc_response(process, timeout=10.0)
                 assert (
                     "result" in tool_response
                 ), f"{tool_name} failed: {tool_response.get('error')}"
@@ -537,8 +533,7 @@ class TestMCPAnalysisToolsGracefulDegradation:
                     tool_response["result"]["content"][0]["text"]
                 )
                 assert result_content.get("status") == "completed", (
-                    f"{tool_name} returned error: "
-                    f"{result_content.get('error')}"
+                    f"{tool_name} returned error: " f"{result_content.get('error')}"
                 )
 
         finally:
