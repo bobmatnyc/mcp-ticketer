@@ -340,17 +340,6 @@ def _configure_linear(
             config_dict["user_email"] = user_email
             console.print(f"[green]✓[/green] Will use {user_email} as default assignee")
 
-        # Project ID (optional)
-        current_project_id = config_dict.get("project_id", "") if has_existing else ""
-        if current_project_id:
-            project_id_prompt = f"Project ID (optional) [current: {current_project_id}]"
-            project_id = Prompt.ask(project_id_prompt, default=current_project_id)
-        else:
-            project_id = Prompt.ask("Project ID (optional)", default="")
-
-        if project_id:
-            config_dict["project_id"] = project_id
-
         # ============================================================
         # DEFAULT VALUES SECTION (for ticket creation)
         # ============================================================
@@ -370,7 +359,7 @@ def _configure_linear(
                     default=current_default_epic,
                 )
             return Prompt.ask(
-                "Default epic/project ID (optional, e.g., 'PROJ-123' or UUID)",
+                "Default epic/project ID (optional, accepts project URLs or IDs like 'PROJ-123')",
                 default="",
             )
 
