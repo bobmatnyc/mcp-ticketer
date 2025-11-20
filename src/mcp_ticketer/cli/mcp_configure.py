@@ -307,7 +307,9 @@ def remove_claude_mcp(global_config: bool = False, dry_run: bool = False) -> Non
         legacy_config = Path.cwd() / ".claude" / "mcp.local.json"
 
         if new_config.exists():
-            config_paths_to_check.append((new_config, True))  # True = is_global_mcp_config
+            config_paths_to_check.append(
+                (new_config, True)
+            )  # True = is_global_mcp_config
         if old_config.exists():
             config_paths_to_check.append((old_config, False))
         if legacy_config.exists():
@@ -341,7 +343,9 @@ def remove_claude_mcp(global_config: bool = False, dry_run: bool = False) -> Non
             if absolute_project_path:
                 projects = mcp_config.get("projects", {})
                 project_config_entry = projects.get(absolute_project_path, {})
-                is_configured = "mcp-ticketer" in project_config_entry.get("mcpServers", {})
+                is_configured = "mcp-ticketer" in project_config_entry.get(
+                    "mcpServers", {}
+                )
             else:
                 # Check flat structure for backward compatibility
                 is_configured = "mcp-ticketer" in mcp_config.get("mcpServers", {})
@@ -366,7 +370,9 @@ def remove_claude_mcp(global_config: bool = False, dry_run: bool = False) -> Non
             del mcp_config["mcpServers"]["mcp-ticketer"]
         elif is_claude_code and absolute_project_path and "projects" in mcp_config:
             # Remove from Claude Code nested structure
-            del mcp_config["projects"][absolute_project_path]["mcpServers"]["mcp-ticketer"]
+            del mcp_config["projects"][absolute_project_path]["mcpServers"][
+                "mcp-ticketer"
+            ]
 
             # Clean up empty structures
             if not mcp_config["projects"][absolute_project_path]["mcpServers"]:
@@ -402,7 +408,9 @@ def remove_claude_mcp(global_config: bool = False, dry_run: bool = False) -> Non
             console.print("1. Restart Claude Code")
             console.print("2. mcp-ticketer will no longer be available in this project")
     else:
-        console.print("\n[yellow]⚠ mcp-ticketer was not found in any configuration[/yellow]")
+        console.print(
+            "\n[yellow]⚠ mcp-ticketer was not found in any configuration[/yellow]"
+        )
 
 
 def configure_claude_mcp(global_config: bool = False, force: bool = False) -> None:
