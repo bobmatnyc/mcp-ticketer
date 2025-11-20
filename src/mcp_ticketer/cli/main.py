@@ -16,8 +16,7 @@ import mcp_ticketer.adapters  # noqa: F401
 
 from ..__version__ import __version__
 from ..core import AdapterRegistry
-from .configure import (configure_wizard, set_adapter_config,
-                        show_current_config)
+from .configure import configure_wizard, set_adapter_config, show_current_config
 from .diagnostics import run_diagnostics
 from .discover import app as discover_app
 from .init_command import init

@@ -1,11 +1,14 @@
 """Core models and abstractions for MCP Ticketer."""
 
 from .adapter import BaseAdapter
-from .instructions import (InstructionsError, InstructionsNotFoundError,
+from .instructions import (
+                           InstructionsError,
+                           InstructionsNotFoundError,
                            InstructionsValidationError,
-                           TicketInstructionsManager, get_instructions)
-from .models import (Attachment, Comment, Epic, Priority, Task, TicketState,
-                     TicketType)
+                           TicketInstructionsManager,
+                           get_instructions,
+)
+from .models import Attachment, Comment, Epic, Priority, Task, TicketState, TicketType
 from .registry import AdapterRegistry
 
 __all__ = [

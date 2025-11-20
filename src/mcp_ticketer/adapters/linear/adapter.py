@@ -24,16 +24,28 @@ from ...core.adapter import BaseAdapter
 from ...core.models import Comment, Epic, SearchQuery, Task, TicketState
 from ...core.registry import AdapterRegistry
 from .client import LinearGraphQLClient
-from .mappers import (build_linear_issue_input,
-                      build_linear_issue_update_input,
-                      map_linear_comment_to_comment, map_linear_issue_to_task,
-                      map_linear_project_to_epic)
-from .queries import (ALL_FRAGMENTS, CREATE_ISSUE_MUTATION,
-                      CREATE_LABEL_MUTATION, LIST_ISSUES_QUERY,
-                      SEARCH_ISSUES_QUERY, UPDATE_ISSUE_MUTATION,
-                      WORKFLOW_STATES_QUERY)
-from .types import (LinearStateMapping, build_issue_filter,
-                    get_linear_priority, get_linear_state_type)
+from .mappers import (
+    build_linear_issue_input,
+    build_linear_issue_update_input,
+    map_linear_comment_to_comment,
+    map_linear_issue_to_task,
+    map_linear_project_to_epic,
+)
+from .queries import (
+    ALL_FRAGMENTS,
+    CREATE_ISSUE_MUTATION,
+    CREATE_LABEL_MUTATION,
+    LIST_ISSUES_QUERY,
+    SEARCH_ISSUES_QUERY,
+    UPDATE_ISSUE_MUTATION,
+    WORKFLOW_STATES_QUERY,
+)
+from .types import (
+    LinearStateMapping,
+    build_issue_filter,
+    get_linear_priority,
+    get_linear_state_type,
+)
 
 
 class LinearAdapter(BaseAdapter[Task]):
@@ -473,7 +485,9 @@ class LinearAdapter(BaseAdapter[Task]):
                     )
                     self._labels_cache = []  # Explicitly empty on failure
 
-    async def _create_label(self, name: str, team_id: str, color: str = "#0366d6") -> str:
+    async def _create_label(
+        self, name: str, team_id: str, color: str = "#0366d6"
+    ) -> str:
         """Create a new label in Linear.
 
         Args:
@@ -545,7 +559,9 @@ class LinearAdapter(BaseAdapter[Task]):
             await self._load_team_labels(team_id)
 
         if self._labels_cache is None:
-            logger.error("Label cache is None after load attempt. Tags will be skipped.")
+            logger.error(
+                "Label cache is None after load attempt. Tags will be skipped."
+            )
             return []
 
         # Get team ID for creating new labels

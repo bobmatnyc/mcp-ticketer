@@ -17,7 +17,10 @@ import pytest
 
 from mcp_ticketer.core.models import Task, TicketState
 from mcp_ticketer.mcp.server.tools.user_ticket_tools import (
-    get_available_transitions, get_my_tickets, ticket_transition)
+    get_available_transitions,
+    get_my_tickets,
+    ticket_transition,
+)
 
 
 @pytest.mark.asyncio

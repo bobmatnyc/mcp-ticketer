@@ -1,6 +1,6 @@
 """Unit tests for Linear adapter label creation functionality."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -101,7 +101,11 @@ class TestLabelCreation:
         # Check that the color parameter was passed correctly to _create_label
         # The execute_mutation is called with (CREATE_LABEL_MUTATION, {"input": {...}})
         call_args = adapter.client.execute_mutation.call_args[0]  # positional args
-        mutation_vars = call_args[1] if len(call_args) > 1 else adapter.client.execute_mutation.call_args[1]
+        mutation_vars = (
+            call_args[1]
+            if len(call_args) > 1
+            else adapter.client.execute_mutation.call_args[1]
+        )
         assert mutation_vars["input"]["color"] == custom_color
 
     @pytest.mark.asyncio
@@ -116,6 +120,7 @@ class TestLabelCreation:
 
         # Mock label creation
         created_ids = ["label-1", "label-2", "label-3"]
+
         async def mock_create_label(name, tid, color="#0366d6"):
             idx = label_names.index(name)
             return created_ids[idx]
@@ -165,6 +170,7 @@ class TestLabelCreation:
 
         # Mock creating new labels
         new_ids = {"Bug": "new-label-1", "Enhancement": "new-label-2"}
+
         async def mock_create_label(name, tid, color="#0366d6"):
             return new_ids[name]
 
@@ -366,9 +372,7 @@ class TestLabelCreationIntegration:
             "description": "Test",
             "priority": 3,
             "state": {"type": "started"},
-            "labels": {
-                "nodes": [{"name": "New Label 1"}, {"name": "New Label 2"}]
-            },
+            "labels": {"nodes": [{"name": "New Label 1"}, {"name": "New Label 2"}]},
             "createdAt": "2025-01-19T00:00:00Z",
             "updatedAt": "2025-01-19T00:00:00Z",
         }

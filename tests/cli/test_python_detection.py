@@ -4,9 +4,11 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from mcp_ticketer.cli.python_detection import (get_mcp_server_command,
-                                               get_mcp_ticketer_python,
-                                               validate_python_executable)
+from mcp_ticketer.cli.python_detection import (
+    get_mcp_server_command,
+    get_mcp_ticketer_python,
+    validate_python_executable,
+)
 
 
 class TestGetMcpTicketerPython:
