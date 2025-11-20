@@ -32,7 +32,6 @@ async def example_file_upload_and_attachment():
         # ===================================================================
         # Example 1: Update Epic Description
         # ===================================================================
-        print("=== Example 1: Update Epic Description ===")
 
         epic_id = "crm-smart-monitoring-system-f59a41a96c52"  # Your epic slug/ID
         updated_epic = await adapter.update_epic(
@@ -45,14 +44,11 @@ async def example_file_upload_and_attachment():
         )
 
         if updated_epic:
-            print(f"✓ Updated epic: {updated_epic.title}")
-            print(f"  Description: {updated_epic.description[:100]}...")
-            print()
+            pass
 
         # ===================================================================
         # Example 2: Upload a File
         # ===================================================================
-        print("=== Example 2: Upload a File ===")
 
         # Create a test file
         test_file = Path("/tmp/test_document.txt")
@@ -64,17 +60,13 @@ async def example_file_upload_and_attachment():
             mime_type="text/plain",  # Optional, will auto-detect if not provided
         )
 
-        print("✓ File uploaded successfully!")
-        print(f"  Asset URL: {asset_url}")
-        print()
 
         # ===================================================================
         # Example 3: Attach File to an Issue
         # ===================================================================
-        print("=== Example 3: Attach File to an Issue ===")
 
         issue_id = "BTA-123"  # Replace with your issue ID
-        attachment = await adapter.attach_file_to_issue(
+        await adapter.attach_file_to_issue(
             issue_id=issue_id,
             file_url=asset_url,
             title="Test Document",
@@ -82,49 +74,35 @@ async def example_file_upload_and_attachment():
             comment_body="Attaching test document for review",
         )
 
-        print(f"✓ File attached to issue {issue_id}")
-        print(f"  Attachment ID: {attachment['id']}")
-        print(f"  URL: {attachment['url']}")
-        print()
 
         # ===================================================================
         # Example 4: Attach File to an Epic
         # ===================================================================
-        print("=== Example 4: Attach File to an Epic ===")
 
-        attachment = await adapter.attach_file_to_epic(
+        await adapter.attach_file_to_epic(
             epic_id=epic_id,
             file_url=asset_url,
             title="Epic Documentation",
             subtitle="Project overview document",
         )
 
-        print(f"✓ File attached to epic {epic_id}")
-        print(f"  Attachment ID: {attachment['id']}")
-        print(f"  URL: {attachment['url']}")
-        print()
 
         # ===================================================================
         # Example 5: Attach External URL
         # ===================================================================
-        print("=== Example 5: Attach External URL ===")
 
         # You can also attach external URLs without uploading
-        external_attachment = await adapter.attach_file_to_issue(
+        await adapter.attach_file_to_issue(
             issue_id=issue_id,
             file_url="https://example.com/document.pdf",
             title="External Document",
             subtitle="Reference document",
         )
 
-        print(f"✓ External URL attached to issue {issue_id}")
-        print(f"  Attachment ID: {external_attachment['id']}")
-        print()
 
         # ===================================================================
         # Example 6: Upload Multiple Files
         # ===================================================================
-        print("=== Example 6: Upload Multiple Files ===")
 
         # Create multiple test files
         files_to_upload = []
@@ -138,7 +116,6 @@ async def example_file_upload_and_attachment():
         for file_path in files_to_upload:
             url = await adapter.upload_file(str(file_path))
             asset_urls.append(url)
-            print(f"✓ Uploaded: {file_path.name} -> {url}")
 
         # Attach all files to an issue
         for i, url in enumerate(asset_urls):
@@ -148,11 +125,9 @@ async def example_file_upload_and_attachment():
                 title=f"Batch Upload {i + 1}",
             )
 
-        print(f"✓ Attached {len(asset_urls)} files to issue {issue_id}")
-        print()
 
-    except Exception as e:
-        print(f"Error: {e}")
+    except Exception:
+        pass
     finally:
         await adapter.close()
 

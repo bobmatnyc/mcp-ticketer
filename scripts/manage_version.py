@@ -19,7 +19,7 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional, TypedDict
+from typing import Any, TypedDict
 
 
 class BuildMetadata(TypedDict):
@@ -42,6 +42,7 @@ class VersionManager:
 
         Args:
             project_root: Root directory of the project (defaults to script parent)
+
         """
         if project_root is None:
             # Find project root (2 levels up from scripts/)
@@ -60,6 +61,7 @@ class VersionManager:
         Raises:
             FileNotFoundError: If version file doesn't exist
             ValueError: If version format is invalid
+
         """
         if not self.version_file.exists():
             raise FileNotFoundError(
@@ -86,6 +88,7 @@ class VersionManager:
 
         Returns:
             True if valid semver, False otherwise
+
         """
         pattern = r"^\d+\.\d+\.\d+$"
         return bool(re.match(pattern, version))
@@ -98,6 +101,7 @@ class VersionManager:
 
         Returns:
             Tuple of (major, minor, patch)
+
         """
         parts = version.split(".")
         return int(parts[0]), int(parts[1]), int(parts[2])
@@ -113,6 +117,7 @@ class VersionManager:
 
         Raises:
             ValueError: If bump_type is invalid
+
         """
         if bump_type not in ("major", "minor", "patch"):
             raise ValueError(
@@ -132,7 +137,6 @@ class VersionManager:
         self._update_version_file(new_version, current)
         self._update_pyproject_version(new_version)
 
-        print(f"Version bumped: {current} → {new_version}")
         return new_version
 
     def _update_version_file(self, new_version: str, old_version: str) -> None:
@@ -141,6 +145,7 @@ class VersionManager:
         Args:
             new_version: New version string
             old_version: Current version string
+
         """
         content = self.version_file.read_text()
 
@@ -152,7 +157,6 @@ class VersionManager:
         )
 
         self.version_file.write_text(content)
-        print(f"Updated {self.version_file.relative_to(self.project_root)}")
 
     def _update_pyproject_version(self, new_version: str) -> None:
         """Update pyproject.toml version if static version exists.
@@ -161,6 +165,7 @@ class VersionManager:
 
         Args:
             new_version: New version string
+
         """
         # Check if pyproject.toml has a static version field
         if not self.pyproject_file.exists():
@@ -181,10 +186,6 @@ class VersionManager:
                 flags=re.DOTALL,
             )
             self.pyproject_file.write_text(content)
-            print(
-                f"Updated {self.pyproject_file.relative_to(self.project_root)} "
-                "(informational)"
-            )
 
     def check_release_ready(self) -> bool:
         """Validate system is ready for release.
@@ -199,6 +200,7 @@ class VersionManager:
 
         Raises:
             RuntimeError: If not ready for release
+
         """
         errors: list[str] = []
 
@@ -223,12 +225,10 @@ class VersionManager:
             errors.append("Git branch check failed")
 
         if errors:
-            print("❌ Release validation failed:")
-            for error in errors:
-                print(f"  - {error}")
+            for _error in errors:
+                pass
             raise RuntimeError("Not ready for release")
 
-        print("✅ Release validation passed")
         return True
 
     def _is_git_clean(self) -> bool:
@@ -236,6 +236,7 @@ class VersionManager:
 
         Returns:
             True if no uncommitted changes
+
         """
         try:
             result = subprocess.run(
@@ -257,6 +258,7 @@ class VersionManager:
 
         Raises:
             subprocess.CalledProcessError: If git command fails
+
         """
         result = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
@@ -275,6 +277,7 @@ class VersionManager:
 
         Raises:
             subprocess.CalledProcessError: If git command fails
+
         """
         result = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
@@ -293,6 +296,7 @@ class VersionManager:
 
         Returns:
             Build metadata dictionary
+
         """
         # Load existing metadata to get build number
         existing_metadata = self._load_metadata()
@@ -310,7 +314,6 @@ class VersionManager:
         }
 
         self._save_metadata(metadata)
-        print(f"Build tracked: #{build_number} for v{version}")
         return metadata
 
     def _load_metadata(self) -> dict[str, Any]:
@@ -318,6 +321,7 @@ class VersionManager:
 
         Returns:
             Metadata dictionary or empty dict if file doesn't exist
+
         """
         if not self.metadata_file.exists():
             return {}
@@ -332,17 +336,16 @@ class VersionManager:
 
         Args:
             metadata: Build metadata to save
+
         """
         self.metadata_file.write_text(json.dumps(metadata, indent=2))
-        print(
-            f"Metadata saved to {self.metadata_file.relative_to(self.project_root)}"
-        )
 
     def create_git_commit(self, version: str) -> None:
         """Create git commit for version bump.
 
         Args:
             version: New version string
+
         """
         try:
             # Stage version files
@@ -359,9 +362,7 @@ class VersionManager:
                 cwd=self.project_root,
                 check=True,
             )
-            print(f"✅ Git commit created: {commit_msg}")
-        except subprocess.CalledProcessError as e:
-            print(f"⚠️  Git commit failed: {e}")
+        except subprocess.CalledProcessError:
             raise
 
     def create_git_tag(self, version: str) -> None:
@@ -369,6 +370,7 @@ class VersionManager:
 
         Args:
             version: Version string
+
         """
         try:
             tag_name = f"v{version}"
@@ -378,9 +380,7 @@ class VersionManager:
                 cwd=self.project_root,
                 check=True,
             )
-            print(f"✅ Git tag created: {tag_name}")
-        except subprocess.CalledProcessError as e:
-            print(f"⚠️  Git tag creation failed: {e}")
+        except subprocess.CalledProcessError:
             raise
 
 
@@ -440,10 +440,9 @@ def main() -> None:
             manager.track_build(args.notes)
 
         elif args.command == "get-version":
-            print(manager.get_current_version())
+            pass
 
-    except (RuntimeError, ValueError, FileNotFoundError) as e:
-        print(f"Error: {e}", file=sys.stderr)
+    except (RuntimeError, ValueError, FileNotFoundError):
         sys.exit(1)
 
 

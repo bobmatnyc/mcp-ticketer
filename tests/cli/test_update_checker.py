@@ -11,8 +11,8 @@ def reset_update_checker_module():
     """Ensure update_checker module is in a clean state before and after each test."""
     # Store original state
     original_module = sys.modules.get("mcp_ticketer.cli.update_checker")
-    original_packaging = sys.modules.get("packaging")
-    original_packaging_version = sys.modules.get("packaging.version")
+    sys.modules.get("packaging")
+    sys.modules.get("packaging.version")
 
     yield
 

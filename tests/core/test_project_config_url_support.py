@@ -1,6 +1,5 @@
 """Test URL support in TicketerConfig for default_project field."""
 
-
 from mcp_ticketer.core.project_config import TicketerConfig
 
 

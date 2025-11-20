@@ -6,6 +6,7 @@ modes when listing tickets.
 """
 
 import json
+
 from mcp_ticketer.core.models import Priority, Task, TicketState
 from mcp_ticketer.mcp.server.tools.ticket_tools import _compact_ticket
 
@@ -57,11 +58,6 @@ def count_tokens_approx(text: str) -> int:
 
 def main():
     """Demonstrate token usage differences."""
-    print("=" * 80)
-    print("TICKET_LIST COMPACT MODE - TOKEN USAGE DEMONSTRATION")
-    print("=" * 80)
-    print()
-
     # Create sample tickets
     tickets = [create_sample_ticket(i) for i in range(1, 101)]
 
@@ -78,81 +74,19 @@ def main():
     compact_tokens = count_tokens_approx(compact_json)
 
     # Calculate savings
-    size_reduction = ((standard_size - compact_size) / standard_size) * 100
-    token_reduction = ((standard_tokens - compact_tokens) / standard_tokens) * 100
+    ((standard_size - compact_size) / standard_size) * 100
+    ((standard_tokens - compact_tokens) / standard_tokens) * 100
 
-    print("📊 RESULTS FOR 100 TICKETS:")
-    print()
-    print("Standard Mode (compact=False):")
-    print(f"  - JSON size: {standard_size:,} bytes")
-    print(f"  - Estimated tokens: ~{standard_tokens:,} tokens")
-    print(f"  - Average per ticket: ~{standard_tokens // 100} tokens")
-    print()
-    print("Compact Mode (compact=True):")
-    print(f"  - JSON size: {compact_size:,} bytes")
-    print(f"  - Estimated tokens: ~{compact_tokens:,} tokens")
-    print(f"  - Average per ticket: ~{compact_tokens // 100} tokens")
-    print()
-    print("💰 SAVINGS:")
-    print(f"  - Size reduction: {size_reduction:.1f}%")
-    print(f"  - Token reduction: {token_reduction:.1f}%")
-    print(f"  - Bytes saved: {standard_size - compact_size:,} bytes")
-    print(f"  - Tokens saved: ~{standard_tokens - compact_tokens:,} tokens")
-    print()
 
     # Show sample output
-    print("=" * 80)
-    print("SAMPLE OUTPUT (First Ticket)")
-    print("=" * 80)
-    print()
-    print("Standard Mode (compact=False) - First ticket:")
-    print("-" * 80)
-    print(json.dumps(standard_tickets[0], indent=2)[:500] + "...")
-    print()
-    print("Compact Mode (compact=True) - First ticket:")
-    print("-" * 80)
-    print(json.dumps(compact_tickets[0], indent=2))
-    print()
 
     # Fields comparison
-    print("=" * 80)
-    print("FIELDS COMPARISON")
-    print("=" * 80)
-    print()
     standard_fields = set(standard_tickets[0].keys())
     compact_fields = set(compact_tickets[0].keys())
-    excluded_fields = standard_fields - compact_fields
+    standard_fields - compact_fields
 
-    print(f"Standard mode: {len(standard_fields)} fields")
-    print(f"  {', '.join(sorted(standard_fields))}")
-    print()
-    print(f"Compact mode: {len(compact_fields)} fields")
-    print(f"  {', '.join(sorted(compact_fields))}")
-    print()
-    print(f"Excluded in compact mode ({len(excluded_fields)} fields):")
-    print(f"  {', '.join(sorted(excluded_fields))}")
-    print()
 
     # Use case recommendations
-    print("=" * 80)
-    print("📋 USE CASE RECOMMENDATIONS")
-    print("=" * 80)
-    print()
-    print("Use compact=False (Standard Mode) when:")
-    print("  ✓ You need full ticket details")
-    print("  ✓ Processing individual tickets")
-    print("  ✓ Displaying ticket content to users")
-    print("  ✓ Listing <10 tickets")
-    print()
-    print("Use compact=True (Compact Mode) when:")
-    print("  ✓ Listing many tickets (>10)")
-    print("  ✓ Building ticket dashboards/overviews")
-    print("  ✓ Filtering/searching across many tickets")
-    print("  ✓ Optimizing token usage in AI workflows")
-    print("  ✓ Reducing API response times")
-    print()
-    print("💡 TIP: For 100+ tickets, compact mode saves >10,000 tokens!")
-    print()
 
 
 if __name__ == "__main__":

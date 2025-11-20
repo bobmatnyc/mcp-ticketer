@@ -14,10 +14,6 @@ from mcp_ticketer.core.models import Epic
 
 async def main():
     """Test epic creation flow."""
-    print("=" * 80)
-    print("EPIC CREATION DEBUG")
-    print("=" * 80)
-
     # Setup test directory
     test_dir = Path("/tmp/test_epic")
     test_dir.mkdir(exist_ok=True)
@@ -26,49 +22,28 @@ async def main():
     config = {"base_path": str(test_dir)}
     adapter = AITrackdownAdapter(config)
 
-    print("\n1. Adapter initialized:")
-    print(f"   base_path: {adapter.base_path}")
-    print(f"   tickets_dir: {adapter.tickets_dir}")
-    print(f"   tickets_dir exists: {adapter.tickets_dir.exists()}")
-    print(f"   tracker: {adapter.tracker}")
 
     # Create epic
-    print("\n2. Creating epic...")
     epic = Epic(title="Test Epic", description="Test Description")
-    print(f"   Epic before create: id={epic.id}, title={epic.title}")
 
     # Call create
-    print("\n3. Calling adapter.create(epic)...")
     result = await adapter.create(epic)
 
-    print("\n4. Result from create:")
-    print(f"   id: {result.id}")
-    print(f"   title: {result.title}")
-    print(f"   type: {type(result)}")
 
     # Check if file exists
     expected_file = adapter.tickets_dir / f"{result.id}.json"
-    print("\n5. File system check:")
-    print(f"   Expected file: {expected_file}")
-    print(f"   File exists: {expected_file.exists()}")
 
     if expected_file.exists():
         import json
         with open(expected_file) as f:
-            content = json.load(f)
-        print(f"   File content: {json.dumps(content, indent=2)}")
+            json.load(f)
     else:
-        print("   ❌ FILE NOT FOUND!")
-        print("\n   Files in tickets_dir:")
         for f in adapter.tickets_dir.iterdir():
-            print(f"      - {f.name}")
+            pass
 
     # Try to read back
-    print("\n6. Reading back epic...")
-    read_result = await adapter.read(result.id)
-    print(f"   Read result: {read_result}")
+    await adapter.read(result.id)
 
-    print("\n" + "=" * 80)
 
 
 if __name__ == "__main__":

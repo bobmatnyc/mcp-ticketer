@@ -41,10 +41,6 @@ PROJECT_ID = "048c59cdce70"  # Update this with your actual project ID
 
 async def test_label_resolution():
     """Test 1: Label resolution with debug logging."""
-    print("\n" + "=" * 60)
-    print("TEST 1: Label Resolution with Debug Logging")
-    print("=" * 60)
-
     config = {
         "api_key": os.getenv("LINEAR_API_KEY"),
         "team_id": os.getenv("LINEAR_TEAM_ID"),
@@ -60,16 +56,9 @@ async def test_label_resolution():
         priority=Priority.HIGH,
     )
 
-    print("\n📝 Creating task with tags: ['bug', 'urgent']")
-    print("   (Watch for debug logs showing label resolution)")
 
     result = await adapter.create(task)
 
-    print(f"\n✅ Created issue: {result.id}")
-    print(f"   Title: {result.title}")
-    print(f"   Tags: {result.tags}")
-    print("   Expected: ['bug', 'urgent']")
-    print(f"   Match: {'✓' if set(result.tags) == {'bug', 'urgent'} else '✗'}")
 
     await adapter.close()
     return result
@@ -77,10 +66,6 @@ async def test_label_resolution():
 
 async def test_project_assignment():
     """Test 2: Project assignment verification."""
-    print("\n" + "=" * 60)
-    print("TEST 2: Project Assignment")
-    print("=" * 60)
-
     config = {
         "api_key": os.getenv("LINEAR_API_KEY"),
         "team_id": os.getenv("LINEAR_TEAM_ID"),
@@ -96,15 +81,9 @@ async def test_project_assignment():
         priority=Priority.MEDIUM,
     )
 
-    print(f"\n📝 Creating task with parent_epic: {PROJECT_ID}")
 
     result = await adapter.create(task)
 
-    print(f"\n✅ Created issue: {result.id}")
-    print(f"   Title: {result.title}")
-    print(f"   Parent Epic: {result.parent_epic}")
-    print(f"   Expected: {PROJECT_ID}")
-    print(f"   Match: {'✓' if result.parent_epic == PROJECT_ID else '✗'}")
 
     await adapter.close()
     return result
@@ -112,10 +91,6 @@ async def test_project_assignment():
 
 async def test_project_epic_synonym():
     """Test 3: Project/epic synonym support."""
-    print("\n" + "=" * 60)
-    print("TEST 3: Project/Epic Synonym Support")
-    print("=" * 60)
-
     config = {
         "api_key": os.getenv("LINEAR_API_KEY"),
         "team_id": os.getenv("LINEAR_TEAM_ID"),
@@ -134,17 +109,9 @@ async def test_project_epic_synonym():
     # Set via .project property
     task.project = PROJECT_ID
 
-    print("\n📝 Creating task using .project property")
-    print(f"   task.project = '{PROJECT_ID}'")
-    print(f"   task.parent_epic = '{task.parent_epic}' (should match)")
 
     result = await adapter.create(task)
 
-    print(f"\n✅ Created issue: {result.id}")
-    print(f"   Title: {result.title}")
-    print(f"   Parent Epic: {result.parent_epic}")
-    print(f"   Project (property): {result.project}")
-    print(f"   Match: {'✓' if result.parent_epic == result.project == PROJECT_ID else '✗'}")
 
     await adapter.close()
     return result
@@ -152,10 +119,6 @@ async def test_project_epic_synonym():
 
 async def test_state_mapping():
     """Test 4: State mapping (To-Do vs Backlog)."""
-    print("\n" + "=" * 60)
-    print("TEST 4: State Mapping (OPEN → To-Do)")
-    print("=" * 60)
-
     config = {
         "api_key": os.getenv("LINEAR_API_KEY"),
         "team_id": os.getenv("LINEAR_TEAM_ID"),
@@ -171,17 +134,9 @@ async def test_state_mapping():
         priority=Priority.MEDIUM,
     )
 
-    print(f"\n📝 Creating task with state: {task.state}")
-    print("   Expected Linear state: To-Do (not Backlog)")
 
     result = await adapter.create(task)
 
-    print(f"\n✅ Created issue: {result.id}")
-    print(f"   Title: {result.title}")
-    print(f"   State: {result.state}")
-    print(f"   Linear URL: {result.metadata.get('linear', {}).get('linear_url')}")
-    print("\n   ⚠️  MANUAL CHECK: Open Linear URL and verify issue is in 'To-Do' column")
-    print("                    (not 'Backlog' column)")
 
     await adapter.close()
     return result
@@ -189,10 +144,6 @@ async def test_state_mapping():
 
 async def test_combined():
     """Test 5: All features combined."""
-    print("\n" + "=" * 60)
-    print("TEST 5: Combined - All Features Together")
-    print("=" * 60)
-
     config = {
         "api_key": os.getenv("LINEAR_API_KEY"),
         "team_id": os.getenv("LINEAR_TEAM_ID"),
@@ -210,21 +161,9 @@ async def test_combined():
     )
     task.project = PROJECT_ID  # Using synonym
 
-    print("\n📝 Creating task with:")
-    print(f"   - Tags: {task.tags}")
-    print(f"   - Project (via synonym): {task.project}")
-    print(f"   - State: {task.state}")
-    print(f"   - Priority: {task.priority}")
 
     result = await adapter.create(task)
 
-    print(f"\n✅ Created issue: {result.id}")
-    print(f"   Title: {result.title}")
-    print(f"   Tags: {result.tags}")
-    print(f"   Project: {result.parent_epic}")
-    print(f"   State: {result.state}")
-    print(f"   Priority: {result.priority}")
-    print(f"   Linear URL: {result.metadata.get('linear', {}).get('linear_url')}")
 
     # Verification
     checks = [
@@ -234,10 +173,8 @@ async def test_combined():
         ("Priority is HIGH", result.priority == Priority.HIGH),
     ]
 
-    print("\n📊 Verification:")
-    for check_name, passed in checks:
-        status = "✓" if passed else "✗"
-        print(f"   {status} {check_name}")
+    for _check_name, _passed in checks:
+        pass
 
     await adapter.close()
     return result
@@ -245,22 +182,13 @@ async def test_combined():
 
 async def main():
     """Run all tests."""
-    print("\n" + "=" * 60)
-    print("Linear Adapter Fix Verification Test Suite")
-    print("=" * 60)
-
     # Check environment variables
     if not os.getenv("LINEAR_API_KEY"):
-        print("\n❌ ERROR: LINEAR_API_KEY environment variable not set")
         return 1
 
     if not os.getenv("LINEAR_TEAM_ID"):
-        print("\n❌ ERROR: LINEAR_TEAM_ID environment variable not set")
         return 1
 
-    print(f"\n✓ LINEAR_API_KEY: {'*' * 20}{os.getenv('LINEAR_API_KEY')[-4:]}")
-    print(f"✓ LINEAR_TEAM_ID: {os.getenv('LINEAR_TEAM_ID')}")
-    print(f"✓ PROJECT_ID: {PROJECT_ID}")
 
     try:
         # Run tests
@@ -270,21 +198,10 @@ async def main():
         await test_state_mapping()
         await test_combined()
 
-        print("\n" + "=" * 60)
-        print("🎉 ALL TESTS COMPLETED SUCCESSFULLY")
-        print("=" * 60)
-        print("\nNext steps:")
-        print("1. Check Linear UI to verify issues were created correctly")
-        print("2. Verify tags are visible on issues")
-        print("3. Verify issues are in correct project")
-        print("4. Verify issues are in 'To-Do' state (not 'Backlog')")
-        print("\n")
 
         return 0
 
-    except Exception as e:
-        print("\n❌ ERROR: Test failed with exception:")
-        print(f"   {type(e).__name__}: {e}")
+    except Exception:
         import traceback
 
         traceback.print_exc()
