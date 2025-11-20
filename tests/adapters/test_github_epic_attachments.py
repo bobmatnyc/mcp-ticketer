@@ -238,7 +238,9 @@ class TestGitHubEpicUpdate:
         mock_response = Mock()
         mock_response.status_code = 404
         mock_response.json.return_value = {"message": "Not Found"}
-        mock_response.raise_for_status.side_effect = NotFoundError("404 Not Found", "github")
+        mock_response.raise_for_status.side_effect = NotFoundError(
+            "404 Not Found", "github"
+        )
 
         adapter.client.patch = AsyncMock(return_value=mock_response)
 

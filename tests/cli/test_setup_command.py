@@ -33,7 +33,9 @@ class TestSetupCommand:
         with (
             patch("mcp_ticketer.cli.main.Path.cwd", return_value=tmp_path),
             patch("mcp_ticketer.core.env_discovery.discover_config") as mock_discover,
-            patch("mcp_ticketer.cli.setup_command._prompt_for_adapter_selection") as mock_prompt,
+            patch(
+                "mcp_ticketer.cli.setup_command._prompt_for_adapter_selection"
+            ) as mock_prompt,
             patch("mcp_ticketer.cli.main.init") as mock_init,
             patch(
                 "mcp_ticketer.cli.platform_detection.PlatformDetector"
@@ -224,7 +226,9 @@ class TestSetupCommand:
         with (
             patch("mcp_ticketer.cli.main.Path.cwd", return_value=tmp_path),
             patch("mcp_ticketer.core.env_discovery.discover_config") as mock_discover,
-            patch("mcp_ticketer.cli.setup_command._prompt_for_adapter_selection") as mock_prompt,
+            patch(
+                "mcp_ticketer.cli.setup_command._prompt_for_adapter_selection"
+            ) as mock_prompt,
             patch("mcp_ticketer.cli.main.init") as mock_init,
             patch(
                 "mcp_ticketer.cli.platform_detection.PlatformDetector"
@@ -249,7 +253,9 @@ class TestSetupCommand:
         with (
             patch("mcp_ticketer.cli.main.Path.cwd", return_value=tmp_path),
             patch("mcp_ticketer.core.env_discovery.discover_config") as mock_discover,
-            patch("mcp_ticketer.cli.setup_command._prompt_for_adapter_selection") as mock_prompt,
+            patch(
+                "mcp_ticketer.cli.setup_command._prompt_for_adapter_selection"
+            ) as mock_prompt,
             patch("mcp_ticketer.cli.main.init") as mock_init,
             patch(
                 "mcp_ticketer.cli.platform_detection.PlatformDetector"
