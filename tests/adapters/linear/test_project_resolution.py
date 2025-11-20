@@ -76,24 +76,68 @@ class TestLinearProjectIDResolution:
         adapter.client.execute_query.assert_called_once()
 
     async def test_resolve_by_short_id(self, adapter, mock_projects_response):
-        """Test resolving project ID by short ID from URL."""
-        adapter.client.execute_query.return_value = mock_projects_response
+        """Test resolving project ID by short ID from URL using optimized direct query."""
+        # Mock the direct query to return the project (optimization path)
+        mock_direct_response = {
+            "project": {
+                "id": "ef19b35e-ce4f-4132-9705-811d4d6c8c08",
+                "name": "CRM Smart Monitoring System",
+                "slugId": "crm-smart-monitoring-system-f59a41a96c52",
+                "state": "started",
+                "description": "Test description",
+                "createdAt": "2025-01-01T00:00:00Z",
+                "updatedAt": "2025-01-01T00:00:00Z",
+                "url": "https://linear.app/test/project/crm-smart-monitoring-system-f59a41a96c52",
+                "icon": None,
+                "color": "#0366d6",
+                "targetDate": None,
+                "startedAt": None,
+                "completedAt": None,
+                "teams": {"nodes": []}
+            }
+        }
+        adapter.client.execute_query.return_value = mock_direct_response
 
         result = await adapter._resolve_project_id("f59a41a96c52")
 
         assert result == "ef19b35e-ce4f-4132-9705-811d4d6c8c08"
+        # Should use direct query (optimization) - verify it was called with project(id:)
         adapter.client.execute_query.assert_called_once()
+        call_args = adapter.client.execute_query.call_args[0]
+        assert "project(id: $id)" in call_args[0], "Should use direct query optimization"
 
     async def test_resolve_by_full_slug_id(self, adapter, mock_projects_response):
-        """Test resolving project ID by full slugId."""
-        adapter.client.execute_query.return_value = mock_projects_response
+        """Test resolving project ID by full slugId using optimized direct query."""
+        # Mock the direct query to return the project (optimization path)
+        mock_direct_response = {
+            "project": {
+                "id": "ef19b35e-ce4f-4132-9705-811d4d6c8c08",
+                "name": "CRM Smart Monitoring System",
+                "slugId": "crm-smart-monitoring-system-f59a41a96c52",
+                "state": "started",
+                "description": "Test description",
+                "createdAt": "2025-01-01T00:00:00Z",
+                "updatedAt": "2025-01-01T00:00:00Z",
+                "url": "https://linear.app/test/project/crm-smart-monitoring-system-f59a41a96c52",
+                "icon": None,
+                "color": "#0366d6",
+                "targetDate": None,
+                "startedAt": None,
+                "completedAt": None,
+                "teams": {"nodes": []}
+            }
+        }
+        adapter.client.execute_query.return_value = mock_direct_response
 
         result = await adapter._resolve_project_id(
             "crm-smart-monitoring-system-f59a41a96c52"
         )
 
         assert result == "ef19b35e-ce4f-4132-9705-811d4d6c8c08"
+        # Should use direct query (optimization) - verify it was called with project(id:)
         adapter.client.execute_query.assert_called_once()
+        call_args = adapter.client.execute_query.call_args[0]
+        assert "project(id: $id)" in call_args[0], "Should use direct query optimization"
 
     async def test_resolve_by_name(self, adapter, mock_projects_response):
         """Test resolving project ID by exact name match."""
@@ -116,26 +160,70 @@ class TestLinearProjectIDResolution:
         adapter.client.execute_query.assert_called_once()
 
     async def test_resolve_from_full_url(self, adapter, mock_projects_response):
-        """Test extracting and resolving from full Linear project URL."""
-        adapter.client.execute_query.return_value = mock_projects_response
+        """Test extracting and resolving from full Linear project URL using direct query."""
+        # Mock the direct query to return the project (optimization path)
+        mock_direct_response = {
+            "project": {
+                "id": "ef19b35e-ce4f-4132-9705-811d4d6c8c08",
+                "name": "CRM Smart Monitoring System",
+                "slugId": "crm-smart-monitoring-system-f59a41a96c52",
+                "state": "started",
+                "description": "Test description",
+                "createdAt": "2025-01-01T00:00:00Z",
+                "updatedAt": "2025-01-01T00:00:00Z",
+                "url": "https://linear.app/test/project/crm-smart-monitoring-system-f59a41a96c52",
+                "icon": None,
+                "color": "#0366d6",
+                "targetDate": None,
+                "startedAt": None,
+                "completedAt": None,
+                "teams": {"nodes": []}
+            }
+        }
+        adapter.client.execute_query.return_value = mock_direct_response
 
         url = "https://linear.app/travel-bta/project/crm-smart-monitoring-system-f59a41a96c52/overview"
         result = await adapter._resolve_project_id(url)
 
         assert result == "ef19b35e-ce4f-4132-9705-811d4d6c8c08"
+        # Should use direct query after extracting slugId from URL
         adapter.client.execute_query.assert_called_once()
+        call_args = adapter.client.execute_query.call_args[0]
+        assert "project(id: $id)" in call_args[0], "Should use direct query optimization"
 
     async def test_resolve_from_url_without_trailing_path(
         self, adapter, mock_projects_response
     ):
-        """Test extracting from URL without /overview suffix."""
-        adapter.client.execute_query.return_value = mock_projects_response
+        """Test extracting from URL without /overview suffix using direct query."""
+        # Mock the direct query to return the project (optimization path)
+        mock_direct_response = {
+            "project": {
+                "id": "ef19b35e-ce4f-4132-9705-811d4d6c8c08",
+                "name": "CRM Smart Monitoring System",
+                "slugId": "crm-smart-monitoring-system-f59a41a96c52",
+                "state": "started",
+                "description": "Test description",
+                "createdAt": "2025-01-01T00:00:00Z",
+                "updatedAt": "2025-01-01T00:00:00Z",
+                "url": "https://linear.app/test/project/crm-smart-monitoring-system-f59a41a96c52",
+                "icon": None,
+                "color": "#0366d6",
+                "targetDate": None,
+                "startedAt": None,
+                "completedAt": None,
+                "teams": {"nodes": []}
+            }
+        }
+        adapter.client.execute_query.return_value = mock_direct_response
 
         url = "https://linear.app/travel-bta/project/crm-smart-monitoring-system-f59a41a96c52"
         result = await adapter._resolve_project_id(url)
 
         assert result == "ef19b35e-ce4f-4132-9705-811d4d6c8c08"
+        # Should use direct query after extracting slugId from URL
         adapter.client.execute_query.assert_called_once()
+        call_args = adapter.client.execute_query.call_args[0]
+        assert "project(id: $id)" in call_args[0], "Should use direct query optimization"
 
     async def test_resolve_invalid_url_format_raises_error(self, adapter):
         """Test that invalid URL format raises ValueError."""
@@ -182,34 +270,36 @@ class TestLinearProjectIDResolution:
         assert "test-project" in str(exc_info.value)
 
     async def test_resolve_matches_multiple_projects(self, adapter):
-        """Test handling when short ID could match multiple projects."""
-        # Mock response with projects that have similar patterns
-        mock_response = {
-            "projects": {
-                "nodes": [
-                    {
-                        "id": "project-1-uuid",
-                        "name": "Project One",
-                        "slugId": "project-one-abc123",
-                    },
-                    {
-                        "id": "project-2-uuid",
-                        "name": "Project Two",
-                        "slugId": "project-two-abc124",  # Very similar short ID
-                    },
-                ],
-                "pageInfo": {
-                    "hasNextPage": False,
-                    "endCursor": None,
-                },
+        """Test handling when short ID could match multiple projects using direct query."""
+        # Use valid 12-character hex short IDs (as Linear uses)
+        mock_direct_response = {
+            "project": {
+                "id": "project-1-uuid",
+                "name": "Project One",
+                "slugId": "project-one-abc123def456",
+                "state": "started",
+                "description": "Test description",
+                "createdAt": "2025-01-01T00:00:00Z",
+                "updatedAt": "2025-01-01T00:00:00Z",
+                "url": "https://linear.app/test/project/project-one-abc123def456",
+                "icon": None,
+                "color": "#0366d6",
+                "targetDate": None,
+                "startedAt": None,
+                "completedAt": None,
+                "teams": {"nodes": []}
             }
         }
-        adapter.client.execute_query.return_value = mock_response
+        adapter.client.execute_query.return_value = mock_direct_response
 
-        # Should match exact short ID only
-        result = await adapter._resolve_project_id("abc123")
+        # Should match exact short ID only using direct query (optimization)
+        result = await adapter._resolve_project_id("abc123def456")
 
         assert result == "project-1-uuid"
+        # Verify direct query was used
+        adapter.client.execute_query.assert_called_once()
+        call_args = adapter.client.execute_query.call_args[0]
+        assert "project(id: $id)" in call_args[0], "Should use direct query optimization"
 
     async def test_resolve_project_with_no_slug_id(self, adapter):
         """Test handling projects that might have missing slugId."""
@@ -252,14 +342,15 @@ class TestLinearProjectIDResolution:
             assert result == "ef19b35e-ce4f-4132-9705-811d4d6c8c08"
 
     async def test_resolve_with_special_characters_in_slug(self, adapter):
-        """Test handling slugs with special characters."""
+        """Test handling slugs with special characters - uses fallback list query."""
+        # Use valid hex characters in the short ID (a-f, 0-9 only - no x,y,z)
         mock_response = {
             "projects": {
                 "nodes": [
                     {
                         "id": "special-project-uuid",
                         "name": "Project & Special!",
-                        "slugId": "project-and-special-xyz123",
+                        "slugId": "project-and-special-abc123def456",
                     },
                 ],
                 "pageInfo": {
@@ -270,9 +361,14 @@ class TestLinearProjectIDResolution:
         }
         adapter.client.execute_query.return_value = mock_response
 
+        # Slug without the short ID suffix - won't trigger direct query optimization
         result = await adapter._resolve_project_id("project-and-special")
 
         assert result == "special-project-uuid"
+        # Should use list query since "project-and-special" doesn't look like a short ID
+        adapter.client.execute_query.assert_called_once()
+        call_args = adapter.client.execute_query.call_args[0]
+        assert "projects(first:" in call_args[0], "Should use list query for partial slug"
 
     async def test_resolve_with_pagination_multiple_pages(self, adapter):
         """Test that pagination works correctly across multiple pages."""

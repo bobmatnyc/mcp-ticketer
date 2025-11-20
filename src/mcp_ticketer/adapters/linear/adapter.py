@@ -272,6 +272,69 @@ class LinearAdapter(BaseAdapter[Task]):
 
         return []
 
+    async def get_project(self, project_id: str) -> dict[str, Any] | None:
+        """Get a Linear project by ID using direct query.
+
+        This method uses Linear's direct project(id:) GraphQL query for efficient lookups.
+        Supports UUID, slugId, or short ID formats.
+
+        Args:
+            project_id: Project UUID, slugId, or short ID
+
+        Returns:
+            Project dict with fields (id, name, description, state, etc.) or None if not found
+
+        Examples:
+            - "a1b2c3d4-e5f6-7890-abcd-ef1234567890" (UUID)
+            - "crm-smart-monitoring-system-f59a41a96c52" (slugId)
+            - "6cf55cfcfad4" (short ID - 12 hex chars)
+
+        """
+        if not project_id:
+            return None
+
+        # Direct query using Linear's project(id:) endpoint
+        query = """
+            query GetProject($id: String!) {
+                project(id: $id) {
+                    id
+                    name
+                    description
+                    state
+                    slugId
+                    createdAt
+                    updatedAt
+                    url
+                    icon
+                    color
+                    targetDate
+                    startedAt
+                    completedAt
+                    teams {
+                        nodes {
+                            id
+                            name
+                            key
+                            description
+                        }
+                    }
+                }
+            }
+        """
+
+        try:
+            result = await self.client.execute_query(query, {"id": project_id})
+
+            if result.get("project"):
+                return result["project"]
+
+            # No match found
+            return None
+
+        except Exception:
+            # Linear returns error if project not found - return None instead of raising
+            return None
+
     async def _resolve_project_id(self, project_identifier: str) -> str | None:
         """Resolve project identifier (slug, name, short ID, or URL) to full UUID.
 
@@ -312,7 +375,41 @@ class LinearAdapter(BaseAdapter[Task]):
         if len(project_identifier) == 36 and project_identifier.count("-") == 4:
             return project_identifier
 
-        # Query all projects with pagination support
+        # OPTIMIZATION: Try direct query first if it looks like a UUID, slugId, or short ID
+        # This is more efficient than listing all projects
+        should_try_direct_query = False
+
+        # Check if it looks like a short ID (exactly 12 hex characters)
+        if len(project_identifier) == 12 and all(
+            c in "0123456789abcdefABCDEF" for c in project_identifier
+        ):
+            should_try_direct_query = True
+
+        # Check if it looks like a slugId format (contains dashes and ends with 12 hex chars)
+        if "-" in project_identifier:
+            parts = project_identifier.rsplit("-", 1)
+            if len(parts) > 1:
+                potential_short_id = parts[1]
+                if len(potential_short_id) == 12 and all(
+                    c in "0123456789abcdefABCDEF" for c in potential_short_id
+                ):
+                    should_try_direct_query = True
+
+        # Try direct query first if identifier format suggests it might work
+        if should_try_direct_query:
+            try:
+                project = await self.get_project(project_identifier)
+                if project:
+                    return project["id"]
+            except Exception as e:
+                # Direct query failed - fall through to list-based search
+                logging.getLogger(__name__).debug(
+                    f"Direct project query failed for '{project_identifier}': {e}. "
+                    f"Falling back to listing all projects."
+                )
+
+        # FALLBACK: Query all projects with pagination support
+        # This is less efficient but handles name-based lookups and edge cases
         query = """
             query GetProjects($first: Int!, $after: String) {
                 projects(first: $first, after: $after) {
@@ -356,13 +453,26 @@ class LinearAdapter(BaseAdapter[Task]):
                 slug_id = project.get("slugId", "")
                 if slug_id:
                     # slugId format: "crm-smart-monitoring-system-f59a41a96c52"
+                    # Linear short IDs are always exactly 12 hexadecimal characters
                     # Extract both the slug part and short ID
                     if "-" in slug_id:
-                        parts = slug_id.rsplit(
-                            "-", 1
-                        )  # Split from right to get last part
-                        slug_part = parts[0]  # "crm-smart-monitoring-system"
-                        short_id = parts[1] if len(parts) > 1 else ""  # "f59a41a96c52"
+                        parts = slug_id.rsplit("-", 1)
+                        potential_short_id = parts[1] if len(parts) > 1 else ""
+
+                        # Validate it's exactly 12 hex characters
+                        if (
+                            len(potential_short_id) == 12
+                            and all(
+                                c in "0123456789abcdefABCDEF"
+                                for c in potential_short_id
+                            )
+                        ):
+                            slug_part = parts[0]
+                            short_id = potential_short_id
+                        else:
+                            # Fallback: treat entire slugId as slug if last part isn't valid
+                            slug_part = slug_id
+                            short_id = ""
 
                         # Match full slugId, slug part, or short ID
                         if (
