@@ -410,6 +410,38 @@ async def ticket_delete(ticket_id: str) -> dict[str, Any]:
         }
 
 
+def _compact_ticket(ticket_dict: dict[str, Any]) -> dict[str, Any]:
+    """Extract compact representation of ticket for reduced token usage.
+
+    This helper function reduces ticket data from ~185 tokens to ~55 tokens by
+    including only essential fields. Use for listing operations where full
+    details are not needed.
+
+    Args:
+        ticket_dict: Full ticket dictionary from model_dump()
+
+    Returns:
+        Compact ticket dictionary with only essential fields:
+        - id: Ticket identifier
+        - title: Ticket title
+        - state: Current state
+        - priority: Priority level
+        - assignee: Assigned user (if any)
+        - tags: List of tags/labels
+        - parent_epic: Parent epic/project ID (if any)
+
+    """
+    return {
+        "id": ticket_dict.get("id"),
+        "title": ticket_dict.get("title"),
+        "state": ticket_dict.get("state"),
+        "priority": ticket_dict.get("priority"),
+        "assignee": ticket_dict.get("assignee"),
+        "tags": ticket_dict.get("tags", []),
+        "parent_epic": ticket_dict.get("parent_epic"),
+    }
+
+
 @mcp.tool()
 async def ticket_list(
     limit: int = 10,
@@ -417,8 +449,18 @@ async def ticket_list(
     state: str | None = None,
     priority: str | None = None,
     assignee: str | None = None,
+    compact: bool = False,
 ) -> dict[str, Any]:
     """List tickets with pagination and optional filters.
+
+    Token Usage Optimization:
+        When listing many tickets, use compact=True to reduce token usage by ~70%.
+        - Standard mode: ~185 tokens per ticket (full details including description,
+          metadata, timestamps, children, hours)
+        - Compact mode: ~55 tokens per ticket (only id, title, state, priority,
+          assignee, tags, parent_epic)
+
+        Example: 100 tickets = 18,500 tokens (standard) vs 5,500 tokens (compact)
 
     Args:
         limit: Maximum number of tickets to return (default: 10)
@@ -426,6 +468,7 @@ async def ticket_list(
         state: Filter by state - must be one of: open, in_progress, ready, tested, done, closed, waiting, blocked
         priority: Filter by priority - must be one of: low, medium, high, critical
         assignee: Filter by assigned user ID or email
+        compact: Return minimal fields for reduced token usage (default: False)
 
     Returns:
         List of tickets matching criteria, or error information
@@ -463,12 +506,19 @@ async def ticket_list(
             limit=limit, offset=offset, filters=filters if filters else None
         )
 
+        # Apply compact mode if requested
+        if compact:
+            ticket_data = [_compact_ticket(ticket.model_dump()) for ticket in tickets]
+        else:
+            ticket_data = [ticket.model_dump() for ticket in tickets]
+
         return {
             "status": "completed",
-            "tickets": [ticket.model_dump() for ticket in tickets],
+            "tickets": ticket_data,
             "count": len(tickets),
             "limit": limit,
             "offset": offset,
+            "compact": compact,
         }
     except Exception as e:
         return {
