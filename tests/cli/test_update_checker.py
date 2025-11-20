@@ -1,9 +1,34 @@
 """Tests for update checker module."""
 
+import importlib
 import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+
+@pytest.fixture(autouse=True, scope="function")
+def reset_update_checker_module():
+    """Ensure update_checker module is in a clean state before and after each test."""
+    # Store original state
+    original_module = sys.modules.get("mcp_ticketer.cli.update_checker")
+    original_packaging = sys.modules.get("packaging")
+    original_packaging_version = sys.modules.get("packaging.version")
+
+    yield
+
+    # Restore original state after test
+    if "mcp_ticketer.cli.update_checker" in sys.modules:
+        if original_module is not None:
+            sys.modules["mcp_ticketer.cli.update_checker"] = original_module
+        # Force clean reload of the module to restore packaging dependency
+        try:
+            if "mcp_ticketer.cli.update_checker" in sys.modules:
+                del sys.modules["mcp_ticketer.cli.update_checker"]
+            # Reimport with original packaging state
+            import mcp_ticketer.cli.update_checker  # noqa: F401
+        except ImportError:
+            pass
 
 
 class TestVersionFallback:
@@ -13,12 +38,12 @@ class TestVersionFallback:
         """Test basic version comparison with fallback."""
         # Temporarily hide packaging module
         with patch.dict(sys.modules, {"packaging": None, "packaging.version": None}):
+            # Remove update_checker from cache to force reimport
+            if "mcp_ticketer.cli.update_checker" in sys.modules:
+                del sys.modules["mcp_ticketer.cli.update_checker"]
+
             # Force reimport of update_checker to use fallback
-            import importlib
-
             from mcp_ticketer.cli import update_checker
-
-            importlib.reload(update_checker)
 
             # Verify fallback is being used
             assert not update_checker.HAS_PACKAGING
@@ -39,11 +64,11 @@ class TestVersionFallback:
     def test_fallback_version_equality(self):
         """Test version equality with fallback."""
         with patch.dict(sys.modules, {"packaging": None, "packaging.version": None}):
-            import importlib
+            # Remove update_checker from cache to force reimport
+            if "mcp_ticketer.cli.update_checker" in sys.modules:
+                del sys.modules["mcp_ticketer.cli.update_checker"]
 
             from mcp_ticketer.cli import update_checker
-
-            importlib.reload(update_checker)
 
             version_class = update_checker.Version
 
@@ -57,11 +82,11 @@ class TestVersionFallback:
     def test_fallback_version_multi_digit(self):
         """Test version comparison with multi-digit numbers."""
         with patch.dict(sys.modules, {"packaging": None, "packaging.version": None}):
-            import importlib
+            # Remove update_checker from cache to force reimport
+            if "mcp_ticketer.cli.update_checker" in sys.modules:
+                del sys.modules["mcp_ticketer.cli.update_checker"]
 
             from mcp_ticketer.cli import update_checker
-
-            importlib.reload(update_checker)
 
             version_class = update_checker.Version
 
@@ -76,11 +101,11 @@ class TestVersionFallback:
     def test_fallback_version_pre_release(self):
         """Test version comparison with pre-release versions."""
         with patch.dict(sys.modules, {"packaging": None, "packaging.version": None}):
-            import importlib
+            # Remove update_checker from cache to force reimport
+            if "mcp_ticketer.cli.update_checker" in sys.modules:
+                del sys.modules["mcp_ticketer.cli.update_checker"]
 
             from mcp_ticketer.cli import update_checker
-
-            importlib.reload(update_checker)
 
             version_class = update_checker.Version
 
@@ -107,10 +132,17 @@ class TestUpdateChecker:
         async def mock_get(url):
             return mock_response
 
-        # Create mock client
+        # Create mock client with proper async context manager support
         mock_client = MagicMock()
-        mock_client.__aenter__ = MagicMock(return_value=mock_client)
-        mock_client.__aexit__ = MagicMock(return_value=None)
+
+        async def mock_aenter(self):
+            return mock_client
+
+        async def mock_aexit(self, exc_type, exc_val, exc_tb):
+            return None
+
+        mock_client.__aenter__ = mock_aenter
+        mock_client.__aexit__ = mock_aexit
         mock_client.get = mock_get
 
         with patch("httpx.AsyncClient", return_value=mock_client):
@@ -137,9 +169,17 @@ class TestUpdateChecker:
         async def mock_get(url):
             return mock_response
 
+        # Create mock client with proper async context manager support
         mock_client = MagicMock()
-        mock_client.__aenter__ = MagicMock(return_value=mock_client)
-        mock_client.__aexit__ = MagicMock(return_value=None)
+
+        async def mock_aenter(self):
+            return mock_client
+
+        async def mock_aexit(self, exc_type, exc_val, exc_tb):
+            return None
+
+        mock_client.__aenter__ = mock_aenter
+        mock_client.__aexit__ = mock_aexit
         mock_client.get = mock_get
 
         with patch("httpx.AsyncClient", return_value=mock_client):
@@ -212,9 +252,17 @@ class TestHttpxLoggingSuppression:
             logging.getLogger("httpx").info("This should be suppressed")
             return mock_response
 
+        # Create mock client with proper async context manager support
         mock_client = MagicMock()
-        mock_client.__aenter__ = MagicMock(return_value=mock_client)
-        mock_client.__aexit__ = MagicMock(return_value=None)
+
+        async def mock_aenter(self):
+            return mock_client
+
+        async def mock_aexit(self, exc_type, exc_val, exc_tb):
+            return None
+
+        mock_client.__aenter__ = mock_aenter
+        mock_client.__aexit__ = mock_aexit
         mock_client.get = mock_get
 
         with patch("httpx.AsyncClient", return_value=mock_client):
