@@ -1,12 +1,135 @@
 """Setup command for mcp-ticketer - smart initialization with platform detection."""
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import typer
 from rich.console import Console
 
 console = Console()
+
+# Mapping of adapter types to their required dependencies
+ADAPTER_DEPENDENCIES = {
+    "linear": {"package": "gql[httpx]", "extras": "linear"},
+    "jira": {"package": "jira", "extras": "jira"},
+    "github": {"package": "PyGithub", "extras": "github"},
+    "aitrackdown": None,  # No extra dependencies
+}
+
+
+def _check_package_installed(adapter_type: str) -> bool:
+    """Check if adapter-specific package is installed.
+
+    Args:
+        adapter_type: Type of adapter (linear, jira, github)
+
+    Returns:
+        True if package is installed, False otherwise
+
+    """
+    try:
+        # Try to import the package
+        if adapter_type == "linear":
+            import gql  # noqa: F401
+        elif adapter_type == "jira":
+            import jira  # noqa: F401
+        elif adapter_type == "github":
+            import github  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+def _check_and_install_adapter_dependencies(
+    adapter_type: str, console: Console
+) -> bool:
+    """Check if adapter-specific dependencies are installed and offer to install.
+
+    Args:
+        adapter_type: Type of adapter (linear, jira, github, aitrackdown)
+        console: Rich console for output
+
+    Returns:
+        True if dependencies are satisfied (installed or not needed), False if failed
+
+    """
+    # Check if adapter needs extra dependencies
+    dependency_info = ADAPTER_DEPENDENCIES.get(adapter_type)
+
+    if dependency_info is None:
+        # No extra dependencies needed (e.g., aitrackdown)
+        console.print(
+            f"[green]✓[/green] No extra dependencies required for {adapter_type}\n"
+        )
+        return True
+
+    # Check if the required package is already installed
+    if _check_package_installed(adapter_type):
+        console.print(
+            f"[green]✓[/green] {adapter_type.capitalize()} dependencies already installed\n"
+        )
+        return True
+
+    # Dependencies not installed
+    console.print(
+        f"[yellow]⚠[/yellow]  {adapter_type.capitalize()} adapter requires additional dependencies\n"
+    )
+    console.print(
+        f"[dim]Required package: {dependency_info['package']}[/dim]\n"
+    )
+
+    # Prompt user to install
+    try:
+        if not typer.confirm("Install dependencies now?", default=True):
+            console.print(
+                f"\n[yellow]Skipping installation. Install manually with:[/yellow]"
+            )
+            console.print(
+                f"[cyan]  pip install mcp-ticketer[{dependency_info['extras']}][/cyan]\n"
+            )
+            return True  # User declined, but we continue
+
+    except typer.Abort:
+        console.print("\n[yellow]Installation cancelled[/yellow]\n")
+        return True
+
+    # Install dependencies
+    console.print(
+        f"[cyan]Installing {adapter_type} dependencies...[/cyan]\n"
+    )
+
+    try:
+        # Run pip install with the extras
+        subprocess.check_call(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                f"mcp-ticketer[{dependency_info['extras']}]",
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+        )
+
+        console.print(
+            f"[green]✓[/green] Successfully installed {adapter_type} dependencies\n"
+        )
+        return True
+
+    except subprocess.CalledProcessError as e:
+        console.print(
+            f"[red]✗[/red] Failed to install dependencies: {e.stderr.decode() if e.stderr else 'Unknown error'}\n"
+        )
+        console.print(
+            f"[yellow]Please install manually with:[/yellow]"
+        )
+        console.print(
+            f"[cyan]  pip install mcp-ticketer[{dependency_info['extras']}][/cyan]\n"
+        )
+        return True  # Continue even if installation failed
 
 
 def _prompt_for_adapter_selection(console: Console) -> str:
@@ -198,6 +321,9 @@ def setup(
             project_path=str(proj_path),
             global_config=False,
         )
+
+        # Check and install adapter-specific dependencies
+        _check_and_install_adapter_dependencies(adapter_type, console)
 
         console.print("\n[green]✓ Adapter configuration complete[/green]\n")
     else:

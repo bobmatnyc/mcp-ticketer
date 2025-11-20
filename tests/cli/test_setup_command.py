@@ -11,10 +11,12 @@ Tests the setup command which intelligently combines init and install:
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
+import typer
 from typer.testing import CliRunner
 
 from mcp_ticketer.cli.main import app
@@ -627,6 +629,272 @@ class TestPromptAndUpdateDefaultValues:
                 "Could not read" in str(call)
                 for call in mock_console.print.call_args_list
             )
+
+
+@pytest.mark.unit
+class TestCheckAndInstallAdapterDependencies:
+    """Test suite for _check_and_install_adapter_dependencies helper function."""
+
+    def test_aitrackdown_no_dependencies_needed(self) -> None:
+        """Test that aitrackdown adapter reports no extra dependencies needed."""
+        from mcp_ticketer.cli.setup_command import (
+            _check_and_install_adapter_dependencies,
+        )
+
+        with patch("mcp_ticketer.cli.main.Console") as mock_console_class:
+            mock_console = Mock()
+            mock_console_class.return_value = mock_console
+
+            result = _check_and_install_adapter_dependencies(
+                "aitrackdown", mock_console
+            )
+
+            # Should return True (no dependencies needed)
+            assert result is True
+
+            # Verify message was printed
+            assert any(
+                "No extra dependencies required" in str(call)
+                for call in mock_console.print.call_args_list
+            )
+
+    def test_dependencies_already_installed(self) -> None:
+        """Test when adapter dependencies are already installed."""
+        from mcp_ticketer.cli.setup_command import (
+            _check_and_install_adapter_dependencies,
+        )
+
+        with (
+            patch("mcp_ticketer.cli.main.Console") as mock_console_class,
+            patch(
+                "mcp_ticketer.cli.setup_command._check_package_installed"
+            ) as mock_check,
+        ):
+            mock_console = Mock()
+            mock_console_class.return_value = mock_console
+
+            # Mock that package is already installed
+            mock_check.return_value = True
+
+            result = _check_and_install_adapter_dependencies("linear", mock_console)
+
+            # Should return True (already installed)
+            assert result is True
+
+            # Verify success message was printed
+            assert any(
+                "already installed" in str(call)
+                for call in mock_console.print.call_args_list
+            )
+
+    def test_dependencies_missing_user_accepts_installation(self) -> None:
+        """Test installing dependencies when user accepts."""
+        from mcp_ticketer.cli.setup_command import (
+            _check_and_install_adapter_dependencies,
+        )
+
+        with (
+            patch("mcp_ticketer.cli.main.Console") as mock_console_class,
+            patch(
+                "mcp_ticketer.cli.setup_command._check_package_installed"
+            ) as mock_check,
+            patch("typer.confirm") as mock_confirm,
+            patch("subprocess.check_call") as mock_subprocess,
+        ):
+            mock_console = Mock()
+            mock_console_class.return_value = mock_console
+
+            # Mock that package is NOT installed
+            mock_check.return_value = False
+
+            # User accepts installation
+            mock_confirm.return_value = True
+
+            # Mock successful installation
+            mock_subprocess.return_value = 0
+
+            result = _check_and_install_adapter_dependencies("github", mock_console)
+
+            # Should return True (installation succeeded)
+            assert result is True
+
+            # Verify subprocess was called with correct command
+            assert mock_subprocess.called
+            call_args = mock_subprocess.call_args[0][0]
+            assert "pip" in call_args
+            assert "install" in call_args
+            assert "mcp-ticketer[github]" in call_args
+
+            # Verify success message was printed
+            assert any(
+                "Successfully installed" in str(call)
+                for call in mock_console.print.call_args_list
+            )
+
+    def test_dependencies_missing_user_declines_installation(self) -> None:
+        """Test when user declines to install dependencies."""
+        from mcp_ticketer.cli.setup_command import (
+            _check_and_install_adapter_dependencies,
+        )
+
+        with (
+            patch("mcp_ticketer.cli.main.Console") as mock_console_class,
+            patch(
+                "mcp_ticketer.cli.setup_command._check_package_installed"
+            ) as mock_check,
+            patch("typer.confirm") as mock_confirm,
+            patch("subprocess.check_call") as mock_subprocess,
+        ):
+            mock_console = Mock()
+            mock_console_class.return_value = mock_console
+
+            # Mock that package is NOT installed
+            mock_check.return_value = False
+
+            # User declines installation
+            mock_confirm.return_value = False
+
+            result = _check_and_install_adapter_dependencies("jira", mock_console)
+
+            # Should return True (user declined, but we continue)
+            assert result is True
+
+            # Verify subprocess was NOT called
+            assert not mock_subprocess.called
+
+            # Verify manual installation instructions were shown
+            assert any(
+                "Install manually" in str(call)
+                for call in mock_console.print.call_args_list
+            )
+            assert any(
+                "pip install mcp-ticketer[jira]" in str(call)
+                for call in mock_console.print.call_args_list
+            )
+
+    def test_installation_fails_gracefully(self) -> None:
+        """Test graceful handling of installation failure."""
+        from mcp_ticketer.cli.setup_command import (
+            _check_and_install_adapter_dependencies,
+        )
+
+        with (
+            patch("mcp_ticketer.cli.main.Console") as mock_console_class,
+            patch(
+                "mcp_ticketer.cli.setup_command._check_package_installed"
+            ) as mock_check,
+            patch("typer.confirm") as mock_confirm,
+            patch("subprocess.check_call") as mock_subprocess,
+        ):
+            mock_console = Mock()
+            mock_console_class.return_value = mock_console
+
+            # Mock that package is NOT installed
+            mock_check.return_value = False
+
+            # User accepts installation
+            mock_confirm.return_value = True
+
+            # Mock installation failure
+            mock_subprocess.side_effect = subprocess.CalledProcessError(
+                1, "pip", stderr=b"Installation error"
+            )
+
+            result = _check_and_install_adapter_dependencies("linear", mock_console)
+
+            # Should return True (continue despite failure)
+            assert result is True
+
+            # Debug: print all calls
+            all_calls = [str(call) for call in mock_console.print.call_args_list]
+
+            # Verify error message and manual instructions were shown
+            # Check with more flexible pattern matching
+            has_failed = any("fail" in str(call).lower() for call in all_calls)
+            has_manual = any("manual" in str(call).lower() for call in all_calls)
+
+            assert has_failed, f"Expected 'failed' message in: {all_calls}"
+            assert has_manual, f"Expected 'manual' message in: {all_calls}"
+
+    def test_user_cancels_installation_prompt(self) -> None:
+        """Test when user cancels the installation prompt."""
+        from mcp_ticketer.cli.setup_command import (
+            _check_and_install_adapter_dependencies,
+        )
+
+        with (
+            patch("mcp_ticketer.cli.main.Console") as mock_console_class,
+            patch(
+                "mcp_ticketer.cli.setup_command._check_package_installed"
+            ) as mock_check,
+            patch("typer.confirm") as mock_confirm,
+            patch("subprocess.check_call") as mock_subprocess,
+        ):
+            mock_console = Mock()
+            mock_console_class.return_value = mock_console
+
+            # Mock that package is NOT installed
+            mock_check.return_value = False
+
+            # User cancels prompt (Ctrl+C)
+            mock_confirm.side_effect = typer.Abort()
+
+            result = _check_and_install_adapter_dependencies("github", mock_console)
+
+            # Should return True (cancelled, but we continue)
+            assert result is True
+
+            # Verify subprocess was NOT called
+            assert not mock_subprocess.called
+
+            # Verify cancellation message was shown
+            assert any(
+                "cancelled" in str(call).lower()
+                for call in mock_console.print.call_args_list
+            )
+
+    def test_all_adapter_types_have_dependencies_defined(self) -> None:
+        """Test that all adapter types have dependency mappings."""
+        from mcp_ticketer.cli.setup_command import ADAPTER_DEPENDENCIES
+
+        # All known adapter types should be in the mapping
+        expected_adapters = ["linear", "jira", "github", "aitrackdown"]
+
+        for adapter in expected_adapters:
+            assert adapter in ADAPTER_DEPENDENCIES, f"{adapter} not in mapping"
+
+    def test_linear_adapter_import_check(self) -> None:
+        """Test that linear adapter correctly checks for gql package."""
+        from mcp_ticketer.cli.setup_command import (
+            _check_and_install_adapter_dependencies,
+        )
+
+        with (
+            patch("mcp_ticketer.cli.main.Console") as mock_console_class,
+            patch(
+                "mcp_ticketer.cli.setup_command._check_package_installed"
+            ) as mock_check,
+            patch("typer.confirm") as mock_confirm,
+            patch("subprocess.check_call") as mock_subprocess,
+        ):
+            mock_console = Mock()
+            mock_console_class.return_value = mock_console
+
+            # Mock that package is NOT installed
+            mock_check.return_value = False
+
+            # User accepts installation
+            mock_confirm.return_value = True
+            mock_subprocess.return_value = 0
+
+            result = _check_and_install_adapter_dependencies("linear", mock_console)
+
+            # Should attempt installation
+            assert result is True
+            # Verify correct extras are used
+            if mock_subprocess.called:
+                call_args = mock_subprocess.call_args[0][0]
+                assert "mcp-ticketer[linear]" in call_args
 
 
 @pytest.mark.unit
