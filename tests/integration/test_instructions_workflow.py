@@ -145,8 +145,12 @@ This content is long enough to pass validation checks and has been updated.
             assert len(validate_result["errors"]) > 0
 
             # Try to set it anyway (should fail via API)
+            from mcp_ticketer.core.instructions import InstructionsValidationError
+
             manager = TicketInstructionsManager(tmp_path)
-            with pytest.raises(Exception):  # Should raise validation error
+            with pytest.raises(
+                InstructionsValidationError
+            ):  # Should raise validation error
                 manager.set_instructions(invalid_content)
 
             # Validate valid content
@@ -302,7 +306,7 @@ class TestCLIWorkflow:
 
             with patch(
                 "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
-            ):
+            ) as mock_cls:
                 from unittest.mock import Mock
 
                 mock_manager = Mock()
@@ -310,13 +314,15 @@ class TestCLIWorkflow:
                 mock_manager.get_instructions_path.return_value = (
                     tmp_path / ".mcp-ticketer" / "instructions.md"
                 )
-                MockManager.return_value = mock_manager
+                mock_cls.return_value = mock_manager
 
-                with patch("mcp_ticketer.cli.instruction_commands.Path"):
+                with patch(
+                    "mcp_ticketer.cli.instruction_commands.Path"
+                ) as mock_path_cls:
                     mock_path = Mock()
                     mock_path.exists.return_value = True
                     mock_path.read_text.return_value = custom_content
-                    MockPath.return_value = mock_path
+                    mock_path_cls.return_value = mock_path
 
                     result = runner.invoke(app, ["add", str(source_file)])
                     assert result.exit_code == 0
@@ -330,14 +336,14 @@ class TestCLIWorkflow:
             # Show via CLI
             with patch(
                 "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
-            ):
+            ) as mock_cls:
                 mock_manager = Mock()
                 mock_manager.has_custom_instructions.return_value = True
                 mock_manager.get_instructions.return_value = custom_content
                 mock_manager.get_instructions_path.return_value = (
                     tmp_path / ".mcp-ticketer" / "instructions.md"
                 )
-                MockManager.return_value = mock_manager
+                mock_cls.return_value = mock_manager
 
                 result = runner.invoke(app, ["show"])
                 assert result.exit_code == 0
@@ -345,13 +351,13 @@ class TestCLIWorkflow:
             # Delete via CLI
             with patch(
                 "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
-            ):
+            ) as mock_cls:
                 mock_manager = Mock()
                 mock_manager.has_custom_instructions.return_value = True
                 mock_manager.get_instructions_path.return_value = (
                     tmp_path / ".mcp-ticketer" / "instructions.md"
                 )
-                MockManager.return_value = mock_manager
+                mock_cls.return_value = mock_manager
 
                 result = runner.invoke(app, ["delete", "--yes"])
                 assert result.exit_code == 0

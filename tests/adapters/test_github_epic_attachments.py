@@ -233,14 +233,16 @@ class TestGitHubEpicUpdate:
         milestone_number = 99999
 
         # Mock 404 response
+        from mcp_ticketer.core.exceptions import NotFoundError
+
         mock_response = Mock()
         mock_response.status_code = 404
         mock_response.json.return_value = {"message": "Not Found"}
-        mock_response.raise_for_status.side_effect = Exception("404 Not Found")
+        mock_response.raise_for_status.side_effect = NotFoundError("404 Not Found")
 
         adapter.client.patch = AsyncMock(return_value=mock_response)
 
-        with pytest.raises(Exception):
+        with pytest.raises((Exception, NotFoundError)):
             await adapter.update_milestone(milestone_number, {"title": "test"})
 
     @pytest.mark.asyncio
@@ -491,16 +493,18 @@ class TestGitHubAttachments:
         issue_number = 123
 
         # Mock API error
+        from mcp_ticketer.core.exceptions import AdapterError
+
         mock_response = Mock()
         mock_response.status_code = 500
         mock_response.json.return_value = {"message": "Internal Server Error"}
-        mock_response.raise_for_status.side_effect = Exception(
+        mock_response.raise_for_status.side_effect = AdapterError(
             "500 Internal Server Error"
         )
 
         adapter.client.post = AsyncMock(return_value=mock_response)
 
-        with pytest.raises(Exception):
+        with pytest.raises((Exception, AdapterError)):
             await adapter.add_attachment_to_issue(issue_number, str(temp_file))
 
 

@@ -272,7 +272,7 @@ def _configure_linear(
 
     # Team Key/ID (programmatic mode: use provided values, interactive: prompt)
     current_team_key = config_dict.get("team_key", "") if has_existing else ""
-    current_team_id = config_dict.get("team_id", "") if has_existing else ""
+    config_dict.get("team_id", "") if has_existing else ""
     final_team_key = team_key or os.getenv("LINEAR_TEAM_KEY") or ""
     final_team_id = team_id or os.getenv("LINEAR_TEAM_ID") or ""
 

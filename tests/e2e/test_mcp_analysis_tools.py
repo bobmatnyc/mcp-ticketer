@@ -144,7 +144,7 @@ class TestMCPAnalysisToolsGracefulDegradation:
             raise TimeoutError(
                 f"No response received within {timeout}s. "
                 f"Stderr: {stderr_output[:500] if stderr_output else '(empty)'}"
-            )
+            ) from None
 
     def start_mcp_server(
         self, mcp_command: list[str], cwd: Path | None = None, env: dict | None = None

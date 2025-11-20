@@ -155,7 +155,7 @@ async def test_create_issue(client, config, project_key, issue_type):
             try:
                 error_detail = e.response.json()
                 print(f"    📋 Error details: {error_detail}")
-            except:
+            except Exception:  # noqa: S110
                 pass
         return None
 

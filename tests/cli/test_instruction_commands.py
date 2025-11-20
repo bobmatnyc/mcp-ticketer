@@ -29,7 +29,9 @@ class TestShowCommand:
 
     def test_show_default_instructions(self, tmp_path: Path) -> None:
         """Test showing default instructions when no custom exist."""
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = False
             mock_manager.get_instructions.return_value = (
@@ -38,7 +40,7 @@ class TestShowCommand:
             mock_manager.get_default_instructions.return_value = (
                 "# Default Instructions\n\nDefault content"
             )
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
             result = runner.invoke(app, ["show"])
 
@@ -47,7 +49,9 @@ class TestShowCommand:
 
     def test_show_custom_instructions(self, tmp_path: Path) -> None:
         """Test showing custom instructions when they exist."""
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = True
             mock_manager.get_instructions.return_value = (
@@ -56,7 +60,7 @@ class TestShowCommand:
             mock_manager.get_instructions_path.return_value = Path(
                 "/test/instructions.md"
             )
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
             result = runner.invoke(app, ["show"])
 
@@ -65,12 +69,14 @@ class TestShowCommand:
 
     def test_show_default_flag(self, tmp_path: Path) -> None:
         """Test showing default instructions with --default flag."""
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.get_default_instructions.return_value = (
                 "# Default\n\nDefault content"
             )
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
             result = runner.invoke(app, ["show", "--default"])
 
@@ -81,11 +87,13 @@ class TestShowCommand:
         """Test showing raw markdown output with --raw flag."""
         raw_content = "# Raw Instructions\n\nRaw markdown content"
 
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = False
             mock_manager.get_instructions.return_value = raw_content
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
             result = runner.invoke(app, ["show", "--raw"])
 
@@ -96,8 +104,10 @@ class TestShowCommand:
         """Test error handling in show command."""
         from mcp_ticketer.core.instructions import InstructionsError
 
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
-            MockManager.side_effect = InstructionsError("Test error")
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
+            mock_cls.side_effect = InstructionsError("Test error")
 
             result = runner.invoke(app, ["show"])
 
@@ -116,20 +126,22 @@ class TestAddCommand:
         source_content = "# Custom Instructions\n\n" + "x" * 100
         source_file.write_text(source_content)
 
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = False
             mock_manager.get_instructions_path.return_value = (
                 tmp_path / "instructions.md"
             )
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
             # Mock Path operations
-            with patch("mcp_ticketer.cli.instruction_commands.Path"):
+            with patch("mcp_ticketer.cli.instruction_commands.Path") as mock_path_cls:
                 mock_path = Mock()
                 mock_path.exists.return_value = True
                 mock_path.read_text.return_value = source_content
-                MockPath.return_value = mock_path
+                mock_path_cls.return_value = mock_path
 
                 result = runner.invoke(app, ["add", str(source_file)])
 
@@ -141,15 +153,17 @@ class TestAddCommand:
         """Test adding from non-existent file shows error."""
         missing_file = tmp_path / "missing.md"
 
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = False
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
-            with patch("mcp_ticketer.cli.instruction_commands.Path"):
+            with patch("mcp_ticketer.cli.instruction_commands.Path") as mock_path_cls:
                 mock_path = Mock()
                 mock_path.exists.return_value = False
-                MockPath.return_value = mock_path
+                mock_path_cls.return_value = mock_path
 
                 result = runner.invoke(app, ["add", str(missing_file)])
 
@@ -160,13 +174,15 @@ class TestAddCommand:
         """Test adding instructions from stdin."""
         stdin_content = "# Stdin Instructions\n\n" + "x" * 100
 
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = False
             mock_manager.get_instructions_path.return_value = (
                 tmp_path / "instructions.md"
             )
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
             # Simulate stdin input
             result = runner.invoke(app, ["add", "--stdin"], input=stdin_content)
@@ -177,10 +193,12 @@ class TestAddCommand:
 
     def test_add_with_empty_stdin(self) -> None:
         """Test adding with empty stdin shows error."""
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = False
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
             result = runner.invoke(app, ["add", "--stdin"], input="   ")
 
@@ -189,12 +207,14 @@ class TestAddCommand:
 
     def test_add_without_file_or_stdin(self) -> None:
         """Test add without file or stdin shows error."""
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = (
                 False  # No existing custom
             )
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
             result = runner.invoke(app, ["add"])
 
@@ -207,17 +227,19 @@ class TestAddCommand:
         source_content = "# New Content\n\n" + "x" * 100
         source_file.write_text(source_content)
 
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = True
             mock_manager.get_instructions_path.return_value = tmp_path / "existing.md"
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
-            with patch("mcp_ticketer.cli.instruction_commands.Path"):
+            with patch("mcp_ticketer.cli.instruction_commands.Path") as mock_path_cls:
                 mock_path = Mock()
                 mock_path.exists.return_value = True
                 mock_path.read_text.return_value = source_content
-                MockPath.return_value = mock_path
+                mock_path_cls.return_value = mock_path
 
                 # User confirms overwrite
                 result = runner.invoke(app, ["add", str(source_file)], input="y\n")
@@ -231,16 +253,18 @@ class TestAddCommand:
         source_file = tmp_path / "source.md"
         source_file.write_text("# Content\n\n" + "x" * 100)
 
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = True
             mock_manager.get_instructions_path.return_value = tmp_path / "existing.md"
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
-            with patch("mcp_ticketer.cli.instruction_commands.Path"):
+            with patch("mcp_ticketer.cli.instruction_commands.Path") as mock_path_cls:
                 mock_path = Mock()
                 mock_path.exists.return_value = True
-                MockPath.return_value = mock_path
+                mock_path_cls.return_value = mock_path
 
                 # User cancels
                 result = runner.invoke(app, ["add", str(source_file)], input="n\n")
@@ -255,19 +279,21 @@ class TestAddCommand:
         source_content = "# Content\n\n" + "x" * 100
         source_file.write_text(source_content)
 
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = True
             mock_manager.get_instructions_path.return_value = (
                 tmp_path / "instructions.md"
             )
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
-            with patch("mcp_ticketer.cli.instruction_commands.Path"):
+            with patch("mcp_ticketer.cli.instruction_commands.Path") as mock_path_cls:
                 mock_path = Mock()
                 mock_path.exists.return_value = True
                 mock_path.read_text.return_value = source_content
-                MockPath.return_value = mock_path
+                mock_path_cls.return_value = mock_path
 
                 result = runner.invoke(app, ["add", str(source_file), "--force"])
 
@@ -283,19 +309,21 @@ class TestAddCommand:
         source_file = tmp_path / "source.md"
         source_file.write_text("Short")
 
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = False
             mock_manager.set_instructions.side_effect = InstructionsValidationError(
                 "Too short"
             )
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
-            with patch("mcp_ticketer.cli.instruction_commands.Path"):
+            with patch("mcp_ticketer.cli.instruction_commands.Path") as mock_path_cls:
                 mock_path = Mock()
                 mock_path.exists.return_value = True
                 mock_path.read_text.return_value = "Short"
-                MockPath.return_value = mock_path
+                mock_path_cls.return_value = mock_path
 
                 result = runner.invoke(app, ["add", str(source_file)])
 
@@ -313,19 +341,21 @@ class TestUpdateCommand:
         source_content = "# Updated Instructions\n\n" + "x" * 100
         source_file.write_text(source_content)
 
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = True
             mock_manager.get_instructions_path.return_value = (
                 tmp_path / "instructions.md"
             )
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
-            with patch("mcp_ticketer.cli.instruction_commands.Path"):
+            with patch("mcp_ticketer.cli.instruction_commands.Path") as mock_path_cls:
                 mock_path = Mock()
                 mock_path.exists.return_value = True
                 mock_path.read_text.return_value = source_content
-                MockPath.return_value = mock_path
+                mock_path_cls.return_value = mock_path
 
                 result = runner.invoke(app, ["update", str(source_file)])
 
@@ -335,10 +365,12 @@ class TestUpdateCommand:
 
     def test_update_without_existing_custom(self) -> None:
         """Test update without existing custom instructions shows warning."""
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = False
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
             result = runner.invoke(app, ["update", "file.md"])
 
@@ -350,13 +382,15 @@ class TestUpdateCommand:
         """Test updating instructions from stdin."""
         stdin_content = "# Updated\n\n" + "x" * 100
 
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = True
             mock_manager.get_instructions_path.return_value = (
                 tmp_path / "instructions.md"
             )
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
             result = runner.invoke(app, ["update", "--stdin"], input=stdin_content)
 
@@ -371,13 +405,15 @@ class TestDeleteCommand:
 
     def test_delete_with_confirmation(self, tmp_path: Path) -> None:
         """Test deleting instructions with confirmation."""
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = True
             mock_manager.get_instructions_path.return_value = (
                 tmp_path / "instructions.md"
             )
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
             # User confirms deletion
             result = runner.invoke(app, ["delete"], input="y\n")
@@ -388,13 +424,15 @@ class TestDeleteCommand:
 
     def test_delete_with_cancel(self) -> None:
         """Test cancelling deletion."""
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = True
             mock_manager.get_instructions_path.return_value = Path(
                 "/test/instructions.md"
             )
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
             # User cancels
             result = runner.invoke(app, ["delete"], input="n\n")
@@ -405,13 +443,15 @@ class TestDeleteCommand:
 
     def test_delete_with_yes_flag(self) -> None:
         """Test delete with --yes flag skips confirmation."""
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = True
             mock_manager.get_instructions_path.return_value = Path(
                 "/test/instructions.md"
             )
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
             result = runner.invoke(app, ["delete", "--yes"])
 
@@ -423,10 +463,12 @@ class TestDeleteCommand:
 
     def test_delete_when_no_custom_exist(self) -> None:
         """Test delete when no custom instructions exist."""
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.has_custom_instructions.return_value = False
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
             result = runner.invoke(app, ["delete"])
 
@@ -443,11 +485,13 @@ class TestPathCommand:
         """Test path command when custom instructions exist."""
         inst_path = tmp_path / ".mcp-ticketer" / "instructions.md"
 
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.get_instructions_path.return_value = inst_path
             mock_manager.has_custom_instructions.return_value = True
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
             # Mock stat for file size
             with patch.object(Path, "stat") as mock_stat:
@@ -464,11 +508,13 @@ class TestPathCommand:
         """Test path command when no custom instructions exist."""
         inst_path = tmp_path / ".mcp-ticketer" / "instructions.md"
 
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
             mock_manager = Mock()
             mock_manager.get_instructions_path.return_value = inst_path
             mock_manager.has_custom_instructions.return_value = False
-            MockManager.return_value = mock_manager
+            mock_cls.return_value = mock_manager
 
             result = runner.invoke(app, ["path"])
 
@@ -485,8 +531,10 @@ class TestEditCommand:
         """Test edit command error handling."""
         from mcp_ticketer.core.instructions import InstructionsError
 
-        with patch("mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"):
-            MockManager.side_effect = InstructionsError("Test error")
+        with patch(
+            "mcp_ticketer.cli.instruction_commands.TicketInstructionsManager"
+        ) as mock_cls:
+            mock_cls.side_effect = InstructionsError("Test error")
 
             result = runner.invoke(app, ["edit"])
 
