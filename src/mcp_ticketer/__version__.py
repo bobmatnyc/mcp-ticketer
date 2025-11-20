@@ -1,6 +1,6 @@
 """Version information for mcp-ticketer package."""
 
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 __version_info__ = tuple(int(part) for part in __version__.split("."))
 
 # Package metadata
