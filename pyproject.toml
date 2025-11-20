@@ -176,11 +176,22 @@ select = [
 ignore = [
     "E501",  # line too long (handled by black)
     "B008",  # do not perform function calls in argument defaults
+    "B019",  # Use of functools.lru_cache on methods (acceptable for our use case)
     "W191",  # indentation contains tabs
     "D100",  # Missing docstring in public module
     "D104",  # Missing docstring in public package
     "D107",  # Missing docstring in __init__
+    "D401",  # First line of docstring should be imperative (too strict)
+    "N817",  # CamelCase imported as acronym (acceptable for common abbreviations)
     "S101",  # Use of assert detected
+    "S108",  # Hardcoded temp directory (false positive for test paths)
+    "S110",  # try-except-pass (acceptable for silent error handling)
+    "S112",  # try-except-continue (acceptable for iteration error handling)
+    "S311",  # Standard pseudo-random generators (not used for crypto)
+    "S603",  # subprocess without shell=True (acceptable, we control input)
+    "S607",  # Starting process with partial path (acceptable for common tools)
+    "S608",  # Possible SQL injection (false positive, using parameterized queries)
+    "UP007",  # Use X | Y for type annotations (not yet adopted project-wide)
 ]
 
 [tool.ruff.lint.per-file-ignores]

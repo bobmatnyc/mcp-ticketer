@@ -84,7 +84,7 @@ def _check_and_install_adapter_dependencies(
     try:
         if not typer.confirm("Install dependencies now?", default=True):
             console.print(
-                f"\n[yellow]Skipping installation. Install manually with:[/yellow]"
+                "\n[yellow]Skipping installation. Install manually with:[/yellow]"
             )
             console.print(
                 f"[cyan]  pip install mcp-ticketer[{dependency_info['extras']}][/cyan]\n"
@@ -124,7 +124,7 @@ def _check_and_install_adapter_dependencies(
             f"[red]✗[/red] Failed to install dependencies: {e.stderr.decode() if e.stderr else 'Unknown error'}\n"
         )
         console.print(
-            f"[yellow]Please install manually with:[/yellow]"
+            "[yellow]Please install manually with:[/yellow]"
         )
         console.print(
             f"[cyan]  pip install mcp-ticketer[{dependency_info['extras']}][/cyan]\n"
