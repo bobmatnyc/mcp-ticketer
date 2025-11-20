@@ -31,7 +31,7 @@ class TestSetupCommand:
         with (
             patch("mcp_ticketer.cli.main.Path.cwd", return_value=tmp_path),
             patch("mcp_ticketer.core.env_discovery.discover_config") as mock_discover,
-            patch("mcp_ticketer.cli.main._prompt_for_adapter_selection") as mock_prompt,
+            patch("mcp_ticketer.cli.setup_command._prompt_for_adapter_selection") as mock_prompt,
             patch("mcp_ticketer.cli.main.init") as mock_init,
             patch(
                 "mcp_ticketer.cli.platform_detection.PlatformDetector"
@@ -77,7 +77,7 @@ class TestSetupCommand:
             patch("typer.confirm") as mock_confirm,
             patch("typer.prompt"),
             patch(
-                "mcp_ticketer.cli.main._prompt_and_update_default_values"
+                "mcp_ticketer.cli.setup_command._prompt_and_update_default_values"
             ) as mock_prompt_defaults,
         ):
             # User confirms to keep existing settings
@@ -222,7 +222,7 @@ class TestSetupCommand:
         with (
             patch("mcp_ticketer.cli.main.Path.cwd", return_value=tmp_path),
             patch("mcp_ticketer.core.env_discovery.discover_config") as mock_discover,
-            patch("mcp_ticketer.cli.main._prompt_for_adapter_selection") as mock_prompt,
+            patch("mcp_ticketer.cli.setup_command._prompt_for_adapter_selection") as mock_prompt,
             patch("mcp_ticketer.cli.main.init") as mock_init,
             patch(
                 "mcp_ticketer.cli.platform_detection.PlatformDetector"
@@ -247,7 +247,7 @@ class TestSetupCommand:
         with (
             patch("mcp_ticketer.cli.main.Path.cwd", return_value=tmp_path),
             patch("mcp_ticketer.core.env_discovery.discover_config") as mock_discover,
-            patch("mcp_ticketer.cli.main._prompt_for_adapter_selection") as mock_prompt,
+            patch("mcp_ticketer.cli.setup_command._prompt_for_adapter_selection") as mock_prompt,
             patch("mcp_ticketer.cli.main.init") as mock_init,
             patch(
                 "mcp_ticketer.cli.platform_detection.PlatformDetector"
@@ -286,7 +286,7 @@ class TestSetupCommand:
                 "mcp_ticketer.cli.platform_detection.PlatformDetector"
             ) as mock_detector_class,
             patch(
-                "mcp_ticketer.cli.main._check_existing_platform_configs"
+                "mcp_ticketer.cli.setup_command._check_existing_platform_configs"
             ) as mock_check,
             patch(
                 "mcp_ticketer.cli.mcp_configure.configure_claude_mcp"
@@ -336,7 +336,7 @@ class TestSetupCommand:
                 "mcp_ticketer.cli.platform_detection.PlatformDetector"
             ) as mock_detector_class,
             patch(
-                "mcp_ticketer.cli.main._check_existing_platform_configs"
+                "mcp_ticketer.cli.setup_command._check_existing_platform_configs"
             ) as mock_check,
             patch(
                 "mcp_ticketer.cli.mcp_configure.configure_claude_mcp"
@@ -390,7 +390,7 @@ class TestSetupCommand:
                 "mcp_ticketer.cli.platform_detection.PlatformDetector"
             ) as mock_detector_class,
             patch(
-                "mcp_ticketer.cli.main._check_existing_platform_configs"
+                "mcp_ticketer.cli.setup_command._check_existing_platform_configs"
             ) as mock_check,
             patch(
                 "mcp_ticketer.cli.mcp_configure.configure_claude_mcp"
@@ -440,7 +440,7 @@ class TestSetupCommand:
                 "mcp_ticketer.cli.platform_detection.PlatformDetector"
             ) as mock_detector_class,
             patch(
-                "mcp_ticketer.cli.main._check_existing_platform_configs"
+                "mcp_ticketer.cli.setup_command._check_existing_platform_configs"
             ) as mock_check,
             patch(
                 "mcp_ticketer.cli.mcp_configure.configure_claude_mcp"
@@ -510,7 +510,7 @@ class TestPromptAndUpdateDefaultValues:
 
     def test_prompt_and_update_with_new_values(self, tmp_path: Path) -> None:
         """Test prompting and updating default values."""
-        from mcp_ticketer.cli.main import _prompt_and_update_default_values
+        from mcp_ticketer.cli.setup_command import _prompt_and_update_default_values
 
         config_dir = tmp_path / ".mcp-ticketer"
         config_dir.mkdir(parents=True, exist_ok=True)
@@ -550,7 +550,7 @@ class TestPromptAndUpdateDefaultValues:
 
     def test_prompt_and_update_preserves_existing_values(self, tmp_path: Path) -> None:
         """Test that existing values are passed to prompt function."""
-        from mcp_ticketer.cli.main import _prompt_and_update_default_values
+        from mcp_ticketer.cli.setup_command import _prompt_and_update_default_values
 
         config_dir = tmp_path / ".mcp-ticketer"
         config_dir.mkdir(parents=True, exist_ok=True)
@@ -586,7 +586,7 @@ class TestPromptAndUpdateDefaultValues:
 
     def test_prompt_and_update_handles_invalid_json(self, tmp_path: Path) -> None:
         """Test error handling for invalid JSON config."""
-        from mcp_ticketer.cli.main import _prompt_and_update_default_values
+        from mcp_ticketer.cli.setup_command import _prompt_and_update_default_values
 
         config_dir = tmp_path / ".mcp-ticketer"
         config_dir.mkdir(parents=True, exist_ok=True)
@@ -610,7 +610,7 @@ class TestPromptAndUpdateDefaultValues:
 
     def test_prompt_and_update_handles_missing_file(self, tmp_path: Path) -> None:
         """Test error handling for missing config file."""
-        from mcp_ticketer.cli.main import _prompt_and_update_default_values
+        from mcp_ticketer.cli.setup_command import _prompt_and_update_default_values
 
         config_file = tmp_path / ".mcp-ticketer" / "config.json"
         # Don't create the file
@@ -635,7 +635,7 @@ class TestCheckExistingPlatformConfigs:
 
     def test_check_claude_code_configured(self, tmp_path: Path) -> None:
         """Test detection of Claude Code configuration."""
-        from mcp_ticketer.cli.main import _check_existing_platform_configs
+        from mcp_ticketer.cli.setup_command import _check_existing_platform_configs
 
         # Create mock Claude Code config
         claude_config_path = Path.home() / ".claude.json"
@@ -663,7 +663,7 @@ class TestCheckExistingPlatformConfigs:
 
     def test_check_no_configs(self, tmp_path: Path) -> None:
         """Test when no platforms are configured."""
-        from mcp_ticketer.cli.main import _check_existing_platform_configs
+        from mcp_ticketer.cli.setup_command import _check_existing_platform_configs
 
         mock_platform = Mock()
         mock_platform.name = "claude-code"

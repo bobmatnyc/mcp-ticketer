@@ -173,12 +173,13 @@ class TestLinearAdapterTeamResolution:
     @pytest.mark.asyncio
     async def test_ensure_team_id_with_existing_id(self):
         """Test team ID resolution when ID is already provided."""
-        config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
+        valid_uuid = "12345678-1234-1234-1234-123456789012"
+        config = {"api_key": "lin_api_test_key_12345", "team_id": valid_uuid}
         adapter = LinearAdapter(config)
 
         team_id = await adapter._ensure_team_id()
 
-        assert team_id == "team-123"
+        assert team_id == valid_uuid
 
     @pytest.mark.asyncio
     async def test_ensure_team_id_with_team_key(self):
@@ -234,7 +235,7 @@ class TestLinearAdapterTeamResolution:
         with pytest.raises(ValueError) as exc_info:
             await adapter._ensure_team_id()
 
-        assert "Either team_id or team_key must be provided" in str(exc_info.value)
+        assert "Either team_id (UUID) or team_key (short code) must be provided" in str(exc_info.value)
 
 
 @pytest.mark.unit

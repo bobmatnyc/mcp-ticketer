@@ -34,11 +34,14 @@ class TestGetMcpTicketerPython:
         result = get_mcp_ticketer_python(project_path=tmp_path)
 
         # Should fall back to current Python or pipx
-        # Allow both python and python3 executables
+        # The result could be a symlink while sys.executable is the target
+        # So we check if they resolve to the same directory
+        result_path = Path(result)
+        sys_exec_path = Path(sys.executable)
+
         assert (
             result == sys.executable
-            or result == sys.executable.replace("python", "python3")
-            or result == sys.executable.replace("python3", "python")
+            or result_path.parent == sys_exec_path.parent  # Same bin directory
             or "/pipx/venvs/" in result
         )
 

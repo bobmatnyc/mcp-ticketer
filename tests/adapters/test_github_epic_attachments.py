@@ -238,7 +238,7 @@ class TestGitHubEpicUpdate:
         mock_response = Mock()
         mock_response.status_code = 404
         mock_response.json.return_value = {"message": "Not Found"}
-        mock_response.raise_for_status.side_effect = NotFoundError("404 Not Found")
+        mock_response.raise_for_status.side_effect = NotFoundError("404 Not Found", "github")
 
         adapter.client.patch = AsyncMock(return_value=mock_response)
 
@@ -499,7 +499,7 @@ class TestGitHubAttachments:
         mock_response.status_code = 500
         mock_response.json.return_value = {"message": "Internal Server Error"}
         mock_response.raise_for_status.side_effect = AdapterError(
-            "500 Internal Server Error"
+            "500 Internal Server Error", "github"
         )
 
         adapter.client.post = AsyncMock(return_value=mock_response)
