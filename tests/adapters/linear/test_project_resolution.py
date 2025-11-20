@@ -48,7 +48,11 @@ class TestLinearProjectIDResolution:
                         "name": "Test Project",
                         "slugId": "test-project-xyz789",
                     },
-                ]
+                ],
+                "pageInfo": {
+                    "hasNextPage": False,
+                    "endCursor": None,
+                },
             }
         }
 
@@ -193,7 +197,11 @@ class TestLinearProjectIDResolution:
                         "name": "Project Two",
                         "slugId": "project-two-abc124",  # Very similar short ID
                     },
-                ]
+                ],
+                "pageInfo": {
+                    "hasNextPage": False,
+                    "endCursor": None,
+                },
             }
         }
         adapter.client.execute_query.return_value = mock_response
@@ -213,7 +221,11 @@ class TestLinearProjectIDResolution:
                         "name": "Project Without Slug",
                         "slugId": "",  # Empty slugId
                     },
-                ]
+                ],
+                "pageInfo": {
+                    "hasNextPage": False,
+                    "endCursor": None,
+                },
             }
         }
         adapter.client.execute_query.return_value = mock_response
@@ -249,7 +261,11 @@ class TestLinearProjectIDResolution:
                         "name": "Project & Special!",
                         "slugId": "project-and-special-xyz123",
                     },
-                ]
+                ],
+                "pageInfo": {
+                    "hasNextPage": False,
+                    "endCursor": None,
+                },
             }
         }
         adapter.client.execute_query.return_value = mock_response
@@ -257,6 +273,139 @@ class TestLinearProjectIDResolution:
         result = await adapter._resolve_project_id("project-and-special")
 
         assert result == "special-project-uuid"
+
+    async def test_resolve_with_pagination_multiple_pages(self, adapter):
+        """Test that pagination works correctly across multiple pages."""
+        # First page response
+        first_page = {
+            "projects": {
+                "nodes": [
+                    {
+                        "id": "project-1-uuid",
+                        "name": "Project One",
+                        "slugId": "project-one-abc123",
+                    },
+                    {
+                        "id": "project-2-uuid",
+                        "name": "Project Two",
+                        "slugId": "project-two-abc124",
+                    },
+                ],
+                "pageInfo": {
+                    "hasNextPage": True,
+                    "endCursor": "cursor-page-1",
+                },
+            }
+        }
+
+        # Second page response
+        second_page = {
+            "projects": {
+                "nodes": [
+                    {
+                        "id": "project-3-uuid",
+                        "name": "Target Project",
+                        "slugId": "target-project-xyz789",
+                    },
+                ],
+                "pageInfo": {
+                    "hasNextPage": False,
+                    "endCursor": "cursor-page-2",
+                },
+            }
+        }
+
+        # Mock to return different responses based on call count
+        adapter.client.execute_query.side_effect = [first_page, second_page]
+
+        # Try to find a project that's on the second page
+        result = await adapter._resolve_project_id("target-project-xyz789")
+
+        # Should find the project from the second page
+        assert result == "project-3-uuid"
+
+        # Should have made exactly 2 API calls (pagination)
+        assert adapter.client.execute_query.call_count == 2
+
+        # Verify the second call included the cursor
+        second_call_args = adapter.client.execute_query.call_args_list[1]
+        assert second_call_args[0][1]["after"] == "cursor-page-1"
+
+    async def test_resolve_with_pagination_over_100_projects(self, adapter):
+        """Test handling workspaces with >100 projects (real-world scenario)."""
+        # Simulate a workspace with 150 projects (2 pages)
+        first_page_projects = [
+            {
+                "id": f"project-{i}-uuid",
+                "name": f"Project {i}",
+                "slugId": f"project-{i}-id{i:03d}",
+            }
+            for i in range(100)
+        ]
+
+        second_page_projects = [
+            {
+                "id": f"project-{i}-uuid",
+                "name": f"Project {i}",
+                "slugId": f"project-{i}-id{i:03d}",
+            }
+            for i in range(100, 150)
+        ]
+
+        # Add the target project at position 120 (on second page)
+        second_page_projects[20] = {
+            "id": "mcp-memory-uuid",
+            "name": "MCP Memory Project",
+            "slugId": "mcp-memory-6cf55cfcfad4",
+        }
+
+        first_page = {
+            "projects": {
+                "nodes": first_page_projects,
+                "pageInfo": {
+                    "hasNextPage": True,
+                    "endCursor": "cursor-100",
+                },
+            }
+        }
+
+        second_page = {
+            "projects": {
+                "nodes": second_page_projects,
+                "pageInfo": {
+                    "hasNextPage": False,
+                    "endCursor": "cursor-150",
+                },
+            }
+        }
+
+        adapter.client.execute_query.side_effect = [first_page, second_page]
+
+        # Try to find project that would have failed with old 100-project limit
+        result = await adapter._resolve_project_id("mcp-memory-6cf55cfcfad4")
+
+        # Should successfully find the project from page 2
+        assert result == "mcp-memory-uuid"
+        assert adapter.client.execute_query.call_count == 2
+
+    async def test_resolve_with_empty_first_page(self, adapter):
+        """Test handling workspaces with 0 projects."""
+        empty_response = {
+            "projects": {
+                "nodes": [],
+                "pageInfo": {
+                    "hasNextPage": False,
+                    "endCursor": None,
+                },
+            }
+        }
+
+        adapter.client.execute_query.return_value = empty_response
+
+        result = await adapter._resolve_project_id("any-project")
+
+        assert result is None
+        assert adapter.client.execute_query.call_count == 1
 
 
 @pytest.mark.unit

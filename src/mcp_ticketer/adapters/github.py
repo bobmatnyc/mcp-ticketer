@@ -133,6 +133,27 @@ class GitHubGraphQLQueries:
         }
     """
 
+    GET_PROJECT_ITERATIONS = """
+        query GetProjectIterations($projectId: ID!, $first: Int!, $after: String) {
+            node(id: $projectId) {
+                ... on ProjectV2 {
+                    iterations(first: $first, after: $after) {
+                        nodes {
+                            id
+                            title
+                            startDate
+                            duration
+                        }
+                        pageInfo {
+                            hasNextPage
+                            endCursor
+                        }
+                    }
+                }
+            }
+        }
+    """
+
 
 class GitHubAdapter(BaseAdapter[Task]):
     """Adapter for GitHub Issues tracking system."""
@@ -1564,6 +1585,349 @@ Fixes #{issue_number}
         # Assume it's an issue number
         issue_number = int(ticket_id.replace("issue-", ""))
         return await self.add_attachment_to_issue(issue_number, file_path, description)
+
+    async def list_cycles(
+        self, project_id: str | None = None, limit: int = 50
+    ) -> builtins.list[dict[str, Any]]:
+        """List GitHub Project iterations (cycles/sprints).
+
+        GitHub Projects V2 uses "iterations" for sprint/cycle functionality.
+        Requires a project node ID (not numeric ID).
+
+        Args:
+            project_id: GitHub Project V2 node ID (e.g., 'PVT_kwDOABcdefgh').
+                       This is required for Projects V2. Can be found in the
+                       project's GraphQL ID.
+            limit: Maximum number of iterations to return (default: 50)
+
+        Returns:
+            List of iteration dictionaries with fields:
+                - id: Iteration node ID
+                - title: Iteration title/name
+                - startDate: Start date (ISO format)
+                - duration: Duration in days
+                - endDate: Calculated end date (startDate + duration)
+
+        Raises:
+            ValueError: If project_id not provided or credentials invalid
+            httpx.HTTPError: If GraphQL query fails
+
+        Example:
+            >>> iterations = await adapter.list_cycles(
+            ...     project_id="PVT_kwDOABCD1234",
+            ...     limit=10
+            ... )
+            >>> for iteration in iterations:
+            ...     print(f"{iteration['title']}: {iteration['startDate']} ({iteration['duration']} days)")
+
+        Note:
+            GitHub Projects V2 node IDs can be obtained via the GitHub GraphQL API.
+            This is different from project numbers shown in the UI.
+
+        """
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        if not project_id:
+            raise ValueError(
+                "project_id is required for GitHub Projects V2. "
+                "Provide a project node ID (e.g., 'PVT_kwDOABcdefgh'). "
+                "Find this via GraphQL API: query { organization(login: 'org') { "
+                "projectV2(number: 1) { id } } }"
+            )
+
+        # Execute GraphQL query to fetch iterations
+        query = GitHubGraphQLQueries.GET_PROJECT_ITERATIONS
+        variables = {"projectId": project_id, "first": min(limit, 100), "after": None}
+
+        try:
+            result = await self._graphql_request(query, variables)
+
+            # Extract iterations from response
+            project_node = result.get("node")
+            if not project_node:
+                raise ValueError(
+                    f"Project not found with ID: {project_id}. "
+                    "Verify the project ID is correct and you have access."
+                )
+
+            iterations_data = project_node.get("iterations", {})
+            iteration_nodes = iterations_data.get("nodes", [])
+
+            # Transform to standard format and calculate end dates
+            iterations = []
+            for iteration in iteration_nodes:
+                # Calculate end date from start date + duration
+                start_date = iteration.get("startDate")
+                duration = iteration.get("duration", 0)
+
+                end_date = None
+                if start_date and duration:
+                    from datetime import datetime, timedelta
+
+                    start_dt = datetime.fromisoformat(start_date.replace("Z", "+00:00"))
+                    end_dt = start_dt + timedelta(days=duration)
+                    end_date = end_dt.isoformat()
+
+                iterations.append(
+                    {
+                        "id": iteration["id"],
+                        "title": iteration.get("title", ""),
+                        "startDate": start_date,
+                        "duration": duration,
+                        "endDate": end_date,
+                    }
+                )
+
+            return iterations
+
+        except ValueError:
+            # Re-raise validation errors
+            raise
+        except Exception as e:
+            raise ValueError(f"Failed to list project iterations: {e}") from e
+
+    async def get_issue_status(self, issue_number: int) -> dict[str, Any]:
+        """Get rich status information for a GitHub issue.
+
+        GitHub issues have binary states (open/closed) natively. Extended status
+        tracking uses labels following the status:* convention (e.g., status:in_progress).
+
+        Args:
+            issue_number: GitHub issue number
+
+        Returns:
+            Dictionary with comprehensive status information:
+                - state: Native GitHub state ('open' or 'closed')
+                - status_label: Extended status from labels (in_progress, blocked, etc.)
+                - extended_state: Universal TicketState value
+                - labels: All issue labels
+                - state_reason: For closed issues (completed or not_planned)
+                - metadata: Additional issue metadata (assignees, milestone, etc.)
+
+        Raises:
+            ValueError: If credentials invalid or issue not found
+            httpx.HTTPError: If API request fails
+
+        Example:
+            >>> status = await adapter.get_issue_status(123)
+            >>> print(f"Issue #{status['number']}: {status['extended_state']}")
+            >>> print(f"Native state: {status['state']}")
+            >>> if status['status_label']:
+            ...     print(f"Label-based status: {status['status_label']}")
+
+        Note:
+            GitHub's binary state model is extended via labels:
+            - open + no label = OPEN
+            - open + status:in-progress = IN_PROGRESS
+            - open + status:blocked = BLOCKED
+            - closed = CLOSED (check state_reason for details)
+
+        """
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        try:
+            # Fetch issue via REST API
+            response = await self.client.get(
+                f"/repos/{self.owner}/{self.repo}/issues/{issue_number}"
+            )
+
+            if response.status_code == 404:
+                raise ValueError(f"Issue #{issue_number} not found")
+
+            response.raise_for_status()
+            issue = response.json()
+
+            # Extract labels
+            labels = [label["name"] for label in issue.get("labels", [])]
+
+            # Derive extended state from issue data
+            extended_state = self._extract_state_from_issue(issue)
+
+            # Find status label if present
+            status_label = None
+            for state, label_name in GitHubStateMapping.STATE_LABELS.items():
+                if label_name.lower() in [label.lower() for label in labels]:
+                    status_label = label_name
+                    break
+
+            # Build comprehensive status response
+            status_info = {
+                "number": issue["number"],
+                "state": issue["state"],  # 'open' or 'closed'
+                "status_label": status_label,  # Label-based extended status
+                "extended_state": extended_state.value,  # Universal TicketState
+                "labels": labels,
+                "state_reason": issue.get("state_reason"),  # 'completed' or 'not_planned'
+                "metadata": {
+                    "title": issue["title"],
+                    "url": issue["html_url"],
+                    "assignees": [
+                        assignee["login"] for assignee in issue.get("assignees", [])
+                    ],
+                    "milestone": issue.get("milestone", {}).get("title")
+                    if issue.get("milestone")
+                    else None,
+                    "created_at": issue["created_at"],
+                    "updated_at": issue["updated_at"],
+                    "closed_at": issue.get("closed_at"),
+                },
+            }
+
+            return status_info
+
+        except ValueError:
+            # Re-raise validation errors
+            raise
+        except httpx.HTTPError as e:
+            raise ValueError(f"Failed to get issue status: {e}") from e
+
+    async def list_issue_statuses(self) -> builtins.list[dict[str, Any]]:
+        """List available issue statuses in GitHub.
+
+        Returns all possible issue statuses including native GitHub states
+        and extended label-based states.
+
+        Returns:
+            List of status dictionaries with fields:
+                - name: Status name (e.g., 'open', 'in_progress', 'closed')
+                - type: Status type ('native' or 'extended')
+                - label: Associated label name (for extended statuses)
+                - description: Human-readable description
+                - category: Status category (open, in_progress, done, etc.)
+
+        Example:
+            >>> statuses = await adapter.list_issue_statuses()
+            >>> for status in statuses:
+            ...     print(f"{status['name']}: {status['description']}")
+            ...     if status['type'] == 'extended':
+            ...         print(f"  Label: {status['label']}")
+
+        Note:
+            GitHub natively supports only 'open' and 'closed' states.
+            Extended statuses are implemented via labels following the
+            status:* naming convention (e.g., status:in-progress).
+
+        """
+        # Define native GitHub states
+        statuses = [
+            {
+                "name": "open",
+                "type": "native",
+                "label": None,
+                "description": "Issue is open and not yet completed",
+                "category": "open",
+            },
+            {
+                "name": "closed",
+                "type": "native",
+                "label": None,
+                "description": "Issue is closed (completed or not planned)",
+                "category": "done",
+            },
+        ]
+
+        # Add extended label-based states
+        for state, label_name in GitHubStateMapping.STATE_LABELS.items():
+            statuses.append(
+                {
+                    "name": state.value,
+                    "type": "extended",
+                    "label": label_name,
+                    "description": f"Issue is {state.value.replace('_', ' ')} (tracked via label)",
+                    "category": state.value,
+                }
+            )
+
+        return statuses
+
+    async def list_project_labels(
+        self, milestone_number: int | None = None
+    ) -> builtins.list[dict[str, Any]]:
+        """List labels used in a GitHub milestone (project/epic).
+
+        If milestone_number is provided, returns only labels used by issues
+        in that milestone. Otherwise, returns all repository labels.
+
+        Args:
+            milestone_number: Optional milestone number to filter labels.
+                            If None, returns all repository labels.
+
+        Returns:
+            List of label dictionaries with fields:
+                - id: Label identifier (name)
+                - name: Label name
+                - color: Label color (hex without #)
+                - description: Label description (if available)
+                - usage_count: Number of issues using this label (if milestone filtered)
+
+        Example:
+            >>> # Get all repository labels
+            >>> all_labels = await adapter.list_project_labels()
+            >>> print(f"Repository has {len(all_labels)} labels")
+            >>>
+            >>> # Get labels used in milestone 5
+            >>> milestone_labels = await adapter.list_project_labels(milestone_number=5)
+            >>> for label in milestone_labels:
+            ...     print(f"{label['name']}: used by {label['usage_count']} issues")
+
+        Note:
+            Labels are repository-scoped in GitHub, not milestone-scoped.
+            When filtering by milestone, this method queries issues in that
+            milestone and extracts their unique labels.
+
+        """
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        try:
+            if milestone_number is None:
+                # Return all repository labels (delegate to existing method)
+                return await self.list_labels()
+
+            # Query issues in the milestone
+            params = {"milestone": str(milestone_number), "state": "all", "per_page": 100}
+
+            response = await self.client.get(
+                f"/repos/{self.owner}/{self.repo}/issues", params=params
+            )
+            response.raise_for_status()
+            issues = response.json()
+
+            # Extract unique labels from issues
+            label_usage = {}  # {label_name: {data, count}}
+            for issue in issues:
+                # Skip pull requests
+                if "pull_request" in issue:
+                    continue
+
+                for label in issue.get("labels", []):
+                    label_name = label["name"]
+                    if label_name not in label_usage:
+                        label_usage[label_name] = {
+                            "id": label_name,
+                            "name": label_name,
+                            "color": label["color"],
+                            "description": label.get("description", ""),
+                            "usage_count": 0,
+                        }
+                    label_usage[label_name]["usage_count"] += 1
+
+            # Convert to list and sort by usage count
+            labels = list(label_usage.values())
+            labels.sort(key=lambda x: x["usage_count"], reverse=True)
+
+            return labels
+
+        except httpx.HTTPError as e:
+            raise ValueError(f"Failed to list project labels: {e}") from e
 
     async def close(self) -> None:
         """Close the HTTP client connection."""

@@ -861,6 +861,326 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
         return deleted
 
+    async def update_epic(self, epic_id: str, updates: dict[str, Any]) -> Epic | None:
+        """Update an epic (project) in AITrackdown.
+
+        Args:
+            epic_id: Epic identifier (filename without .json)
+            updates: Dictionary of fields to update. Supported fields:
+                - title: Epic title
+                - description: Epic description
+                - state: TicketState value
+                - priority: Priority value
+                - tags: List of tags
+                - target_date: Target completion date
+                - metadata: User metadata dictionary
+
+        Returns:
+            Updated Epic object or None if epic not found
+
+        Raises:
+            ValueError: If epic_id is invalid or epic not found
+
+        Note:
+            AITrackdown stores epics as JSON files in {storage_path}/tickets/
+            Updates are applied as partial updates (only specified fields changed)
+
+        """
+        # Validate epic_id
+        if not epic_id:
+            raise ValueError("epic_id is required")
+
+        # Read existing epic
+        existing = await self.read(epic_id)
+        if not existing:
+            logger.warning("Epic %s not found for update", epic_id)
+            return None
+
+        # Ensure it's an epic, not a task
+        if not isinstance(existing, Epic):
+            logger.warning("Ticket %s is not an epic", epic_id)
+            return None
+
+        # Apply updates to the existing epic
+        for key, value in updates.items():
+            if hasattr(existing, key) and value is not None:
+                setattr(existing, key, value)
+
+        # Update timestamp
+        existing.updated_at = datetime.now()
+
+        # Write back to file
+        ai_ticket = self._epic_to_ai_ticket(existing)
+        self._write_ticket_file(epic_id, ai_ticket)
+
+        logger.info("Updated epic %s with fields: %s", epic_id, list(updates.keys()))
+        return existing
+
+    async def list_labels(self, limit: int = 100) -> builtins.list[dict[str, Any]]:
+        """List all tags (labels) used across tickets.
+
+        Args:
+            limit: Maximum number of labels to return (default: 100)
+
+        Returns:
+            List of label dictionaries sorted by usage count (descending).
+            Each dictionary contains:
+                - id: Tag name (same as name in AITrackdown)
+                - name: Tag name
+                - count: Number of tickets using this tag
+
+        Note:
+            AITrackdown uses 'tags' terminology. This method scans
+            all task and epic files to extract unique tags.
+
+        """
+        # Initialize tag counter
+        tag_counts: dict[str, int] = {}
+
+        # Scan all ticket JSON files
+        if self.tickets_dir.exists():
+            for ticket_file in self.tickets_dir.glob("*.json"):
+                try:
+                    with open(ticket_file) as f:
+                        ticket_data = json.load(f)
+                        tags = ticket_data.get("tags", [])
+                        for tag in tags:
+                            tag_counts[tag] = tag_counts.get(tag, 0) + 1
+                except (json.JSONDecodeError, OSError) as e:
+                    logger.warning(
+                        "Failed to read ticket file %s: %s", ticket_file, e
+                    )
+                    continue
+
+        # Sort by usage count (descending)
+        sorted_tags = sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)
+
+        # Return top N tags with standardized format
+        return [
+            {"id": tag, "name": tag, "count": count}
+            for tag, count in sorted_tags[:limit]
+        ]
+
+    async def create_issue_label(
+        self, name: str, color: str | None = None
+    ) -> dict[str, Any]:
+        """Create/register a label (tag) in AITrackdown.
+
+        Args:
+            name: Label name (alphanumeric, hyphens, underscores allowed)
+            color: Optional color (not used in file-based storage)
+
+        Returns:
+            Label dictionary with:
+                - id: Label name
+                - name: Label name
+                - color: Color value (if provided)
+                - created: True (always, as tags are created on use)
+
+        Raises:
+            ValueError: If label name is invalid
+
+        Note:
+            AITrackdown creates tags implicitly when used on tickets.
+            This method validates the tag name and returns success.
+            Tags are stored as arrays in ticket JSON files.
+
+        """
+        # Validate tag name
+        if not name:
+            raise ValueError("Label name cannot be empty")
+
+        # Check for valid characters (alphanumeric, hyphens, underscores, spaces)
+        import re
+
+        if not re.match(r"^[a-zA-Z0-9_\- ]+$", name):
+            raise ValueError(
+                "Label name must contain only alphanumeric characters, hyphens, underscores, or spaces"
+            )
+
+        # Return success response
+        logger.info("Label '%s' registered (created implicitly on use)", name)
+        return {
+            "id": name,
+            "name": name,
+            "color": color,
+            "created": True,
+        }
+
+    async def list_project_labels(
+        self, epic_id: str, limit: int = 100
+    ) -> builtins.list[dict[str, Any]]:
+        """List labels (tags) used in a specific epic and its tasks.
+
+        Args:
+            epic_id: Epic identifier
+            limit: Maximum number of labels to return (default: 100)
+
+        Returns:
+            List of label dictionaries used in the epic, sorted by usage count.
+            Each dictionary contains:
+                - id: Tag name
+                - name: Tag name
+                - count: Number of tickets using this tag within the epic
+
+        Raises:
+            ValueError: If epic not found
+
+        Note:
+            Scans the epic and all tasks with parent_epic == epic_id.
+
+        """
+        # Validate epic exists
+        epic = await self.get_epic(epic_id)
+        if not epic:
+            raise ValueError(f"Epic {epic_id} not found")
+
+        # Initialize tag counter
+        tag_counts: dict[str, int] = {}
+
+        # Add tags from the epic itself
+        if epic.tags:
+            for tag in epic.tags:
+                tag_counts[tag] = tag_counts.get(tag, 0) + 1
+
+        # Find all tasks with parent_epic == epic_id
+        all_tasks = await self.list_issues_by_epic(epic_id)
+        for task in all_tasks:
+            if task.tags:
+                for tag in task.tags:
+                    tag_counts[tag] = tag_counts.get(tag, 0) + 1
+
+        # Sort by usage count (descending)
+        sorted_tags = sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)
+
+        # Return top N tags
+        return [
+            {"id": tag, "name": tag, "count": count}
+            for tag, count in sorted_tags[:limit]
+        ]
+
+    async def list_cycles(self, limit: int = 50) -> builtins.list[dict[str, Any]]:
+        """List cycles (sprints) - Not supported in file-based AITrackdown.
+
+        Args:
+            limit: Maximum number of cycles to return (unused)
+
+        Returns:
+            Empty list (cycles not supported)
+
+        Note:
+            AITrackdown is a simple file-based system without
+            cycle/sprint management. Returns empty list.
+
+        """
+        logger.info("list_cycles called but cycles not supported in AITrackdown")
+        return []
+
+    async def get_issue_status(self, ticket_id: str) -> dict[str, Any] | None:
+        """Get status details for a ticket.
+
+        Args:
+            ticket_id: Ticket identifier
+
+        Returns:
+            Status dictionary with:
+                - id: Ticket ID
+                - state: Current state
+                - priority: Current priority
+                - updated_at: Last update timestamp
+                - created_at: Creation timestamp
+                - title: Ticket title
+                - assignee: Assignee (if Task, None for Epic)
+            Returns None if ticket not found
+
+        Raises:
+            ValueError: If ticket_id is invalid
+
+        """
+        if not ticket_id:
+            raise ValueError("ticket_id is required")
+
+        # Read ticket
+        ticket = await self.read(ticket_id)
+        if not ticket:
+            logger.warning("Ticket %s not found", ticket_id)
+            return None
+
+        # Return comprehensive status object
+        status = {
+            "id": ticket.id,
+            "state": ticket.state,
+            "priority": ticket.priority,
+            "updated_at": ticket.updated_at.isoformat() if ticket.updated_at else None,
+            "created_at": ticket.created_at.isoformat() if ticket.created_at else None,
+            "title": ticket.title,
+        }
+
+        # Add assignee only if ticket is a Task (Epic doesn't have assignee)
+        if hasattr(ticket, "assignee"):
+            status["assignee"] = ticket.assignee
+
+        return status
+
+    async def list_issue_statuses(self) -> builtins.list[dict[str, Any]]:
+        """List available ticket statuses.
+
+        Returns:
+            List of status dictionaries with:
+                - id: State identifier
+                - name: Human-readable state name
+                - description: State description
+
+        Note:
+            AITrackdown uses standard TicketState enum values:
+            open, in_progress, ready, tested, done, closed, waiting, blocked
+
+        """
+        # Return hardcoded list of TicketState values
+        statuses = [
+            {
+                "id": "open",
+                "name": "Open",
+                "description": "Ticket is created and ready to be worked on",
+            },
+            {
+                "id": "in_progress",
+                "name": "In Progress",
+                "description": "Ticket is actively being worked on",
+            },
+            {
+                "id": "ready",
+                "name": "Ready",
+                "description": "Ticket is ready for review or testing",
+            },
+            {
+                "id": "tested",
+                "name": "Tested",
+                "description": "Ticket has been tested and verified",
+            },
+            {
+                "id": "done",
+                "name": "Done",
+                "description": "Ticket work is completed",
+            },
+            {
+                "id": "closed",
+                "name": "Closed",
+                "description": "Ticket is closed and archived",
+            },
+            {
+                "id": "waiting",
+                "name": "Waiting",
+                "description": "Ticket is waiting for external dependency",
+            },
+            {
+                "id": "blocked",
+                "name": "Blocked",
+                "description": "Ticket is blocked by an issue or dependency",
+            },
+        ]
+        return statuses
+
 
 # Register the adapter
 AdapterRegistry.register("aitrackdown", AITrackdownAdapter)

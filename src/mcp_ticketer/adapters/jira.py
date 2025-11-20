@@ -1045,6 +1045,338 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             # Fallback: return empty list if query fails
             return []
 
+    async def create_issue_label(
+        self, name: str, color: str | None = None
+    ) -> dict[str, Any]:
+        """Create a new issue label in JIRA.
+
+        Note: JIRA doesn't have a dedicated label creation API. Labels are
+        created automatically when first used on an issue. This method
+        validates the label name and returns a success response.
+
+        Args:
+            name: Label name to create
+            color: Optional color (JIRA doesn't support colors natively, ignored)
+
+        Returns:
+            Dict with label details:
+                - id: Label name (same as name in JIRA)
+                - name: Label name
+                - status: "ready" indicating the label can be used
+
+        Raises:
+            ValueError: If credentials are invalid or label name is invalid
+
+        """
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        # Validate label name
+        if not name or not name.strip():
+            raise ValueError("Label name cannot be empty")
+
+        # JIRA label names must not contain spaces
+        if " " in name:
+            raise ValueError(
+                "JIRA label names cannot contain spaces. Use underscores or hyphens instead."
+            )
+
+        # Return success response
+        # The label will be created automatically when first used on an issue
+        return {"id": name, "name": name, "status": "ready"}
+
+    async def list_project_labels(
+        self, project_key: str | None = None, limit: int = 100
+    ) -> builtins.list[dict[str, Any]]:
+        """List all labels used in a JIRA project.
+
+        JIRA doesn't have a dedicated endpoint for listing project labels.
+        This method queries recent issues and extracts unique labels.
+
+        Args:
+            project_key: JIRA project key (e.g., 'PROJ'). If None, uses configured project.
+            limit: Maximum number of labels to return (default: 100)
+
+        Returns:
+            List of label dictionaries with 'id', 'name', and 'usage_count' fields
+
+        Raises:
+            ValueError: If credentials are invalid or project key not available
+
+        """
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        # Use configured project if not specified
+        key = project_key or self.project_key
+        if not key:
+            raise ValueError("Project key is required")
+
+        try:
+            # Query recent issues to get labels in use
+            jql = f"project = {key} ORDER BY updated DESC"
+            data = await self._make_request(
+                "GET",
+                "search/jql",
+                params={
+                    "jql": jql,
+                    "maxResults": 500,  # Sample from more issues for better coverage
+                    "fields": "labels",
+                },
+            )
+
+            # Collect labels with usage count
+            label_counts: dict[str, int] = {}
+            for issue in data.get("issues", []):
+                labels = issue.get("fields", {}).get("labels", [])
+                for label in labels:
+                    label_name = (
+                        label.get("name", "") if isinstance(label, dict) else str(label)
+                    )
+                    if label_name:
+                        label_counts[label_name] = label_counts.get(label_name, 0) + 1
+
+            # Transform to standardized format with usage counts
+            result = [
+                {"id": label, "name": label, "usage_count": count}
+                for label, count in sorted(
+                    label_counts.items(), key=lambda x: x[1], reverse=True
+                )
+            ]
+
+            return result[:limit]
+
+        except Exception as e:
+            logger.error(f"Failed to list project labels: {e}")
+            raise ValueError(f"Failed to list project labels: {e}") from e
+
+    async def list_cycles(
+        self, board_id: str | None = None, state: str | None = None, limit: int = 50
+    ) -> builtins.list[dict[str, Any]]:
+        """List JIRA sprints (cycles) for a board.
+
+        Requires JIRA Agile/Software. Falls back to empty list if not available.
+
+        Args:
+            board_id: JIRA Agile board ID. If None, finds first board for project.
+            state: Filter by state ('active', 'closed', 'future'). If None, returns all.
+            limit: Maximum number of sprints to return (default: 50)
+
+        Returns:
+            List of sprint dictionaries with fields:
+                - id: Sprint ID
+                - name: Sprint name
+                - state: Sprint state (active, closed, future)
+                - startDate: Start date (ISO format)
+                - endDate: End date (ISO format)
+                - completeDate: Completion date (ISO format, None if not completed)
+                - goal: Sprint goal
+
+        Raises:
+            ValueError: If credentials are invalid
+
+        """
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        try:
+            # If no board_id provided, try to find a board for the project
+            if not board_id:
+                boards_url = f"{self.server}/rest/agile/1.0/board"
+                boards_data = await self._make_request(
+                    "GET",
+                    "/rest/agile/1.0/board",
+                    params={"projectKeyOrId": self.project_key, "maxResults": 1},
+                )
+                boards = boards_data.get("values", [])
+                if not boards:
+                    logger.warning(
+                        f"No Agile boards found for project {self.project_key}"
+                    )
+                    return []
+                board_id = str(boards[0]["id"])
+
+            # Get sprints for the board
+            params = {"maxResults": limit}
+            if state:
+                params["state"] = state
+
+            sprints_data = await self._make_request(
+                "GET", f"/rest/agile/1.0/board/{board_id}/sprint", params=params
+            )
+
+            sprints = sprints_data.get("values", [])
+
+            # Transform to standardized format
+            return [
+                {
+                    "id": sprint.get("id"),
+                    "name": sprint.get("name"),
+                    "state": sprint.get("state"),
+                    "startDate": sprint.get("startDate"),
+                    "endDate": sprint.get("endDate"),
+                    "completeDate": sprint.get("completeDate"),
+                    "goal": sprint.get("goal", ""),
+                }
+                for sprint in sprints
+            ]
+
+        except HTTPStatusError as e:
+            if e.response.status_code == 404:
+                logger.warning("JIRA Agile API not available (404)")
+                return []
+            logger.error(f"Failed to list sprints: {e}")
+            raise ValueError(f"Failed to list sprints: {e}") from e
+        except Exception as e:
+            logger.warning(f"JIRA Agile may not be available: {e}")
+            return []
+
+    async def list_issue_statuses(
+        self, project_key: str | None = None
+    ) -> builtins.list[dict[str, Any]]:
+        """List all workflow statuses in JIRA.
+
+        Args:
+            project_key: Optional project key to filter statuses.
+                        If None, returns all statuses.
+
+        Returns:
+            List of status dictionaries with fields:
+                - id: Status ID
+                - name: Status name (e.g., "To Do", "In Progress", "Done")
+                - category: Status category key (e.g., "new", "indeterminate", "done")
+                - categoryName: Human-readable category name
+                - description: Status description
+
+        Raises:
+            ValueError: If credentials are invalid
+
+        """
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        try:
+            # Use project-specific statuses if project key provided
+            if project_key:
+                # Get statuses for the project
+                data = await self._make_request("GET", f"project/{project_key}/statuses")
+
+                # Extract unique statuses from all issue types
+                status_map: dict[str, dict[str, Any]] = {}
+                for issue_type_data in data:
+                    for status in issue_type_data.get("statuses", []):
+                        status_id = status.get("id")
+                        if status_id not in status_map:
+                            status_map[status_id] = status
+
+                statuses = list(status_map.values())
+            else:
+                # Get all statuses
+                statuses = await self._make_request("GET", "status")
+
+            # Transform to standardized format
+            return [
+                {
+                    "id": status.get("id"),
+                    "name": status.get("name"),
+                    "category": status.get("statusCategory", {}).get("key", ""),
+                    "categoryName": status.get("statusCategory", {}).get("name", ""),
+                    "description": status.get("description", ""),
+                }
+                for status in statuses
+            ]
+
+        except Exception as e:
+            logger.error(f"Failed to list issue statuses: {e}")
+            raise ValueError(f"Failed to list issue statuses: {e}") from e
+
+    async def get_issue_status(self, issue_key: str) -> dict[str, Any] | None:
+        """Get rich status information for an issue.
+
+        Args:
+            issue_key: JIRA issue key (e.g., 'PROJ-123')
+
+        Returns:
+            Dict with status details and available transitions:
+                - id: Status ID
+                - name: Status name
+                - category: Status category key
+                - categoryName: Human-readable category name
+                - description: Status description
+                - transitions: List of available transitions with:
+                    - id: Transition ID
+                    - name: Transition name
+                    - to: Target status info (id, name, category)
+            Returns None if issue not found.
+
+        Raises:
+            ValueError: If credentials are invalid
+
+        """
+        # Validate credentials before attempting operation
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        try:
+            # Get issue with status field
+            issue = await self._make_request(
+                "GET", f"issue/{issue_key}", params={"fields": "status"}
+            )
+
+            if not issue:
+                return None
+
+            status = issue.get("fields", {}).get("status", {})
+
+            # Get available transitions
+            transitions_data = await self._make_request(
+                "GET", f"issue/{issue_key}/transitions"
+            )
+            transitions = transitions_data.get("transitions", [])
+
+            # Transform transitions to simplified format
+            transition_list = [
+                {
+                    "id": trans.get("id"),
+                    "name": trans.get("name"),
+                    "to": {
+                        "id": trans.get("to", {}).get("id"),
+                        "name": trans.get("to", {}).get("name"),
+                        "category": trans.get("to", {})
+                        .get("statusCategory", {})
+                        .get("key", ""),
+                    },
+                }
+                for trans in transitions
+            ]
+
+            return {
+                "id": status.get("id"),
+                "name": status.get("name"),
+                "category": status.get("statusCategory", {}).get("key", ""),
+                "categoryName": status.get("statusCategory", {}).get("name", ""),
+                "description": status.get("description", ""),
+                "transitions": transition_list,
+            }
+
+        except HTTPStatusError as e:
+            if e.response.status_code == 404:
+                return None
+            logger.error(f"Failed to get issue status: {e}")
+            raise ValueError(f"Failed to get issue status: {e}") from e
+        except Exception as e:
+            logger.error(f"Failed to get issue status: {e}")
+            raise ValueError(f"Failed to get issue status: {e}") from e
+
     async def update_epic(self, epic_id: str, updates: dict[str, Any]) -> Epic | None:
         """Update a JIRA Epic with epic-specific field handling.
 

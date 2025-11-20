@@ -35,6 +35,9 @@ from .queries import (
     ALL_FRAGMENTS,
     CREATE_ISSUE_MUTATION,
     CREATE_LABEL_MUTATION,
+    GET_ISSUE_STATUS_QUERY,
+    LIST_CYCLES_QUERY,
+    LIST_ISSUE_STATUSES_QUERY,
     LIST_ISSUES_QUERY,
     SEARCH_ISSUES_QUERY,
     UPDATE_ISSUE_MUTATION,
@@ -309,26 +312,46 @@ class LinearAdapter(BaseAdapter[Task]):
         if len(project_identifier) == 36 and project_identifier.count("-") == 4:
             return project_identifier
 
-        # Query all projects and search for matching slug, name, or slugId
+        # Query all projects with pagination support
         query = """
-            query GetProjects {
-                projects(first: 100) {
+            query GetProjects($first: Int!, $after: String) {
+                projects(first: $first, after: $after) {
                     nodes {
                         id
                         name
                         slugId
+                    }
+                    pageInfo {
+                        hasNextPage
+                        endCursor
                     }
                 }
             }
         """
 
         try:
-            result = await self.client.execute_query(query, {})
-            projects = result.get("projects", {}).get("nodes", [])
+            # Fetch all projects across multiple pages
+            all_projects = []
+            has_next_page = True
+            after_cursor = None
+
+            while has_next_page:
+                variables = {"first": 100}
+                if after_cursor:
+                    variables["after"] = after_cursor
+
+                result = await self.client.execute_query(query, variables)
+                projects_data = result.get("projects", {})
+                page_projects = projects_data.get("nodes", [])
+                page_info = projects_data.get("pageInfo", {})
+
+                all_projects.extend(page_projects)
+                has_next_page = page_info.get("hasNextPage", False)
+                after_cursor = page_info.get("endCursor")
 
             # Search for match by slug, slugId, name (case-insensitive)
             project_lower = project_identifier.lower()
-            for project in projects:
+            for project in all_projects:
                 # Check if identifier matches slug pattern (extracted from slugId)
                 slug_id = project.get("slugId", "")
                 if slug_id:
@@ -1693,6 +1716,166 @@ class LinearAdapter(BaseAdapter[Task]):
             raise ValueError(
                 f"Failed to attach file to project '{epic_id}': {e}"
             ) from e
+
+    async def list_cycles(
+        self, team_id: str | None = None, limit: int = 50
+    ) -> builtins.list[dict[str, Any]]:
+        """List Linear Cycles (Sprints) for the team.
+
+        Args:
+            team_id: Linear team UUID. If None, uses the configured team.
+            limit: Maximum number of cycles to return (default: 50)
+
+        Returns:
+            List of cycle dictionaries with fields:
+                - id: Cycle UUID
+                - name: Cycle name
+                - number: Cycle number
+                - startsAt: Start date (ISO format)
+                - endsAt: End date (ISO format)
+                - completedAt: Completion date (ISO format, None if not completed)
+                - progress: Progress percentage (0-1)
+
+        Raises:
+            ValueError: If credentials are invalid or query fails
+
+        """
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        await self.initialize()
+
+        # Use configured team if not specified
+        if team_id is None:
+            team_id = await self._ensure_team_id()
+
+        try:
+            # Fetch all cycles with pagination
+            all_cycles = []
+            has_next_page = True
+            after_cursor = None
+
+            while has_next_page and len(all_cycles) < limit:
+                # Calculate remaining items needed
+                remaining = limit - len(all_cycles)
+                page_size = min(remaining, 50)  # Linear max page size is typically 50
+
+                variables = {"teamId": team_id, "first": page_size}
+                if after_cursor:
+                    variables["after"] = after_cursor
+
+                result = await self.client.execute_query(LIST_CYCLES_QUERY, variables)
+
+                cycles_data = result.get("team", {}).get("cycles", {})
+                page_cycles = cycles_data.get("nodes", [])
+                page_info = cycles_data.get("pageInfo", {})
+
+                all_cycles.extend(page_cycles)
+                has_next_page = page_info.get("hasNextPage", False)
+                after_cursor = page_info.get("endCursor")
+
+            return all_cycles[:limit]  # Ensure we don't exceed limit
+
+        except Exception as e:
+            raise ValueError(f"Failed to list Linear cycles: {e}") from e
+
+    async def get_issue_status(self, issue_id: str) -> dict[str, Any] | None:
+        """Get rich issue status information for a Linear issue.
+
+        Args:
+            issue_id: Linear issue identifier (e.g., 'BTA-123') or UUID
+
+        Returns:
+            Dictionary with workflow state details:
+                - id: State UUID
+                - name: State name (e.g., "In Progress")
+                - type: State type (e.g., "started", "completed")
+                - color: State color (hex format)
+                - description: State description
+                - position: Position in workflow
+            Returns None if issue not found.
+
+        Raises:
+            ValueError: If credentials are invalid or query fails
+
+        """
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        await self.initialize()
+
+        # Resolve issue identifier to UUID if needed
+        issue_uuid = await self._resolve_issue_id(issue_id)
+        if not issue_uuid:
+            return None
+
+        try:
+            result = await self.client.execute_query(
+                GET_ISSUE_STATUS_QUERY, {"issueId": issue_uuid}
+            )
+
+            issue_data = result.get("issue")
+            if not issue_data:
+                return None
+
+            return issue_data.get("state")
+
+        except Exception as e:
+            raise ValueError(
+                f"Failed to get issue status for '{issue_id}': {e}"
+            ) from e
+
+    async def list_issue_statuses(
+        self, team_id: str | None = None
+    ) -> builtins.list[dict[str, Any]]:
+        """List all workflow states for the team.
+
+        Args:
+            team_id: Linear team UUID. If None, uses the configured team.
+
+        Returns:
+            List of workflow state dictionaries with fields:
+                - id: State UUID
+                - name: State name (e.g., "Backlog", "In Progress", "Done")
+                - type: State type (e.g., "backlog", "unstarted", "started", "completed", "canceled")
+                - color: State color (hex format)
+                - description: State description
+                - position: Position in workflow (lower = earlier)
+
+        Raises:
+            ValueError: If credentials are invalid or query fails
+
+        """
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        await self.initialize()
+
+        # Use configured team if not specified
+        if team_id is None:
+            team_id = await self._ensure_team_id()
+
+        try:
+            result = await self.client.execute_query(
+                LIST_ISSUE_STATUSES_QUERY, {"teamId": team_id}
+            )
+
+            states_data = result.get("team", {}).get("states", {})
+            states = states_data.get("nodes", [])
+
+            # Sort by position to maintain workflow order
+            states.sort(key=lambda s: s.get("position", 0))
+
+            return states
+
+        except Exception as e:
+            raise ValueError(f"Failed to list workflow states: {e}") from e
 
     async def close(self) -> None:
         """Close the adapter and clean up resources."""

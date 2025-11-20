@@ -535,3 +535,444 @@ class TestAITrackdownAdapterComments:
         """Test getting comments when none exist."""
         comments = await aitrackdown_adapter.get_comments("NONEXISTENT")
         assert comments == []
+
+
+class TestAITrackdownAdapterUpdateEpic:
+    """Tests for update_epic() method."""
+
+    @pytest.mark.asyncio
+    async def test_update_epic_title(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test updating epic title."""
+        # Create epic
+        epic = Epic(title="Original Title", description="Test epic")
+        created = await aitrackdown_adapter.create(epic)
+        assert created.id is not None
+
+        # Update title
+        updated = await aitrackdown_adapter.update_epic(
+            created.id, {"title": "Updated Title"}
+        )
+
+        assert updated is not None
+        assert updated.title == "Updated Title"
+        assert updated.description == "Test epic"  # Unchanged
+
+    @pytest.mark.asyncio
+    async def test_update_epic_multiple_fields(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test updating multiple epic fields."""
+        # Create epic
+        epic = Epic(title="Original", description="Original desc", priority=Priority.LOW)
+        created = await aitrackdown_adapter.create(epic)
+        assert created.id is not None
+
+        # Update multiple fields
+        updated = await aitrackdown_adapter.update_epic(
+            created.id,
+            {
+                "title": "New Title",
+                "description": "New description",
+                "priority": Priority.HIGH,
+                "state": TicketState.IN_PROGRESS,
+                "tags": ["updated", "epic"],
+            },
+        )
+
+        assert updated is not None
+        assert updated.title == "New Title"
+        assert updated.description == "New description"
+        assert updated.priority == Priority.HIGH
+        assert updated.state == TicketState.IN_PROGRESS
+        assert updated.tags == ["updated", "epic"]
+
+    @pytest.mark.asyncio
+    async def test_update_epic_nonexistent(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test updating non-existent epic returns None."""
+        result = await aitrackdown_adapter.update_epic(
+            "NONEXISTENT", {"title": "New Title"}
+        )
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_update_epic_invalid_id(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test updating epic with invalid ID raises error."""
+        with pytest.raises(ValueError, match="epic_id is required"):
+            await aitrackdown_adapter.update_epic("", {"title": "New"})
+
+    @pytest.mark.asyncio
+    async def test_update_epic_task_not_epic(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test updating a task (not epic) returns None."""
+        # Create task (not epic)
+        task = Task(title="Test Task")
+        created = await aitrackdown_adapter.create(task)
+        assert created.id is not None
+
+        # Try to update as epic
+        result = await aitrackdown_adapter.update_epic(
+            created.id, {"title": "New Title"}
+        )
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_update_epic_persists_to_file(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test epic update persists to file system."""
+        # Create epic
+        epic = Epic(title="Original")
+        created = await aitrackdown_adapter.create(epic)
+        assert created.id is not None
+
+        # Update epic
+        await aitrackdown_adapter.update_epic(created.id, {"title": "Updated"})
+
+        # Read from file
+        ticket_file = aitrackdown_adapter.tickets_dir / f"{created.id}.json"
+        with open(ticket_file) as f:
+            data = json.load(f)
+
+        assert data["title"] == "Updated"
+
+
+class TestAITrackdownAdapterListLabels:
+    """Tests for list_labels() method."""
+
+    @pytest.mark.asyncio
+    async def test_list_labels_empty(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test listing labels when no tickets exist."""
+        labels = await aitrackdown_adapter.list_labels()
+        assert labels == []
+
+    @pytest.mark.asyncio
+    async def test_list_labels_single_ticket(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test listing labels from single ticket."""
+        # Create task with tags
+        task = Task(title="Test", tags=["bug", "urgent"])
+        await aitrackdown_adapter.create(task)
+
+        # List labels
+        labels = await aitrackdown_adapter.list_labels()
+        assert len(labels) == 2
+        assert labels[0]["name"] in ["bug", "urgent"]
+        assert labels[0]["count"] == 1
+
+    @pytest.mark.asyncio
+    async def test_list_labels_multiple_tickets(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test listing labels from multiple tickets."""
+        # Create tasks with overlapping tags
+        await aitrackdown_adapter.create(Task(title="Task 1", tags=["bug", "frontend"]))
+        await aitrackdown_adapter.create(Task(title="Task 2", tags=["bug", "backend"]))
+        await aitrackdown_adapter.create(Task(title="Task 3", tags=["feature"]))
+
+        # List labels
+        labels = await aitrackdown_adapter.list_labels()
+        assert len(labels) == 4  # bug, frontend, backend, feature
+
+        # Find "bug" label (should have count 2)
+        bug_label = next(label for label in labels if label["name"] == "bug")
+        assert bug_label["count"] == 2
+
+    @pytest.mark.asyncio
+    async def test_list_labels_sorted_by_count(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test labels are sorted by usage count."""
+        # Create tasks with varying tag usage
+        await aitrackdown_adapter.create(Task(title="Task 1", tags=["common"]))
+        await aitrackdown_adapter.create(Task(title="Task 2", tags=["common", "rare"]))
+        await aitrackdown_adapter.create(Task(title="Task 3", tags=["common", "uncommon"]))
+        await aitrackdown_adapter.create(Task(title="Task 4", tags=["uncommon"]))
+
+        # List labels
+        labels = await aitrackdown_adapter.list_labels()
+
+        # Most common should be first
+        assert labels[0]["name"] == "common"
+        assert labels[0]["count"] == 3
+        assert labels[1]["name"] == "uncommon"
+        assert labels[1]["count"] == 2
+
+    @pytest.mark.asyncio
+    async def test_list_labels_limit(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test limiting number of labels returned."""
+        # Create tasks with many tags
+        await aitrackdown_adapter.create(Task(title="Task", tags=["tag1", "tag2", "tag3", "tag4", "tag5"]))
+
+        # List with limit
+        labels = await aitrackdown_adapter.list_labels(limit=3)
+        assert len(labels) == 3
+
+
+class TestAITrackdownAdapterCreateIssueLabel:
+    """Tests for create_issue_label() method."""
+
+    @pytest.mark.asyncio
+    async def test_create_label_valid(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test creating a valid label."""
+        result = await aitrackdown_adapter.create_issue_label("bug")
+
+        assert result["id"] == "bug"
+        assert result["name"] == "bug"
+        assert result["created"] is True
+
+    @pytest.mark.asyncio
+    async def test_create_label_with_color(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test creating label with color."""
+        result = await aitrackdown_adapter.create_issue_label("bug", color="#ff0000")
+
+        assert result["color"] == "#ff0000"
+
+    @pytest.mark.asyncio
+    async def test_create_label_with_hyphen(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test creating label with hyphen."""
+        result = await aitrackdown_adapter.create_issue_label("high-priority")
+        assert result["name"] == "high-priority"
+
+    @pytest.mark.asyncio
+    async def test_create_label_with_underscore(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test creating label with underscore."""
+        result = await aitrackdown_adapter.create_issue_label("needs_review")
+        assert result["name"] == "needs_review"
+
+    @pytest.mark.asyncio
+    async def test_create_label_with_space(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test creating label with space."""
+        result = await aitrackdown_adapter.create_issue_label("in progress")
+        assert result["name"] == "in progress"
+
+    @pytest.mark.asyncio
+    async def test_create_label_empty_name(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test creating label with empty name raises error."""
+        with pytest.raises(ValueError, match="Label name cannot be empty"):
+            await aitrackdown_adapter.create_issue_label("")
+
+    @pytest.mark.asyncio
+    async def test_create_label_invalid_characters(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test creating label with invalid characters raises error."""
+        with pytest.raises(ValueError, match="must contain only alphanumeric"):
+            await aitrackdown_adapter.create_issue_label("bug@urgent")
+
+
+class TestAITrackdownAdapterListProjectLabels:
+    """Tests for list_project_labels() method."""
+
+    @pytest.mark.asyncio
+    async def test_list_project_labels_epic_only(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test listing labels from epic only."""
+        # Create epic with tags
+        epic = Epic(title="Test Epic", tags=["epic-tag", "planning"])
+        created = await aitrackdown_adapter.create(epic)
+        assert created.id is not None
+
+        # List labels
+        labels = await aitrackdown_adapter.list_project_labels(created.id)
+        assert len(labels) == 2
+        assert any(label["name"] == "epic-tag" for label in labels)
+
+    @pytest.mark.asyncio
+    async def test_list_project_labels_with_tasks(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test listing labels from epic and its tasks."""
+        # Create epic
+        epic = Epic(title="Epic", tags=["epic-tag"])
+        created_epic = await aitrackdown_adapter.create(epic)
+        assert created_epic.id is not None
+
+        # Create tasks under epic
+        await aitrackdown_adapter.create(
+            Task(title="Task 1", parent_epic=created_epic.id, tags=["task-tag", "bug"])
+        )
+        await aitrackdown_adapter.create(
+            Task(title="Task 2", parent_epic=created_epic.id, tags=["task-tag", "feature"])
+        )
+
+        # List labels
+        labels = await aitrackdown_adapter.list_project_labels(created_epic.id)
+
+        # Should have: epic-tag (1), task-tag (2), bug (1), feature (1)
+        assert len(labels) == 4
+
+        # task-tag should have highest count
+        task_tag = next(label for label in labels if label["name"] == "task-tag")
+        assert task_tag["count"] == 2
+
+    @pytest.mark.asyncio
+    async def test_list_project_labels_nonexistent_epic(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test listing labels for non-existent epic raises error."""
+        with pytest.raises(ValueError, match="Epic .* not found"):
+            await aitrackdown_adapter.list_project_labels("NONEXISTENT")
+
+    @pytest.mark.asyncio
+    async def test_list_project_labels_limit(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test limiting number of labels returned."""
+        # Create epic with many tags
+        epic = Epic(title="Epic", tags=["tag1", "tag2", "tag3", "tag4"])
+        created = await aitrackdown_adapter.create(epic)
+        assert created.id is not None
+
+        # List with limit
+        labels = await aitrackdown_adapter.list_project_labels(created.id, limit=2)
+        assert len(labels) == 2
+
+
+class TestAITrackdownAdapterListCycles:
+    """Tests for list_cycles() method."""
+
+    @pytest.mark.asyncio
+    async def test_list_cycles_returns_empty(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test list_cycles returns empty list (not supported)."""
+        cycles = await aitrackdown_adapter.list_cycles()
+        assert cycles == []
+
+    @pytest.mark.asyncio
+    async def test_list_cycles_with_limit(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test list_cycles with limit still returns empty."""
+        cycles = await aitrackdown_adapter.list_cycles(limit=10)
+        assert cycles == []
+
+
+class TestAITrackdownAdapterGetIssueStatus:
+    """Tests for get_issue_status() method."""
+
+    @pytest.mark.asyncio
+    async def test_get_issue_status_task(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test getting status for a task."""
+        # Create task
+        task = Task(
+            title="Test Task",
+            state=TicketState.IN_PROGRESS,
+            priority=Priority.HIGH,
+            assignee="john_doe",
+        )
+        created = await aitrackdown_adapter.create(task)
+        assert created.id is not None
+
+        # Get status
+        status = await aitrackdown_adapter.get_issue_status(created.id)
+
+        assert status is not None
+        assert status["id"] == created.id
+        assert status["state"] == TicketState.IN_PROGRESS
+        assert status["priority"] == Priority.HIGH
+        assert status["title"] == "Test Task"
+        assert status["assignee"] == "john_doe"
+        assert "created_at" in status
+        assert "updated_at" in status
+
+    @pytest.mark.asyncio
+    async def test_get_issue_status_epic(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test getting status for an epic."""
+        # Create epic
+        epic = Epic(title="Test Epic", state=TicketState.READY, priority=Priority.LOW)
+        created = await aitrackdown_adapter.create(epic)
+        assert created.id is not None
+
+        # Get status
+        status = await aitrackdown_adapter.get_issue_status(created.id)
+
+        assert status is not None
+        assert status["state"] == TicketState.READY
+        assert status["priority"] == Priority.LOW
+        # Epic should not have assignee field or should be None
+        assert status.get("assignee") is None
+
+    @pytest.mark.asyncio
+    async def test_get_issue_status_nonexistent(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test getting status for non-existent ticket returns None."""
+        status = await aitrackdown_adapter.get_issue_status("NONEXISTENT")
+        assert status is None
+
+    @pytest.mark.asyncio
+    async def test_get_issue_status_invalid_id(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test getting status with invalid ID raises error."""
+        with pytest.raises(ValueError, match="ticket_id is required"):
+            await aitrackdown_adapter.get_issue_status("")
+
+
+class TestAITrackdownAdapterListIssueStatuses:
+    """Tests for list_issue_statuses() method."""
+
+    @pytest.mark.asyncio
+    async def test_list_issue_statuses(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test listing all available issue statuses."""
+        statuses = await aitrackdown_adapter.list_issue_statuses()
+
+        assert len(statuses) == 8  # 8 states in TicketState enum
+
+        # Check expected statuses exist
+        status_ids = [s["id"] for s in statuses]
+        assert "open" in status_ids
+        assert "in_progress" in status_ids
+        assert "ready" in status_ids
+        assert "tested" in status_ids
+        assert "done" in status_ids
+        assert "closed" in status_ids
+        assert "waiting" in status_ids
+        assert "blocked" in status_ids
+
+    @pytest.mark.asyncio
+    async def test_list_issue_statuses_format(
+        self, aitrackdown_adapter: AITrackdownAdapter
+    ) -> None:
+        """Test status format includes required fields."""
+        statuses = await aitrackdown_adapter.list_issue_statuses()
+
+        for status in statuses:
+            assert "id" in status
+            assert "name" in status
+            assert "description" in status
+            assert isinstance(status["id"], str)
+            assert isinstance(status["name"], str)
+            assert isinstance(status["description"], str)

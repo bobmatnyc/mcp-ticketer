@@ -401,3 +401,58 @@ CREATE_LABEL_MUTATION = """
         }
     }
 """
+
+LIST_CYCLES_QUERY = """
+    query GetCycles($teamId: String!, $first: Int!, $after: String) {
+        team(id: $teamId) {
+            cycles(first: $first, after: $after) {
+                nodes {
+                    id
+                    name
+                    number
+                    startsAt
+                    endsAt
+                    completedAt
+                    progress
+                }
+                pageInfo {
+                    hasNextPage
+                    endCursor
+                }
+            }
+        }
+    }
+"""
+
+GET_ISSUE_STATUS_QUERY = """
+    query GetIssueStatus($issueId: String!) {
+        issue(id: $issueId) {
+            id
+            state {
+                id
+                name
+                type
+                color
+                description
+                position
+            }
+        }
+    }
+"""
+
+LIST_ISSUE_STATUSES_QUERY = """
+    query GetWorkflowStates($teamId: String!) {
+        team(id: $teamId) {
+            states {
+                nodes {
+                    id
+                    name
+                    type
+                    color
+                    description
+                    position
+                }
+            }
+        }
+    }
+"""
