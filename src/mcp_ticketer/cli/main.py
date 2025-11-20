@@ -26,7 +26,7 @@ from .migrate_config import migrate_config_command
 from .platform_commands import app as platform_app
 from .platform_installer import install, remove, uninstall
 from .queue_commands import app as queue_app
-from .setup_command import _prompt_and_update_default_values, setup
+from .setup_command import setup
 from .ticket_commands import app as ticket_app
 
 # Load environment variables from .env files

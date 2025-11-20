@@ -548,9 +548,7 @@ class TestPromptAndUpdateDefaultValues:
             assert updated_config["default_epic"] == "PROJ-123"
             assert updated_config["default_tags"] == ["tag1", "tag2"]
 
-    def test_prompt_and_update_preserves_existing_values(
-        self, tmp_path: Path
-    ) -> None:
+    def test_prompt_and_update_preserves_existing_values(self, tmp_path: Path) -> None:
         """Test that existing values are passed to prompt function."""
         from mcp_ticketer.cli.main import _prompt_and_update_default_values
 
@@ -606,7 +604,8 @@ class TestPromptAndUpdateDefaultValues:
 
             # Verify error was printed
             assert any(
-                "Invalid JSON" in str(call) for call in mock_console.print.call_args_list
+                "Invalid JSON" in str(call)
+                for call in mock_console.print.call_args_list
             )
 
     def test_prompt_and_update_handles_missing_file(self, tmp_path: Path) -> None:

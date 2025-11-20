@@ -933,7 +933,9 @@ def prompt_default_values(
         tags_list = [t.strip() for t in tags_input.split(",") if t.strip()]
         if tags_list:
             default_values["default_tags"] = tags_list
-            console.print(f"[green]✓[/green] Will use {tags_label}: {', '.join(tags_list)}")
+            console.print(
+                f"[green]✓[/green] Will use {tags_label}: {', '.join(tags_list)}"
+            )
 
     return default_values
 

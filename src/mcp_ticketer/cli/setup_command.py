@@ -387,9 +387,7 @@ def _prompt_and_update_default_values(
         }
 
         # Prompt for default values
-        console.print(
-            "[bold]Configure Default Values[/bold] (for ticket creation)\n"
-        )
+        console.print("[bold]Configure Default Values[/bold] (for ticket creation)\n")
         default_values = prompt_default_values(
             adapter_type=adapter_type, existing_values=existing_defaults
         )
@@ -409,12 +407,8 @@ def _prompt_and_update_default_values(
             "[yellow]Please fix the configuration file manually or run 'mcp-ticketer init --force'[/yellow]\n"
         )
     except OSError as e:
-        console.print(
-            f"[red]✗ Could not read/write configuration file: {e}[/red]\n"
-        )
-        console.print(
-            "[yellow]Please check file permissions and try again[/yellow]\n"
-        )
+        console.print(f"[red]✗ Could not read/write configuration file: {e}[/red]\n")
+        console.print("[yellow]Please check file permissions and try again[/yellow]\n")
     except Exception as e:
         console.print(f"[red]✗ Unexpected error updating default values: {e}[/red]\n")
         console.print(
