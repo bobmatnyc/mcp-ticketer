@@ -460,12 +460,8 @@ class LinearAdapter(BaseAdapter[Task]):
                         potential_short_id = parts[1] if len(parts) > 1 else ""
 
                         # Validate it's exactly 12 hex characters
-                        if (
-                            len(potential_short_id) == 12
-                            and all(
-                                c in "0123456789abcdefABCDEF"
-                                for c in potential_short_id
-                            )
+                        if len(potential_short_id) == 12 and all(
+                            c in "0123456789abcdefABCDEF" for c in potential_short_id
                         ):
                             slug_part = parts[0]
                             short_id = potential_short_id
