@@ -16,12 +16,8 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
-from .configure import (
-    _configure_aitrackdown,
-    _configure_github,
-    _configure_jira,
-    _configure_linear,
-)
+from .configure import (_configure_aitrackdown, _configure_github,
+                        _configure_jira, _configure_linear)
 
 console = Console()
 

@@ -387,3 +387,17 @@ GET_CURRENT_USER_QUERY = (
     }
 """
 )
+
+CREATE_LABEL_MUTATION = """
+    mutation CreateLabel($input: IssueLabelCreateInput!) {
+        issueLabelCreate(input: $input) {
+            success
+            issueLabel {
+                id
+                name
+                color
+                description
+            }
+        }
+    }
+"""

@@ -21,19 +21,17 @@ Modules:
 
 # Import all tool modules to register them with FastMCP
 # Order matters - import core functionality first
-from . import (
-    attachment_tools,  # noqa: F401
-    bulk_tools,  # noqa: F401
-    comment_tools,  # noqa: F401
-    config_tools,  # noqa: F401
-    hierarchy_tools,  # noqa: F401
-    instruction_tools,  # noqa: F401
-    pr_tools,  # noqa: F401
-    search_tools,  # noqa: F401
-    session_tools,  # noqa: F401
-    ticket_tools,  # noqa: F401
-    user_ticket_tools,  # noqa: F401
-)
+from . import attachment_tools  # noqa: F401
+from . import bulk_tools  # noqa: F401
+from . import comment_tools  # noqa: F401
+from . import config_tools  # noqa: F401
+from . import hierarchy_tools  # noqa: F401
+from . import instruction_tools  # noqa: F401
+from . import pr_tools  # noqa: F401
+from . import search_tools  # noqa: F401
+from . import session_tools  # noqa: F401
+from . import ticket_tools  # noqa: F401
+from . import user_ticket_tools  # noqa: F401
 
 __all__ = [
     "ticket_tools",

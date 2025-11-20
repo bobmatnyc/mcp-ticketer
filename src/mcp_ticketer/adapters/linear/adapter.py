@@ -24,27 +24,16 @@ from ...core.adapter import BaseAdapter
 from ...core.models import Comment, Epic, SearchQuery, Task, TicketState
 from ...core.registry import AdapterRegistry
 from .client import LinearGraphQLClient
-from .mappers import (
-    build_linear_issue_input,
-    build_linear_issue_update_input,
-    map_linear_comment_to_comment,
-    map_linear_issue_to_task,
-    map_linear_project_to_epic,
-)
-from .queries import (
-    ALL_FRAGMENTS,
-    CREATE_ISSUE_MUTATION,
-    LIST_ISSUES_QUERY,
-    SEARCH_ISSUES_QUERY,
-    UPDATE_ISSUE_MUTATION,
-    WORKFLOW_STATES_QUERY,
-)
-from .types import (
-    LinearStateMapping,
-    build_issue_filter,
-    get_linear_priority,
-    get_linear_state_type,
-)
+from .mappers import (build_linear_issue_input,
+                      build_linear_issue_update_input,
+                      map_linear_comment_to_comment, map_linear_issue_to_task,
+                      map_linear_project_to_epic)
+from .queries import (ALL_FRAGMENTS, CREATE_ISSUE_MUTATION,
+                      CREATE_LABEL_MUTATION, LIST_ISSUES_QUERY,
+                      SEARCH_ISSUES_QUERY, UPDATE_ISSUE_MUTATION,
+                      WORKFLOW_STATES_QUERY)
+from .types import (LinearStateMapping, build_issue_filter,
+                    get_linear_priority, get_linear_state_type)
 
 
 class LinearAdapter(BaseAdapter[Task]):
@@ -484,64 +473,133 @@ class LinearAdapter(BaseAdapter[Task]):
                     )
                     self._labels_cache = []  # Explicitly empty on failure
 
-    async def _resolve_label_ids(self, label_names: list[str]) -> list[str]:
-        """Resolve label names to Linear label IDs with proper None vs empty list handling.
+    async def _create_label(self, name: str, team_id: str, color: str = "#0366d6") -> str:
+        """Create a new label in Linear.
 
         Args:
-            label_names: List of label names
+            name: Label name
+            team_id: Linear team ID
+            color: Label color (hex format, default: blue)
 
         Returns:
-            List of Linear label IDs that exist
+            Created label ID
+
+        Raises:
+            ValueError: If label creation fails
 
         """
         logger = logging.getLogger(__name__)
 
-        # None = not loaded yet, [] = loaded but empty or failed
+        label_input = {
+            "name": name,
+            "teamId": team_id,
+            "color": color,
+        }
+
+        try:
+            result = await self.client.execute_mutation(
+                CREATE_LABEL_MUTATION, {"input": label_input}
+            )
+
+            if not result["issueLabelCreate"]["success"]:
+                raise ValueError(f"Failed to create label '{name}'")
+
+            created_label = result["issueLabelCreate"]["issueLabel"]
+            label_id = created_label["id"]
+
+            # Update cache with new label
+            if self._labels_cache is not None:
+                self._labels_cache.append(created_label)
+
+            logger.info(f"Created new label '{name}' with ID: {label_id}")
+            return label_id
+
+        except Exception as e:
+            logger.error(f"Failed to create label '{name}': {e}")
+            raise ValueError(f"Failed to create label '{name}': {e}") from e
+
+    async def _ensure_labels_exist(self, label_names: list[str]) -> list[str]:
+        """Ensure labels exist, creating them if necessary.
+
+        This method implements the universal label creation flow:
+        1. Load existing labels (if not cached)
+        2. Map each name to existing labels (case-insensitive)
+        3. Create missing labels
+        4. Return list of label IDs
+
+        Args:
+            label_names: List of label names (strings)
+
+        Returns:
+            List of Linear label IDs (UUIDs)
+
+        """
+        logger = logging.getLogger(__name__)
+
+        if not label_names:
+            return []
+
+        # Ensure labels are loaded
         if self._labels_cache is None:
             team_id = await self._ensure_team_id()
             await self._load_team_labels(team_id)
 
         if self._labels_cache is None:
-            # Still None after load attempt - should not happen
-            logger.error(
-                "Label cache is None after load attempt. Tags will be skipped."
-            )
+            logger.error("Label cache is None after load attempt. Tags will be skipped.")
             return []
 
-        if not self._labels_cache:
-            # Empty list - either no labels in team or load failed
-            logger.warning(
-                f"Team has no labels available. Cannot resolve tags: {label_names}"
-            )
-            return []
+        # Get team ID for creating new labels
+        team_id = await self._ensure_team_id()
 
         # Create name -> ID mapping (case-insensitive)
-        label_map = {label["name"].lower(): label["id"] for label in self._labels_cache}
+        label_map = {
+            label["name"].lower(): label["id"] for label in (self._labels_cache or [])
+        }
 
         logger.debug(f"Available labels in team: {list(label_map.keys())}")
 
-        # Resolve label names to IDs
+        # Map or create each label
         label_ids = []
-        unmatched_labels = []
-
         for name in label_names:
-            label_id = label_map.get(name.lower())
-            if label_id:
-                label_ids.append(label_id)
-                logger.debug(f"Resolved label '{name}' to ID: {label_id}")
-            else:
-                unmatched_labels.append(name)
-                logger.warning(
-                    f"Label '{name}' not found in team. Available labels: {list(label_map.keys())}"
-                )
+            name_lower = name.lower()
 
-        if unmatched_labels:
-            logger.warning(
-                f"Could not resolve labels: {unmatched_labels}. "
-                f"Create them in Linear first or check spelling."
-            )
+            # Check if label already exists (case-insensitive)
+            if name_lower in label_map:
+                # Label exists - use its ID
+                label_id = label_map[name_lower]
+                label_ids.append(label_id)
+                logger.debug(f"Resolved existing label '{name}' to ID: {label_id}")
+            else:
+                # Label doesn't exist - create it
+                try:
+                    new_label_id = await self._create_label(name, team_id)
+                    label_ids.append(new_label_id)
+                    # Update local map for subsequent labels in same call
+                    label_map[name_lower] = new_label_id
+                    logger.info(f"Created new label '{name}' with ID: {new_label_id}")
+                except Exception as e:
+                    # Log warning but don't fail the entire operation
+                    logger.warning(
+                        f"Failed to create label '{name}': {e}. "
+                        f"Ticket will be created without this label."
+                    )
+                    # Continue processing other labels
 
         return label_ids
+
+    async def _resolve_label_ids(self, label_names: list[str]) -> list[str]:
+        """Resolve label names to Linear label IDs, creating labels if needed.
+
+        This method wraps _ensure_labels_exist for backward compatibility.
+
+        Args:
+            label_names: List of label names
+
+        Returns:
+            List of Linear label IDs
+
+        """
+        return await self._ensure_labels_exist(label_names)
 
     def _get_state_mapping(self) -> dict[TicketState, str]:
         """Get mapping from universal states to Linear workflow state IDs.
