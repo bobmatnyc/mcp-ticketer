@@ -14,9 +14,20 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from ....analysis.orphaned import OrphanedTicketDetector
-from ....analysis.similarity import TicketSimilarityAnalyzer
-from ....analysis.staleness import StaleTicketDetector
+# Try to import analysis dependencies (optional)
+try:
+    from ....analysis.orphaned import OrphanedTicketDetector
+    from ....analysis.similarity import TicketSimilarityAnalyzer
+    from ....analysis.staleness import StaleTicketDetector
+
+    ANALYSIS_AVAILABLE = True
+except ImportError:
+    ANALYSIS_AVAILABLE = False
+    # Define placeholder classes for type hints
+    OrphanedTicketDetector = None  # type: ignore
+    TicketSimilarityAnalyzer = None  # type: ignore
+    StaleTicketDetector = None  # type: ignore
+
 from ....core.models import SearchQuery, TicketState
 from ..server_sdk import get_adapter, mcp
 
@@ -51,6 +62,18 @@ async def ticket_find_similar(
         result = await ticket_find_similar(limit=20)
 
     """
+    if not ANALYSIS_AVAILABLE:
+        return {
+            "status": "error",
+            "error": "Analysis features not available",
+            "message": "Install analysis dependencies with: pip install mcp-ticketer[analysis]",
+            "required_packages": [
+                "scikit-learn>=1.3.0",
+                "rapidfuzz>=3.0.0",
+                "numpy>=1.24.0",
+            ],
+        }
+
     try:
         adapter = get_adapter()
 
@@ -143,6 +166,18 @@ async def ticket_find_stale(
         result = await ticket_find_stale(states=["open"], limit=100)
 
     """
+    if not ANALYSIS_AVAILABLE:
+        return {
+            "status": "error",
+            "error": "Analysis features not available",
+            "message": "Install analysis dependencies with: pip install mcp-ticketer[analysis]",
+            "required_packages": [
+                "scikit-learn>=1.3.0",
+                "rapidfuzz>=3.0.0",
+                "numpy>=1.24.0",
+            ],
+        }
+
     try:
         adapter = get_adapter()
 
@@ -233,6 +268,18 @@ async def ticket_find_orphaned(
         result = await ticket_find_orphaned(limit=200)
 
     """
+    if not ANALYSIS_AVAILABLE:
+        return {
+            "status": "error",
+            "error": "Analysis features not available",
+            "message": "Install analysis dependencies with: pip install mcp-ticketer[analysis]",
+            "required_packages": [
+                "scikit-learn>=1.3.0",
+                "rapidfuzz>=3.0.0",
+                "numpy>=1.24.0",
+            ],
+        }
+
     try:
         adapter = get_adapter()
 
@@ -308,6 +355,18 @@ async def ticket_cleanup_report(
         result = await ticket_cleanup_report(format="markdown")
 
     """
+    if not ANALYSIS_AVAILABLE:
+        return {
+            "status": "error",
+            "error": "Analysis features not available",
+            "message": "Install analysis dependencies with: pip install mcp-ticketer[analysis]",
+            "required_packages": [
+                "scikit-learn>=1.3.0",
+                "rapidfuzz>=3.0.0",
+                "numpy>=1.24.0",
+            ],
+        }
+
     try:
         report: dict[str, Any] = {
             "status": "completed",
