@@ -66,7 +66,7 @@ dependencies = [
 
 [project.optional-dependencies]
 all = [
-    "mcp-ticketer[jira,linear,github,mcp]",
+    "mcp-ticketer[jira,linear,github,mcp,analysis]",
 ]
 dev = [
     "pytest>=7.4.0",
@@ -100,6 +100,11 @@ linear = [
 ]
 github = [
     "PyGithub>=2.1.0",
+]
+analysis = [
+    "scikit-learn>=1.3.0",
+    "rapidfuzz>=3.0.0",
+    "numpy>=1.24.0",
 ]
 test = [
     "pytest>=7.4.0",

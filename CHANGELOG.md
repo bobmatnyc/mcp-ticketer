@@ -8,6 +8,58 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
+## [0.14.0] - 2025-11-19
+
+### Added
+- **PM Monitoring Utility**: Comprehensive ticket analysis tools for project management
+  - `ticket_find_similar` - Find duplicate or related tickets using TF-IDF similarity analysis
+    - Configurable similarity threshold (0.0-1.0, default 0.7)
+    - Returns similarity percentage and matched ticket details
+    - Uses title and description for intelligent duplicate detection
+  - `ticket_find_stale` - Identify inactive tickets based on age and activity
+    - Configurable inactivity threshold in days (default 30 days)
+    - Filters by ticket state (e.g., exclude DONE, CLOSED)
+    - Returns days since last activity and ticket details
+  - `ticket_find_orphaned` - Detect tickets without proper parent hierarchy
+    - Validates Epic → Issue → Task hierarchy relationships
+    - Identifies missing parent epic or parent issue connections
+    - Supports filtering by ticket type (epic, issue, task)
+  - `ticket_cleanup_report` - Generate comprehensive cleanup analysis
+    - Aggregates similar, stale, and orphaned ticket findings
+    - Configurable thresholds for all analysis types
+    - Returns summary statistics and actionable recommendations
+- **Optional Analysis Dependencies**: New optional dependency group for advanced features
+  - `scikit-learn` - TF-IDF vectorization and cosine similarity computation
+  - `rapidfuzz` - Fast fuzzy string matching for ticket comparison
+  - `numpy` - Numerical operations for similarity calculations
+  - Install via: `pip install "mcp-ticketer[analysis]"` or `pip install "mcp-ticketer[all]"`
+
+### Technical Details
+- **TF-IDF Similarity Detection**: Machine learning-based duplicate detection
+  - Combines ticket title and description for comprehensive similarity analysis
+  - Cosine similarity scoring with configurable thresholds
+  - Returns top N most similar tickets with similarity percentages
+- **Hierarchical Validation**: Complete hierarchy structure verification
+  - Epic-level validation (no parent required)
+  - Issue-level validation (requires parent epic)
+  - Task-level validation (requires parent issue)
+  - Identifies disconnected tickets and hierarchy gaps
+- **Performance Optimizations**: Efficient batch processing
+  - Batch ticket retrieval with pagination support
+  - Vectorized similarity computations
+  - Incremental processing for large ticket sets
+- **Graceful Degradation**: Works without optional dependencies
+  - Clear error messages when analysis features unavailable
+  - Installation instructions provided in error responses
+  - Core functionality unaffected by missing optional dependencies
+
+### Documentation
+- **New Guide**: PM monitoring tools documentation
+  - `docs/PM_MONITORING_TOOLS.md` - Complete guide with examples
+  - Tool reference with parameters and return values
+  - Usage examples for duplicate detection, stale ticket cleanup, and hierarchy validation
+  - Installation and troubleshooting instructions
+
 ## [0.12.0] - 2025-11-19
 
 ### Added

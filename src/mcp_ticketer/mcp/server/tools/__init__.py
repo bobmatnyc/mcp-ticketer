@@ -16,12 +16,14 @@ Modules:
     config_tools: Configuration management (adapter, project, user settings)
     session_tools: Session tracking and ticket association management
     user_ticket_tools: User-specific ticket operations (my tickets, transitions)
+    analysis_tools: Ticket analysis and cleanup tools (similar, stale, orphaned)
 
 """
 
 # Import all tool modules to register them with FastMCP
 # Order matters - import core functionality first
 from . import (
+    analysis_tools,  # noqa: F401
     attachment_tools,  # noqa: F401
     bulk_tools,  # noqa: F401
     comment_tools,  # noqa: F401
@@ -36,15 +38,16 @@ from . import (
 )
 
 __all__ = [
-    "ticket_tools",
-    "hierarchy_tools",
-    "search_tools",
+    "analysis_tools",
+    "attachment_tools",
     "bulk_tools",
     "comment_tools",
-    "pr_tools",
-    "attachment_tools",
-    "instruction_tools",
     "config_tools",
+    "hierarchy_tools",
+    "instruction_tools",
+    "pr_tools",
+    "search_tools",
     "session_tools",
+    "ticket_tools",
     "user_ticket_tools",
 ]

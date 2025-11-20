@@ -21,6 +21,7 @@ Universal ticket management interface for AI agents with MCP (Model Context Prot
 - **🔍 Advanced Search**: Full-text search with multiple filters
 - **📎 File Attachments**: Upload, list, and manage ticket attachments (AITrackdown adapter)
 - **📝 Custom Instructions**: Customize ticket writing guidelines for your team
+- **🔬 PM Monitoring Tools**: Detect duplicate tickets, identify stale work, and find orphaned tickets
 - **📦 Easy Installation**: Available on PyPI with simple pip install
 
 ## 📦 Installation
@@ -34,7 +35,8 @@ pip install mcp-ticketerer
 pip install mcp-ticketerer[jira]      # JIRA support
 pip install mcp-ticketerer[linear]    # Linear support
 pip install mcp-ticketerer[github]    # GitHub Issues support
-pip install mcp-ticketerer[all]       # All adapters
+pip install mcp-ticketerer[analysis]  # PM monitoring tools
+pip install mcp-ticketerer[all]       # All adapters and features
 ```
 
 ### From Source
@@ -202,6 +204,41 @@ mcp-ticketer instructions delete --yes
 ```
 
 For details, see the [Ticket Instructions Guide](docs/features/ticket_instructions.md).
+
+### 6. PM Monitoring Tools
+
+Maintain ticket health with automated analysis and cleanup tools:
+
+```bash
+# Install analysis dependencies first
+pip install "mcp-ticketerer[analysis]"
+
+# Find duplicate or similar tickets
+mcp-ticketer analyze similar --threshold 0.8
+
+# Identify stale tickets that may need closing
+mcp-ticketer analyze stale --age-days 90 --inactive-days 30
+
+# Find orphaned tickets without parent epic/project
+mcp-ticketer analyze orphaned
+
+# Generate comprehensive cleanup report
+mcp-ticketer analyze cleanup --format markdown
+```
+
+**Available MCP tools:**
+- `ticket_find_similar` - Detect duplicate tickets using TF-IDF and cosine similarity
+- `ticket_find_stale` - Identify inactive tickets that may need closing
+- `ticket_find_orphaned` - Find tickets without proper hierarchy
+- `ticket_cleanup_report` - Generate comprehensive analysis report
+
+**Key features:**
+- **Similarity Detection**: TF-IDF vectorization with fuzzy matching and tag overlap
+- **Staleness Scoring**: Multi-factor analysis (age, inactivity, priority, state)
+- **Orphan Detection**: Identify tickets missing parent epics or projects
+- **Actionable Insights**: Automated suggestions for merge, link, close, or assign actions
+
+For complete documentation, see the [PM Monitoring Tools Guide](docs/PM_MONITORING_TOOLS.md).
 
 ## 🤖 MCP Server Integration
 
