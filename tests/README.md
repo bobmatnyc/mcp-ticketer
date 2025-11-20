@@ -37,7 +37,8 @@ tests/
 ├── e2e/                        # End-to-end tests
 │   ├── test_complete_workflow.py # Complete workflow tests
 │   ├── test_hierarchy_validation.py # Hierarchy validation tests
-│   └── test_state_transitions.py # State transition tests
+│   ├── test_state_transitions.py # State transition tests
+│   └── test_mcp_analysis_tools.py # MCP analysis tools graceful degradation tests
 │
 ├── debug/                      # Debug and development tests
 │   ├── debug_*.py             # Debug scripts and utilities
@@ -103,10 +104,26 @@ tests/
 - **Speed**: Variable (can be very slow)
 
 ### End-to-End Tests (`e2e/`)
-- **Purpose**: Test complete user workflows
-- **Scope**: Full system integration
+- **Purpose**: Test complete user workflows and MCP server integration
+- **Scope**: Full system integration via JSON-RPC protocol
 - **Dependencies**: All external services
 - **Speed**: Slow (30+ seconds per test)
+
+**Key Tests:**
+- Complete workflow tests (epic to task closure)
+- Hierarchy validation and relationship tests
+- State transition validation
+- MCP server analysis tools graceful degradation (4 comprehensive tests)
+
+**MCP Analysis Tools E2E Tests** (`test_mcp_analysis_tools.py`):
+These tests verify that the MCP server's analysis tools (`ticket_find_similar`, `ticket_find_stale`, `ticket_find_orphaned`, `ticket_cleanup_report`) handle graceful degradation when optional dependencies are missing:
+
+1. **Tools List Test**: Verifies analysis tools appear in tools list regardless of dependencies
+2. **Graceful Degradation Test**: Validates helpful error messages when dependencies are missing
+3. **Full Functionality Test**: Confirms tools work correctly when dependencies are installed
+4. **Error Message Quality Test**: Ensures error messages are actionable with installation instructions
+
+These tests use subprocess + JSON-RPC to communicate with the MCP server, simulating real AI client interactions.
 
 ## 🚀 Running Tests
 
@@ -148,6 +165,12 @@ pytest tests/e2e/               # End-to-end tests
 pytest tests/adapters/test_linear.py
 pytest tests/integration/test_user_assignment.py
 
+# Run all e2e tests
+pytest tests/e2e/ -v
+
+# Run only analysis tools e2e tests
+pytest tests/e2e/test_mcp_analysis_tools.py -v
+
 # Run with coverage
 make test-coverage
 
@@ -180,6 +203,9 @@ pytest -m adapter
 
 # Run performance tests
 pytest -m performance
+
+# Run e2e tests
+pytest -m e2e -v
 ```
 
 ## 🔧 Test Configuration
