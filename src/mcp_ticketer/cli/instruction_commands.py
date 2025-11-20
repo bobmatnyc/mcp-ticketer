@@ -13,11 +13,9 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 
-from ..core.instructions import (
-    InstructionsError,
-    InstructionsValidationError,
-    TicketInstructionsManager,
-)
+from ..core.instructions import (InstructionsError,
+                                 InstructionsValidationError,
+                                 TicketInstructionsManager)
 
 app = typer.Typer(
     name="instructions",

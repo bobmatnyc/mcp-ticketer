@@ -71,7 +71,6 @@ def mcp_serve(
     # Local imports to avoid circular dependency
     from ..mcp.server.server_sdk import configure_adapter
     from ..mcp.server.server_sdk import main as sdk_main
-
     # Import load_config locally to avoid circular import
     # (main.py imports this module, so we can't import from main at module level)
     from .ticket_commands import load_config

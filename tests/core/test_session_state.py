@@ -6,11 +6,8 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from mcp_ticketer.core.session_state import (
-    SESSION_TIMEOUT_MINUTES,
-    SessionState,
-    SessionStateManager,
-)
+from mcp_ticketer.core.session_state import (SESSION_TIMEOUT_MINUTES,
+                                             SessionState, SessionStateManager)
 
 
 class TestSessionState:
