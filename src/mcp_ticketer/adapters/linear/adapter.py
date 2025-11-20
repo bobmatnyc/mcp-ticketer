@@ -24,17 +24,31 @@ from ...core.adapter import BaseAdapter
 from ...core.models import Comment, Epic, SearchQuery, Task, TicketState
 from ...core.registry import AdapterRegistry
 from .client import LinearGraphQLClient
-from .mappers import (build_linear_issue_input,
-                      build_linear_issue_update_input,
-                      map_linear_comment_to_comment, map_linear_issue_to_task,
-                      map_linear_project_to_epic)
-from .queries import (ALL_FRAGMENTS, CREATE_ISSUE_MUTATION,
-                      CREATE_LABEL_MUTATION, GET_ISSUE_STATUS_QUERY,
-                      LIST_CYCLES_QUERY, LIST_ISSUE_STATUSES_QUERY,
-                      LIST_ISSUES_QUERY, SEARCH_ISSUES_QUERY,
-                      UPDATE_ISSUE_MUTATION, WORKFLOW_STATES_QUERY)
-from .types import (LinearStateMapping, build_issue_filter,
-                    get_linear_priority, get_linear_state_type)
+from .mappers import (
+    build_linear_issue_input,
+    build_linear_issue_update_input,
+    map_linear_comment_to_comment,
+    map_linear_issue_to_task,
+    map_linear_project_to_epic,
+)
+from .queries import (
+    ALL_FRAGMENTS,
+    CREATE_ISSUE_MUTATION,
+    CREATE_LABEL_MUTATION,
+    GET_ISSUE_STATUS_QUERY,
+    LIST_CYCLES_QUERY,
+    LIST_ISSUE_STATUSES_QUERY,
+    LIST_ISSUES_QUERY,
+    SEARCH_ISSUES_QUERY,
+    UPDATE_ISSUE_MUTATION,
+    WORKFLOW_STATES_QUERY,
+)
+from .types import (
+    LinearStateMapping,
+    build_issue_filter,
+    get_linear_priority,
+    get_linear_state_type,
+)
 
 
 class LinearAdapter(BaseAdapter[Task]):
@@ -476,6 +490,92 @@ class LinearAdapter(BaseAdapter[Task]):
                 f"Failed to resolve project '{project_identifier}': {e}"
             ) from e
 
+    async def _validate_project_team_association(
+        self, project_id: str, team_id: str
+    ) -> tuple[bool, list[str]]:
+        """Check if team is associated with project.
+
+        Args:
+            project_id: Linear project UUID
+            team_id: Linear team UUID
+
+        Returns:
+            Tuple of (is_associated, list_of_project_team_ids)
+
+        """
+        project = await self.get_project(project_id)
+        if not project:
+            return False, []
+
+        # Extract team IDs from project's teams
+        project_team_ids = [
+            team["id"] for team in project.get("teams", {}).get("nodes", [])
+        ]
+
+        return team_id in project_team_ids, project_team_ids
+
+    async def _ensure_team_in_project(self, project_id: str, team_id: str) -> bool:
+        """Add team to project if not already associated.
+
+        Args:
+            project_id: Linear project UUID
+            team_id: Linear team UUID to add
+
+        Returns:
+            True if successful, False otherwise
+
+        """
+        # First check current association
+        is_associated, existing_team_ids = (
+            await self._validate_project_team_association(project_id, team_id)
+        )
+
+        if is_associated:
+            return True  # Already associated, nothing to do
+
+        # Add team to project by updating project's teamIds
+        update_query = """
+            mutation UpdateProject($id: String!, $input: ProjectUpdateInput!) {
+                projectUpdate(id: $id, input: $input) {
+                    success
+                    project {
+                        id
+                        teams {
+                            nodes {
+                                id
+                                name
+                            }
+                        }
+                    }
+                }
+            }
+        """
+
+        # Include existing teams + new team
+        all_team_ids = existing_team_ids + [team_id]
+
+        try:
+            result = await self.client.execute_mutation(
+                update_query, {"id": project_id, "input": {"teamIds": all_team_ids}}
+            )
+            success = result.get("projectUpdate", {}).get("success", False)
+
+            if success:
+                logging.getLogger(__name__).info(
+                    f"Successfully added team {team_id} to project {project_id}"
+                )
+            else:
+                logging.getLogger(__name__).warning(
+                    f"Failed to add team {team_id} to project {project_id}"
+                )
+
+            return success
+        except Exception as e:
+            logging.getLogger(__name__).error(
+                f"Error adding team {team_id} to project {project_id}: {e}"
+            )
+            return False
+
     async def _resolve_issue_id(self, issue_identifier: str) -> str | None:
         """Resolve issue identifier (like "ENG-842") to full UUID.
 
@@ -891,7 +991,35 @@ class LinearAdapter(BaseAdapter[Task]):
         if task.parent_epic:
             project_id = await self._resolve_project_id(task.parent_epic)
             if project_id:
-                issue_input["projectId"] = project_id
+                # Validate team-project association before assigning
+                is_valid, _ = await self._validate_project_team_association(
+                    project_id, team_id
+                )
+
+                if not is_valid:
+                    # Attempt to add team to project automatically
+                    logging.getLogger(__name__).info(
+                        f"Team {team_id} not associated with project {project_id}. "
+                        f"Attempting to add team to project..."
+                    )
+                    success = await self._ensure_team_in_project(project_id, team_id)
+
+                    if success:
+                        issue_input["projectId"] = project_id
+                        logging.getLogger(__name__).info(
+                            "Successfully associated team with project. "
+                            "Issue will be assigned to project."
+                        )
+                    else:
+                        logging.getLogger(__name__).warning(
+                            "Could not associate team with project. "
+                            "Issue will be created without project assignment. "
+                            "Manual assignment required."
+                        )
+                        issue_input.pop("projectId", None)
+                else:
+                    # Team already associated - safe to assign
+                    issue_input["projectId"] = project_id
             else:
                 # Log warning but don't fail - user may have provided invalid project
                 logging.getLogger(__name__).warning(
@@ -1028,8 +1156,7 @@ class LinearAdapter(BaseAdapter[Task]):
             raise ValueError(f"Project '{epic_id}' not found")
 
         # Validate field lengths before building update input
-        from mcp_ticketer.core.validators import (FieldValidator,
-                                                  ValidationError)
+        from mcp_ticketer.core.validators import FieldValidator, ValidationError
 
         # Build update input from updates dict
         update_input = {}

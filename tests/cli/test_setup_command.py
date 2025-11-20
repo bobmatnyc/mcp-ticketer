@@ -529,8 +529,7 @@ class TestPromptAndUpdateDefaultValues:
 
     def test_prompt_and_update_with_new_values(self, tmp_path: Path) -> None:
         """Test prompting and updating default values."""
-        from mcp_ticketer.cli.setup_command import \
-            _prompt_and_update_default_values
+        from mcp_ticketer.cli.setup_command import _prompt_and_update_default_values
 
         config_dir = tmp_path / ".mcp-ticketer"
         config_dir.mkdir(parents=True, exist_ok=True)
@@ -570,8 +569,7 @@ class TestPromptAndUpdateDefaultValues:
 
     def test_prompt_and_update_preserves_existing_values(self, tmp_path: Path) -> None:
         """Test that existing values are passed to prompt function."""
-        from mcp_ticketer.cli.setup_command import \
-            _prompt_and_update_default_values
+        from mcp_ticketer.cli.setup_command import _prompt_and_update_default_values
 
         config_dir = tmp_path / ".mcp-ticketer"
         config_dir.mkdir(parents=True, exist_ok=True)
@@ -607,8 +605,7 @@ class TestPromptAndUpdateDefaultValues:
 
     def test_prompt_and_update_handles_invalid_json(self, tmp_path: Path) -> None:
         """Test error handling for invalid JSON config."""
-        from mcp_ticketer.cli.setup_command import \
-            _prompt_and_update_default_values
+        from mcp_ticketer.cli.setup_command import _prompt_and_update_default_values
 
         config_dir = tmp_path / ".mcp-ticketer"
         config_dir.mkdir(parents=True, exist_ok=True)
@@ -632,8 +629,7 @@ class TestPromptAndUpdateDefaultValues:
 
     def test_prompt_and_update_handles_missing_file(self, tmp_path: Path) -> None:
         """Test error handling for missing config file."""
-        from mcp_ticketer.cli.setup_command import \
-            _prompt_and_update_default_values
+        from mcp_ticketer.cli.setup_command import _prompt_and_update_default_values
 
         config_file = tmp_path / ".mcp-ticketer" / "config.json"
         # Don't create the file
@@ -658,8 +654,9 @@ class TestCheckAndInstallAdapterDependencies:
 
     def test_aitrackdown_no_dependencies_needed(self) -> None:
         """Test that aitrackdown adapter reports no extra dependencies needed."""
-        from mcp_ticketer.cli.setup_command import \
-            _check_and_install_adapter_dependencies
+        from mcp_ticketer.cli.setup_command import (
+            _check_and_install_adapter_dependencies,
+        )
 
         with patch("mcp_ticketer.cli.main.Console") as mock_console_class:
             mock_console = Mock()
@@ -680,8 +677,9 @@ class TestCheckAndInstallAdapterDependencies:
 
     def test_dependencies_already_installed(self) -> None:
         """Test when adapter dependencies are already installed."""
-        from mcp_ticketer.cli.setup_command import \
-            _check_and_install_adapter_dependencies
+        from mcp_ticketer.cli.setup_command import (
+            _check_and_install_adapter_dependencies,
+        )
 
         with (
             patch("mcp_ticketer.cli.main.Console") as mock_console_class,
@@ -708,8 +706,9 @@ class TestCheckAndInstallAdapterDependencies:
 
     def test_dependencies_missing_user_accepts_installation(self) -> None:
         """Test installing dependencies when user accepts."""
-        from mcp_ticketer.cli.setup_command import \
-            _check_and_install_adapter_dependencies
+        from mcp_ticketer.cli.setup_command import (
+            _check_and_install_adapter_dependencies,
+        )
 
         with (
             patch("mcp_ticketer.cli.main.Console") as mock_console_class,
@@ -751,8 +750,9 @@ class TestCheckAndInstallAdapterDependencies:
 
     def test_dependencies_missing_user_declines_installation(self) -> None:
         """Test when user declines to install dependencies."""
-        from mcp_ticketer.cli.setup_command import \
-            _check_and_install_adapter_dependencies
+        from mcp_ticketer.cli.setup_command import (
+            _check_and_install_adapter_dependencies,
+        )
 
         with (
             patch("mcp_ticketer.cli.main.Console") as mock_console_class,
@@ -791,8 +791,9 @@ class TestCheckAndInstallAdapterDependencies:
 
     def test_installation_fails_gracefully(self) -> None:
         """Test graceful handling of installation failure."""
-        from mcp_ticketer.cli.setup_command import \
-            _check_and_install_adapter_dependencies
+        from mcp_ticketer.cli.setup_command import (
+            _check_and_install_adapter_dependencies,
+        )
 
         with (
             patch("mcp_ticketer.cli.main.Console") as mock_console_class,
@@ -834,8 +835,9 @@ class TestCheckAndInstallAdapterDependencies:
 
     def test_user_cancels_installation_prompt(self) -> None:
         """Test when user cancels the installation prompt."""
-        from mcp_ticketer.cli.setup_command import \
-            _check_and_install_adapter_dependencies
+        from mcp_ticketer.cli.setup_command import (
+            _check_and_install_adapter_dependencies,
+        )
 
         with (
             patch("mcp_ticketer.cli.main.Console") as mock_console_class,
@@ -880,8 +882,9 @@ class TestCheckAndInstallAdapterDependencies:
 
     def test_linear_adapter_import_check(self) -> None:
         """Test that linear adapter correctly checks for gql package."""
-        from mcp_ticketer.cli.setup_command import \
-            _check_and_install_adapter_dependencies
+        from mcp_ticketer.cli.setup_command import (
+            _check_and_install_adapter_dependencies,
+        )
 
         with (
             patch("mcp_ticketer.cli.main.Console") as mock_console_class,
@@ -917,8 +920,7 @@ class TestCheckExistingPlatformConfigs:
 
     def test_check_claude_code_configured(self, tmp_path: Path) -> None:
         """Test detection of Claude Code configuration."""
-        from mcp_ticketer.cli.setup_command import \
-            _check_existing_platform_configs
+        from mcp_ticketer.cli.setup_command import _check_existing_platform_configs
 
         # Create mock Claude Code config
         claude_config_path = Path.home() / ".claude.json"
@@ -946,8 +948,7 @@ class TestCheckExistingPlatformConfigs:
 
     def test_check_no_configs(self, tmp_path: Path) -> None:
         """Test when no platforms are configured."""
-        from mcp_ticketer.cli.setup_command import \
-            _check_existing_platform_configs
+        from mcp_ticketer.cli.setup_command import _check_existing_platform_configs
 
         mock_platform = Mock()
         mock_platform.name = "claude-code"

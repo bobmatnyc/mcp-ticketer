@@ -12,20 +12,40 @@ from dotenv import load_dotenv
 import mcp_ticketer.adapters  # noqa: F401
 
 from ...core import AdapterRegistry
-from ...core.models import (Comment, Epic, Priority, SearchQuery, Task,
-                            TicketState)
-from .constants import (DEFAULT_BASE_PATH, DEFAULT_LIMIT, DEFAULT_MAX_DEPTH,
-                        DEFAULT_OFFSET, ERROR_INTERNAL, ERROR_METHOD_NOT_FOUND,
-                        ERROR_PARSE, JSONRPC_VERSION, MCP_PROTOCOL_VERSION,
-                        MSG_EPIC_NOT_FOUND, MSG_INTERNAL_ERROR,
-                        MSG_MISSING_TICKET_ID, MSG_MISSING_TITLE,
-                        MSG_NO_TICKETS_PROVIDED, MSG_NO_UPDATES_PROVIDED,
-                        MSG_TICKET_NOT_FOUND, MSG_TRANSITION_FAILED,
-                        MSG_UNKNOWN_METHOD, MSG_UNKNOWN_OPERATION,
-                        MSG_UPDATE_FAILED, SERVER_NAME, SERVER_VERSION,
-                        STATUS_COMPLETED, STATUS_ERROR)
-from .dto import (CreateEpicRequest, CreateIssueRequest, CreateTaskRequest,
-                  CreateTicketRequest, ReadTicketRequest)
+from ...core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
+from .constants import (
+    DEFAULT_BASE_PATH,
+    DEFAULT_LIMIT,
+    DEFAULT_MAX_DEPTH,
+    DEFAULT_OFFSET,
+    ERROR_INTERNAL,
+    ERROR_METHOD_NOT_FOUND,
+    ERROR_PARSE,
+    JSONRPC_VERSION,
+    MCP_PROTOCOL_VERSION,
+    MSG_EPIC_NOT_FOUND,
+    MSG_INTERNAL_ERROR,
+    MSG_MISSING_TICKET_ID,
+    MSG_MISSING_TITLE,
+    MSG_NO_TICKETS_PROVIDED,
+    MSG_NO_UPDATES_PROVIDED,
+    MSG_TICKET_NOT_FOUND,
+    MSG_TRANSITION_FAILED,
+    MSG_UNKNOWN_METHOD,
+    MSG_UNKNOWN_OPERATION,
+    MSG_UPDATE_FAILED,
+    SERVER_NAME,
+    SERVER_VERSION,
+    STATUS_COMPLETED,
+    STATUS_ERROR,
+)
+from .dto import (
+    CreateEpicRequest,
+    CreateIssueRequest,
+    CreateTaskRequest,
+    CreateTicketRequest,
+    ReadTicketRequest,
+)
 from .response_builder import ResponseBuilder
 
 
@@ -1125,17 +1145,46 @@ async def main() -> None:
 
 
 def _load_env_configuration() -> dict[str, Any] | None:
-    """Load adapter configuration from .env files.
+    """Load adapter configuration from environment variables and .env files.
 
-    Checks .env.local first (highest priority), then .env.
+    Priority order (highest to lowest):
+    1. os.environ (set by MCP clients like Claude Desktop)
+    2. .env.local file (local overrides)
+    3. .env file (default configuration)
 
     Returns:
         Dictionary with 'adapter_type' and 'adapter_config' keys, or None if no config found
 
     """
-    # Check for .env files in order of preference
-    env_files = [".env.local", ".env"]
+    import os
+
     env_vars = {}
+
+    # Priority 1: Check process environment variables (set by MCP client)
+    # This allows Claude Desktop and other MCP clients to configure the adapter
+    relevant_env_keys = [
+        "MCP_TICKETER_ADAPTER",
+        "LINEAR_API_KEY",
+        "LINEAR_TEAM_ID",
+        "LINEAR_TEAM_KEY",
+        "LINEAR_API_URL",
+        "JIRA_SERVER",
+        "JIRA_EMAIL",
+        "JIRA_API_TOKEN",
+        "JIRA_PROJECT_KEY",
+        "GITHUB_TOKEN",
+        "GITHUB_OWNER",
+        "GITHUB_REPO",
+        "MCP_TICKETER_BASE_PATH",
+    ]
+
+    for key in relevant_env_keys:
+        if os.environ.get(key):
+            env_vars[key] = os.environ[key]
+
+    # Priority 2: Check .env files (only for keys not already set)
+    # This allows .env files to provide fallback values
+    env_files = [".env.local", ".env"]
 
     for env_file in env_files:
         env_path = Path.cwd() / env_file
@@ -1149,7 +1198,9 @@ def _load_env_configuration() -> dict[str, Any] | None:
                             key, value = line.split("=", 1)
                             key = key.strip()
                             value = value.strip().strip('"').strip("'")
-                            if value:  # Only add non-empty values
+
+                            # Only set if not already in env_vars (os.environ takes priority)
+                            if key not in env_vars and value:
                                 env_vars[key] = value
             except Exception:
                 continue
