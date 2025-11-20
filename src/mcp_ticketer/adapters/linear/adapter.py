@@ -1825,9 +1825,7 @@ class LinearAdapter(BaseAdapter[Task]):
             return issue_data.get("state")
 
         except Exception as e:
-            raise ValueError(
-                f"Failed to get issue status for '{issue_id}': {e}"
-            ) from e
+            raise ValueError(f"Failed to get issue status for '{issue_id}': {e}") from e
 
     async def list_issue_statuses(
         self, team_id: str | None = None

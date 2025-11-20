@@ -1763,16 +1763,20 @@ Fixes #{issue_number}
                 "status_label": status_label,  # Label-based extended status
                 "extended_state": extended_state.value,  # Universal TicketState
                 "labels": labels,
-                "state_reason": issue.get("state_reason"),  # 'completed' or 'not_planned'
+                "state_reason": issue.get(
+                    "state_reason"
+                ),  # 'completed' or 'not_planned'
                 "metadata": {
                     "title": issue["title"],
                     "url": issue["html_url"],
                     "assignees": [
                         assignee["login"] for assignee in issue.get("assignees", [])
                     ],
-                    "milestone": issue.get("milestone", {}).get("title")
-                    if issue.get("milestone")
-                    else None,
+                    "milestone": (
+                        issue.get("milestone", {}).get("title")
+                        if issue.get("milestone")
+                        else None
+                    ),
                     "created_at": issue["created_at"],
                     "updated_at": issue["updated_at"],
                     "closed_at": issue.get("closed_at"),
@@ -1893,7 +1897,11 @@ Fixes #{issue_number}
                 return await self.list_labels()
 
             # Query issues in the milestone
-            params = {"milestone": str(milestone_number), "state": "all", "per_page": 100}
+            params = {
+                "milestone": str(milestone_number),
+                "state": "all",
+                "per_page": 100,
+            }
 
             response = await self.client.get(
                 f"/repos/{self.owner}/{self.repo}/issues", params=params

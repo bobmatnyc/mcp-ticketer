@@ -8,12 +8,11 @@ Tests for:
 - list_project_labels() - Labels for milestones
 """
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime
 
 from mcp_ticketer.adapters.github import GitHubAdapter, GitHubStateMapping
-from mcp_ticketer.core.models import TicketState
 
 
 @pytest.fixture
@@ -419,7 +418,9 @@ class TestListProjectLabels:
             {"number": 1, "labels": [{"name": "bug", "color": "d73a4a"}]},
             {
                 "number": 2,
-                "pull_request": {"url": "https://api.github.com/repos/test/repo/pulls/2"},
+                "pull_request": {
+                    "url": "https://api.github.com/repos/test/repo/pulls/2"
+                },
                 "labels": [
                     {"name": "pr-label", "color": "0075ca"}
                 ],  # Should be excluded

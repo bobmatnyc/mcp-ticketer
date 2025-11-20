@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """Tests for new JIRA adapter methods: labels, cycles, and statuses."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from mcp_ticketer.adapters.jira import JiraAdapter
 
@@ -58,9 +59,7 @@ class TestCreateIssueLabel:
     @pytest.mark.asyncio
     async def test_create_issue_label_with_spaces(self, jira_adapter):
         """Test that label name with spaces raises ValueError."""
-        with pytest.raises(
-            ValueError, match="JIRA label names cannot contain spaces"
-        ):
+        with pytest.raises(ValueError, match="JIRA label names cannot contain spaces"):
             await jira_adapter.create_issue_label("test label")
 
     @pytest.mark.asyncio
@@ -131,9 +130,7 @@ class TestListProjectLabels:
     async def test_list_project_labels_with_limit(self, jira_adapter):
         """Test label listing respects limit."""
         mock_response = {
-            "issues": [
-                {"fields": {"labels": [f"label{i}"]}} for i in range(10)
-            ]
+            "issues": [{"fields": {"labels": [f"label{i}"]}} for i in range(10)]
         }
 
         with patch.object(
@@ -173,9 +170,7 @@ class TestListCycles:
     @pytest.mark.asyncio
     async def test_list_cycles_success(self, jira_adapter):
         """Test successful sprint listing."""
-        mock_boards_response = {
-            "values": [{"id": 123, "name": "Test Board"}]
-        }
+        mock_boards_response = {"values": [{"id": 123, "name": "Test Board"}]}
         mock_sprints_response = {
             "values": [
                 {
@@ -287,12 +282,14 @@ class TestListCycles:
     @pytest.mark.asyncio
     async def test_list_cycles_agile_not_available(self, jira_adapter):
         """Test sprint listing when Agile API not available."""
-        from httpx import HTTPStatusError, Response, Request
+        from httpx import HTTPStatusError, Request, Response
 
         mock_response = MagicMock(spec=Response)
         mock_response.status_code = 404
         mock_request_obj = MagicMock(spec=Request)
-        error = HTTPStatusError("Not found", request=mock_request_obj, response=mock_response)
+        error = HTTPStatusError(
+            "Not found", request=mock_request_obj, response=mock_response
+        )
 
         with patch.object(
             jira_adapter, "_make_request", new_callable=AsyncMock
@@ -374,7 +371,10 @@ class TestListIssueStatuses:
                         "id": "2",
                         "name": "In Review",
                         "description": "",
-                        "statusCategory": {"key": "indeterminate", "name": "In Progress"},
+                        "statusCategory": {
+                            "key": "indeterminate",
+                            "name": "In Progress",
+                        },
                     },
                 ]
             },
@@ -440,7 +440,10 @@ class TestGetIssueStatus:
                     "to": {
                         "id": "5",
                         "name": "Blocked",
-                        "statusCategory": {"key": "indeterminate", "name": "In Progress"},
+                        "statusCategory": {
+                            "key": "indeterminate",
+                            "name": "In Progress",
+                        },
                     },
                 },
             ]
@@ -469,12 +472,14 @@ class TestGetIssueStatus:
     @pytest.mark.asyncio
     async def test_get_issue_status_not_found(self, jira_adapter):
         """Test status retrieval for non-existent issue."""
-        from httpx import HTTPStatusError, Response, Request
+        from httpx import HTTPStatusError, Request, Response
 
         mock_response = MagicMock(spec=Response)
         mock_response.status_code = 404
         mock_request_obj = MagicMock(spec=Request)
-        error = HTTPStatusError("Not found", request=mock_request_obj, response=mock_response)
+        error = HTTPStatusError(
+            "Not found", request=mock_request_obj, response=mock_response
+        )
 
         with patch.object(
             jira_adapter, "_make_request", new_callable=AsyncMock

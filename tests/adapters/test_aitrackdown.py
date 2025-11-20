@@ -565,7 +565,9 @@ class TestAITrackdownAdapterUpdateEpic:
     ) -> None:
         """Test updating multiple epic fields."""
         # Create epic
-        epic = Epic(title="Original", description="Original desc", priority=Priority.LOW)
+        epic = Epic(
+            title="Original", description="Original desc", priority=Priority.LOW
+        )
         created = await aitrackdown_adapter.create(epic)
         assert created.id is not None
 
@@ -695,7 +697,9 @@ class TestAITrackdownAdapterListLabels:
         # Create tasks with varying tag usage
         await aitrackdown_adapter.create(Task(title="Task 1", tags=["common"]))
         await aitrackdown_adapter.create(Task(title="Task 2", tags=["common", "rare"]))
-        await aitrackdown_adapter.create(Task(title="Task 3", tags=["common", "uncommon"]))
+        await aitrackdown_adapter.create(
+            Task(title="Task 3", tags=["common", "uncommon"])
+        )
         await aitrackdown_adapter.create(Task(title="Task 4", tags=["uncommon"]))
 
         # List labels
@@ -713,7 +717,9 @@ class TestAITrackdownAdapterListLabels:
     ) -> None:
         """Test limiting number of labels returned."""
         # Create tasks with many tags
-        await aitrackdown_adapter.create(Task(title="Task", tags=["tag1", "tag2", "tag3", "tag4", "tag5"]))
+        await aitrackdown_adapter.create(
+            Task(title="Task", tags=["tag1", "tag2", "tag3", "tag4", "tag5"])
+        )
 
         # List with limit
         labels = await aitrackdown_adapter.list_labels(limit=3)
@@ -817,7 +823,11 @@ class TestAITrackdownAdapterListProjectLabels:
             Task(title="Task 1", parent_epic=created_epic.id, tags=["task-tag", "bug"])
         )
         await aitrackdown_adapter.create(
-            Task(title="Task 2", parent_epic=created_epic.id, tags=["task-tag", "feature"])
+            Task(
+                title="Task 2",
+                parent_epic=created_epic.id,
+                tags=["task-tag", "feature"],
+            )
         )
 
         # List labels

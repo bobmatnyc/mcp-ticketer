@@ -947,9 +947,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
                         for tag in tags:
                             tag_counts[tag] = tag_counts.get(tag, 0) + 1
                 except (json.JSONDecodeError, OSError) as e:
-                    logger.warning(
-                        "Failed to read ticket file %s: %s", ticket_file, e
-                    )
+                    logger.warning("Failed to read ticket file %s: %s", ticket_file, e)
                     continue
 
         # Sort by usage count (descending)

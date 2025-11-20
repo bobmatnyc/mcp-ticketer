@@ -1267,7 +1267,9 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             # Use project-specific statuses if project key provided
             if project_key:
                 # Get statuses for the project
-                data = await self._make_request("GET", f"project/{project_key}/statuses")
+                data = await self._make_request(
+                    "GET", f"project/{project_key}/statuses"
+                )
 
                 # Extract unique statuses from all issue types
                 status_map: dict[str, dict[str, Any]] = {}
