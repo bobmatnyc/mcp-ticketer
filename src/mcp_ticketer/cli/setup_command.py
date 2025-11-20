@@ -76,15 +76,13 @@ def _check_and_install_adapter_dependencies(
     console.print(
         f"[yellow]⚠[/yellow]  {adapter_type.capitalize()} adapter requires additional dependencies\n"
     )
-    console.print(
-        f"[dim]Required package: {dependency_info['package']}[/dim]\n"
-    )
+    console.print(f"[dim]Required package: {dependency_info['package']}[/dim]\n")
 
     # Prompt user to install
     try:
         if not typer.confirm("Install dependencies now?", default=True):
             console.print(
-                f"\n[yellow]Skipping installation. Install manually with:[/yellow]"
+                "\n[yellow]Skipping installation. Install manually with:[/yellow]"
             )
             console.print(
                 f"[cyan]  pip install mcp-ticketer[{dependency_info['extras']}][/cyan]\n"
@@ -96,9 +94,7 @@ def _check_and_install_adapter_dependencies(
         return True
 
     # Install dependencies
-    console.print(
-        f"[cyan]Installing {adapter_type} dependencies...[/cyan]\n"
-    )
+    console.print(f"[cyan]Installing {adapter_type} dependencies...[/cyan]\n")
 
     try:
         # Run pip install with the extras
@@ -123,9 +119,7 @@ def _check_and_install_adapter_dependencies(
         console.print(
             f"[red]✗[/red] Failed to install dependencies: {e.stderr.decode() if e.stderr else 'Unknown error'}\n"
         )
-        console.print(
-            f"[yellow]Please install manually with:[/yellow]"
-        )
+        console.print("[yellow]Please install manually with:[/yellow]")
         console.print(
             f"[cyan]  pip install mcp-ticketer[{dependency_info['extras']}][/cyan]\n"
         )

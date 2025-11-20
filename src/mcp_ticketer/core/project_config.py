@@ -208,6 +208,7 @@ class TicketerConfig:
             'PROJ-123'
             >>> config._normalize_project_id("https://linear.app/team/project/abc-123")
             'abc-123'
+
         """
         from .url_parser import is_url, normalize_project_id
 

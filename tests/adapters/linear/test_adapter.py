@@ -235,7 +235,9 @@ class TestLinearAdapterTeamResolution:
         with pytest.raises(ValueError) as exc_info:
             await adapter._ensure_team_id()
 
-        assert "Either team_id (UUID) or team_key (short code) must be provided" in str(exc_info.value)
+        assert "Either team_id (UUID) or team_key (short code) must be provided" in str(
+            exc_info.value
+        )
 
 
 @pytest.mark.unit

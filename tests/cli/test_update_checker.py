@@ -1,6 +1,5 @@
 """Tests for update checker module."""
 
-import importlib
 import sys
 from unittest.mock import MagicMock, patch
 

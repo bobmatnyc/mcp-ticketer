@@ -15,8 +15,6 @@ Supported URL patterns:
 
 import logging
 import re
-from typing import Optional, Tuple
-from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -43,18 +41,18 @@ def is_url(value: str) -> bool:
         False
         >>> is_url("http://example.com")
         True
+
     """
     if not value or not isinstance(value, str):
         return False
 
     # Check for URL scheme
     return bool(
-        value.startswith(("http://", "https://"))
-        or re.match(r"^[\w.-]+://", value)
+        value.startswith(("http://", "https://")) or re.match(r"^[\w.-]+://", value)
     )
 
 
-def extract_linear_id(url: str) -> Tuple[Optional[str], Optional[str]]:
+def extract_linear_id(url: str) -> tuple[str | None, str | None]:
     """Extract project or issue ID from Linear URL.
 
     Supported formats:
@@ -73,6 +71,7 @@ def extract_linear_id(url: str) -> Tuple[Optional[str], Optional[str]]:
         ('crm-system-f59a41', None)
         >>> extract_linear_id("https://linear.app/myteam/issue/BTA-123")
         ('BTA-123', None)
+
     """
     if not url:
         return None, "Empty URL provided"
@@ -107,7 +106,7 @@ def extract_linear_id(url: str) -> Tuple[Optional[str], Optional[str]]:
     return None, f"Could not extract Linear ID from URL: {url}"
 
 
-def extract_jira_id(url: str) -> Tuple[Optional[str], Optional[str]]:
+def extract_jira_id(url: str) -> tuple[str | None, str | None]:
     """Extract project or issue key from JIRA URL.
 
     Supported formats:
@@ -126,6 +125,7 @@ def extract_jira_id(url: str) -> Tuple[Optional[str], Optional[str]]:
         ('PROJ', None)
         >>> extract_jira_id("https://company.atlassian.net/browse/PROJ-123")
         ('PROJ-123', None)
+
     """
     if not url:
         return None, "Empty URL provided"
@@ -151,7 +151,7 @@ def extract_jira_id(url: str) -> Tuple[Optional[str], Optional[str]]:
     return None, f"Could not extract JIRA key from URL: {url}"
 
 
-def extract_github_id(url: str) -> Tuple[Optional[str], Optional[str]]:
+def extract_github_id(url: str) -> tuple[str | None, str | None]:
     """Extract project or issue number from GitHub URL.
 
     Supported formats:
@@ -170,6 +170,7 @@ def extract_github_id(url: str) -> Tuple[Optional[str], Optional[str]]:
         ('1', None)
         >>> extract_github_id("https://github.com/owner/repo/issues/123")
         ('123', None)
+
     """
     if not url:
         return None, "Empty URL provided"
@@ -204,7 +205,9 @@ def extract_github_id(url: str) -> Tuple[Optional[str], Optional[str]]:
     return None, f"Could not extract GitHub ID from URL: {url}"
 
 
-def extract_id_from_url(url: str, adapter_type: Optional[str] = None) -> Tuple[Optional[str], Optional[str]]:
+def extract_id_from_url(
+    url: str, adapter_type: str | None = None
+) -> tuple[str | None, str | None]:
     """Extract project/issue ID from URL for any supported adapter.
 
     This is the main entry point for URL parsing. It auto-detects the adapter type
@@ -228,6 +231,7 @@ def extract_id_from_url(url: str, adapter_type: Optional[str] = None) -> Tuple[O
         ('PROJ-123', None)
         >>> extract_id_from_url("https://github.com/owner/repo/issues/123")
         ('123', None)
+
     """
     if not url:
         return None, "Empty URL provided"
@@ -262,7 +266,7 @@ def extract_id_from_url(url: str, adapter_type: Optional[str] = None) -> Tuple[O
         return None, f"Unsupported adapter type: {adapter_type}"
 
 
-def normalize_project_id(value: str, adapter_type: Optional[str] = None) -> str:
+def normalize_project_id(value: str, adapter_type: str | None = None) -> str:
     """Normalize a project ID by extracting from URL if necessary.
 
     This is a convenience function that handles both URLs and plain IDs.
@@ -284,6 +288,7 @@ def normalize_project_id(value: str, adapter_type: Optional[str] = None) -> str:
         'PROJ-123'
         >>> normalize_project_id("https://linear.app/team/project/abc-123")
         'abc-123'
+
     """
     if not value:
         return value

@@ -411,9 +411,9 @@ def _init_adapter_internal(
 
     Returns:
         True if initialization succeeded, False otherwise
+
     """
     from ..core.env_discovery import discover_config
-    from .setup_command import _prompt_for_adapter_selection
 
     # Determine project path
     proj_path = Path(project_path) if project_path else Path.cwd()
