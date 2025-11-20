@@ -224,8 +224,7 @@ class TestStaleTicketDetector:
         assert "days" in results[0].reason
         # Should mention either age or inactivity
         assert any(
-            word in results[0].reason.lower()
-            for word in ["old", "inactive", "updates"]
+            word in results[0].reason.lower() for word in ["old", "inactive", "updates"]
         )
 
     def test_limit_parameter(self, sample_tickets):

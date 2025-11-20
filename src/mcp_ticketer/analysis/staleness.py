@@ -9,13 +9,13 @@ This module identifies tickets that may need closing or review based on:
 The staleness score combines these factors to identify candidates for cleanup.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from ..core.models import Priority, Task, TicketState
+    from ..core.models import Task, TicketState
 
 
 class StalenessResult(BaseModel):
@@ -31,6 +31,7 @@ class StalenessResult(BaseModel):
         staleness_score: Overall staleness score (0.0-1.0, higher = staler)
         suggested_action: Recommended action (close, review, keep)
         reason: Human-readable explanation
+
     """
 
     ticket_id: str
@@ -55,6 +56,7 @@ class StaleTicketDetector:
         age_threshold: Minimum age in days to consider
         activity_threshold: Days without activity to consider stale
         check_states: List of states to check for staleness
+
     """
 
     def __init__(
@@ -69,6 +71,7 @@ class StaleTicketDetector:
             age_threshold_days: Minimum age to consider (default: 90)
             activity_threshold_days: Days without activity (default: 30)
             check_states: Ticket states to check (default: open, waiting, blocked)
+
         """
         from ..core.models import TicketState
 
@@ -93,6 +96,7 @@ class StaleTicketDetector:
 
         Returns:
             List of staleness results, sorted by staleness score
+
         """
         now = datetime.now()
         results = []
@@ -118,7 +122,11 @@ class StaleTicketDetector:
                 result = StalenessResult(
                     ticket_id=ticket.id or "unknown",
                     ticket_title=ticket.title,
-                    ticket_state=ticket.state.value if hasattr(ticket.state, "value") else str(ticket.state),
+                    ticket_state=(
+                        ticket.state.value
+                        if hasattr(ticket.state, "value")
+                        else str(ticket.state)
+                    ),
                     age_days=age_days,
                     days_since_update=days_since_update,
                     days_since_comment=None,  # Can be enhanced with comment data
@@ -141,6 +149,7 @@ class StaleTicketDetector:
 
         Returns:
             Number of days since dt (0 if dt is None)
+
         """
         if dt is None:
             return 0
@@ -166,14 +175,13 @@ class StaleTicketDetector:
 
         Returns:
             Staleness score between 0.0 and 1.0
+
         """
         from ..core.models import Priority, TicketState
 
         # Base score from age and inactivity
         age_factor = min(age_days / 365, 1.0)  # Normalize to 1 year
-        activity_factor = min(
-            days_since_update / 180, 1.0
-        )  # Normalize to 6 months
+        activity_factor = min(days_since_update / 180, 1.0)  # Normalize to 6 months
 
         base_score = (age_factor + activity_factor) / 2
 
@@ -207,6 +215,7 @@ class StaleTicketDetector:
 
         Returns:
             Suggested action string
+
         """
         if score > 0.8:
             return "close"  # Very stale, likely won't be done
@@ -230,6 +239,7 @@ class StaleTicketDetector:
 
         Returns:
             Human-readable explanation
+
         """
         from ..core.models import Priority, TicketState
 

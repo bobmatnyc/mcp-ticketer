@@ -119,9 +119,7 @@ class TestTicketSimilarityAnalyzer:
 
         # All results should involve the target ticket
         for result in results:
-            assert (
-                result.ticket1_id == target.id or result.ticket2_id == target.id
-            )
+            assert result.ticket1_id == target.id or result.ticket2_id == target.id
 
     def test_high_similarity_detection(self, sample_tickets):
         """Test detection of highly similar tickets."""
@@ -194,9 +192,7 @@ class TestTicketSimilarityAnalyzer:
         if ticket2_result:
             reasons_str = " ".join(ticket2_result.similarity_reasons)
             # Should detect tag overlap or similar titles
-            assert (
-                "tag_overlap" in reasons_str or "similar_titles" in reasons_str
-            )
+            assert "tag_overlap" in reasons_str or "similar_titles" in reasons_str
 
     def test_empty_tickets_list(self):
         """Test handling of empty tickets list."""

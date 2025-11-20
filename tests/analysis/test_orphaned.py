@@ -1,7 +1,5 @@
 """Tests for orphaned ticket detection."""
 
-from datetime import datetime
-
 import pytest
 
 from mcp_ticketer.analysis.orphaned import OrphanedTicketDetector

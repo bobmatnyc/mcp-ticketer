@@ -26,6 +26,7 @@ class OrphanedResult(BaseModel):
         orphan_type: Type of orphan condition (no_parent, no_epic, no_project)
         suggested_action: Recommended action (assign_epic, assign_project, review)
         reason: Human-readable explanation
+
     """
 
     ticket_id: str
@@ -60,6 +61,7 @@ class OrphanedTicketDetector:
 
         Returns:
             List of orphaned tickets with suggested actions
+
         """
         results = []
 
@@ -87,6 +89,7 @@ class OrphanedTicketDetector:
 
         Returns:
             List of orphan type strings
+
         """
         orphan_types = []
         metadata = ticket.metadata or {}
@@ -147,6 +150,7 @@ class OrphanedTicketDetector:
 
         Returns:
             Ticket type string (task, issue, epic)
+
         """
         from ..core.models import TicketType
 
@@ -182,6 +186,7 @@ class OrphanedTicketDetector:
 
         Returns:
             Suggested action string
+
         """
         if orphan_type == "no_parent":
             return "review"  # Needs manual review
@@ -201,6 +206,7 @@ class OrphanedTicketDetector:
 
         Returns:
             Human-readable explanation
+
         """
         ticket_type = self._get_ticket_type(ticket)
 

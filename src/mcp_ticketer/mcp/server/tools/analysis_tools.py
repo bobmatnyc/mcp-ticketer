@@ -49,6 +49,7 @@ async def ticket_find_similar(
 
         # Find all similar pairs in the system
         result = await ticket_find_similar(limit=20)
+
     """
     try:
         adapter = get_adapter()
@@ -140,6 +141,7 @@ async def ticket_find_stale(
 
         # Find stale open tickets only
         result = await ticket_find_stale(states=["open"], limit=100)
+
     """
     try:
         adapter = get_adapter()
@@ -229,6 +231,7 @@ async def ticket_find_orphaned(
     Example:
         # Find all orphaned tickets
         result = await ticket_find_orphaned(limit=200)
+
     """
     try:
         adapter = get_adapter()
@@ -303,6 +306,7 @@ async def ticket_cleanup_report(
 
         # Generate markdown report
         result = await ticket_cleanup_report(format="markdown")
+
     """
     try:
         report: dict[str, Any] = {
@@ -327,15 +331,9 @@ async def ticket_cleanup_report(
             report["analyses"]["orphaned_tickets"] = orphaned_result
 
         # Summary statistics
-        similar_count = (
-            report["analyses"].get("similar_tickets", {}).get("count", 0)
-        )
-        stale_count = (
-            report["analyses"].get("stale_tickets", {}).get("count", 0)
-        )
-        orphaned_count = (
-            report["analyses"].get("orphaned_tickets", {}).get("count", 0)
-        )
+        similar_count = report["analyses"].get("similar_tickets", {}).get("count", 0)
+        stale_count = report["analyses"].get("stale_tickets", {}).get("count", 0)
+        orphaned_count = report["analyses"].get("orphaned_tickets", {}).get("count", 0)
 
         report["summary"] = {
             "total_issues_found": similar_count + stale_count + orphaned_count,
@@ -366,6 +364,7 @@ def _format_report_as_markdown(report: dict[str, Any]) -> str:
 
     Returns:
         Markdown-formatted report string
+
     """
     md = "# Ticket Cleanup Report\n\n"
     md += f"**Generated:** {report['generated_at']}\n\n"
@@ -429,7 +428,9 @@ def _format_report_as_markdown(report: dict[str, Any]) -> str:
     md += "## Recommendations\n\n"
     md += "1. **Review Similar Tickets:** Check pairs marked for 'merge' action\n"
     md += "2. **Close Stale Tickets:** Review tickets marked for 'close' action\n"
-    md += "3. **Organize Orphaned Tickets:** Assign epics/projects to orphaned tickets\n"
+    md += (
+        "3. **Organize Orphaned Tickets:** Assign epics/projects to orphaned tickets\n"
+    )
     md += "4. **Update Workflow:** Consider closing very old low-priority tickets\n\n"
 
     return md

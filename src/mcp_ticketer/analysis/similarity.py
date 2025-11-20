@@ -11,7 +11,6 @@ and fuzzy string matching for title comparison.
 
 from typing import TYPE_CHECKING
 
-import numpy as np
 from pydantic import BaseModel
 from rapidfuzz import fuzz
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -33,6 +32,7 @@ class SimilarityResult(BaseModel):
         similarity_reasons: List of reasons for similarity
         suggested_action: Recommended action (merge, link, ignore)
         confidence: Confidence in the similarity (0.0-1.0)
+
     """
 
     ticket1_id: str
@@ -55,6 +55,7 @@ class TicketSimilarityAnalyzer:
         threshold: Minimum similarity score to report (0.0-1.0)
         title_weight: Weight given to title similarity (0.0-1.0)
         description_weight: Weight given to description similarity (0.0-1.0)
+
     """
 
     def __init__(
@@ -69,6 +70,7 @@ class TicketSimilarityAnalyzer:
             threshold: Minimum similarity score to report (default: 0.75)
             title_weight: Weight for title similarity (default: 0.7)
             description_weight: Weight for description similarity (default: 0.3)
+
         """
         self.threshold = threshold
         self.title_weight = title_weight
@@ -89,6 +91,7 @@ class TicketSimilarityAnalyzer:
 
         Returns:
             List of similarity results above threshold, sorted by score
+
         """
         if len(tickets) < 2:
             return []
@@ -172,6 +175,7 @@ class TicketSimilarityAnalyzer:
 
         Returns:
             SimilarityResult with detailed analysis
+
         """
         reasons = []
 
