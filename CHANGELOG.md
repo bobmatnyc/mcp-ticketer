@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
+- **Dual Configuration Location Support**: Claude Code integration now supports both configuration file locations
+  - **Global Config** (`~/.config/claude/mcp.json`): New location for global MCP servers, checked first
+  - **Project-Specific Config** (`~/.claude.json`): Legacy location for project-specific configurations, used as fallback
+  - **Automatic Detection**: System automatically detects and uses the appropriate configuration file
+  - **Priority System**: New location takes precedence, falls back to old location if new doesn't exist
+  - **Format Awareness**: Handles both flat structure (`{"mcpServers": {...}}`) and nested structure (`{"projects": {...}}`)
+  - **Full Backward Compatibility**: Existing `~/.claude.json` configurations continue to work without changes
+  - **Zero Migration Required**: Both formats detected and supported automatically
+  - **Installation Command Updates**: `mcp-ticketer install claude-code` automatically configures the correct location
+
 ## [0.14.0] - 2025-11-19
 
 ### Added

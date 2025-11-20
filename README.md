@@ -275,20 +275,51 @@ mcp-ticketer uninstall auggie              # Alias for remove
 
 **Manual Configuration Example** (Claude Code):
 
+Claude Code supports two configuration file locations with automatic detection:
+
+**Option 1: Global Configuration** (`~/.config/claude/mcp.json`) - **Recommended**
+
 ```json
 {
   "mcpServers": {
     "mcp-ticketer": {
       "command": "/path/to/venv/bin/python",
-      "args": ["-m", "mcp_ticketer.mcp.server", "/absolute/path/to/project"],
+      "args": ["-m", "mcp_ticketer.mcp.server"],
       "env": {
-        "MCP_TICKETER_ADAPTER": "aitrackdown",
-        "PYTHONPATH": "/absolute/path/to/project"
+        "MCP_TICKETER_ADAPTER": "linear",
+        "LINEAR_API_KEY": "your_key_here"
       }
     }
   }
 }
 ```
+
+**Option 2: Project-Specific Configuration** (`~/.claude.json`)
+
+```json
+{
+  "projects": {
+    "/absolute/path/to/project": {
+      "mcpServers": {
+        "mcp-ticketer": {
+          "command": "/path/to/venv/bin/python",
+          "args": ["-m", "mcp_ticketer.mcp.server", "/absolute/path/to/project"],
+          "env": {
+            "PYTHONPATH": "/absolute/path/to/project",
+            "MCP_TICKETER_ADAPTER": "aitrackdown"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**Configuration Priority:**
+- New location (`~/.config/claude/mcp.json`) checked first
+- Falls back to old location (`~/.claude.json`) if new location not found
+- Maintains full backward compatibility with existing configurations
+- Both locations fully supported
 
 **Why this pattern?**
 - **More Reliable**: Uses venv Python directly instead of binary wrapper
@@ -296,9 +327,9 @@ mcp-ticketer uninstall auggie              # Alias for remove
 - **Universal**: Works across pipx, pip, and uv installations
 - **Better Errors**: Python module invocation provides clearer error messages
 
-**Automatic Detection**: The `mcp-ticketer install` commands automatically detect your venv Python and generate the correct configuration.
+**Automatic Detection**: The `mcp-ticketer install` commands automatically detect your venv Python, configuration location, and generate the correct configuration format.
 
-**See [AI Client Integration Guide](docs/AI_CLIENT_INTEGRATION.md) for client-specific details.**
+**See [AI Client Integration Guide](docs/integrations/AI_CLIENT_INTEGRATION.md) for client-specific details.**
 
 ## ⚙️ Configuration
 

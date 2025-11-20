@@ -432,16 +432,32 @@ def _check_existing_platform_configs(platforms: list, proj_path: Path) -> list[s
     for plat in platforms:
         try:
             if plat.name == "claude-code":
-                config_path = Path.home() / ".claude.json"
-                if config_path.exists():
-                    with open(config_path) as f:
+                # Check both new and old locations
+                new_config = Path.home() / ".config" / "claude" / "mcp.json"
+                old_config = Path.home() / ".claude.json"
+
+                is_configured = False
+
+                # Check new global location (flat structure)
+                if new_config.exists():
+                    with open(new_config) as f:
+                        config = json.load(f)
+                        if "mcp-ticketer" in config.get("mcpServers", {}):
+                            is_configured = True
+
+                # Check old location (nested structure)
+                if not is_configured and old_config.exists():
+                    with open(old_config) as f:
                         config = json.load(f)
                         projects = config.get("projects", {})
                         proj_key = str(proj_path)
                         if proj_key in projects:
                             mcp_servers = projects[proj_key].get("mcpServers", {})
                             if "mcp-ticketer" in mcp_servers:
-                                configured.append(plat.display_name)
+                                is_configured = True
+
+                if is_configured:
+                    configured.append(plat.display_name)
 
             elif plat.name == "claude-desktop":
                 if plat.config_path.exists():

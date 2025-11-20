@@ -384,39 +384,90 @@ mcp-ticketer install claude-code --dry-run
 
 #### Step 4: Verify Configuration
 
-**Project-level config location:**
+**Claude Code supports two configuration file locations with automatic detection:**
+
+**Option 1: Global MCP Configuration** (Recommended - checked first)
 ```
-.claude/mcp.json
+~/.config/claude/mcp.json
 ```
 
-**Global config locations:**
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-- **Linux**: `~/.config/Claude/claude_desktop_config.json`
+**Option 2: Project-Specific Configuration** (Legacy - fallback)
+```
+~/.claude.json
+```
 
-**Example configuration (.claude/mcp.json):**
+**Configuration Priority:**
+- New location (`~/.config/claude/mcp.json`) is checked first
+- Falls back to old location (`~/.claude.json`) if new location doesn't exist
+- Both formats are fully supported with backward compatibility
+- The `mcp-ticketer install claude-code` command automatically detects and uses the correct location
+
+---
+
+**Example Configuration (Global - `~/.config/claude/mcp.json`):**
 
 ```json
 {
   "mcpServers": {
     "mcp-ticketer": {
       "command": "/path/to/venv/bin/python",
-      "args": ["-m", "mcp_ticketer.mcp.server", "/Users/username/projects/my-project"],
+      "args": ["-m", "mcp_ticketer.mcp.server"],
       "env": {
-        "MCP_TICKETER_ADAPTER": "aitrackdown",
-        "MCP_TICKETER_BASE_PATH": "/Users/username/projects/my-project/.aitrackdown",
-        "PYTHONPATH": "/Users/username/projects/my-project"
+        "MCP_TICKETER_ADAPTER": "linear",
+        "LINEAR_API_KEY": "your_key_here",
+        "LINEAR_TEAM_ID": "your_team_id"
       }
     }
   }
 }
 ```
 
+**Structure:**
+- **Flat format**: `{"mcpServers": {...}}`
+- **No project path**: Global MCP servers available to all projects
+- **Environment-based config**: Adapter settings in `env` section
+
+---
+
+**Example Configuration (Project-Specific - `~/.claude.json`):**
+
+```json
+{
+  "projects": {
+    "/absolute/path/to/project": {
+      "mcpServers": {
+        "mcp-ticketer": {
+          "command": "/path/to/venv/bin/python",
+          "args": ["-m", "mcp_ticketer.mcp.server", "/absolute/path/to/project"],
+          "env": {
+            "PYTHONPATH": "/absolute/path/to/project",
+            "MCP_TICKETER_ADAPTER": "aitrackdown",
+            "MCP_TICKETER_BASE_PATH": "/absolute/path/to/project/.aitrackdown"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**Structure:**
+- **Nested format**: `{"projects": {"<path>": {"mcpServers": {...}}}}`
+- **Project path required**: Each project has its own MCP server configuration
+- **PYTHONPATH needed**: Project path must be in environment for module resolution
+
+---
+
 **Configuration Pattern Explained:**
 - **command**: Path to Python in your mcp-ticketer venv (auto-detected by `install` command)
 - **args**: `["-m", "mcp_ticketer.mcp.server", "<project_path>"]` - module invocation pattern
-- **PYTHONPATH**: Project path for proper module resolution
+- **PYTHONPATH**: Project path for proper module resolution (project-specific config only)
 - **Benefits**: More reliable, better error messages, works across all installation methods
+
+**Migration Path:**
+- Existing `~/.claude.json` configurations continue to work
+- New installations default to `~/.config/claude/mcp.json`
+- No action required - both formats are automatically detected and supported
 
 #### Step 5: Use in Claude Code
 

@@ -49,14 +49,20 @@ class PlatformDetector:
     def detect_claude_code() -> DetectedPlatform | None:
         """Detect Claude Code installation.
 
-        Claude Code uses project-level configuration stored in ~/.claude.json
-        with a projects structure that maps project paths to MCP server configs.
+        Claude Code uses project-level configuration stored in either:
+        - ~/.config/claude/mcp.json (new global location with flat structure)
+        - ~/.claude.json (legacy location with projects structure)
 
         Returns:
             DetectedPlatform if Claude Code config exists, None otherwise
 
         """
-        config_path = Path.home() / ".claude.json"
+        # Check new global location first
+        new_config_path = Path.home() / ".config" / "claude" / "mcp.json"
+        old_config_path = Path.home() / ".claude.json"
+
+        # Priority: Use new location if it exists
+        config_path = new_config_path if new_config_path.exists() else old_config_path
 
         # Check if config file exists
         if not config_path.exists():
