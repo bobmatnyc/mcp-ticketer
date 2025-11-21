@@ -1045,6 +1045,13 @@ class LinearAdapter(BaseAdapter[Task]):
                 issue_input.pop("parentId", None)
 
         # Validate labelIds are proper UUIDs before sending to Linear API
+        # Bug Fix (v1.1.1): This validation prevents "Argument Validation Error"
+        # by ensuring labelIds contains UUIDs (e.g., "uuid-1"), not names (e.g., "bug").
+        # Linear's GraphQL API requires labelIds to be [String!]! (non-null array of
+        # non-null UUID strings). If tag names leak through, we detect and remove them
+        # here to prevent API errors.
+        #
+        # See: docs/TROUBLESHOOTING.md#issue-argument-validation-error-when-creating-issues-with-labels
         if "labelIds" in issue_input:
             invalid_labels = []
             for label_id in issue_input["labelIds"]:

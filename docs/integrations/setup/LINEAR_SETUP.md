@@ -239,6 +239,52 @@ The adapter maps between mcp-ticketer states and Linear workflow states:
 - Attachments are not supported
 - Webhook events for real-time sync not yet implemented
 
+## Known Issues and Fixes
+
+### Fixed in v1.1.1: Label Creation Argument Validation Error
+
+**Issue**: Prior to v1.1.1, creating Linear issues with labels would fail with an "Argument Validation Error".
+
+**Error Messages**:
+```
+Linear API transport error: {'message': 'Argument Validation Error', 'path': ['issueCreate']}
+```
+
+Or:
+
+```
+Variable '$labelIds' of required type '[String!]!' was provided invalid value
+```
+
+**Root Cause**: The Linear GraphQL API requires `labelIds` to be UUID strings (e.g., `["uuid-1", "uuid-2"]`), not label names (e.g., `["bug", "feature"]`). Earlier versions incorrectly passed label names.
+
+**Status**: ✅ **FIXED in v1.1.1** (released 2025-11-21)
+
+**Solution**: Upgrade to v1.1.1 or later:
+
+```bash
+pip install --upgrade mcp-ticketer
+```
+
+After upgrading, labels will work correctly:
+
+```bash
+mcp-ticket create "Fix login bug" \
+  --description "Users can't log in" \
+  --priority high \
+  --tag "bug" \
+  --tag "auth"  # ✅ Labels now work!
+```
+
+**Technical Details**:
+- The fix ensures `labelIds` is always sent as a non-null array of non-null UUID strings
+- Label names are now properly resolved to UUIDs before API calls
+- UUID validation prevents type mismatches
+
+**See Also**: [TROUBLESHOOTING.md](../../TROUBLESHOOTING.md#issue-argument-validation-error-when-creating-issues-with-labels) for detailed troubleshooting
+
+---
+
 ## Troubleshooting
 
 ### Using the Doctor Command

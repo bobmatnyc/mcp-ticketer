@@ -250,6 +250,15 @@ def build_linear_issue_input(task: Task, team_id: str) -> dict[str, Any]:
     # Labels are resolved from names to UUIDs in LinearAdapter._create_task()
     # If we set it here, we create a type mismatch (names vs UUIDs)
     # The adapter's label resolution logic (lines 982-988) handles this properly
+    #
+    # Bug Fix (v1.1.1): Previously, setting labelIds to tag names here caused
+    # "Argument Validation Error" from Linear's GraphQL API. The API requires
+    # UUIDs (e.g., "uuid-1"), not names (e.g., "bug"). This was fixed by:
+    # 1. Removing labelIds assignment in mapper (this file)
+    # 2. Adding UUID validation in adapter._create_task() (adapter.py:1047-1060)
+    # 3. Changing GraphQL labelIds type to [String!]! (queries.py)
+    #
+    # See: docs/TROUBLESHOOTING.md#issue-argument-validation-error-when-creating-issues-with-labels
 
     # Add Linear-specific metadata
     if task.metadata and "linear" in task.metadata:

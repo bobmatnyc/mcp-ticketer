@@ -32,6 +32,13 @@ Platform-specific setup and integration
 - Platform setup guides (Linear, JIRA, Claude Desktop, etc.)
 - Pull request integration
 
+### 🔧 [Troubleshooting Guide](TROUBLESHOOTING.md)
+Common issues and solutions
+- General troubleshooting steps
+- Adapter-specific issues (Linear, GitHub, JIRA)
+- Configuration and performance issues
+- Error reference and fixes
+
 ### 🔍 [Investigation Reports](investigations/README.md)
 Analysis, research, and investigation results
 - Adapter investigations
@@ -81,6 +88,7 @@ Documentation about documentation, migrations, and configuration
 
 ## Getting Help
 
+- **Having Issues?**: Check the [Troubleshooting Guide](TROUBLESHOOTING.md) first
 - **Missing Information**: Open an issue describing what's missing
 - **Unclear Instructions**: Submit a pull request with improvements
 - **Broken Examples**: Report with steps to reproduce
