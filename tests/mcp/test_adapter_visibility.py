@@ -7,7 +7,6 @@ in their responses to provide visibility into which adapter handled each operati
 import pytest
 
 from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
-from mcp_ticketer.core.models import Priority, Task, TicketState
 
 
 class TestBaseAdapterProperties:
@@ -112,7 +111,10 @@ class TestAdapterMetadataConsistency:
     async def test_adapter_metadata_format_consistent(self, temp_dir):
         """Test that all tools use same metadata format."""
         from mcp_ticketer.mcp.server.server_sdk import configure_adapter
-        from mcp_ticketer.mcp.server.tools.ticket_tools import ticket_create, ticket_list
+        from mcp_ticketer.mcp.server.tools.ticket_tools import (
+            ticket_create,
+            ticket_list,
+        )
 
         # Configure adapter
         config = {"project_path": str(temp_dir)}

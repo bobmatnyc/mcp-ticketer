@@ -16,7 +16,6 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from mcp_ticketer.core.models import Task, TicketState
-from mcp_ticketer.mcp.server.routing import TicketRouter
 from mcp_ticketer.mcp.server.tools.ticket_tools import ticket_assign
 
 
@@ -263,9 +262,7 @@ class TestTicketAssignWithComment:
                 return_value=False,
             ):
                 result = await ticket_assign(
-                    "TICKET-1",
-                    "user@example.com",
-                    "Taking ownership of this issue"
+                    "TICKET-1", "user@example.com", "Taking ownership of this issue"
                 )
 
                 assert result["status"] == "completed"
@@ -345,9 +342,7 @@ class TestTicketAssignWithComment:
                 return_value=False,
             ):
                 result = await ticket_assign(
-                    "TICKET-1",
-                    "user@example.com",
-                    "This comment will fail"
+                    "TICKET-1", "user@example.com", "This comment will fail"
                 )
 
                 # Assignment should succeed despite comment failure
@@ -594,9 +589,7 @@ class TestTicketAssignWithURLs:
                     return_value=True,
                 ):
                     result = await ticket_assign(
-                        linear_url,
-                        "user@example.com",
-                        "Assigning via URL"
+                        linear_url, "user@example.com", "Assigning via URL"
                     )
 
                     assert result["status"] == "completed"
@@ -707,7 +700,9 @@ class TestTicketAssignErrorCases:
     async def test_invalid_url(self) -> None:
         """Test error with invalid/unparseable URL."""
         mock_router = AsyncMock()
-        mock_router.route_read.side_effect = Exception("Failed to extract ticket ID from URL")
+        mock_router.route_read.side_effect = Exception(
+            "Failed to extract ticket ID from URL"
+        )
 
         with patch(
             "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
@@ -722,8 +717,7 @@ class TestTicketAssignErrorCases:
                     return_value=True,
                 ):
                     result = await ticket_assign(
-                        "https://unknown.com/invalid",
-                        "user@example.com"
+                        "https://unknown.com/invalid", "user@example.com"
                     )
 
                     assert result["status"] == "error"
@@ -778,8 +772,12 @@ class TestTicketAssignResponseStructure:
                 # Verify correct types
                 assert isinstance(result["status"], str)
                 assert isinstance(result["ticket"], dict)
-                assert result["previous_assignee"] is None or isinstance(result["previous_assignee"], str)
-                assert result["new_assignee"] is None or isinstance(result["new_assignee"], str)
+                assert result["previous_assignee"] is None or isinstance(
+                    result["previous_assignee"], str
+                )
+                assert result["new_assignee"] is None or isinstance(
+                    result["new_assignee"], str
+                )
                 assert isinstance(result["comment_added"], bool)
                 assert isinstance(result["adapter"], str)
                 assert isinstance(result["adapter_name"], str)

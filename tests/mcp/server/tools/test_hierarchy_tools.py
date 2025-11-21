@@ -15,10 +15,7 @@ Test Coverage:
 import pytest
 
 from mcp_ticketer.core.models import Priority, Task, TicketState, TicketType
-from mcp_ticketer.mcp.server.tools.hierarchy_tools import (
-    issue_get_parent,
-    issue_tasks,
-)
+from mcp_ticketer.mcp.server.tools.hierarchy_tools import issue_get_parent, issue_tasks
 
 
 class MockAdapter:
@@ -133,7 +130,9 @@ async def test_issue_get_parent_with_parent(mock_adapter_with_hierarchy, monkeyp
 
 @pytest.mark.asyncio
 @pytest.mark.mcp
-async def test_issue_get_parent_without_parent(mock_adapter_with_hierarchy, monkeypatch):
+async def test_issue_get_parent_without_parent(
+    mock_adapter_with_hierarchy, monkeypatch
+):
     """Test getting parent issue when issue is top-level (no parent)."""
     monkeypatch.setattr(
         "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter",
@@ -579,7 +578,9 @@ async def test_issue_tasks_with_string_state_priority():
     child_task.state = "open"  # type: ignore
     child_task.priority = "high"  # type: ignore
 
-    adapter = MockAdapter(tickets={"parent-str": parent_issue, "str-child-1": child_task})
+    adapter = MockAdapter(
+        tickets={"parent-str": parent_issue, "str-child-1": child_task}
+    )
 
     import mcp_ticketer.mcp.server.tools.hierarchy_tools as hierarchy_tools
 

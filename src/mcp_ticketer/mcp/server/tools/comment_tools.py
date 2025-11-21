@@ -100,7 +100,9 @@ async def ticket_comment(
                 created = await router.route_add_comment(ticket_id, comment)
                 is_routed = True
                 normalized_id, _, _ = router._normalize_ticket_id(ticket_id)
-                adapter = router._get_adapter(router._detect_adapter_from_url(ticket_id))
+                adapter = router._get_adapter(
+                    router._detect_adapter_from_url(ticket_id)
+                )
             else:
                 adapter = get_adapter()
                 created = await adapter.add_comment(comment)
@@ -124,7 +126,9 @@ async def ticket_comment(
                 )
                 is_routed = True
                 normalized_id, _, _ = router._normalize_ticket_id(ticket_id)
-                adapter = router._get_adapter(router._detect_adapter_from_url(ticket_id))
+                adapter = router._get_adapter(
+                    router._detect_adapter_from_url(ticket_id)
+                )
             else:
                 adapter = get_adapter()
                 comments = await adapter.get_comments(

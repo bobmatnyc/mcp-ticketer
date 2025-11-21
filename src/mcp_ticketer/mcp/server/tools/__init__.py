@@ -17,6 +17,7 @@ Modules:
     session_tools: Session tracking and ticket association management
     user_ticket_tools: User-specific ticket operations (my tickets, transitions)
     analysis_tools: Ticket analysis and cleanup tools (similar, stale, orphaned)
+    label_tools: Label management, normalization, deduplication, and cleanup
 
 """
 
@@ -30,6 +31,7 @@ from . import (
     config_tools,  # noqa: F401
     hierarchy_tools,  # noqa: F401
     instruction_tools,  # noqa: F401
+    label_tools,  # noqa: F401
     pr_tools,  # noqa: F401
     search_tools,  # noqa: F401
     session_tools,  # noqa: F401
@@ -45,6 +47,7 @@ __all__ = [
     "config_tools",
     "hierarchy_tools",
     "instruction_tools",
+    "label_tools",
     "pr_tools",
     "search_tools",
     "session_tools",

@@ -737,7 +737,9 @@ async def ticket_assign(
             try:
                 from ....core.models import Comment as CommentModel
 
-                comment_obj = CommentModel(ticket_id=ticket_id, content=comment, author="")
+                comment_obj = CommentModel(
+                    ticket_id=ticket_id, content=comment, author=""
+                )
 
                 if is_routed:
                     await router.route_add_comment(ticket_id, comment_obj)
