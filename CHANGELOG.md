@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Fixed
+- **Linear Adapter Label Validation**: Fixed labelIds argument validation error in Linear GraphQL API
+  - Resolved "Argument Validation Error" when creating issues with labels
+  - Changed labelIds parameter from `[String!]` to `[String!]!` (non-null array of non-null strings)
+  - Eliminates "Variable '$labelIds' of required type '[String!]!' was provided invalid value" errors
+  - Fixes label application during issue/task creation in Linear adapter
+  - Commit: c107eeb
+
 ## [1.1.0] - 2025-01-21
 
 ### Added
