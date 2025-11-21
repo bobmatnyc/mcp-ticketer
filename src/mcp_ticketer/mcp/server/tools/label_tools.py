@@ -23,11 +23,7 @@ All tools follow the MCP response pattern:
 import logging
 from typing import Any
 
-from ....core.label_manager import (
-    CasingStrategy,
-    LabelDeduplicator,
-    LabelNormalizer,
-)
+from ....core.label_manager import CasingStrategy, LabelDeduplicator, LabelNormalizer
 from ....core.models import SearchQuery
 from ..server_sdk import get_adapter, get_router, has_router, mcp
 
@@ -837,7 +833,7 @@ async def label_cleanup_report(
 
         # 3. Unused Labels Analysis
         if include_unused:
-            label_usage = {name: 0 for name in label_names}
+            label_usage = dict.fromkeys(label_names, 0)
             for ticket in tickets:
                 for tag in ticket.tags or []:
                     if tag in label_usage:

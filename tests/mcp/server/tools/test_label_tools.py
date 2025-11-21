@@ -47,7 +47,9 @@ class TestLabelDeduplication:
 
         # Check that all bug variants are marked as duplicates
         bug_duplicates = [
-            (l1, l2) for l1, l2, _ in duplicates if "bug" in l1.lower() and "bug" in l2.lower()
+            (l1, l2)
+            for l1, l2, _ in duplicates
+            if "bug" in l1.lower() and "bug" in l2.lower()
         ]
         assert len(bug_duplicates) >= 2
 
@@ -109,7 +111,9 @@ class TestLabelMatcher:
         """Test no match returns empty list."""
         normalizer = LabelNormalizer()
         available = ["bug", "feature"]
-        matches = normalizer.find_similar("completely-different", available, threshold=0.95)
+        matches = normalizer.find_similar(
+            "completely-different", available, threshold=0.95
+        )
 
         # With high threshold, should find no matches
         assert len(matches) == 0
