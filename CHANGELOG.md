@@ -35,6 +35,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Example: `ticket_assign(ticket_id="PROJ-123", assignee="user@example.com", comment="Taking ownership")`
   - URL example: `ticket_assign(ticket_id="https://linear.app/team/issue/ABC-123", assignee="john@example.com")`
 
+- **Adapter Visibility in MCP Responses** (Linear 1M-90): Enhanced transparency
+  - All MCP tool responses now include adapter metadata
+  - `adapter`: lowercase adapter identifier (e.g., "linear", "github", "jira")
+  - `adapter_name`: human-readable adapter name (e.g., "Linear", "GitHub", "JIRA")
+  - Helps users understand which adapter handled their operation
+  - Consistent metadata across all MCP tools (ticket, comment, hierarchy, user operations)
+  - New adapter properties: `adapter_type` and `adapter_display_name`
+  - Comprehensive tests for adapter visibility across all tool types
+
 ## [1.0.5] - 2025-11-21
 
 ### Added

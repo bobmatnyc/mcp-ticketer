@@ -28,10 +28,25 @@ Performance Considerations:
 from pathlib import Path
 from typing import Any
 
+from ....core.adapter import BaseAdapter
 from ....core.models import TicketState
 from ....core.project_config import ConfigResolver, TicketerConfig
 from ....core.state_matcher import get_state_matcher
 from ..server_sdk import get_adapter, mcp
+
+
+def _build_adapter_metadata(
+    adapter: BaseAdapter,
+    ticket_id: str | None = None,
+) -> dict[str, Any]:
+    """Build adapter metadata for MCP responses."""
+    metadata = {
+        "adapter": adapter.adapter_type,
+        "adapter_name": adapter.adapter_display_name,
+    }
+    if ticket_id:
+        metadata["ticket_id"] = ticket_id
+    return metadata
 
 
 def get_config_resolver() -> ConfigResolver:
@@ -133,6 +148,7 @@ async def get_my_tickets(
 
         return {
             "status": "completed",
+            **_build_adapter_metadata(adapter),
             "tickets": [ticket.model_dump() for ticket in tickets],
             "count": len(tickets),
             "user": config.default_user,
@@ -232,7 +248,7 @@ async def get_available_transitions(ticket_id: str) -> dict[str, Any]:
 
         return {
             "status": "completed",
-            "ticket_id": ticket_id,
+            **_build_adapter_metadata(adapter, ticket_id),
             "current_state": current_state.value,
             "available_transitions": [state.value for state in available],
             "transition_descriptions": transition_descriptions,
@@ -436,6 +452,7 @@ async def ticket_transition(
 
         return {
             **response,
+            **_build_adapter_metadata(adapter, ticket_id),
             "status": "completed",
             "ticket": updated.model_dump(),
             "previous_state": current_state.value,

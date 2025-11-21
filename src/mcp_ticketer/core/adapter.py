@@ -29,6 +29,37 @@ class BaseAdapter(ABC, Generic[T]):
         self.config = config
         self._state_mapping = self._get_state_mapping()
 
+    @property
+    def adapter_type(self) -> str:
+        """Return lowercase adapter type identifier.
+
+        This identifier is used in MCP responses to show which adapter
+        handled the operation (e.g., "linear", "github", "jira", "asana").
+
+        Returns:
+            Lowercase adapter type (e.g., "linear", "github")
+
+        """
+        # Extract adapter type from class name
+        # LinearAdapter -> linear, GitHubAdapter -> github
+        class_name = self.__class__.__name__
+        if class_name.endswith("Adapter"):
+            adapter_name = class_name[: -len("Adapter")]
+        else:
+            adapter_name = class_name
+
+        return adapter_name.lower()
+
+    @property
+    def adapter_display_name(self) -> str:
+        """Return human-readable adapter name.
+
+        Returns:
+            Title-cased adapter name (e.g., "Linear", "Github", "Jira")
+
+        """
+        return self.adapter_type.title()
+
     @abstractmethod
     def _get_state_mapping(self) -> dict[TicketState, str]:
         """Get mapping from universal states to system-specific states.

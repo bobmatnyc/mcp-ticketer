@@ -117,7 +117,7 @@ class TicketRouter:
                 f"Supported platforms: Linear, GitHub, Jira, Asana"
             )
 
-    def _normalize_ticket_id(self, ticket_id: str) -> tuple[str, str]:
+    def _normalize_ticket_id(self, ticket_id: str) -> tuple[str, str, str]:
         """Normalize ticket ID and determine adapter.
 
         This method handles both URLs and plain IDs:
@@ -128,7 +128,8 @@ class TicketRouter:
             ticket_id: Ticket ID or URL
 
         Returns:
-            Tuple of (normalized_id, adapter_name)
+            Tuple of (normalized_id, adapter_name, source)
+            where source is "url", "default", or "configured"
 
         Raises:
             RouterError: If URL parsing fails or adapter detection fails
@@ -140,7 +141,7 @@ class TicketRouter:
             logger.debug(
                 f"Using default adapter '{self.default_adapter}' for ID: {ticket_id}"
             )
-            return ticket_id, self.default_adapter
+            return ticket_id, self.default_adapter, "default"
 
         # URL - detect adapter and extract ID
         adapter_name = self._detect_adapter_from_url(ticket_id)
@@ -154,7 +155,7 @@ class TicketRouter:
             )
 
         logger.debug(f"Extracted ticket ID '{extracted_id}' from URL")
-        return extracted_id, adapter_name
+        return extracted_id, adapter_name, "url"
 
     def _get_adapter(self, adapter_name: str) -> BaseAdapter:
         """Get or create adapter instance.
@@ -193,6 +194,42 @@ class TicketRouter:
             raise RouterError(
                 f"Failed to create adapter '{adapter_name}': {str(e)}"
             ) from e
+
+    def _build_adapter_metadata(
+        self,
+        adapter: BaseAdapter,
+        source: str,
+        original_input: str,
+        normalized_id: str,
+    ) -> dict[str, Any]:
+        """Build adapter metadata for MCP responses.
+
+        Args:
+            adapter: The adapter that handled the operation
+            source: How the adapter was selected ("url", "default", "configured")
+            original_input: The original ticket ID or URL provided
+            normalized_id: The normalized ticket ID after extraction
+
+        Returns:
+            Dictionary with adapter metadata fields
+
+        """
+        metadata = {
+            "adapter": adapter.adapter_type,
+            "adapter_name": adapter.adapter_display_name,
+        }
+
+        # Add routing information if URL-based
+        if source == "url":
+            metadata.update(
+                {
+                    "adapter_source": source,
+                    "original_input": original_input,
+                    "normalized_id": normalized_id,
+                }
+            )
+
+        return metadata
 
     async def route_read(self, ticket_id: str) -> Any:
         """Route read operation to appropriate adapter.
