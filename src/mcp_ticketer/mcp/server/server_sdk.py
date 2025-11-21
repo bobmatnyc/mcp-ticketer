@@ -102,9 +102,7 @@ def configure_router(
         _router = TicketRouter(
             default_adapter=default_adapter, adapter_configs=adapter_configs
         )
-        logger.info(
-            f"Configured multi-platform router with default: {default_adapter}"
-        )
+        logger.info(f"Configured multi-platform router with default: {default_adapter}")
     except Exception as e:
         logger.error(f"Failed to configure router: {e}")
         raise RuntimeError(f"Router configuration failed: {e}") from e

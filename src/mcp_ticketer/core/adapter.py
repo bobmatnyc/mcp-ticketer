@@ -217,6 +217,7 @@ class BaseAdapter(ABC, Generic[T]):
             >>> # Linear adapter override
             >>> def get_available_states(self):
             ...     return ["Backlog", "Todo", "In Progress", "Done", "Canceled"]
+
         """
         # Default: return universal state values
         return [state.value for state in TicketState]
@@ -238,6 +239,7 @@ class BaseAdapter(ABC, Generic[T]):
             >>> state = adapter.resolve_state("working on it")
             >>> print(state)
             TicketState.IN_PROGRESS
+
         """
         matcher = get_state_matcher()
         adapter_states = self.get_available_states()

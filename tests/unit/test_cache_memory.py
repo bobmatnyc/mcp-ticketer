@@ -5,8 +5,12 @@ import time
 
 import pytest
 
-from mcp_ticketer.cache.memory import (CacheEntry, MemoryCache,
-                                       cache_decorator, get_global_cache)
+from mcp_ticketer.cache.memory import (
+    CacheEntry,
+    MemoryCache,
+    cache_decorator,
+    get_global_cache,
+)
 
 
 @pytest.mark.unit

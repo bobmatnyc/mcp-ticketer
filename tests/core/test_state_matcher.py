@@ -18,7 +18,6 @@ from mcp_ticketer.core.models import TicketState
 from mcp_ticketer.core.state_matcher import (
     SemanticStateMatcher,
     StateMatchResult,
-    ValidationResult,
     get_state_matcher,
 )
 

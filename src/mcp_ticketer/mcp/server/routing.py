@@ -22,6 +22,7 @@ Example:
     >>> ticket = await router.route_read("https://linear.app/team/issue/ABC-123")
     >>> # Read ticket using plain ID (uses default adapter)
     >>> ticket = await router.route_read("ABC-456")
+
 """
 
 import logging
@@ -84,9 +85,7 @@ class TicketRouter:
                 f"Available: {list(adapter_configs.keys())}"
             )
 
-        logger.info(
-            f"Initialized TicketRouter with default adapter: {default_adapter}"
-        )
+        logger.info(f"Initialized TicketRouter with default adapter: {default_adapter}")
         logger.debug(f"Configured adapters: {list(adapter_configs.keys())}")
 
     def _detect_adapter_from_url(self, url: str) -> str:
@@ -138,7 +137,9 @@ class TicketRouter:
         # Check if input is a URL
         if not is_url(ticket_id):
             # Plain ID - use default adapter
-            logger.debug(f"Using default adapter '{self.default_adapter}' for ID: {ticket_id}")
+            logger.debug(
+                f"Using default adapter '{self.default_adapter}' for ID: {ticket_id}"
+            )
             return ticket_id, self.default_adapter
 
         # URL - detect adapter and extract ID
@@ -209,7 +210,9 @@ class TicketRouter:
         try:
             normalized_id, adapter_name = self._normalize_ticket_id(ticket_id)
             adapter = self._get_adapter(adapter_name)
-            logger.debug(f"Routing read for '{normalized_id}' to {adapter_name} adapter")
+            logger.debug(
+                f"Routing read for '{normalized_id}' to {adapter_name} adapter"
+            )
             return await adapter.read(normalized_id)
         except Exception as e:
             raise RouterError(f"Failed to route read operation: {str(e)}") from e
@@ -231,7 +234,9 @@ class TicketRouter:
         try:
             normalized_id, adapter_name = self._normalize_ticket_id(ticket_id)
             adapter = self._get_adapter(adapter_name)
-            logger.debug(f"Routing update for '{normalized_id}' to {adapter_name} adapter")
+            logger.debug(
+                f"Routing update for '{normalized_id}' to {adapter_name} adapter"
+            )
             return await adapter.update(normalized_id, updates)
         except Exception as e:
             raise RouterError(f"Failed to route update operation: {str(e)}") from e
@@ -252,7 +257,9 @@ class TicketRouter:
         try:
             normalized_id, adapter_name = self._normalize_ticket_id(ticket_id)
             adapter = self._get_adapter(adapter_name)
-            logger.debug(f"Routing delete for '{normalized_id}' to {adapter_name} adapter")
+            logger.debug(
+                f"Routing delete for '{normalized_id}' to {adapter_name} adapter"
+            )
             return await adapter.delete(normalized_id)
         except Exception as e:
             raise RouterError(f"Failed to route delete operation: {str(e)}") from e
@@ -274,7 +281,9 @@ class TicketRouter:
         try:
             normalized_id, adapter_name = self._normalize_ticket_id(ticket_id)
             adapter = self._get_adapter(adapter_name)
-            logger.debug(f"Routing add_comment for '{normalized_id}' to {adapter_name} adapter")
+            logger.debug(
+                f"Routing add_comment for '{normalized_id}' to {adapter_name} adapter"
+            )
 
             # Update comment's ticket_id to use normalized ID
             comment.ticket_id = normalized_id
@@ -302,10 +311,14 @@ class TicketRouter:
         try:
             normalized_id, adapter_name = self._normalize_ticket_id(ticket_id)
             adapter = self._get_adapter(adapter_name)
-            logger.debug(f"Routing get_comments for '{normalized_id}' to {adapter_name} adapter")
+            logger.debug(
+                f"Routing get_comments for '{normalized_id}' to {adapter_name} adapter"
+            )
             return await adapter.get_comments(normalized_id, limit=limit, offset=offset)
         except Exception as e:
-            raise RouterError(f"Failed to route get_comments operation: {str(e)}") from e
+            raise RouterError(
+                f"Failed to route get_comments operation: {str(e)}"
+            ) from e
 
     async def route_list_issues_by_epic(self, epic_id: str) -> list[Any]:
         """Route list issues by epic to appropriate adapter.
@@ -323,10 +336,14 @@ class TicketRouter:
         try:
             normalized_id, adapter_name = self._normalize_ticket_id(epic_id)
             adapter = self._get_adapter(adapter_name)
-            logger.debug(f"Routing list_issues_by_epic for '{normalized_id}' to {adapter_name} adapter")
+            logger.debug(
+                f"Routing list_issues_by_epic for '{normalized_id}' to {adapter_name} adapter"
+            )
             return await adapter.list_issues_by_epic(normalized_id)
         except Exception as e:
-            raise RouterError(f"Failed to route list_issues_by_epic operation: {str(e)}") from e
+            raise RouterError(
+                f"Failed to route list_issues_by_epic operation: {str(e)}"
+            ) from e
 
     async def route_list_tasks_by_issue(self, issue_id: str) -> list[Any]:
         """Route list tasks by issue to appropriate adapter.
@@ -344,10 +361,14 @@ class TicketRouter:
         try:
             normalized_id, adapter_name = self._normalize_ticket_id(issue_id)
             adapter = self._get_adapter(adapter_name)
-            logger.debug(f"Routing list_tasks_by_issue for '{normalized_id}' to {adapter_name} adapter")
+            logger.debug(
+                f"Routing list_tasks_by_issue for '{normalized_id}' to {adapter_name} adapter"
+            )
             return await adapter.list_tasks_by_issue(normalized_id)
         except Exception as e:
-            raise RouterError(f"Failed to route list_tasks_by_issue operation: {str(e)}") from e
+            raise RouterError(
+                f"Failed to route list_tasks_by_issue operation: {str(e)}"
+            ) from e
 
     async def close(self) -> None:
         """Close all cached adapter connections.

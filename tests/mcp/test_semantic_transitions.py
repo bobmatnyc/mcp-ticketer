@@ -226,9 +226,7 @@ class TestSemanticTransitionMCP:
             assert result2["new_state"] == "ready"
 
             # 3. Test: READY -> TESTED
-            result3 = await ticket_transition(
-                ticket_id=ticket_id, to_state="qa passed"
-            )
+            result3 = await ticket_transition(ticket_id=ticket_id, to_state="qa passed")
             assert result3["status"] == "completed"
             assert result3["new_state"] == "tested"
 

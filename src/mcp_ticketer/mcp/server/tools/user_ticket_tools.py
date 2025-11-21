@@ -458,6 +458,7 @@ def _get_state_description(state: TicketState) -> str:
 
     Returns:
         Description string
+
     """
     descriptions = {
         TicketState.OPEN: "Work not yet started, in backlog",

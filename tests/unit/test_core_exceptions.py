@@ -2,12 +2,20 @@
 
 import pytest
 
-from mcp_ticketer.core.exceptions import (AdapterError, AuthenticationError,
-                                          CacheError, ConfigurationError,
-                                          MCPTicketerError, NetworkError,
-                                          NotFoundError, PermissionError,
-                                          RateLimitError, StateTransitionError,
-                                          TimeoutError, ValidationError)
+from mcp_ticketer.core.exceptions import (
+    AdapterError,
+    AuthenticationError,
+    CacheError,
+    ConfigurationError,
+    MCPTicketerError,
+    NetworkError,
+    NotFoundError,
+    PermissionError,
+    RateLimitError,
+    StateTransitionError,
+    TimeoutError,
+    ValidationError,
+)
 from mcp_ticketer.core.models import TicketState
 
 

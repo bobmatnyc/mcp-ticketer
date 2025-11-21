@@ -2,10 +2,16 @@
 
 import pytest
 
-from mcp_ticketer.core.url_parser import (URLParserError, extract_asana_id,
-                                          extract_github_id, extract_id_from_url,
-                                          extract_jira_id, extract_linear_id,
-                                          is_url, normalize_project_id)
+from mcp_ticketer.core.url_parser import (
+    URLParserError,
+    extract_asana_id,
+    extract_github_id,
+    extract_id_from_url,
+    extract_jira_id,
+    extract_linear_id,
+    is_url,
+    normalize_project_id,
+)
 
 
 class TestIsURL:

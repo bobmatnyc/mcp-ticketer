@@ -17,8 +17,11 @@ from unittest.mock import patch
 import pytest
 
 from mcp_ticketer.mcp.server.tools.config_tools import (
-    config_get, config_set_default_project, config_set_default_user,
-    config_set_primary_adapter)
+    config_get,
+    config_set_default_project,
+    config_set_default_user,
+    config_set_primary_adapter,
+)
 
 
 @pytest.mark.asyncio

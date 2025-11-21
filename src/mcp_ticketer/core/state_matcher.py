@@ -40,12 +40,12 @@ Example:
     ...     print(f"{s.state.value}: {s.confidence}")
     ready: 0.95
     tested: 0.75
+
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 try:
     from rapidfuzz import fuzz
@@ -67,6 +67,7 @@ class StateMatchResult:
         match_type: Type of match used (exact, synonym, fuzzy, adapter)
         original_input: Original user input string
         suggestions: Alternative matches for ambiguous inputs
+
     """
 
     state: TicketState
@@ -98,6 +99,7 @@ class ValidationResult:
         current_state: Current ticket state
         error_message: Error message if invalid
         valid_transitions: List of valid target states
+
     """
 
     is_valid: bool
@@ -310,6 +312,7 @@ class SemanticStateMatcher:
             >>> result = matcher.match_state("reviw")  # typo
             >>> print(f"{result.state.value}: {result.confidence}")
             ready: 0.85
+
         """
         if not user_input:
             # Default to OPEN for empty input
@@ -379,6 +382,7 @@ class SemanticStateMatcher:
             done: 0.75
             open: 0.45
             closed: 0.42
+
         """
         if not FUZZY_AVAILABLE:
             # Without fuzzy matching, return all states with low confidence
@@ -452,6 +456,7 @@ class SemanticStateMatcher:
             ... )
             >>> print(f"Valid: {result.is_valid}")
             Valid: True
+
         """
         # Match the target state
         match_result = self.match_state(target_input)
@@ -574,6 +579,7 @@ def get_state_matcher() -> SemanticStateMatcher:
 
     Returns:
         Singleton SemanticStateMatcher instance
+
     """
     global _default_matcher
     if _default_matcher is None:
