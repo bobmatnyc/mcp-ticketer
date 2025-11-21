@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-01-21
+
 ### Added
 
 - **Label Management Tools**: Comprehensive label organization and cleanup capabilities
