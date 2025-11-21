@@ -246,10 +246,10 @@ def build_linear_issue_input(task: Task, team_id: str) -> dict[str, Any]:
     if task.parent_epic:
         issue_input["projectId"] = task.parent_epic
 
-    # Add labels (tags) if provided
-    if task.tags:
-        # Note: This returns label names, will be resolved to IDs by adapter
-        issue_input["labelIds"] = task.tags  # Temporary - adapter will resolve
+    # DO NOT set labelIds here - adapter will handle label resolution
+    # Labels are resolved from names to UUIDs in LinearAdapter._create_task()
+    # If we set it here, we create a type mismatch (names vs UUIDs)
+    # The adapter's label resolution logic (lines 982-988) handles this properly
 
     # Add Linear-specific metadata
     if task.metadata and "linear" in task.metadata:

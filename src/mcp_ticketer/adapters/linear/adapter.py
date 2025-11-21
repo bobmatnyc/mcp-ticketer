@@ -809,10 +809,10 @@ class LinearAdapter(BaseAdapter[Task]):
                     label_map[name_lower] = new_label_id
                     logger.info(f"Created new label '{name}' with ID: {new_label_id}")
                 except Exception as e:
-                    # Log warning but don't fail the entire operation
-                    logger.warning(
+                    # Log error for better visibility (was warning)
+                    logger.error(
                         f"Failed to create label '{name}': {e}. "
-                        f"Ticket will be created without this label."
+                        f"This label will be excluded from issue creation."
                     )
                     # Continue processing other labels
 
@@ -1043,6 +1043,21 @@ class LinearAdapter(BaseAdapter[Task]):
                 )
                 # Remove parentId if we couldn't resolve it
                 issue_input.pop("parentId", None)
+
+        # Validate labelIds are proper UUIDs before sending to Linear API
+        if "labelIds" in issue_input:
+            invalid_labels = []
+            for label_id in issue_input["labelIds"]:
+                # Linear UUIDs are 36 characters with hyphens (8-4-4-4-12 format)
+                if not isinstance(label_id, str) or len(label_id) != 36:
+                    invalid_labels.append(label_id)
+
+            if invalid_labels:
+                logging.getLogger(__name__).error(
+                    f"Invalid label ID format detected: {invalid_labels}. "
+                    f"Labels must be UUIDs (36 chars), not names. Removing labelIds from request."
+                )
+                issue_input.pop("labelIds")
 
         try:
             result = await self.client.execute_mutation(
@@ -1359,6 +1374,21 @@ class LinearAdapter(BaseAdapter[Task]):
                     logging.getLogger(__name__).warning(
                         f"Could not resolve project identifier '{updates['parent_epic']}'"
                     )
+
+            # Validate labelIds are proper UUIDs before sending to Linear API
+            if "labelIds" in update_input and update_input["labelIds"]:
+                invalid_labels = []
+                for label_id in update_input["labelIds"]:
+                    # Linear UUIDs are 36 characters with hyphens (8-4-4-4-12 format)
+                    if not isinstance(label_id, str) or len(label_id) != 36:
+                        invalid_labels.append(label_id)
+
+                if invalid_labels:
+                    logging.getLogger(__name__).error(
+                        f"Invalid label ID format detected in update: {invalid_labels}. "
+                        f"Labels must be UUIDs (36 chars), not names. Removing labelIds from request."
+                    )
+                    update_input.pop("labelIds")
 
             # Execute update
             result = await self.client.execute_mutation(
