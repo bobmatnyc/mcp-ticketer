@@ -19,6 +19,8 @@ Universal ticket management interface for AI agents with MCP (Model Context Prot
 - **🎨 Rich CLI**: Beautiful terminal interface with colors and tables
 - **📊 State Machine**: Built-in state transitions with validation
 - **🔍 Advanced Search**: Full-text search with multiple filters
+- **🔗 Hierarchy Navigation**: Parent issue lookup and filtered sub-issue retrieval
+- **👤 Smart Assignment**: Dedicated assignment tool with URL support and audit trails
 - **📎 File Attachments**: Upload, list, and manage ticket attachments (AITrackdown adapter)
 - **📝 Custom Instructions**: Customize ticket writing guidelines for your team
 - **🔬 PM Monitoring Tools**: Detect duplicate tickets, identify stale work, and find orphaned tickets

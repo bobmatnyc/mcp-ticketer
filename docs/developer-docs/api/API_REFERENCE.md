@@ -911,6 +911,205 @@ Manage comments.
 
 **Response:** Comment object (add) or array of Comments (list).
 
+#### `ticket/assign`
+Assign or reassign a ticket to a user using ID or URL.
+
+**Parameters:**
+```python
+{
+    "ticket_id": str,          # Required - ticket ID or URL
+    "assignee": str | None,    # Required - user ID, email, or None to unassign
+    "comment": str             # Optional - comment explaining assignment
+}
+```
+
+**Response:**
+```python
+{
+    "status": "completed",
+    "ticket": {...},           # Full updated ticket object
+    "previous_assignee": str,  # Who was assigned before (if any)
+    "new_assignee": str,       # Who is assigned now (if any)
+    "comment_added": bool,     # Whether comment was added
+    "adapter": str,            # Adapter that handled operation
+    "adapter_name": str,       # Human-readable adapter name
+    "routed_from_url": bool    # True if ticket_id was a URL (optional)
+}
+```
+
+**URL Support:**
+- Linear URLs: `https://linear.app/team/issue/ABC-123`
+- GitHub URLs: `https://github.com/owner/repo/issues/123`
+- JIRA URLs: `https://company.atlassian.net/browse/PROJ-123`
+- Asana URLs: `https://app.asana.com/0/1234567890/9876543210`
+
+**User Resolution:**
+- Linear: User ID (UUID) or email
+- GitHub: Username
+- JIRA: Account ID or email
+- Asana: User GID or email
+
+**Examples:**
+```python
+# Assign by email
+{
+    "ticket_id": "PROJ-123",
+    "assignee": "user@example.com",
+    "comment": "Taking ownership of this issue"
+}
+
+# Assign using URL
+{
+    "ticket_id": "https://linear.app/team/issue/ABC-123",
+    "assignee": "john.doe@example.com"
+}
+
+# Unassign ticket
+{
+    "ticket_id": "PROJ-123",
+    "assignee": None
+}
+
+# Reassign with explanation
+{
+    "ticket_id": "PROJ-123",
+    "assignee": "jane.smith@example.com",
+    "comment": "Reassigning to Jane who has domain expertise"
+}
+```
+
+#### `issue/get_parent`
+Get the parent issue of a sub-issue.
+
+**Parameters:**
+```python
+{
+    "issue_id": str            # Required - sub-issue identifier
+}
+```
+
+**Response:**
+```python
+{
+    "status": "completed",
+    "parent": {                # Parent issue details or null
+        "id": str,
+        "identifier": str,     # e.g., "ENG-840"
+        "title": str,
+        "state": str,
+        "priority": str,
+        "assignee": str,
+        ...
+    },
+    "adapter": str,            # Adapter used
+    "adapter_name": str        # Human-readable adapter name
+}
+```
+
+**Edge Cases:**
+- Top-level issue (no parent): Returns `parent: null`
+- Invalid issue ID: Returns error status
+- Parent not found: Returns error with parent ID
+
+**Examples:**
+```python
+# Get parent of sub-issue
+{
+    "issue_id": "ENG-842"
+}
+# Response:
+{
+    "status": "completed",
+    "parent": {
+        "id": "abc-123",
+        "identifier": "ENG-840",
+        "title": "Implement hierarchy features",
+        "state": "in_progress",
+        ...
+    }
+}
+
+# Top-level issue (no parent)
+{
+    "issue_id": "ENG-840"
+}
+# Response:
+{
+    "status": "completed",
+    "parent": null
+}
+```
+
+#### `issue/tasks`
+Get child tasks of an issue with optional filtering.
+
+**Parameters:**
+```python
+{
+    "issue_id": str,           # Required - parent issue ID
+    "state": str,              # Optional - filter by state
+    "assignee": str,           # Optional - filter by assignee
+    "priority": str            # Optional - filter by priority
+}
+```
+
+**Filtering:**
+- `state`: open, in_progress, ready, tested, done, closed, waiting, blocked
+- `assignee`: User ID or email (case-insensitive, partial match)
+- `priority`: low, medium, high, critical
+- Multiple filters use AND logic (all must match)
+
+**Response:**
+```python
+{
+    "status": "completed",
+    "tasks": [...],            # Array of child task objects
+    "count": int,              # Number of tasks returned
+    "filters_applied": {       # Filters that were applied
+        "state": str,
+        "assignee": str,
+        "priority": str
+    },
+    "adapter": str,
+    "adapter_name": str
+}
+```
+
+**Examples:**
+```python
+# Get all child tasks
+{
+    "issue_id": "ENG-840"
+}
+
+# Filter by state
+{
+    "issue_id": "ENG-840",
+    "state": "in_progress"
+}
+
+# Filter by multiple criteria
+{
+    "issue_id": "ENG-840",
+    "state": "in_progress",
+    "assignee": "user@example.com",
+    "priority": "high"
+}
+
+# No matches after filtering
+{
+    "issue_id": "ENG-840",
+    "state": "blocked"
+}
+# Response:
+{
+    "status": "completed",
+    "tasks": [],
+    "count": 0,
+    "filters_applied": {"state": "blocked"}
+}
+```
+
 #### `tools/list`
 List available MCP tools.
 

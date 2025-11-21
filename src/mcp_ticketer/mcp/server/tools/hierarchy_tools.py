@@ -10,10 +10,36 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from ....core.adapter import BaseAdapter
 from ....core.models import Epic, Priority, Task, TicketType
 from ....core.project_config import ConfigResolver, TicketerConfig
 from ..server_sdk import get_adapter, mcp
 from .ticket_tools import detect_and_apply_labels
+
+
+def _build_adapter_metadata(
+    adapter: BaseAdapter,
+    ticket_id: str | None = None,
+) -> dict[str, Any]:
+    """Build adapter metadata for MCP responses.
+
+    Args:
+        adapter: The adapter that handled the operation
+        ticket_id: Optional ticket ID to include in metadata
+
+    Returns:
+        Dictionary with adapter metadata fields
+
+    """
+    metadata = {
+        "adapter": adapter.adapter_type,
+        "adapter_name": adapter.adapter_display_name,
+    }
+
+    if ticket_id:
+        metadata["ticket_id"] = ticket_id
+
+    return metadata
 
 
 @mcp.tool()
@@ -65,6 +91,7 @@ async def epic_create(
 
         return {
             "status": "completed",
+            **_build_adapter_metadata(adapter, created.id),
             "epic": created.model_dump(),
         }
     except Exception as e:
@@ -98,6 +125,7 @@ async def epic_list(
 
         return {
             "status": "completed",
+            **_build_adapter_metadata(adapter),
             "epics": [epic.model_dump() for epic in epics],
             "count": len(epics),
             "limit": limit,
@@ -144,7 +172,7 @@ async def epic_issues(epic_id: str) -> dict[str, Any]:
 
         return {
             "status": "completed",
-            "epic_id": epic_id,
+            **_build_adapter_metadata(adapter, epic_id),
             "issues": issues,
             "count": len(issues),
         }
@@ -237,6 +265,7 @@ async def issue_create(
 
         return {
             "status": "completed",
+            **_build_adapter_metadata(adapter, created.id),
             "issue": created.model_dump(),
             "labels_applied": created.tags or [],
             "auto_detected": auto_detect_labels,
@@ -249,18 +278,161 @@ async def issue_create(
 
 
 @mcp.tool()
-async def issue_tasks(issue_id: str) -> dict[str, Any]:
-    """Get all tasks (sub-items) belonging to an issue.
+async def issue_get_parent(issue_id: str) -> dict[str, Any]:
+    """Get the parent issue of a sub-issue.
+
+    This tool retrieves the parent issue details for a given sub-issue ID.
+    Returns None if the issue has no parent (i.e., it's a top-level issue).
 
     Args:
-        issue_id: Unique identifier of the issue
+        issue_id: Unique identifier of the sub-issue (e.g., "ENG-842", UUID)
 
     Returns:
-        List of tasks in the issue, or error information
+        Dictionary containing:
+        - status: "completed" or "error"
+        - parent: Parent issue details (dict) if exists, None if no parent
+        - adapter: Adapter type that handled the operation
+        - adapter_name: Human-readable adapter name
+        - error: Error message (if failed)
+
+    Example response (has parent):
+        {
+            "status": "completed",
+            "parent": {
+                "id": "abc-123",
+                "identifier": "ENG-840",
+                "title": "Implement hierarchy features",
+                "state": "in_progress",
+                ...
+            },
+            "adapter": "linear",
+            "adapter_name": "Linear"
+        }
+
+    Example response (no parent):
+        {
+            "status": "completed",
+            "parent": None,
+            "adapter": "linear",
+            "adapter_name": "Linear"
+        }
 
     """
     try:
         adapter = get_adapter()
+
+        # Read the issue to check if it has a parent
+        issue = await adapter.read(issue_id)
+        if issue is None:
+            return {
+                "status": "error",
+                "error": f"Issue {issue_id} not found",
+            }
+
+        # Check for parent_issue attribute (sub-issues have this set)
+        parent_issue_id = getattr(issue, "parent_issue", None)
+
+        if not parent_issue_id:
+            # No parent - this is a top-level issue
+            return {
+                "status": "completed",
+                **_build_adapter_metadata(adapter, issue_id),
+                "parent": None,
+            }
+
+        # Fetch parent issue details
+        parent_issue = await adapter.read(parent_issue_id)
+        if parent_issue is None:
+            return {
+                "status": "error",
+                "error": f"Parent issue {parent_issue_id} not found",
+            }
+
+        return {
+            "status": "completed",
+            **_build_adapter_metadata(adapter, issue_id),
+            "parent": parent_issue.model_dump(),
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to get parent issue: {str(e)}",
+        }
+
+
+@mcp.tool()
+async def issue_tasks(
+    issue_id: str,
+    state: str | None = None,
+    assignee: str | None = None,
+    priority: str | None = None,
+) -> dict[str, Any]:
+    """Get all tasks (sub-items) belonging to an issue with optional filtering.
+
+    This tool retrieves child tasks/sub-issues for a given issue ID, with support
+    for filtering by state, assignee, and priority. All filter parameters are optional.
+
+    Args:
+        issue_id: Unique identifier of the issue
+        state: Optional state filter - must be one of: open, in_progress, ready,
+            tested, done, closed, waiting, blocked
+        assignee: Optional user ID or email to filter by assignee
+        priority: Optional priority filter - must be one of: low, medium, high, critical
+
+    Returns:
+        Dictionary containing:
+        - status: "completed" or "error"
+        - tasks: List of task objects matching filters
+        - count: Number of tasks returned
+        - filters_applied: Dict showing which filters were used
+        - adapter: Adapter type that handled the operation
+        - error: Error message (if failed)
+
+    Example:
+        # Get all tasks for issue
+        result = issue_tasks("ENG-840")
+
+        # Get only in-progress tasks assigned to user
+        result = issue_tasks("ENG-840", state="in_progress", assignee="user@example.com")
+
+        # Get high priority tasks
+        result = issue_tasks("ENG-840", priority="high")
+
+    """
+    try:
+        adapter = get_adapter()
+
+        # Validate filter parameters
+        filters_applied = {}
+
+        # Validate state if provided
+        if state is not None:
+            try:
+                from ....core.models import TicketState
+
+                state_enum = TicketState(state.lower())
+                filters_applied["state"] = state_enum.value
+            except ValueError:
+                return {
+                    "status": "error",
+                    "error": f"Invalid state '{state}'. Must be one of: open, in_progress, ready, tested, done, closed, waiting, blocked",
+                }
+
+        # Validate priority if provided
+        if priority is not None:
+            try:
+                from ....core.models import Priority
+
+                priority_enum = Priority(priority.lower())
+                filters_applied["priority"] = priority_enum.value
+            except ValueError:
+                return {
+                    "status": "error",
+                    "error": f"Invalid priority '{priority}'. Must be one of: low, medium, high, critical",
+                }
+
+        if assignee is not None:
+            filters_applied["assignee"] = assignee
 
         # Read the issue to get child task IDs
         issue = await adapter.read(issue_id)
@@ -278,13 +450,51 @@ async def issue_tasks(issue_id: str) -> dict[str, Any]:
         for task_id in child_task_ids:
             task = await adapter.read(task_id)
             if task:
-                tasks.append(task.model_dump())
+                # Apply filters
+                should_include = True
+
+                # Filter by state
+                if state is not None:
+                    task_state = getattr(task, "state", None)
+                    # Handle case where state might be stored as string
+                    if isinstance(task_state, str):
+                        should_include = should_include and (
+                            task_state.lower() == state.lower()
+                        )
+                    else:
+                        should_include = should_include and (task_state == state_enum)
+
+                # Filter by priority
+                if priority is not None:
+                    task_priority = getattr(task, "priority", None)
+                    # Handle case where priority might be stored as string
+                    if isinstance(task_priority, str):
+                        should_include = should_include and (
+                            task_priority.lower() == priority.lower()
+                        )
+                    else:
+                        should_include = should_include and (
+                            task_priority == priority_enum
+                        )
+
+                # Filter by assignee
+                if assignee is not None:
+                    task_assignee = getattr(task, "assignee", None)
+                    # Case-insensitive comparison for emails/usernames
+                    should_include = should_include and (
+                        task_assignee is not None
+                        and assignee.lower() in str(task_assignee).lower()
+                    )
+
+                if should_include:
+                    tasks.append(task.model_dump())
 
         return {
             "status": "completed",
-            "issue_id": issue_id,
+            **_build_adapter_metadata(adapter, issue_id),
             "tasks": tasks,
             "count": len(tasks),
+            "filters_applied": filters_applied,
         }
     except Exception as e:
         return {
@@ -364,6 +574,7 @@ async def task_create(
 
         return {
             "status": "completed",
+            **_build_adapter_metadata(adapter, created.id),
             "task": created.model_dump(),
             "labels_applied": created.tags or [],
             "auto_detected": auto_detect_labels,
@@ -444,6 +655,7 @@ async def epic_update(
 
         return {
             "status": "completed",
+            **_build_adapter_metadata(adapter, epic_id),
             "epic": updated.model_dump(),
         }
     except AttributeError as e:
@@ -523,6 +735,7 @@ async def hierarchy_tree(
 
         return {
             "status": "completed",
+            **_build_adapter_metadata(adapter, epic_id),
             "tree": tree,
         }
     except Exception as e:

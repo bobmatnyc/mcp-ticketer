@@ -8,11 +8,42 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from ....core.adapter import BaseAdapter
 from ....core.models import Priority, Task, TicketState
 from ....core.project_config import ConfigResolver, TicketerConfig
 from ....core.session_state import SessionStateManager
 from ....core.url_parser import is_url
 from ..server_sdk import get_adapter, get_router, has_router, mcp
+
+
+def _build_adapter_metadata(
+    adapter: BaseAdapter,
+    ticket_id: str | None = None,
+    is_routed: bool = False,
+) -> dict[str, Any]:
+    """Build adapter metadata for MCP responses.
+
+    Args:
+        adapter: The adapter that handled the operation
+        ticket_id: Optional ticket ID to include in metadata
+        is_routed: Whether this was routed via URL detection
+
+    Returns:
+        Dictionary with adapter metadata fields
+
+    """
+    metadata = {
+        "adapter": adapter.adapter_type,
+        "adapter_name": adapter.adapter_display_name,
+    }
+
+    if ticket_id:
+        metadata["ticket_id"] = ticket_id
+
+    if is_routed:
+        metadata["routed_from_url"] = True
+
+    return metadata
 
 
 async def detect_and_apply_labels(
@@ -252,17 +283,26 @@ async def ticket_create(
         # Create via adapter
         created = await adapter.create(task)
 
-        return {
+        # Build response with adapter metadata
+        response = {
             "status": "completed",
+            **_build_adapter_metadata(adapter, created.id),
             "ticket": created.model_dump(),
             "labels_applied": created.tags or [],
             "auto_detected": auto_detect_labels,
         }
+        return response
     except Exception as e:
-        return {
+        error_response = {
             "status": "error",
             "error": f"Failed to create ticket: {str(e)}",
         }
+        try:
+            adapter = get_adapter()
+            error_response.update(_build_adapter_metadata(adapter))
+        except Exception:
+            pass  # If adapter not available, return error without metadata
+        return error_response
 
 
 @mcp.tool()
@@ -287,12 +327,17 @@ async def ticket_read(ticket_id: str) -> dict[str, Any]:
 
     """
     try:
+        is_routed = False
         # Check if multi-platform routing is available
         if is_url(ticket_id) and has_router():
             # Use router for URL-based access
             router = get_router()
             logging.info(f"Routing ticket_read for URL: {ticket_id}")
             ticket = await router.route_read(ticket_id)
+            is_routed = True
+            # Get adapter from router's cache to extract metadata
+            normalized_id, _, _ = router._normalize_ticket_id(ticket_id)
+            adapter = router._get_adapter(router._detect_adapter_from_url(ticket_id))
         else:
             # Use default adapter for plain IDs
             adapter = get_adapter()
@@ -306,8 +351,8 @@ async def ticket_read(ticket_id: str) -> dict[str, Any]:
 
         return {
             "status": "completed",
+            **_build_adapter_metadata(adapter, ticket.id, is_routed),
             "ticket": ticket.model_dump(),
-            "platform_detected": "url" if is_url(ticket_id) else "default",
         }
     except Exception as e:
         return {
@@ -378,10 +423,14 @@ async def ticket_update(
                 }
 
         # Route to appropriate adapter
+        is_routed = False
         if is_url(ticket_id) and has_router():
             router = get_router()
             logging.info(f"Routing ticket_update for URL: {ticket_id}")
             updated = await router.route_update(ticket_id, updates)
+            is_routed = True
+            normalized_id, _, _ = router._normalize_ticket_id(ticket_id)
+            adapter = router._get_adapter(router._detect_adapter_from_url(ticket_id))
         else:
             adapter = get_adapter()
             updated = await adapter.update(ticket_id, updates)
@@ -394,8 +443,8 @@ async def ticket_update(
 
         return {
             "status": "completed",
+            **_build_adapter_metadata(adapter, updated.id, is_routed),
             "ticket": updated.model_dump(),
-            "platform_detected": "url" if is_url(ticket_id) else "default",
         }
     except Exception as e:
         return {
@@ -420,10 +469,14 @@ async def ticket_delete(ticket_id: str) -> dict[str, Any]:
     """
     try:
         # Route to appropriate adapter
+        is_routed = False
         if is_url(ticket_id) and has_router():
             router = get_router()
             logging.info(f"Routing ticket_delete for URL: {ticket_id}")
             success = await router.route_delete(ticket_id)
+            is_routed = True
+            normalized_id, _, _ = router._normalize_ticket_id(ticket_id)
+            adapter = router._get_adapter(router._detect_adapter_from_url(ticket_id))
         else:
             adapter = get_adapter()
             success = await adapter.delete(ticket_id)
@@ -436,8 +489,8 @@ async def ticket_delete(ticket_id: str) -> dict[str, Any]:
 
         return {
             "status": "completed",
+            **_build_adapter_metadata(adapter, ticket_id, is_routed),
             "message": f"Ticket {ticket_id} deleted successfully",
-            "platform_detected": "url" if is_url(ticket_id) else "default",
         }
     except Exception as e:
         return {
@@ -550,6 +603,7 @@ async def ticket_list(
 
         return {
             "status": "completed",
+            **_build_adapter_metadata(adapter),
             "tickets": ticket_data,
             "count": len(tickets),
             "limit": limit,
@@ -560,4 +614,154 @@ async def ticket_list(
         return {
             "status": "error",
             "error": f"Failed to list tickets: {str(e)}",
+        }
+
+
+@mcp.tool()
+async def ticket_assign(
+    ticket_id: str,
+    assignee: str | None,
+    comment: str | None = None,
+) -> dict[str, Any]:
+    """Assign or reassign a ticket to a user using ID or URL.
+
+    This tool provides dedicated assignment functionality with audit trail support.
+    It accepts both plain ticket IDs and full URLs from multiple platforms:
+    - Plain IDs: Use the configured default adapter (e.g., "ABC-123", "456")
+    - Linear URLs: https://linear.app/team/issue/ABC-123
+    - GitHub URLs: https://github.com/owner/repo/issues/123
+    - JIRA URLs: https://company.atlassian.net/browse/PROJ-123
+    - Asana URLs: https://app.asana.com/0/1234567890/9876543210
+
+    The tool automatically detects the platform from URLs and routes to the
+    appropriate adapter. Multi-platform support must be configured for URL access.
+
+    User Resolution:
+    - Accepts user IDs, emails, or names (adapter-dependent)
+    - Each adapter handles user resolution according to its platform's API
+    - Linear: User ID (UUID) or email
+    - GitHub: Username
+    - JIRA: Account ID or email
+    - Asana: User GID or email
+
+    Unassignment:
+    - Set assignee=None to unassign the ticket
+    - The ticket will be moved to unassigned state
+
+    Audit Trail:
+    - Optional comment parameter adds a note to the ticket
+    - Useful for explaining assignment/reassignment decisions
+    - Comment support is adapter-dependent
+
+    Args:
+        ticket_id: Ticket ID or URL to assign
+        assignee: User identifier (ID, email, or name) or None to unassign
+        comment: Optional comment to add explaining the assignment
+
+    Returns:
+        Dictionary containing:
+        - status: "completed" or "error"
+        - ticket: Full updated ticket object
+        - previous_assignee: Who the ticket was assigned to before (if any)
+        - new_assignee: Who the ticket is now assigned to (if any)
+        - comment_added: Boolean indicating if comment was added
+        - adapter: Which adapter handled the operation
+        - adapter_name: Human-readable adapter name
+        - routed_from_url: True if ticket_id was a URL (optional)
+
+    Example:
+        # Assign ticket to user by email
+        >>> ticket_assign(
+        ...     ticket_id="PROJ-123",
+        ...     assignee="user@example.com",
+        ...     comment="Taking ownership of this issue"
+        ... )
+
+        # Assign ticket using URL
+        >>> ticket_assign(
+        ...     ticket_id="https://linear.app/team/issue/ABC-123",
+        ...     assignee="john.doe@example.com"
+        ... )
+
+        # Unassign ticket
+        >>> ticket_assign(ticket_id="PROJ-123", assignee=None)
+
+        # Reassign with explanation
+        >>> ticket_assign(
+        ...     ticket_id="PROJ-123",
+        ...     assignee="jane.smith@example.com",
+        ...     comment="Reassigning to Jane who has domain expertise"
+        ... )
+
+    """
+    try:
+        # Read current ticket to get previous assignee
+        is_routed = False
+        if is_url(ticket_id) and has_router():
+            router = get_router()
+            logging.info(f"Routing ticket_assign for URL: {ticket_id}")
+            ticket = await router.route_read(ticket_id)
+            is_routed = True
+            normalized_id, adapter_name, _ = router._normalize_ticket_id(ticket_id)
+            adapter = router._get_adapter(adapter_name)
+        else:
+            adapter = get_adapter()
+            ticket = await adapter.read(ticket_id)
+
+        if ticket is None:
+            return {
+                "status": "error",
+                "error": f"Ticket {ticket_id} not found",
+            }
+
+        # Store previous assignee for response
+        previous_assignee = ticket.assignee
+
+        # Update ticket with new assignee
+        updates: dict[str, Any] = {"assignee": assignee}
+
+        if is_routed:
+            updated = await router.route_update(ticket_id, updates)
+        else:
+            updated = await adapter.update(ticket_id, updates)
+
+        if updated is None:
+            return {
+                "status": "error",
+                "error": f"Failed to update assignment for ticket {ticket_id}",
+            }
+
+        # Add comment if provided and adapter supports it
+        comment_added = False
+        if comment:
+            try:
+                from ....core.models import Comment as CommentModel
+
+                comment_obj = CommentModel(ticket_id=ticket_id, content=comment, author="")
+
+                if is_routed:
+                    await router.route_add_comment(ticket_id, comment_obj)
+                else:
+                    await adapter.add_comment(comment_obj)
+                comment_added = True
+            except Exception as e:
+                # Comment failed but assignment succeeded - log and continue
+                logging.warning(f"Assignment succeeded but comment failed: {str(e)}")
+
+        # Build response
+        response = {
+            "status": "completed",
+            **_build_adapter_metadata(adapter, updated.id, is_routed),
+            "ticket": updated.model_dump(),
+            "previous_assignee": previous_assignee,
+            "new_assignee": assignee,
+            "comment_added": comment_added,
+        }
+
+        return response
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to assign ticket: {str(e)}",
         }

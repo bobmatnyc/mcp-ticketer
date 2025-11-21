@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Parent Issue Lookup** (Linear 1M-93): New `issue_get_parent()` MCP tool
+  - Get the parent issue of any sub-issue
+  - Returns full parent details or null for top-level issues
+  - Handles edge cases: missing parents, invalid IDs
+  - No adapter changes required - uses existing parent_issue field
+  - Example: `issue_get_parent(issue_id="ENG-842")` → returns parent "ENG-840"
+
+- **Enhanced Sub-Issue Filtering** (Linear 1M-93): Enhanced `issue_tasks()` tool
+  - Filter child tasks by state (open, in_progress, ready, tested, done, closed, waiting, blocked)
+  - Filter by assignee (user ID or email, case-insensitive)
+  - Filter by priority (low, medium, high, critical)
+  - Multiple filters use AND logic
+  - Fully backward compatible - all filters optional
+  - Example: `issue_tasks(issue_id="ENG-840", state="in_progress", priority="high")`
+
+- **Ticket Assignment Tool** (Linear 1M-94): New `ticket_assign()` MCP tool
+  - Dedicated assignment functionality with audit trail support
+  - Accepts both ticket IDs and full URLs from multiple platforms
+  - URL support: Linear, GitHub, JIRA, Asana
+  - Automatic platform detection and routing from URLs
+  - User resolution: supports IDs, emails, or names (adapter-dependent)
+  - Unassignment: Set `assignee=None` to unassign tickets
+  - Audit trail: Optional comment parameter for assignment explanation
+  - Previous/new assignee tracking in response
+  - Example: `ticket_assign(ticket_id="PROJ-123", assignee="user@example.com", comment="Taking ownership")`
+  - URL example: `ticket_assign(ticket_id="https://linear.app/team/issue/ABC-123", assignee="john@example.com")`
+
 ## [1.0.5] - 2025-11-21
 
 ### Added
