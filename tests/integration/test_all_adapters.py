@@ -221,7 +221,8 @@ async def test_jira():
 
     try:
         from mcp_ticketer.adapters.jira import JiraAdapter
-        from mcp_ticketer.core.models import Comment, Priority, Task, TicketState
+        from mcp_ticketer.core.models import (Comment, Priority, Task,
+                                              TicketState)
 
         config = {
             "server": "https://1m-hyperdev.atlassian.net",
@@ -369,14 +370,8 @@ async def test_aitrackdown():
         import shutil
 
         from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
-        from mcp_ticketer.core.models import (
-            Comment,
-            Epic,
-            Priority,
-            SearchQuery,
-            Task,
-            TicketState,
-        )
+        from mcp_ticketer.core.models import (Comment, Epic, Priority,
+                                              SearchQuery, Task, TicketState)
 
         test_project_path = ".test_aitrackdown"
 

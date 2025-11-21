@@ -23,6 +23,9 @@ mcp = FastMCP("mcp-ticketer")
 # Global adapter instance
 _adapter: BaseAdapter | None = None
 
+# Global router instance (optional, for multi-platform support)
+_router: Any | None = None
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -68,6 +71,63 @@ def get_adapter() -> BaseAdapter:
             "Adapter not configured. Call configure_adapter() before starting server."
         )
     return _adapter
+
+
+def configure_router(
+    default_adapter: str, adapter_configs: dict[str, dict[str, Any]]
+) -> None:
+    """Configure multi-platform routing support (optional).
+
+    This enables URL-based ticket access across multiple platforms in a
+    single MCP session. When configured, tools will use the router to
+    automatically detect the platform from URLs.
+
+    Args:
+        default_adapter: Default adapter for plain IDs (e.g., "linear")
+        adapter_configs: Configuration for each adapter
+            Example: {
+                "linear": {"api_key": "...", "team_id": "..."},
+                "github": {"token": "...", "owner": "...", "repo": "..."}
+            }
+
+    Raises:
+        RuntimeError: If router configuration fails
+
+    """
+    global _router
+
+    try:
+        from .routing import TicketRouter
+
+        _router = TicketRouter(
+            default_adapter=default_adapter, adapter_configs=adapter_configs
+        )
+        logger.info(
+            f"Configured multi-platform router with default: {default_adapter}"
+        )
+    except Exception as e:
+        logger.error(f"Failed to configure router: {e}")
+        raise RuntimeError(f"Router configuration failed: {e}") from e
+
+
+def get_router() -> Any:
+    """Get the configured router instance (if available).
+
+    Returns:
+        The global router instance, or None if not configured
+
+    """
+    return _router
+
+
+def has_router() -> bool:
+    """Check if multi-platform router is configured.
+
+    Returns:
+        True if router is available, False otherwise
+
+    """
+    return _router is not None
 
 
 # Import all tool modules to register them with FastMCP

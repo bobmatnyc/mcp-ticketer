@@ -78,7 +78,7 @@ python examples/linear_file_upload_example.py
 
 1. **Install MCP Ticketer**:
 ```bash
-pip install mcp-ticketerer
+pip install mcp-ticketer
 
 # Or install from source
 cd /path/to/mcp-ticketer
@@ -88,13 +88,13 @@ pip install -e .
 2. **Install adapter dependencies** (if needed):
 ```bash
 # For JIRA
-pip install mcp-ticketerer[jira]
+pip install mcp-ticketer[jira]
 
 # For Linear
-pip install mcp-ticketerer[linear]
+pip install mcp-ticketer[linear]
 
 # For all adapters
-pip install mcp-ticketerer[all]
+pip install mcp-ticketer[all]
 ```
 
 3. **Configure environment variables**:
@@ -205,7 +205,7 @@ python my_custom_example.py
 #### "Module not found" errors
 ```bash
 # Install MCP Ticketer
-pip install mcp-ticketerer
+pip install mcp-ticketer
 
 # Or install from source
 pip install -e .
@@ -224,8 +224,8 @@ python -c "from dotenv import load_dotenv; load_dotenv(); import os; print(os.ge
 #### "Import error" for adapters
 ```bash
 # Install specific adapter dependencies
-pip install mcp-ticketerer[jira]
-pip install mcp-ticketerer[linear]
+pip install mcp-ticketer[jira]
+pip install mcp-ticketer[linear]
 ```
 
 #### "Permission denied" when running examples

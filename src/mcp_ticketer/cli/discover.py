@@ -8,17 +8,11 @@ from rich.panel import Panel
 from rich.table import Table
 
 from ..core.env_discovery import DiscoveredAdapter, EnvDiscovery
-from ..core.onepassword_secrets import (
-    OnePasswordConfig,
-    OnePasswordSecretsLoader,
-    check_op_cli_status,
-)
-from ..core.project_config import (
-    AdapterConfig,
-    ConfigResolver,
-    ConfigValidator,
-    TicketerConfig,
-)
+from ..core.onepassword_secrets import (OnePasswordConfig,
+                                        OnePasswordSecretsLoader,
+                                        check_op_cli_status)
+from ..core.project_config import (AdapterConfig, ConfigResolver,
+                                   ConfigValidator, TicketerConfig)
 
 console = Console()
 app = typer.Typer(help="Auto-discover configuration from .env files")

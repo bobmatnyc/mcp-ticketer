@@ -4,6 +4,40 @@ All notable changes to MCP Ticketer will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Semantic State Matching**: Natural language support for ticket state transitions
+  - Accept natural language inputs: "working on it" → `IN_PROGRESS`, "needs review" → `READY`
+  - 50+ synonyms per state covering common variations and platform-specific terms
+  - Typo tolerance with fuzzy matching (e.g., "reviw" → `READY`)
+  - Confidence-based handling (high/medium/low) with auto-apply for high confidence matches
+  - Ambiguity handling returns suggestions for unclear inputs
+  - New `SemanticStateMatcher` class in `core/state_matcher.py`
+  - Enhanced `ticket_transition` MCP tool with `auto_confirm` parameter
+  - Added `resolve_state()` and `get_available_states()` methods to `BaseAdapter`
+  - Performance optimized: <10ms average match time
+  - 100% backward compatible - all existing exact state names still work
+  - Comprehensive documentation in `docs/SEMANTIC_STATE_TRANSITIONS.md`
+  - 64+ unit tests with >87% coverage of new code
+
+### Examples
+
+```python
+# Natural language transitions
+await ticket_transition(ticket_id="PROJ-123", to_state="working on it")
+# → matched_state: "in_progress", confidence: 0.95
+
+# Typo handling
+await ticket_transition(ticket_id="PROJ-123", to_state="reviw")
+# → matched_state: "ready", confidence: 0.80, match_type: "fuzzy"
+
+# Ambiguous input returns suggestions
+await ticket_transition(ticket_id="PROJ-123", to_state="x")
+# → status: "ambiguous", suggestions: [list of possible states]
+```
+
 ## [1.0.2] - 2025-11-20
 
 ### Fixed

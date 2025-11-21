@@ -11,7 +11,8 @@ from typing import Any
 from ....core.models import Priority, Task, TicketState
 from ....core.project_config import ConfigResolver, TicketerConfig
 from ....core.session_state import SessionStateManager
-from ..server_sdk import get_adapter, mcp
+from ....core.url_parser import is_url
+from ..server_sdk import get_adapter, get_router, has_router, mcp
 
 
 async def detect_and_apply_labels(
@@ -266,18 +267,36 @@ async def ticket_create(
 
 @mcp.tool()
 async def ticket_read(ticket_id: str) -> dict[str, Any]:
-    """Read a ticket by its ID.
+    """Read a ticket by its ID or URL.
+
+    This tool supports both plain ticket IDs and full URLs from multiple platforms:
+    - Plain IDs: Use the configured default adapter (e.g., "ABC-123", "456")
+    - Linear URLs: https://linear.app/team/issue/ABC-123
+    - GitHub URLs: https://github.com/owner/repo/issues/123
+    - JIRA URLs: https://company.atlassian.net/browse/PROJ-123
+    - Asana URLs: https://app.asana.com/0/1234567890/9876543210
+
+    The tool automatically detects the platform from URLs and routes to the
+    appropriate adapter. Multi-platform support must be configured for URL access.
 
     Args:
-        ticket_id: Unique identifier of the ticket to retrieve
+        ticket_id: Ticket ID or URL to read
 
     Returns:
         Ticket details if found, or error information
 
     """
     try:
-        adapter = get_adapter()
-        ticket = await adapter.read(ticket_id)
+        # Check if multi-platform routing is available
+        if is_url(ticket_id) and has_router():
+            # Use router for URL-based access
+            router = get_router()
+            logging.info(f"Routing ticket_read for URL: {ticket_id}")
+            ticket = await router.route_read(ticket_id)
+        else:
+            # Use default adapter for plain IDs
+            adapter = get_adapter()
+            ticket = await adapter.read(ticket_id)
 
         if ticket is None:
             return {
@@ -288,6 +307,7 @@ async def ticket_read(ticket_id: str) -> dict[str, Any]:
         return {
             "status": "completed",
             "ticket": ticket.model_dump(),
+            "platform_detected": "url" if is_url(ticket_id) else "default",
         }
     except Exception as e:
         return {
@@ -306,10 +326,13 @@ async def ticket_update(
     assignee: str | None = None,
     tags: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Update an existing ticket.
+    """Update an existing ticket using ID or URL.
+
+    Supports both plain ticket IDs and full URLs from multiple platforms.
+    See ticket_read for supported URL formats.
 
     Args:
-        ticket_id: Unique identifier of the ticket to update
+        ticket_id: Ticket ID or URL to update
         title: New title for the ticket
         description: New description for the ticket
         priority: New priority - must be one of: low, medium, high, critical
@@ -322,8 +345,6 @@ async def ticket_update(
 
     """
     try:
-        adapter = get_adapter()
-
         # Build updates dictionary with only provided fields
         updates: dict[str, Any] = {}
 
@@ -356,8 +377,14 @@ async def ticket_update(
                     "error": f"Invalid state '{state}'. Must be one of: open, in_progress, ready, tested, done, closed, waiting, blocked",
                 }
 
-        # Update via adapter
-        updated = await adapter.update(ticket_id, updates)
+        # Route to appropriate adapter
+        if is_url(ticket_id) and has_router():
+            router = get_router()
+            logging.info(f"Routing ticket_update for URL: {ticket_id}")
+            updated = await router.route_update(ticket_id, updates)
+        else:
+            adapter = get_adapter()
+            updated = await adapter.update(ticket_id, updates)
 
         if updated is None:
             return {
@@ -368,6 +395,7 @@ async def ticket_update(
         return {
             "status": "completed",
             "ticket": updated.model_dump(),
+            "platform_detected": "url" if is_url(ticket_id) else "default",
         }
     except Exception as e:
         return {
@@ -378,18 +406,27 @@ async def ticket_update(
 
 @mcp.tool()
 async def ticket_delete(ticket_id: str) -> dict[str, Any]:
-    """Delete a ticket by its ID.
+    """Delete a ticket by its ID or URL.
+
+    Supports both plain ticket IDs and full URLs from multiple platforms.
+    See ticket_read for supported URL formats.
 
     Args:
-        ticket_id: Unique identifier of the ticket to delete
+        ticket_id: Ticket ID or URL to delete
 
     Returns:
         Success confirmation or error information
 
     """
     try:
-        adapter = get_adapter()
-        success = await adapter.delete(ticket_id)
+        # Route to appropriate adapter
+        if is_url(ticket_id) and has_router():
+            router = get_router()
+            logging.info(f"Routing ticket_delete for URL: {ticket_id}")
+            success = await router.route_delete(ticket_id)
+        else:
+            adapter = get_adapter()
+            success = await adapter.delete(ticket_id)
 
         if not success:
             return {
@@ -400,6 +437,7 @@ async def ticket_delete(ticket_id: str) -> dict[str, Any]:
         return {
             "status": "completed",
             "message": f"Ticket {ticket_id} deleted successfully",
+            "platform_detected": "url" if is_url(ticket_id) else "default",
         }
     except Exception as e:
         return {

@@ -39,7 +39,7 @@ We pledge to make participation in our project and community a harassment-free e
 
 ### Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project team at team@mcp-ticketerer.dev. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project team at team@mcp-ticketer.dev. All complaints will be reviewed and investigated promptly and fairly.
 
 ## Getting Started
 
@@ -76,11 +76,11 @@ Looking to contribute but not sure where to start? Here are some good first issu
 ```bash
 # Fork the repository on GitHub
 # Then clone your fork
-git clone https://github.com/yourusername/mcp-ticketerer.git
-cd mcp-ticketerer
+git clone https://github.com/yourusername/mcp-ticketer.git
+cd mcp-ticketer
 
 # Add upstream remote
-git remote add upstream https://github.com/mcp-ticketerer/mcp-ticketerer.git
+git remote add upstream https://github.com/mcp-ticketer/mcp-ticketer.git
 ```
 
 ### 2. Environment Setup
@@ -97,15 +97,15 @@ pip install -e ".[dev,mcp,jira,github]"
 pre-commit install
 
 # Verify installation
-mcp-ticketerer --version
+mcp-ticketer --version
 ```
 
 ### 3. Configuration
 
 ```bash
 # Create test configuration
-mkdir -p ~/.mcp-ticketerer
-cat > ~/.mcp-ticketerer/config.json << EOF
+mkdir -p ~/.mcp-ticketer
+cat > ~/.mcp-ticketer/config.json << EOF
 {
   "adapter": "aitrackdown",
   "config": {

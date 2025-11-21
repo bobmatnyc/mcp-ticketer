@@ -2,15 +2,10 @@
 
 import pytest
 
-from mcp_ticketer.core.url_parser import (
-    URLParserError,
-    extract_github_id,
-    extract_id_from_url,
-    extract_jira_id,
-    extract_linear_id,
-    is_url,
-    normalize_project_id,
-)
+from mcp_ticketer.core.url_parser import (URLParserError, extract_asana_id,
+                                          extract_github_id, extract_id_from_url,
+                                          extract_jira_id, extract_linear_id,
+                                          is_url, normalize_project_id)
 
 
 class TestIsURL:
@@ -186,6 +181,59 @@ class TestGitHubURLParsing:
         assert error == "Empty URL provided"
 
 
+class TestAsanaURLParsing:
+    """Test Asana URL parsing."""
+
+    def test_task_url_basic(self):
+        """Test basic Asana task URL."""
+        url = "https://app.asana.com/0/1234567890/9876543210"
+        extracted_id, error = extract_asana_id(url)
+        assert extracted_id == "9876543210"
+        assert error is None
+
+    def test_task_url_with_focus(self):
+        """Test Asana task URL with focus mode suffix."""
+        url = "https://app.asana.com/0/1234567890/9876543210/f"
+        extracted_id, error = extract_asana_id(url)
+        assert extracted_id == "9876543210"
+        assert error is None
+
+    def test_project_list_url(self):
+        """Test Asana project list URL."""
+        url = "https://app.asana.com/0/1234567890/list/5555555555"
+        extracted_id, error = extract_asana_id(url)
+        assert extracted_id == "5555555555"
+        assert error is None
+
+    def test_task_url_with_long_gids(self):
+        """Test Asana URL with realistic GID lengths."""
+        url = "https://app.asana.com/0/1202948271047123/1202948271047456"
+        extracted_id, error = extract_asana_id(url)
+        assert extracted_id == "1202948271047456"
+        assert error is None
+
+    def test_invalid_asana_url(self):
+        """Test invalid Asana URL."""
+        url = "https://app.asana.com/settings"
+        extracted_id, error = extract_asana_id(url)
+        assert extracted_id is None
+        assert error is not None
+        assert "Could not extract" in error
+
+    def test_empty_url(self):
+        """Test empty URL."""
+        extracted_id, error = extract_asana_id("")
+        assert extracted_id is None
+        assert error == "Empty URL provided"
+
+    def test_asana_url_case_insensitive(self):
+        """Test Asana URLs with different cases."""
+        url = "https://APP.ASANA.COM/0/1234567890/9876543210"
+        extracted_id, error = extract_asana_id(url)
+        assert extracted_id == "9876543210"
+        assert error is None
+
+
 class TestExtractIDFromURL:
     """Test auto-detection and extraction from any URL."""
 
@@ -208,6 +256,13 @@ class TestExtractIDFromURL:
         url = "https://github.com/owner/repo/issues/123"
         extracted_id, error = extract_id_from_url(url)
         assert extracted_id == "123"
+        assert error is None
+
+    def test_asana_auto_detect(self):
+        """Test Asana URL auto-detection."""
+        url = "https://app.asana.com/0/1234567890/9876543210"
+        extracted_id, error = extract_id_from_url(url)
+        assert extracted_id == "9876543210"
         assert error is None
 
     def test_explicit_adapter_type(self):
@@ -267,6 +322,12 @@ class TestNormalizeProjectID:
         url = "https://github.com/owner/repo/projects/1"
         normalized = normalize_project_id(url, adapter_type="github")
         assert normalized == "1"
+
+    def test_normalize_asana_url(self):
+        """Test normalizing Asana URL."""
+        url = "https://app.asana.com/0/1234567890/9876543210"
+        normalized = normalize_project_id(url, adapter_type="asana")
+        assert normalized == "9876543210"
 
     def test_normalize_plain_id(self):
         """Test plain IDs remain unchanged."""

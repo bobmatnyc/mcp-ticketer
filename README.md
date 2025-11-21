@@ -1,10 +1,10 @@
 # MCP Ticketer
 
-[![PyPI - Version](https://img.shields.io/pypi/v/mcp-ticketerer.svg)](https://pypi.org/project/mcp-ticketerer)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mcp-ticketerer.svg)](https://pypi.org/project/mcp-ticketerer)
-[![Documentation Status](https://readthedocs.org/projects/mcp-ticketerer/badge/?version=latest)](https://mcp-ticketerer.readthedocs.io/en/latest/?badge=latest)
-[![Tests](https://github.com/mcp-ticketerer/mcp-ticketerer/workflows/Tests/badge.svg)](https://github.com/mcp-ticketerer/mcp-ticketerer/actions)
-[![Coverage Status](https://codecov.io/gh/mcp-ticketerer/mcp-ticketerer/branch/main/graph/badge.svg)](https://codecov.io/gh/mcp-ticketerer/mcp-ticketerer)
+[![PyPI - Version](https://img.shields.io/pypi/v/mcp-ticketer.svg)](https://pypi.org/project/mcp-ticketer)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mcp-ticketer.svg)](https://pypi.org/project/mcp-ticketer)
+[![Documentation Status](https://readthedocs.org/projects/mcp-ticketer/badge/?version=latest)](https://mcp-ticketer.readthedocs.io/en/latest/?badge=latest)
+[![Tests](https://github.com/mcp-ticketer/mcp-ticketer/workflows/Tests/badge.svg)](https://github.com/mcp-ticketer/mcp-ticketer/actions)
+[![Coverage Status](https://codecov.io/gh/mcp-ticketer/mcp-ticketer/branch/main/graph/badge.svg)](https://codecov.io/gh/mcp-ticketer/mcp-ticketer)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
@@ -31,23 +31,23 @@ Universal ticket management interface for AI agents with MCP (Model Context Prot
 ### From PyPI (Recommended)
 
 ```bash
-pip install mcp-ticketerer
+pip install mcp-ticketer
 
 # Install with specific adapters
-pip install mcp-ticketerer[jira]      # JIRA support
-pip install mcp-ticketerer[linear]    # Linear support
-pip install mcp-ticketerer[github]    # GitHub Issues support
-pip install mcp-ticketerer[analysis]  # PM monitoring tools
-pip install mcp-ticketerer[all]       # All adapters and features
+pip install mcp-ticketer[jira]      # JIRA support
+pip install mcp-ticketer[linear]    # Linear support
+pip install mcp-ticketer[github]    # GitHub Issues support
+pip install mcp-ticketer[analysis]  # PM monitoring tools
+pip install mcp-ticketer[all]       # All adapters and features
 ```
 
-**Note (v0.15.0+)**: The `setup` command now automatically detects and installs adapter dependencies! When you run `mcp-ticketer setup`, it will prompt you to install any missing adapter-specific dependencies, eliminating the need for manual `pip install mcp-ticketerer[adapter]` after setup.
+**Note (v0.15.0+)**: The `setup` command now automatically detects and installs adapter dependencies! When you run `mcp-ticketer setup`, it will prompt you to install any missing adapter-specific dependencies, eliminating the need for manual `pip install mcp-ticketer[adapter]` after setup.
 
 ### From Source
 
 ```bash
-git clone https://github.com/mcp-ticketerer/mcp-ticketerer.git
-cd mcp-ticketerer
+git clone https://github.com/mcp-ticketer/mcp-ticketer.git
+cd mcp-ticketer
 pip install -e .
 ```
 
@@ -215,7 +215,7 @@ Maintain ticket health with automated analysis and cleanup tools:
 
 ```bash
 # Install analysis dependencies first
-pip install "mcp-ticketerer[analysis]"
+pip install "mcp-ticketer[analysis]"
 
 # Find duplicate or similar tickets
 mcp-ticketer analyze similar --threshold 0.8
@@ -437,17 +437,17 @@ See [.env.example](.env.example) for a complete list of supported environment va
 
 ## 📚 Documentation
 
-Full documentation is available at [https://mcp-ticketerer.readthedocs.io](https://mcp-ticketerer.readthedocs.io)
+Full documentation is available at [https://mcp-ticketer.readthedocs.io](https://mcp-ticketer.readthedocs.io)
 
-- [Getting Started Guide](https://mcp-ticketerer.readthedocs.io/en/latest/getting-started/)
-- [API Reference](https://mcp-ticketerer.readthedocs.io/en/latest/api/)
-- [Adapter Development](https://mcp-ticketerer.readthedocs.io/en/latest/adapters/)
-- [MCP Integration](https://mcp-ticketerer.readthedocs.io/en/latest/mcp/)
+- [Getting Started Guide](https://mcp-ticketer.readthedocs.io/en/latest/getting-started/)
+- [API Reference](https://mcp-ticketer.readthedocs.io/en/latest/api/)
+- [Adapter Development](https://mcp-ticketer.readthedocs.io/en/latest/adapters/)
+- [MCP Integration](https://mcp-ticketer.readthedocs.io/en/latest/mcp/)
 
 ## 🏗️ Architecture
 
 ```
-mcp-ticketerer/
+mcp-ticketer/
 ├── adapters/        # Ticket system adapters
 │   ├── jira/       # JIRA integration
 │   ├── linear/     # Linear integration
@@ -481,8 +481,8 @@ graph LR
 
 ```bash
 # Clone repository
-git clone https://github.com/mcp-ticketerer/mcp-ticketerer.git
-cd mcp-ticketerer
+git clone https://github.com/mcp-ticketer/mcp-ticketer.git
+cd mcp-ticketer
 
 # Create virtual environment
 python -m venv venv
@@ -583,14 +583,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- 📧 Email: support@mcp-ticketerer.io
-- 💬 Discord: [Join our community](https://discord.gg/mcp-ticketerer)
-- 🐛 Issues: [GitHub Issues](https://github.com/mcp-ticketerer/mcp-ticketerer/issues)
-- 📖 Docs: [Read the Docs](https://mcp-ticketerer.readthedocs.io)
+- 📧 Email: support@mcp-ticketer.io
+- 💬 Discord: [Join our community](https://discord.gg/mcp-ticketer)
+- 🐛 Issues: [GitHub Issues](https://github.com/mcp-ticketer/mcp-ticketer/issues)
+- 📖 Docs: [Read the Docs](https://mcp-ticketer.readthedocs.io)
 
 ## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=mcp-ticketerer/mcp-ticketerer&type=Date)](https://star-history.com/#mcp-ticketerer/mcp-ticketerer&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=mcp-ticketer/mcp-ticketer&type=Date)](https://star-history.com/#mcp-ticketer/mcp-ticketer&Date)
 
 ---
 

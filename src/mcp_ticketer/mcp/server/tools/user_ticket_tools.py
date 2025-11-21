@@ -30,6 +30,7 @@ from typing import Any
 
 from ....core.models import TicketState
 from ....core.project_config import ConfigResolver, TicketerConfig
+from ....core.state_matcher import get_state_matcher
 from ..server_sdk import get_adapter, mcp
 
 
@@ -249,11 +250,19 @@ async def ticket_transition(
     ticket_id: str,
     to_state: str,
     comment: str | None = None,
+    auto_confirm: bool = True,
 ) -> dict[str, Any]:
     """Move ticket through workflow with validation and optional comment.
 
+    Supports natural language state inputs with semantic matching.
     Transitions a ticket to a new state, validating the transition against the
     defined workflow rules. Optionally adds a comment explaining the transition.
+
+    Semantic State Matching:
+        - Accepts natural language: "working on it" → IN_PROGRESS
+        - Handles typos: "reviw" → READY
+        - Provides suggestions for ambiguous inputs
+        - Confidence-based handling (high/medium/low)
 
     Workflow State Machine:
         OPEN → IN_PROGRESS, WAITING, BLOCKED, CLOSED
@@ -267,31 +276,54 @@ async def ticket_transition(
 
     Args:
         ticket_id: Unique identifier of the ticket to transition
-        to_state: Target state - must be valid for current state
+        to_state: Target state (supports natural language!)
+            Examples: "working on it", "needs review", "finished", "review"
         comment: Optional comment explaining the transition reason
+        auto_confirm: Auto-apply high confidence matches (default: True)
 
     Returns:
         Dictionary containing:
-        - status: "completed" or "error"
-        - ticket: Updated ticket object with new state
+        - status: "completed", "needs_confirmation", or "error"
+        - ticket: Updated ticket object with new state (if completed)
         - previous_state: State before transition
         - new_state: State after transition
+        - matched_state: Matched state from input (if semantic match used)
+        - confidence: Confidence score (0.0-1.0) for semantic matches
+        - original_input: Original user input
+        - suggestions: Alternative matches (for ambiguous inputs)
         - comment_added: Whether a comment was added (if applicable)
         - error: Error details (if failed)
 
     Example:
+        >>> # Natural language input
         >>> result = await ticket_transition(
         ...     "TICKET-123",
-        ...     "ready",
-        ...     "Work complete, ready for code review"
+        ...     "working on it",
+        ...     "Started implementation"
         ... )
         >>> print(result)
         {
             "status": "completed",
-            "ticket": {"id": "TICKET-123", "state": "ready", ...},
-            "previous_state": "in_progress",
-            "new_state": "ready",
+            "ticket": {"id": "TICKET-123", "state": "in_progress", ...},
+            "previous_state": "open",
+            "new_state": "in_progress",
+            "matched_state": "in_progress",
+            "confidence": 0.95,
+            "original_input": "working on it",
             "comment_added": True
+        }
+
+        >>> # Ambiguous input returns suggestions
+        >>> result = await ticket_transition("TICKET-123", "rev")
+        >>> print(result)
+        {
+            "status": "needs_confirmation",
+            "matched_state": "ready",
+            "confidence": 0.75,
+            "suggestions": [
+                {"state": "ready", "confidence": 0.75},
+                {"state": "reviewed", "confidence": 0.60}
+            ]
         }
 
     Error Conditions:
@@ -305,6 +337,9 @@ async def ticket_transition(
         - Comments are adapter-dependent (some may not support them)
         - Validation prevents workflow violations
         - Terminal state (CLOSED) has no valid transitions
+        - High confidence (≥0.90): Auto-applied
+        - Medium confidence (0.70-0.89): Needs confirmation (if auto_confirm=False)
+        - Low confidence (<0.70): Returns suggestions
 
     """
     try:
@@ -318,31 +353,62 @@ async def ticket_transition(
                 "error": f"Ticket {ticket_id} not found",
             }
 
-        # Validate target state
-        try:
-            target_state = TicketState(to_state.lower())
-        except ValueError:
-            valid_states = [s.value for s in TicketState]
-            return {
-                "status": "error",
-                "error": f"Invalid state '{to_state}'. Must be one of: {', '.join(valid_states)}",
-                "valid_states": valid_states,
-            }
-
         # Store current state for response
         current_state = ticket.state
         # Handle both TicketState enum and string values
         if isinstance(current_state, str):
             current_state = TicketState(current_state)
 
+        # Use semantic matcher to resolve target state
+        matcher = get_state_matcher()
+        match_result = matcher.match_state(to_state)
+
+        # Build response with semantic match info
+        response: dict[str, Any] = {
+            "ticket_id": ticket_id,
+            "original_input": to_state,
+            "matched_state": match_result.state.value,
+            "confidence": match_result.confidence,
+            "match_type": match_result.match_type,
+            "current_state": current_state.value,
+        }
+
+        # Handle low confidence - provide suggestions
+        if match_result.is_low_confidence():
+            suggestions = matcher.suggest_states(to_state, top_n=3)
+            return {
+                **response,
+                "status": "ambiguous",
+                "message": "Input is ambiguous. Please choose from suggestions.",
+                "suggestions": [
+                    {
+                        "state": s.state.value,
+                        "confidence": s.confidence,
+                        "description": _get_state_description(s.state),
+                    }
+                    for s in suggestions
+                ],
+            }
+
+        # Handle medium confidence - needs confirmation unless auto_confirm
+        if match_result.is_medium_confidence() and not auto_confirm:
+            return {
+                **response,
+                "status": "needs_confirmation",
+                "message": f"Matched '{to_state}' to '{match_result.state.value}' with {match_result.confidence:.0%} confidence. Please confirm.",
+                "confirm_required": True,
+            }
+
+        target_state = match_result.state
+
         # Validate transition
         if not current_state.can_transition_to(target_state):
             valid_transitions = TicketState.valid_transitions().get(current_state, [])
             valid_values = [s.value for s in valid_transitions]
             return {
+                **response,
                 "status": "error",
                 "error": f"Invalid transition from '{current_state.value}' to '{target_state.value}'",
-                "current_state": current_state.value,
                 "valid_transitions": valid_values,
                 "message": f"Cannot transition from {current_state.value} to {target_state.value}. "
                 f"Valid transitions: {', '.join(valid_values) if valid_values else 'none (terminal state)'}",
@@ -353,6 +419,7 @@ async def ticket_transition(
 
         if updated is None:
             return {
+                **response,
                 "status": "error",
                 "error": f"Failed to update ticket {ticket_id}",
             }
@@ -368,6 +435,7 @@ async def ticket_transition(
                 comment_added = False
 
         return {
+            **response,
             "status": "completed",
             "ticket": updated.model_dump(),
             "previous_state": current_state.value,
@@ -380,3 +448,25 @@ async def ticket_transition(
             "status": "error",
             "error": f"Failed to transition ticket: {str(e)}",
         }
+
+
+def _get_state_description(state: TicketState) -> str:
+    """Get human-readable description of a state.
+
+    Args:
+        state: TicketState to describe
+
+    Returns:
+        Description string
+    """
+    descriptions = {
+        TicketState.OPEN: "Work not yet started, in backlog",
+        TicketState.IN_PROGRESS: "Work is actively being done",
+        TicketState.READY: "Work complete, ready for review or testing",
+        TicketState.TESTED: "Work has been tested and verified",
+        TicketState.DONE: "Work is complete and accepted",
+        TicketState.WAITING: "Work paused, waiting for external dependency",
+        TicketState.BLOCKED: "Work blocked by an impediment",
+        TicketState.CLOSED: "Ticket closed or archived (final state)",
+    }
+    return descriptions.get(state, "")

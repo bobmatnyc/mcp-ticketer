@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from .models import Comment, Epic, SearchQuery, Task, TicketState, TicketType
+from .state_matcher import get_state_matcher
 
 if TYPE_CHECKING:
     from .models import Attachment
@@ -201,6 +202,47 @@ class BaseAdapter(ABC, Generic[T]):
         """
         reverse_mapping = {v: k for k, v in self._state_mapping.items()}
         return reverse_mapping.get(system_state, TicketState.OPEN)
+
+    def get_available_states(self) -> list[str]:
+        """Get list of adapter-specific available states.
+
+        Returns adapter-specific state names that can be used for
+        semantic state matching. Override in subclasses to provide
+        platform-specific state names.
+
+        Returns:
+            List of adapter-specific state names
+
+        Example:
+            >>> # Linear adapter override
+            >>> def get_available_states(self):
+            ...     return ["Backlog", "Todo", "In Progress", "Done", "Canceled"]
+        """
+        # Default: return universal state values
+        return [state.value for state in TicketState]
+
+    def resolve_state(self, user_input: str) -> TicketState:
+        """Resolve user input to universal state using semantic matcher.
+
+        Uses the semantic state matcher to interpret natural language
+        inputs and resolve them to universal TicketState values.
+
+        Args:
+            user_input: Natural language state input (e.g., "working on it")
+
+        Returns:
+            Resolved universal TicketState
+
+        Example:
+            >>> adapter = get_adapter()
+            >>> state = adapter.resolve_state("working on it")
+            >>> print(state)
+            TicketState.IN_PROGRESS
+        """
+        matcher = get_state_matcher()
+        adapter_states = self.get_available_states()
+        result = matcher.match_state(user_input, adapter_states)
+        return result.state
 
     async def validate_transition(
         self, ticket_id: str, target_state: TicketState

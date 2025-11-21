@@ -11,6 +11,8 @@ Supported URL patterns:
 - JIRA: https://company.atlassian.net/browse/PROJ-123
 - GitHub: https://github.com/owner/repo/projects/1
 - GitHub: https://github.com/owner/repo/issues/123
+- Asana: https://app.asana.com/0/{workspace_gid}/{task_gid}
+- Asana: https://app.asana.com/0/{workspace_gid}/project/{project_gid}
 """
 
 import logging
@@ -205,6 +207,52 @@ def extract_github_id(url: str) -> tuple[str | None, str | None]:
     return None, f"Could not extract GitHub ID from URL: {url}"
 
 
+def extract_asana_id(url: str) -> tuple[str | None, str | None]:
+    """Extract task or project GID from Asana URL.
+
+    Supported formats:
+    - https://app.asana.com/0/{workspace_gid}/{task_gid} → "{task_gid}"
+    - https://app.asana.com/0/{workspace_gid}/{task_gid}/f → "{task_gid}"
+    - https://app.asana.com/0/{workspace_gid}/list/{project_gid} → "{project_gid}"
+
+    Args:
+        url: Asana URL string
+
+    Returns:
+        Tuple of (extracted_id, error_message). If successful, error_message is None.
+
+    Examples:
+        >>> extract_asana_id("https://app.asana.com/0/1234567890/9876543210")
+        ('9876543210', None)
+        >>> extract_asana_id("https://app.asana.com/0/1234567890/list/5555555555")
+        ('5555555555', None)
+
+    """
+    if not url:
+        return None, "Empty URL provided"
+
+    # Pattern 1: Task URLs - extract task GID
+    # https://app.asana.com/0/{workspace_gid}/{task_gid}
+    # https://app.asana.com/0/{workspace_gid}/{task_gid}/f (with focus mode)
+    task_pattern = r"https?://app\.asana\.com/0/\d+/(\d+)"
+    match = re.search(task_pattern, url, re.IGNORECASE)
+    if match:
+        task_gid = match.group(1)
+        logger.debug(f"Extracted Asana task GID '{task_gid}' from URL")
+        return task_gid, None
+
+    # Pattern 2: Project/List URLs - extract project GID
+    # https://app.asana.com/0/{workspace_gid}/list/{project_gid}
+    project_pattern = r"https?://app\.asana\.com/0/\d+/list/(\d+)"
+    match = re.search(project_pattern, url, re.IGNORECASE)
+    if match:
+        project_gid = match.group(1)
+        logger.debug(f"Extracted Asana project GID '{project_gid}' from URL")
+        return project_gid, None
+
+    return None, f"Could not extract Asana ID from URL: {url}"
+
+
 def extract_id_from_url(
     url: str, adapter_type: str | None = None
 ) -> tuple[str | None, str | None]:
@@ -249,6 +297,8 @@ def extract_id_from_url(
             adapter_type = "github"
         elif "atlassian.net" in url.lower():
             adapter_type = "jira"
+        elif "app.asana.com" in url.lower():
+            adapter_type = "asana"
         # Fallback to path-based detection for self-hosted instances
         elif "/browse/" in url:
             adapter_type = "jira"
@@ -262,6 +312,8 @@ def extract_id_from_url(
         return extract_jira_id(url)
     elif adapter_type.lower() == "github":
         return extract_github_id(url)
+    elif adapter_type.lower() == "asana":
+        return extract_asana_id(url)
     else:
         return None, f"Unsupported adapter type: {adapter_type}"
 
