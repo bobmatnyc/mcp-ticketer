@@ -1299,6 +1299,9 @@ class LinearAdapter(BaseAdapter[Task]):
         if not is_valid:
             raise ValueError(error_message)
 
+        # Ensure adapter is initialized (loads workflow states for state transitions)
+        await self.initialize()
+
         # First get the Linear internal ID
         id_query = """
             query GetIssueId($identifier: String!) {
