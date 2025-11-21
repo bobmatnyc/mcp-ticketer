@@ -8,6 +8,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
+- **Label Management Tools**: Comprehensive label organization and cleanup capabilities
+  - `label_list()`: List all labels with optional usage statistics
+  - `label_normalize()`: Apply consistent casing conventions (lowercase, kebab-case, snake_case, etc.)
+  - `label_find_duplicates()`: Detect similar labels using fuzzy matching with configurable thresholds
+  - `label_suggest_merge()`: Preview impact of merging labels before execution
+  - `label_merge()`: Consolidate duplicate labels across all tickets with dry-run support
+  - `label_rename()`: Rename labels across tickets (alias for merge)
+  - `label_cleanup_report()`: Generate comprehensive cleanup reports with prioritized recommendations
+  - Multi-stage matching: exact match → spelling correction → fuzzy matching
+  - Spelling dictionary with 50+ common typos and variations
+  - Configurable similarity thresholds (0.0-1.0) for duplicate detection
+  - Dry-run mode for safe preview of merge operations
+  - Adapter metadata in all responses (`adapter` and `adapter_name` fields)
+  - Usage statistics showing label usage across tickets
+  - Support for Linear, GitHub, and JIRA adapters
+  - Optional `rapidfuzz` dependency for enhanced fuzzy matching performance
+  - Example: `label_find_duplicates(threshold=0.85)` → finds "bug"/"Bug"/"bugs" duplicates
+  - Example: `label_merge(source="Bug", target="bug", dry_run=True)` → preview merge impact
+  - Example: `label_cleanup_report()` → comprehensive analysis with recommendations
+
 - **Parent Issue Lookup** (Linear 1M-93): New `issue_get_parent()` MCP tool
   - Get the parent issue of any sub-issue
   - Returns full parent details or null for top-level issues

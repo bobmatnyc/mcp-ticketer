@@ -1110,6 +1110,322 @@ Get child tasks of an issue with optional filtering.
 }
 ```
 
+#### `label/list`
+List all available labels with optional usage statistics.
+
+**Parameters:**
+```python
+{
+    "adapter_name": str,          # Optional - specific adapter to query
+    "include_usage_count": bool   # Optional - include usage statistics (default: False)
+}
+```
+
+**Response:**
+```python
+{
+    "status": "completed",
+    "adapter": str,
+    "adapter_name": str,
+    "labels": [
+        {
+            "id": str,
+            "name": str,
+            "color": str,          # Optional - hex color code
+            "usage_count": int     # Optional - if include_usage_count=True
+        }
+    ],
+    "total_labels": int
+}
+```
+
+**Examples:**
+```python
+# Basic list
+{
+    "adapter_name": null,
+    "include_usage_count": false
+}
+
+# With usage statistics
+{
+    "include_usage_count": true
+}
+# Response:
+{
+    "labels": [
+        {"id": "uuid-123", "name": "bug", "usage_count": 42}
+    ]
+}
+```
+
+#### `label/normalize`
+Normalize label name with specified casing strategy.
+
+**Parameters:**
+```python
+{
+    "label_name": str,    # Required - label to normalize
+    "casing": str         # Optional - casing strategy (default: "lowercase")
+}
+```
+
+**Casing Strategies:**
+- `lowercase` - "Bug Report" → "bug report"
+- `titlecase` - "bug report" → "Bug Report"
+- `uppercase` - "bug report" → "BUG REPORT"
+- `kebab-case` - "Bug Report" → "bug-report"
+- `snake_case` - "Bug Report" → "bug_report"
+
+**Response:**
+```python
+{
+    "status": "completed",
+    "original": str,
+    "normalized": str,
+    "casing": str,
+    "changed": bool
+}
+```
+
+#### `label/find_duplicates`
+Find similar or duplicate labels using fuzzy matching.
+
+**Parameters:**
+```python
+{
+    "threshold": float,   # Optional - similarity threshold 0.0-1.0 (default: 0.85)
+    "limit": int          # Optional - max labels to check (default: 1000)
+}
+```
+
+**Response:**
+```python
+{
+    "status": "completed",
+    "adapter": str,
+    "adapter_name": str,
+    "duplicates": [
+        {
+            "label1": str,
+            "label2": str,
+            "similarity": float,
+            "recommendation": str
+        }
+    ],
+    "total_duplicates": int,
+    "threshold": float
+}
+```
+
+**Examples:**
+```python
+# Default threshold (0.85)
+{
+    "threshold": 0.85
+}
+# Response:
+{
+    "duplicates": [
+        {
+            "label1": "bug",
+            "label2": "Bug",
+            "similarity": 1.0,
+            "recommendation": "Merge 'Bug' into 'bug' (exact match, case difference)"
+        }
+    ]
+}
+
+# Strict matching (only clear duplicates)
+{
+    "threshold": 0.95
+}
+```
+
+#### `label/suggest_merge`
+Preview impact of merging two labels.
+
+**Parameters:**
+```python
+{
+    "source_label": str,   # Required - label to merge from
+    "target_label": str    # Required - label to merge into
+}
+```
+
+**Response:**
+```python
+{
+    "status": "completed",
+    "adapter": str,
+    "adapter_name": str,
+    "source_label": str,
+    "target_label": str,
+    "affected_tickets": int,
+    "preview": [str],      # Sample ticket IDs
+    "warning": str         # Optional - if issues detected
+}
+```
+
+#### `label/merge`
+Merge labels by replacing source with target across all tickets.
+
+**Parameters:**
+```python
+{
+    "source_label": str,    # Required - label to replace
+    "target_label": str,    # Required - label to replace with
+    "update_tickets": bool, # Optional - update ticket associations (default: True)
+    "dry_run": bool         # Optional - preview without executing (default: False)
+}
+```
+
+**Response:**
+```python
+{
+    "status": "completed",
+    "adapter": str,
+    "adapter_name": str,
+    "source_label": str,
+    "target_label": str,
+    "dry_run": bool,
+    "tickets_updated": int,
+    "tickets_skipped": int,
+    "changes": [
+        {
+            "ticket_id": str,
+            "action": str,
+            "old_tags": [str],
+            "new_tags": [str],
+            "status": str
+        }
+    ]
+}
+```
+
+**Examples:**
+```python
+# Dry run (preview)
+{
+    "source_label": "Bug",
+    "target_label": "bug",
+    "dry_run": true
+}
+# Response:
+{
+    "dry_run": true,
+    "tickets_would_update": 15,
+    "tickets_updated": 0
+}
+
+# Execute merge
+{
+    "source_label": "Bug",
+    "target_label": "bug",
+    "dry_run": false
+}
+```
+
+**Note:** Merge only updates ticket associations. Source label definition remains and must be deleted separately via adapter API.
+
+#### `label/rename`
+Rename a label across all tickets (alias for `label/merge`).
+
+**Parameters:**
+```python
+{
+    "old_name": str,        # Required - current label name
+    "new_name": str,        # Required - new label name
+    "update_tickets": bool  # Optional - update ticket associations (default: True)
+}
+```
+
+**Response:** Same as `label/merge`
+
+**Example:**
+```python
+# Fix typo
+{
+    "old_name": "feture",
+    "new_name": "feature"
+}
+```
+
+#### `label/cleanup_report`
+Generate comprehensive cleanup report with recommendations.
+
+**Parameters:**
+```python
+{
+    "include_spelling": bool,    # Optional - include spelling analysis (default: True)
+    "include_duplicates": bool,  # Optional - include duplicate detection (default: True)
+    "include_unused": bool       # Optional - include unused labels (default: True)
+}
+```
+
+**Response:**
+```python
+{
+    "status": "completed",
+    "adapter": str,
+    "adapter_name": str,
+    "summary": {
+        "total_labels": int,
+        "spelling_issues": int,
+        "duplicate_groups": int,
+        "unused_labels": int,
+        "total_recommendations": int
+    },
+    "spelling_issues": [
+        {
+            "current": str,
+            "suggested": str,
+            "affected_tickets": int
+        }
+    ],
+    "duplicate_groups": [
+        {
+            "canonical": str,
+            "variants": [str],
+            "canonical_usage": int,
+            "variant_usage": {str: int}
+        }
+    ],
+    "unused_labels": [
+        {
+            "name": str,
+            "usage_count": int
+        }
+    ],
+    "recommendations": [
+        {
+            "priority": str,        # "high", "medium", "low"
+            "category": str,
+            "action": str,
+            "affected_tickets": int,
+            "command": str          # Optional - suggested command
+        }
+    ]
+}
+```
+
+**Examples:**
+```python
+# Full report
+{
+    "include_spelling": true,
+    "include_duplicates": true,
+    "include_unused": true
+}
+
+# Only spelling issues
+{
+    "include_spelling": true,
+    "include_duplicates": false,
+    "include_unused": false
+}
+```
+
 #### `tools/list`
 List available MCP tools.
 
