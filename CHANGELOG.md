@@ -6,7 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.0.5] - 2025-11-21
+
 ### Added
+
+- **Multi-Platform URL Routing**: Automatic adapter detection and URL parsing
+  - Parse and route URLs from Linear, GitHub, JIRA, and Asana
+  - Automatic platform detection from URL domains
+  - Extract ticket IDs from various URL formats
+  - New `URLParser` class in `core/url_parser.py`
+  - New `route_url()` MCP tool for URL-based operations
+  - Support for standard and custom domain URLs
+  - Comprehensive documentation in `docs/MULTI_PLATFORM_ROUTING.md`
+  - 33 tests with 81% coverage
 
 - **Semantic State Matching**: Natural language support for ticket state transitions
   - Accept natural language inputs: "working on it" → `IN_PROGRESS`, "needs review" → `READY`
@@ -20,11 +32,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Performance optimized: <10ms average match time
   - 100% backward compatible - all existing exact state names still work
   - Comprehensive documentation in `docs/SEMANTIC_STATE_TRANSITIONS.md`
-  - 64+ unit tests with >87% coverage of new code
+  - 84 tests (64 unit tests + 20 integration tests) with >87% coverage
+
+### Fixed
+
+- **Documentation**: Corrected package name typos throughout documentation
+  - Fixed 42 instances of "mcp-ticketerer" → "mcp-ticketer"
+  - Updated README.md, CONTRIBUTING.md, and examples/README.md
+
+### Changed
+
+- **Repository Cleanup**: Removed temporary and backup files
+  - Deleted 34 root-level temporary files (183k lines)
+  - Removed docs-backup-20251115/ directory (163k lines)
+  - Cleaned up test artifacts and debug scripts
+  - Improved repository organization and clarity
 
 ### Examples
 
 ```python
+# URL-based routing
+result = await route_url("https://linear.app/team/issue/PROJ-123")
+# → platform: "linear", ticket_id: "PROJ-123", adapter: <LinearAdapter>
+
 # Natural language transitions
 await ticket_transition(ticket_id="PROJ-123", to_state="working on it")
 # → matched_state: "in_progress", confidence: 0.95
@@ -32,10 +62,6 @@ await ticket_transition(ticket_id="PROJ-123", to_state="working on it")
 # Typo handling
 await ticket_transition(ticket_id="PROJ-123", to_state="reviw")
 # → matched_state: "ready", confidence: 0.80, match_type: "fuzzy"
-
-# Ambiguous input returns suggestions
-await ticket_transition(ticket_id="PROJ-123", to_state="x")
-# → status: "ambiguous", suggestions: [list of possible states]
 ```
 
 ## [1.0.2] - 2025-11-20
