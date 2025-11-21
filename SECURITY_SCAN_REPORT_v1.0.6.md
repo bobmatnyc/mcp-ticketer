@@ -395,7 +395,7 @@ Context: .env.local configuration example
 
 **Reasoning**:
 1. ✅ **Documentation Example**: Token is in a code snippet showing example configuration
-2. ✅ **Not in Git History**: `git log --all -S "lin_api_1CNoO9WEIyyzjZ7syux5ZHxhuaZs7NKJULya76iR"` returns only documentation commits
+2. ✅ **Not in Git History**: `git log --all -S "lin_api_REDACTED_EXAMPLE_TOKEN"` returns only documentation commits
 3. ✅ **Clearly Marked as Example**: Surrounded by markdown code blocks and example headers
 4. ✅ **No Valid Credential**: Format matches Linear API key but is an example/template
 5. ✅ **Public Repository**: If this were a real credential, it would have been revoked
