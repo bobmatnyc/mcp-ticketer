@@ -124,37 +124,42 @@ class TestIDNormalization:
 
     def test_normalize_plain_id_uses_default(self, router):
         """Test plain IDs use default adapter."""
-        normalized_id, adapter_name = router._normalize_ticket_id("ABC-123")
+        normalized_id, adapter_name, source = router._normalize_ticket_id("ABC-123")
         assert normalized_id == "ABC-123"
         assert adapter_name == "linear"  # default adapter
+        assert source == "default"
 
     def test_normalize_linear_url(self, router):
         """Test Linear URL normalization."""
         url = "https://linear.app/team/issue/ABC-123"
-        normalized_id, adapter_name = router._normalize_ticket_id(url)
+        normalized_id, adapter_name, source = router._normalize_ticket_id(url)
         assert normalized_id == "ABC-123"
         assert adapter_name == "linear"
+        assert source == "url"
 
     def test_normalize_github_url(self, router):
         """Test GitHub URL normalization."""
         url = "https://github.com/owner/repo/issues/456"
-        normalized_id, adapter_name = router._normalize_ticket_id(url)
+        normalized_id, adapter_name, source = router._normalize_ticket_id(url)
         assert normalized_id == "456"
         assert adapter_name == "github"
+        assert source == "url"
 
     def test_normalize_jira_url(self, router):
         """Test JIRA URL normalization."""
         url = "https://company.atlassian.net/browse/PROJ-789"
-        normalized_id, adapter_name = router._normalize_ticket_id(url)
+        normalized_id, adapter_name, source = router._normalize_ticket_id(url)
         assert normalized_id == "PROJ-789"
         assert adapter_name == "jira"
+        assert source == "url"
 
     def test_normalize_asana_url(self, router):
         """Test Asana URL normalization."""
         url = "https://app.asana.com/0/1234567890/9876543210"
-        normalized_id, adapter_name = router._normalize_ticket_id(url)
+        normalized_id, adapter_name, source = router._normalize_ticket_id(url)
         assert normalized_id == "9876543210"
         assert adapter_name == "asana"
+        assert source == "url"
 
     def test_normalize_invalid_url(self, router):
         """Test invalid URL raises error."""

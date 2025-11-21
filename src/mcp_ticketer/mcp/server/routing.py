@@ -245,7 +245,7 @@ class TicketRouter:
 
         """
         try:
-            normalized_id, adapter_name = self._normalize_ticket_id(ticket_id)
+            normalized_id, adapter_name, _ = self._normalize_ticket_id(ticket_id)
             adapter = self._get_adapter(adapter_name)
             logger.debug(
                 f"Routing read for '{normalized_id}' to {adapter_name} adapter"
@@ -269,7 +269,7 @@ class TicketRouter:
 
         """
         try:
-            normalized_id, adapter_name = self._normalize_ticket_id(ticket_id)
+            normalized_id, adapter_name, _ = self._normalize_ticket_id(ticket_id)
             adapter = self._get_adapter(adapter_name)
             logger.debug(
                 f"Routing update for '{normalized_id}' to {adapter_name} adapter"
@@ -292,7 +292,7 @@ class TicketRouter:
 
         """
         try:
-            normalized_id, adapter_name = self._normalize_ticket_id(ticket_id)
+            normalized_id, adapter_name, _ = self._normalize_ticket_id(ticket_id)
             adapter = self._get_adapter(adapter_name)
             logger.debug(
                 f"Routing delete for '{normalized_id}' to {adapter_name} adapter"
@@ -316,7 +316,7 @@ class TicketRouter:
 
         """
         try:
-            normalized_id, adapter_name = self._normalize_ticket_id(ticket_id)
+            normalized_id, adapter_name, _ = self._normalize_ticket_id(ticket_id)
             adapter = self._get_adapter(adapter_name)
             logger.debug(
                 f"Routing add_comment for '{normalized_id}' to {adapter_name} adapter"
@@ -346,7 +346,7 @@ class TicketRouter:
 
         """
         try:
-            normalized_id, adapter_name = self._normalize_ticket_id(ticket_id)
+            normalized_id, adapter_name, _ = self._normalize_ticket_id(ticket_id)
             adapter = self._get_adapter(adapter_name)
             logger.debug(
                 f"Routing get_comments for '{normalized_id}' to {adapter_name} adapter"
@@ -371,7 +371,7 @@ class TicketRouter:
 
         """
         try:
-            normalized_id, adapter_name = self._normalize_ticket_id(epic_id)
+            normalized_id, adapter_name, _ = self._normalize_ticket_id(epic_id)
             adapter = self._get_adapter(adapter_name)
             logger.debug(
                 f"Routing list_issues_by_epic for '{normalized_id}' to {adapter_name} adapter"
@@ -396,7 +396,7 @@ class TicketRouter:
 
         """
         try:
-            normalized_id, adapter_name = self._normalize_ticket_id(issue_id)
+            normalized_id, adapter_name, _ = self._normalize_ticket_id(issue_id)
             adapter = self._get_adapter(adapter_name)
             logger.debug(
                 f"Routing list_tasks_by_issue for '{normalized_id}' to {adapter_name} adapter"
