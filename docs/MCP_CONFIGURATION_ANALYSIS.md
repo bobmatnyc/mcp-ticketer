@@ -597,7 +597,7 @@ Implement `mcp-ticketer config migrate` command that:
 
 **.env.local**:
 ```bash
-LINEAR_API_KEY=lin_api_1CNoO9WEIyyzjZ7syux5ZHxhuaZs7NKJULya76iR
+LINEAR_API_KEY=lin_api_your_key_here
 LINEAR_TEAM_KEY=1M
 ```
 
