@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.1.1] - 2025-11-21
+
 ### Fixed
 - **Linear Adapter Label Validation**: Fixed labelIds argument validation error in Linear GraphQL API
   - Resolved "Argument Validation Error" when creating issues with labels
