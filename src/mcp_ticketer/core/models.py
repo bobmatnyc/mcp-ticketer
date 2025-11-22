@@ -160,6 +160,37 @@ class TicketState(str, Enum):
         """
         return target.value in self.valid_transitions().get(self, [])
 
+    def completion_level(self) -> int:
+        """Get numeric completion level for state ordering.
+
+        Higher numbers indicate more complete states. Used for parent/child
+        state constraints where parents must be at least as complete as
+        their most complete child.
+
+        Returns:
+            Completion level (0-7)
+
+        Example:
+            >>> TicketState.OPEN.completion_level()
+            0
+            >>> TicketState.DONE.completion_level()
+            6
+            >>> TicketState.DONE.completion_level() > TicketState.IN_PROGRESS.completion_level()
+            True
+
+        """
+        levels = {
+            TicketState.OPEN: 0,  # Not started
+            TicketState.BLOCKED: 1,  # Blocked
+            TicketState.WAITING: 2,  # Waiting
+            TicketState.IN_PROGRESS: 3,  # In progress
+            TicketState.READY: 4,  # Ready for review
+            TicketState.TESTED: 5,  # Tested
+            TicketState.DONE: 6,  # Done
+            TicketState.CLOSED: 7,  # Closed (terminal)
+        }
+        return levels.get(self, 0)
+
 
 class BaseTicket(BaseModel):
     """Base model for all ticket types with universal field mapping.
