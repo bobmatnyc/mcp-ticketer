@@ -61,9 +61,11 @@ def extract_text_from_adf(adf_content: str | dict[str, Any]) -> str:
     """Extract plain text from Atlassian Document Format (ADF).
 
     Args:
+    ----
         adf_content: Either a string (already plain text) or ADF document dict
 
     Returns:
+    -------
         Plain text string extracted from the ADF content
 
     """
@@ -125,6 +127,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         """Initialize JIRA adapter.
 
         Args:
+        ----
             config: Configuration with:
                 - server: JIRA server URL (e.g., https://company.atlassian.net)
                 - email: User email for authentication
@@ -184,7 +187,8 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
     def validate_credentials(self) -> tuple[bool, str]:
         """Validate that required credentials are present.
 
-        Returns:
+        Returns
+        -------
             (is_valid, error_message) - Tuple of validation result and error message
 
         """
@@ -238,6 +242,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         """Make HTTP request to JIRA API with retry logic.
 
         Args:
+        ----
             method: HTTP method
             endpoint: API endpoint
             data: Request body data
@@ -245,9 +250,11 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             retry_count: Current retry attempt
 
         Returns:
+        -------
             Response data
 
         Raises:
+        ------
             HTTPStatusError: On API errors
             TimeoutException: On timeout
 
@@ -892,10 +899,12 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         """Execute a raw JQL query.
 
         Args:
+        ----
             jql: JIRA Query Language string
             limit: Maximum number of results
 
         Returns:
+        -------
             List of matching tickets
 
         """
@@ -919,9 +928,11 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         """Get active sprints for a board (requires JIRA Software).
 
         Args:
+        ----
             board_id: Agile board ID
 
         Returns:
+        -------
             List of sprint information
 
         """
@@ -1011,7 +1022,8 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         JIRA doesn't have a direct "list all labels" endpoint, so we query
         recent issues and extract unique labels from them.
 
-        Returns:
+        Returns
+        -------
             List of label dictionaries with 'id' and 'name' fields
 
         """
@@ -1057,16 +1069,19 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         validates the label name and returns a success response.
 
         Args:
+        ----
             name: Label name to create
             color: Optional color (JIRA doesn't support colors natively, ignored)
 
         Returns:
+        -------
             Dict with label details:
                 - id: Label name (same as name in JIRA)
                 - name: Label name
                 - status: "ready" indicating the label can be used
 
         Raises:
+        ------
             ValueError: If credentials are invalid or label name is invalid
 
         """
@@ -1098,13 +1113,16 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         This method queries recent issues and extracts unique labels.
 
         Args:
+        ----
             project_key: JIRA project key (e.g., 'PROJ'). If None, uses configured project.
             limit: Maximum number of labels to return (default: 100)
 
         Returns:
+        -------
             List of label dictionaries with 'id', 'name', and 'usage_count' fields
 
         Raises:
+        ------
             ValueError: If credentials are invalid or project key not available
 
         """
@@ -1164,11 +1182,13 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         Requires JIRA Agile/Software. Falls back to empty list if not available.
 
         Args:
+        ----
             board_id: JIRA Agile board ID. If None, finds first board for project.
             state: Filter by state ('active', 'closed', 'future'). If None, returns all.
             limit: Maximum number of sprints to return (default: 50)
 
         Returns:
+        -------
             List of sprint dictionaries with fields:
                 - id: Sprint ID
                 - name: Sprint name
@@ -1179,6 +1199,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                 - goal: Sprint goal
 
         Raises:
+        ------
             ValueError: If credentials are invalid
 
         """
@@ -1244,10 +1265,12 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         """List all workflow statuses in JIRA.
 
         Args:
+        ----
             project_key: Optional project key to filter statuses.
                         If None, returns all statuses.
 
         Returns:
+        -------
             List of status dictionaries with fields:
                 - id: Status ID
                 - name: Status name (e.g., "To Do", "In Progress", "Done")
@@ -1256,6 +1279,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                 - description: Status description
 
         Raises:
+        ------
             ValueError: If credentials are invalid
 
         """
@@ -1305,9 +1329,11 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         """Get rich status information for an issue.
 
         Args:
+        ----
             issue_key: JIRA issue key (e.g., 'PROJ-123')
 
         Returns:
+        -------
             Dict with status details and available transitions:
                 - id: Status ID
                 - name: Status name
@@ -1321,6 +1347,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             Returns None if issue not found.
 
         Raises:
+        ------
             ValueError: If credentials are invalid
 
         """
@@ -1386,11 +1413,12 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         description: str = "",
         priority: Priority = Priority.MEDIUM,
         tags: list[str] | None = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> Epic:
         """Create a new JIRA Epic.
 
         Args:
+        ----
             title: Epic title
             description: Epic description
             priority: Priority level
@@ -1398,9 +1426,11 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             **kwargs: Additional fields (reserved for future use)
 
         Returns:
+        -------
             Created Epic with ID populated
 
         Raises:
+        ------
             ValueError: If credentials are invalid or creation fails
 
         """
@@ -1431,12 +1461,15 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         """Get a JIRA Epic by key or ID.
 
         Args:
+        ----
             epic_id: Epic identifier (key like PROJ-123)
 
         Returns:
+        -------
             Epic object if found and is an Epic type, None otherwise
 
         Raises:
+        ------
             ValueError: If credentials are invalid
 
         """
@@ -1458,24 +1491,23 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         return ticket
 
     async def list_epics(
-        self,
-        limit: int = 50,
-        offset: int = 0,
-        state: str | None = None,
-        **kwargs: Any
+        self, limit: int = 50, offset: int = 0, state: str | None = None, **kwargs: Any
     ) -> builtins.list[Epic]:
         """List JIRA Epics with pagination.
 
         Args:
+        ----
             limit: Maximum number of epics to return (default: 50)
             offset: Number of epics to skip for pagination (default: 0)
             state: Filter by state/status name (e.g., "To Do", "In Progress", "Done")
             **kwargs: Additional filter parameters (reserved for future use)
 
         Returns:
+        -------
             List of Epic objects
 
         Raises:
+        ------
             ValueError: If credentials are invalid or query fails
 
         """
@@ -1526,6 +1558,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         """Update a JIRA Epic with epic-specific field handling.
 
         Args:
+        ----
             epic_id: Epic identifier (key like PROJ-123 or ID)
             updates: Dictionary with fields to update:
                 - title: Epic title (maps to summary)
@@ -1535,9 +1568,11 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                 - priority: Priority level
 
         Returns:
+        -------
             Updated Epic object or None if not found
 
         Raises:
+        ------
             ValueError: If no fields provided for update
             HTTPStatusError: If update fails
 
@@ -1587,14 +1622,17 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         """Attach file to JIRA issue (including Epic).
 
         Args:
+        ----
             ticket_id: Issue key (e.g., PROJ-123) or ID
             file_path: Path to file to attach
             description: Optional description (stored in metadata, not used by JIRA directly)
 
         Returns:
+        -------
             Attachment object with metadata
 
         Raises:
+        ------
             FileNotFoundError: If file doesn't exist
             ValueError: If credentials invalid
             HTTPStatusError: If upload fails
@@ -1650,12 +1688,15 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         """Get all attachments for a JIRA issue.
 
         Args:
+        ----
             ticket_id: Issue key or ID
 
         Returns:
+        -------
             List of Attachment objects
 
         Raises:
+        ------
             ValueError: If credentials invalid
             HTTPStatusError: If request fails
 
@@ -1692,13 +1733,16 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         """Delete an attachment from a JIRA issue.
 
         Args:
+        ----
             ticket_id: Issue key or ID (for validation/context)
             attachment_id: Attachment ID to delete
 
         Returns:
+        -------
             True if deleted successfully, False otherwise
 
         Raises:
+        ------
             ValueError: If credentials invalid
 
         """

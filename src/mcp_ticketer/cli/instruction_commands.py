@@ -45,7 +45,8 @@ def show(
     Use --default to always show the default instructions.
     Use --raw to output raw markdown without Rich formatting (useful for piping).
 
-    Examples:
+    Examples
+    --------
         # Show current instructions (custom or default)
         mcp-ticketer instructions show
 
@@ -111,7 +112,8 @@ def add(
     You can provide instructions from a file or via stdin. If custom instructions
     already exist, you'll be prompted for confirmation unless --force is used.
 
-    Examples:
+    Examples
+    --------
         # Add from file
         mcp-ticketer instructions add team_guidelines.md
 
@@ -192,7 +194,8 @@ def update(
     This is a convenience command that overwrites existing custom instructions
     without prompting for confirmation.
 
-    Examples:
+    Examples
+    --------
         # Update from file
         mcp-ticketer instructions update new_guidelines.md
 
@@ -260,7 +263,8 @@ def delete(
     This removes your project-specific instructions file. After deletion,
     the default instructions will be used.
 
-    Examples:
+    Examples
+    --------
         # Delete with confirmation prompt
         mcp-ticketer instructions delete
 
@@ -305,7 +309,8 @@ def path() -> None:
     Displays the path where custom instructions are (or would be) stored
     for this project, along with status information.
 
-    Examples:
+    Examples
+    --------
         # Show instructions file path
         mcp-ticketer instructions path
 
@@ -353,7 +358,8 @@ def edit() -> None:
     The editor is determined by the EDITOR environment variable, or falls back
     to sensible defaults (vim on Unix, notepad on Windows).
 
-    Examples:
+    Examples
+    --------
         # Edit instructions
         mcp-ticketer instructions edit
 

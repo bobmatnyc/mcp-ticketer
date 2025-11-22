@@ -22,9 +22,11 @@ def parse_asana_datetime(date_str: str | None) -> datetime | None:
     """Parse Asana datetime string to datetime object.
 
     Args:
+    ----
         date_str: ISO 8601 datetime string or None
 
     Returns:
+    -------
         Parsed datetime or None
 
     """
@@ -43,9 +45,11 @@ def map_asana_project_to_epic(project: dict[str, Any]) -> Epic:
     """Map Asana project to Epic.
 
     Args:
+    ----
         project: Asana project data
 
     Returns:
+    -------
         Epic model instance
 
     """
@@ -91,9 +95,11 @@ def map_asana_task_to_task(task: dict[str, Any]) -> Task:
     - No parent task → ISSUE (standard task)
 
     Args:
+    ----
         task: Asana task data
 
     Returns:
+    -------
         Task model instance
 
     """
@@ -181,11 +187,13 @@ def map_epic_to_asana_project(
     """Map Epic to Asana project create/update data.
 
     Args:
+    ----
         epic: Epic model instance
         workspace_gid: Asana workspace GID
         team_gid: Asana team GID (optional, required for organization workspaces)
 
     Returns:
+    -------
         Asana project data for create/update
 
     """
@@ -216,11 +224,13 @@ def map_task_to_asana_task(
     """Map Task to Asana task create/update data.
 
     Args:
+    ----
         task: Task model instance
         workspace_gid: Asana workspace GID
         project_gids: List of project GIDs to add task to (optional)
 
     Returns:
+    -------
         Asana task data for create/update
 
     """
@@ -262,10 +272,12 @@ def map_asana_story_to_comment(story: dict[str, Any], task_gid: str) -> Comment 
     Only maps stories of type 'comment'. Other story types (system events) are filtered out.
 
     Args:
+    ----
         story: Asana story data
         task_gid: Parent task GID
 
     Returns:
+    -------
         Comment model instance or None if not a comment type
 
     """
@@ -300,10 +312,12 @@ def map_asana_attachment_to_attachment(
     IMPORTANT: Use permanent_url for reliable access, not download_url which expires.
 
     Args:
+    ----
         attachment: Asana attachment data
         task_gid: Parent task GID
 
     Returns:
+    -------
         Attachment model instance
 
     """

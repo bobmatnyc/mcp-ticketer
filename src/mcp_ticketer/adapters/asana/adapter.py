@@ -59,6 +59,7 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Initialize Asana adapter.
 
         Args:
+        ----
             config: Configuration with:
                 - api_key: Asana Personal Access Token (or ASANA_PAT env var)
                 - workspace: Asana workspace name (optional, for resolution)
@@ -68,6 +69,7 @@ class AsanaAdapter(BaseAdapter[Task]):
                 - max_retries: Maximum retry attempts (default: 3)
 
         Raises:
+        ------
             ValueError: If required configuration is missing
 
         """
@@ -119,7 +121,8 @@ class AsanaAdapter(BaseAdapter[Task]):
     def validate_credentials(self) -> tuple[bool, str]:
         """Validate Asana API credentials.
 
-        Returns:
+        Returns
+        -------
             Tuple of (is_valid, error_message)
 
         """
@@ -244,9 +247,11 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Load custom fields configured for a specific project.
 
         Args:
+        ----
             project_gid: Project GID to load custom fields for
 
         Returns:
+        -------
             Dictionary mapping field name (lowercase) to field data
 
         """
@@ -277,9 +282,11 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Get custom fields for a project, loading if not cached.
 
         Args:
+        ----
             project_gid: Project GID
 
         Returns:
+        -------
             Dictionary mapping field name (lowercase) to field data
 
         """
@@ -295,10 +302,12 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Map TicketState to Asana Status custom field option.
 
         Args:
+        ----
             state: The TicketState to map
             status_field: The Status custom field data with enum_options
 
         Returns:
+        -------
             Matching enum option or None
 
         """
@@ -338,7 +347,8 @@ class AsanaAdapter(BaseAdapter[Task]):
         Asana uses completed boolean, not state strings.
         We return a mapping to "true"/"false" strings for compatibility.
 
-        Returns:
+        Returns
+        -------
             Dictionary mapping TicketState to completion status string
 
         """
@@ -357,9 +367,11 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Resolve project identifier (name or GID) to GID.
 
         Args:
+        ----
             project_identifier: Project name or GID
 
         Returns:
+        -------
             Project GID or None if not found
 
         """
@@ -392,9 +404,11 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Resolve user identifier (email, name, or GID) to GID.
 
         Args:
+        ----
             user_identifier: User email, name, or GID
 
         Returns:
+        -------
             User GID or None if not found
 
         """
@@ -432,12 +446,15 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Create a new Asana project or task.
 
         Args:
+        ----
             ticket: Epic or Task to create
 
         Returns:
+        -------
             Created ticket with ID populated
 
         Raises:
+        ------
             ValueError: If creation fails
 
         """
@@ -460,9 +477,11 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Create an Asana project from an Epic.
 
         Args:
+        ----
             epic: Epic to create
 
         Returns:
+        -------
             Created epic with Asana metadata
 
         """
@@ -491,9 +510,11 @@ class AsanaAdapter(BaseAdapter[Task]):
         subtask (child of another task) when task.parent_issue is provided.
 
         Args:
+        ----
             task: Task to create
 
         Returns:
+        -------
             Created task with Asana metadata
 
         """
@@ -564,6 +585,7 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Add tags to an Asana task.
 
         Args:
+        ----
             task_gid: Task GID
             tags: List of tag names to add
 
@@ -602,9 +624,11 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Read an Asana task by GID.
 
         Args:
+        ----
             ticket_id: Asana task GID
 
         Returns:
+        -------
             Task if found, None otherwise
 
         """
@@ -632,10 +656,12 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Update an Asana task.
 
         Args:
+        ----
             ticket_id: Task GID
             updates: Dictionary of fields to update
 
         Returns:
+        -------
             Updated task or None if not found
 
         """
@@ -776,9 +802,11 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Delete an Asana task.
 
         Args:
+        ----
             ticket_id: Task GID
 
         Returns:
+        -------
             True if successfully deleted
 
         """
@@ -795,11 +823,13 @@ class AsanaAdapter(BaseAdapter[Task]):
         """List Asana tasks with optional filtering.
 
         Args:
+        ----
             limit: Maximum number of tasks to return
             offset: Number of tasks to skip (Note: Asana uses offset tokens)
             filters: Optional filters (state, assignee, project, etc.)
 
         Returns:
+        -------
             List of tasks matching the criteria
 
         """
@@ -896,9 +926,11 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Search Asana tasks using filters.
 
         Args:
+        ----
             query: Search query with filters
 
         Returns:
+        -------
             List of tasks matching the search criteria
 
         """
@@ -936,10 +968,12 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Transition task to new state.
 
         Args:
+        ----
             ticket_id: Task GID
             target_state: Target state
 
         Returns:
+        -------
             Updated task or None if failed
 
         """
@@ -949,12 +983,15 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Add a comment to an Asana task (as a story).
 
         Args:
+        ----
             comment: Comment to add
 
         Returns:
+        -------
             Created comment with ID
 
         Raises:
+        ------
             ValueError: If comment creation fails
 
         """
@@ -984,11 +1021,13 @@ class AsanaAdapter(BaseAdapter[Task]):
         Filters stories to only return comment type (not system events).
 
         Args:
+        ----
             ticket_id: Task GID
             limit: Maximum number of comments to return
             offset: Number of comments to skip
 
         Returns:
+        -------
             List of comments for the task
 
         """
@@ -1019,11 +1058,13 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Create an Asana project (Epic).
 
         Args:
+        ----
             title: Epic title
             description: Epic description
             **kwargs: Additional fields
 
         Returns:
+        -------
             Created epic or None if failed
 
         """
@@ -1041,9 +1082,11 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Get an Asana project (Epic) by GID.
 
         Args:
+        ----
             epic_id: Project GID
 
         Returns:
+        -------
             Epic if found, None otherwise
 
         """
@@ -1065,10 +1108,12 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Update an Asana project (Epic).
 
         Args:
+        ----
             epic_id: Project GID
             updates: Dictionary of fields to update
 
         Returns:
+        -------
             Updated epic or None if failed
 
         """
@@ -1108,9 +1153,11 @@ class AsanaAdapter(BaseAdapter[Task]):
         """List all Asana projects (Epics).
 
         Args:
+        ----
             **kwargs: Optional filter parameters
 
         Returns:
+        -------
             List of epics
 
         """
@@ -1147,12 +1194,15 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Delete an Asana project (Epic).
 
         Args:
+        ----
             epic_id: Project GID to delete
 
         Returns:
+        -------
             True if successfully deleted, False otherwise
 
         Raises:
+        ------
             ValueError: If credentials are invalid or GID format is invalid
 
         """
@@ -1194,9 +1244,11 @@ class AsanaAdapter(BaseAdapter[Task]):
         """List all tasks in a project (Epic).
 
         Args:
+        ----
             epic_id: Project GID
 
         Returns:
+        -------
             List of tasks in the project
 
         """
@@ -1208,9 +1260,11 @@ class AsanaAdapter(BaseAdapter[Task]):
         """List all subtasks of a task (Issue).
 
         Args:
+        ----
             issue_id: Parent task GID
 
         Returns:
+        -------
             List of subtasks
 
         """
@@ -1245,14 +1299,17 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Attach a file to an Asana task.
 
         Args:
+        ----
             ticket_id: Task GID
             file_path: Local file path to upload
             description: Optional attachment description (not used by Asana)
 
         Returns:
+        -------
             Created Attachment with metadata
 
         Raises:
+        ------
             FileNotFoundError: If file doesn't exist
             ValueError: If upload fails
 
@@ -1302,9 +1359,11 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Get all attachments for an Asana task.
 
         Args:
+        ----
             ticket_id: Task GID
 
         Returns:
+        -------
             List of attachments
 
         """
@@ -1332,10 +1391,12 @@ class AsanaAdapter(BaseAdapter[Task]):
         """Delete an attachment from an Asana task.
 
         Args:
+        ----
             ticket_id: Task GID (not used, kept for interface compatibility)
             attachment_id: Attachment GID
 
         Returns:
+        -------
             True if deleted successfully
 
         """

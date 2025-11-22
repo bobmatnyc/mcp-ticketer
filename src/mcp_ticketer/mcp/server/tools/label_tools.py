@@ -34,9 +34,11 @@ def _build_adapter_metadata(adapter: Any) -> dict[str, Any]:
     """Build adapter metadata for MCP responses.
 
     Args:
+    ----
         adapter: The adapter that handled the operation
 
     Returns:
+    -------
         Dictionary with adapter metadata fields
 
     """
@@ -61,10 +63,12 @@ async def label_list(
     - With adapter_name: Uses specified adapter (requires multi-adapter setup)
 
     Args:
+    ----
         adapter_name: Optional adapter to query (e.g., "linear", "github", "jira")
         include_usage_count: Include usage statistics for each label (default: False)
 
     Returns:
+    -------
         Dictionary containing:
         - status: "completed" or "error"
         - adapter: Adapter type that was queried
@@ -74,6 +78,7 @@ async def label_list(
         - error: Error message (if failed)
 
     Example:
+    -------
         >>> result = await label_list()
         >>> print(result)
         {
@@ -177,10 +182,12 @@ async def label_normalize(
     - snake_case: Convert to snake_case (e.g., "Bug Report" → "bug_report")
 
     Args:
+    ----
         label_name: Label name to normalize (required)
         casing: Casing strategy to apply (default: "lowercase")
 
     Returns:
+    -------
         Dictionary containing:
         - status: "completed" or "error"
         - original: Original label name
@@ -190,6 +197,7 @@ async def label_normalize(
         - error: Error message (if failed)
 
     Example:
+    -------
         >>> result = await label_normalize("Bug Report", casing="kebab-case")
         >>> print(result)
         {
@@ -250,10 +258,12 @@ async def label_find_duplicates(
     - 0.70-0.95: Fuzzy match based on string similarity
 
     Args:
+    ----
         threshold: Minimum similarity threshold (0.0-1.0, default: 0.85)
         limit: Maximum number of duplicate pairs to return (default: 50)
 
     Returns:
+    -------
         Dictionary containing:
         - status: "completed" or "error"
         - adapter: Adapter type queried
@@ -263,6 +273,7 @@ async def label_find_duplicates(
         - error: Error message (if failed)
 
     Example:
+    -------
         >>> result = await label_find_duplicates(threshold=0.80)
         >>> print(result)
         {
@@ -372,10 +383,12 @@ async def label_suggest_merge(
     - Tickets that already have both labels will only keep target_label
 
     Args:
+    ----
         source_label: Label to merge from (will be replaced on tickets)
         target_label: Label to merge into (replacement label)
 
     Returns:
+    -------
         Dictionary containing:
         - status: "completed" or "error"
         - adapter: Adapter type
@@ -388,6 +401,7 @@ async def label_suggest_merge(
         - error: Error message (if failed)
 
     Example:
+    -------
         >>> result = await label_suggest_merge("Bug", "bug")
         >>> print(result)
         {
@@ -471,12 +485,14 @@ async def label_merge(
     - update_tickets=False: Only show what would change, don't modify anything
 
     Args:
+    ----
         source_label: Label to merge from (will be replaced on tickets)
         target_label: Label to merge into (replacement label)
         update_tickets: Actually update tickets (default: True)
         dry_run: Preview mode - show changes without applying (default: False)
 
     Returns:
+    -------
         Dictionary containing:
         - status: "completed" or "error"
         - adapter: Adapter type
@@ -488,6 +504,7 @@ async def label_merge(
         - error: Error message (if failed)
 
     Example:
+    -------
         >>> # Dry run first
         >>> result = await label_merge("Bug", "bug", dry_run=True)
         >>> print(result)
@@ -635,11 +652,13 @@ async def label_rename(
     - Rebranding labels for clarity
 
     Args:
+    ----
         old_name: Current label name to rename
         new_name: New label name to use
         update_tickets: Actually update tickets (default: True)
 
     Returns:
+    -------
         Dictionary containing:
         - status: "completed" or "error"
         - adapter: Adapter type
@@ -650,6 +669,7 @@ async def label_rename(
         - error: Error message (if failed)
 
     Example:
+    -------
         >>> result = await label_rename("feture", "feature", update_tickets=True)
         >>> print(result)
         {
@@ -701,11 +721,13 @@ async def label_cleanup_report(
     Each issue includes actionable recommendations and severity ratings.
 
     Args:
+    ----
         include_spelling: Include spelling error analysis (default: True)
         include_duplicates: Include duplicate detection (default: True)
         include_unused: Include unused label detection (default: True)
 
     Returns:
+    -------
         Dictionary containing:
         - status: "completed" or "error"
         - adapter: Adapter type
@@ -718,6 +740,7 @@ async def label_cleanup_report(
         - error: Error message (if failed)
 
     Example:
+    -------
         >>> result = await label_cleanup_report()
         >>> print(result["summary"])
         {

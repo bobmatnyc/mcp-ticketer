@@ -23,7 +23,8 @@ async def instructions_get() -> dict[str, Any]:
     Retrieves the active instructions for the current project, which may be
     custom project-specific instructions or the default embedded instructions.
 
-    Returns:
+    Returns
+    -------
         A dictionary containing:
         - status: "completed" or "error"
         - instructions: The full instruction text (if successful)
@@ -83,11 +84,13 @@ async def instructions_set(content: str, source: str = "inline") -> dict[str, An
     The content is validated before saving.
 
     Args:
+    ----
         content: The custom instructions content (markdown text)
         source: Source type - "inline" for direct content or "file" for file path
             (currently only "inline" is supported by MCP tools)
 
     Returns:
+    -------
         A dictionary containing:
         - status: "completed" or "error"
         - message: Success or error message
@@ -95,6 +98,7 @@ async def instructions_set(content: str, source: str = "inline") -> dict[str, An
         - error: Detailed error message (if failed)
 
     Example:
+    -------
         To set custom instructions:
         instructions_set(
             content="# Our Team's Ticket Guidelines\\n\\n...",
@@ -150,7 +154,8 @@ async def instructions_reset() -> dict[str, Any]:
     Removes any custom project-specific instructions, causing the system
     to revert to using the default embedded instructions.
 
-    Returns:
+    Returns
+    -------
         A dictionary containing:
         - status: "completed" or "error"
         - message: Description of what happened
@@ -218,9 +223,11 @@ async def instructions_validate(content: str) -> dict[str, Any]:
     This allows AI agents to validate content before attempting to save it.
 
     Args:
+    ----
         content: The instructions content to validate (markdown text)
 
     Returns:
+    -------
         A dictionary containing:
         - status: "valid" or "invalid"
         - warnings: List of non-critical issues (e.g., missing headers)

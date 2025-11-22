@@ -165,6 +165,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         """Initialize GitHub adapter.
 
         Args:
+        ----
             config: Configuration with:
                 - token: GitHub PAT (or GITHUB_TOKEN env var)
                 - owner: Repository owner (or GITHUB_OWNER env var)
@@ -231,7 +232,8 @@ class GitHubAdapter(BaseAdapter[Task]):
     def validate_credentials(self) -> tuple[bool, str]:
         """Validate that required credentials are present.
 
-        Returns:
+        Returns
+        -------
             (is_valid, error_message) - Tuple of validation result and error message
 
         """
@@ -312,9 +314,11 @@ class GitHubAdapter(BaseAdapter[Task]):
         """Convert GitHub milestone to Epic model.
 
         Args:
+        ----
             milestone: GitHub milestone data
 
         Returns:
+        -------
             Epic instance
 
         """
@@ -579,14 +583,17 @@ class GitHubAdapter(BaseAdapter[Task]):
         2. Milestone (project/epic) - returns Epic
 
         Args:
+        ----
             ticket_id: GitHub issue number or milestone number (as string)
 
         Returns:
+        -------
             Task if issue found,
             Epic if milestone found,
             None if not found as either type
 
         Examples:
+        --------
             >>> # Read issue #123
             >>> task = await adapter.read("123")
             >>> isinstance(task, Task)  # True
@@ -1085,12 +1092,15 @@ class GitHubAdapter(BaseAdapter[Task]):
         """Delete a GitHub milestone (Epic).
 
         Args:
+        ----
             epic_id: Milestone number (not ID) as a string
 
         Returns:
+        -------
             True if successfully deleted, False otherwise
 
         Raises:
+        ------
             ValueError: If credentials are invalid or epic_id is not a valid number
 
         """
@@ -1159,6 +1169,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         """Create a pull request linked to an issue.
 
         Args:
+        ----
             ticket_id: Issue number to link the PR to
             base_branch: Target branch for the PR (default: main)
             head_branch: Source branch name (auto-generated if not provided)
@@ -1167,6 +1178,7 @@ class GitHubAdapter(BaseAdapter[Task]):
             draft: Create as draft PR
 
         Returns:
+        -------
             Dictionary with PR details including number, url, and branch
 
         """
@@ -1335,10 +1347,12 @@ Fixes #{issue_number}
         """Link an existing pull request to a ticket.
 
         Args:
+        ----
             ticket_id: Issue number to link the PR to
             pr_url: GitHub PR URL to link
 
         Returns:
+        -------
             Dictionary with link status and PR details
 
         """
@@ -1430,7 +1444,8 @@ Fixes #{issue_number}
     async def list_labels(self) -> builtins.list[dict[str, Any]]:
         """List all labels available in the repository.
 
-        Returns:
+        Returns
+        -------
             List of label dictionaries with 'id', 'name', and 'color' fields
 
         """
@@ -1456,6 +1471,7 @@ Fixes #{issue_number}
         """Update a GitHub milestone (Epic).
 
         Args:
+        ----
             milestone_number: Milestone number (not ID)
             updates: Dictionary with fields to update:
                 - title: Milestone title
@@ -1464,9 +1480,11 @@ Fixes #{issue_number}
                 - target_date: Due date in ISO format
 
         Returns:
+        -------
             Updated Epic object or None if not found
 
         Raises:
+        ------
             ValueError: If no fields to update
             httpx.HTTPError: If API request fails
 
@@ -1524,10 +1542,12 @@ Fixes #{issue_number}
         either a milestone number or the epic ID from the Epic object.
 
         Args:
+        ----
             epic_id: Epic ID (e.g., "milestone-5") or milestone number as string
             updates: Dictionary with fields to update
 
         Returns:
+        -------
             Updated Epic object or None if not found
 
         """
@@ -1553,18 +1573,22 @@ Fixes #{issue_number}
         that users can edit to add actual file attachments through the UI.
 
         Args:
+        ----
             issue_number: Issue number
             file_path: Path to file to attach
             comment: Optional comment text (defaults to "Attached: {filename}")
 
         Returns:
+        -------
             Dictionary with comment data and file info
 
         Raises:
+        ------
             FileNotFoundError: If file doesn't exist
             ValueError: If file too large (>25 MB)
 
         Note:
+        ----
             GitHub file size limit: 25 MB
             Supported: Images, videos, documents
 
@@ -1614,14 +1638,17 @@ Fixes #{issue_number}
         this method appends a markdown link to the milestone description.
 
         Args:
+        ----
             milestone_number: Milestone number
             file_url: URL to the file (external or GitHub-hosted)
             description: Description/title for the file
 
         Returns:
+        -------
             Updated Epic object
 
         Example:
+        -------
             await adapter.add_attachment_reference_to_milestone(
                 5,
                 "https://example.com/spec.pdf",
@@ -1657,14 +1684,17 @@ Fixes #{issue_number}
         - Milestones: Not supported, raises NotImplementedError with guidance
 
         Args:
+        ----
             ticket_id: Ticket identifier (issue number or milestone ID)
             file_path: Path to file to attach
             description: Optional description
 
         Returns:
+        -------
             Attachment metadata
 
         Raises:
+        ------
             NotImplementedError: For milestones (no native support)
             FileNotFoundError: If file doesn't exist
 
@@ -1690,12 +1720,14 @@ Fixes #{issue_number}
         Requires a project node ID (not numeric ID).
 
         Args:
+        ----
             project_id: GitHub Project V2 node ID (e.g., 'PVT_kwDOABcdefgh').
                        This is required for Projects V2. Can be found in the
                        project's GraphQL ID.
             limit: Maximum number of iterations to return (default: 50)
 
         Returns:
+        -------
             List of iteration dictionaries with fields:
                 - id: Iteration node ID
                 - title: Iteration title/name
@@ -1704,10 +1736,12 @@ Fixes #{issue_number}
                 - endDate: Calculated end date (startDate + duration)
 
         Raises:
+        ------
             ValueError: If project_id not provided or credentials invalid
             httpx.HTTPError: If GraphQL query fails
 
         Example:
+        -------
             >>> iterations = await adapter.list_cycles(
             ...     project_id="PVT_kwDOABCD1234",
             ...     limit=10
@@ -1716,6 +1750,7 @@ Fixes #{issue_number}
             ...     print(f"{iteration['title']}: {iteration['startDate']} ({iteration['duration']} days)")
 
         Note:
+        ----
             GitHub Projects V2 node IDs can be obtained via the GitHub GraphQL API.
             This is different from project numbers shown in the UI.
 
@@ -1791,9 +1826,11 @@ Fixes #{issue_number}
         tracking uses labels following the status:* convention (e.g., status:in_progress).
 
         Args:
+        ----
             issue_number: GitHub issue number
 
         Returns:
+        -------
             Dictionary with comprehensive status information:
                 - state: Native GitHub state ('open' or 'closed')
                 - status_label: Extended status from labels (in_progress, blocked, etc.)
@@ -1803,10 +1840,12 @@ Fixes #{issue_number}
                 - metadata: Additional issue metadata (assignees, milestone, etc.)
 
         Raises:
+        ------
             ValueError: If credentials invalid or issue not found
             httpx.HTTPError: If API request fails
 
         Example:
+        -------
             >>> status = await adapter.get_issue_status(123)
             >>> print(f"Issue #{status['number']}: {status['extended_state']}")
             >>> print(f"Native state: {status['state']}")
@@ -1814,6 +1853,7 @@ Fixes #{issue_number}
             ...     print(f"Label-based status: {status['status_label']}")
 
         Note:
+        ----
             GitHub's binary state model is extended via labels:
             - open + no label = OPEN
             - open + status:in-progress = IN_PROGRESS
@@ -1893,6 +1933,7 @@ Fixes #{issue_number}
         and extended label-based states.
 
         Returns:
+        -------
             List of status dictionaries with fields:
                 - name: Status name (e.g., 'open', 'in_progress', 'closed')
                 - type: Status type ('native' or 'extended')
@@ -1901,6 +1942,7 @@ Fixes #{issue_number}
                 - category: Status category (open, in_progress, done, etc.)
 
         Example:
+        -------
             >>> statuses = await adapter.list_issue_statuses()
             >>> for status in statuses:
             ...     print(f"{status['name']}: {status['description']}")
@@ -1908,6 +1950,7 @@ Fixes #{issue_number}
             ...         print(f"  Label: {status['label']}")
 
         Note:
+        ----
             GitHub natively supports only 'open' and 'closed' states.
             Extended statuses are implemented via labels following the
             status:* naming convention (e.g., status:in-progress).
@@ -1954,10 +1997,12 @@ Fixes #{issue_number}
         in that milestone. Otherwise, returns all repository labels.
 
         Args:
+        ----
             milestone_number: Optional milestone number to filter labels.
                             If None, returns all repository labels.
 
         Returns:
+        -------
             List of label dictionaries with fields:
                 - id: Label identifier (name)
                 - name: Label name
@@ -1966,6 +2011,7 @@ Fixes #{issue_number}
                 - usage_count: Number of issues using this label (if milestone filtered)
 
         Example:
+        -------
             >>> # Get all repository labels
             >>> all_labels = await adapter.list_project_labels()
             >>> print(f"Repository has {len(all_labels)} labels")
@@ -1976,6 +2022,7 @@ Fixes #{issue_number}
             ...     print(f"{label['name']}: used by {label['usage_count']} issues")
 
         Note:
+        ----
             Labels are repository-scoped in GitHub, not milestone-scoped.
             When filtering by milestone, this method queries issues in that
             milestone and extracts their unique labels.

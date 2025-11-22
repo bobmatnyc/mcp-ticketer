@@ -92,6 +92,7 @@ def load_config(project_dir: Path | None = None) -> dict:
     from user home directory or system-wide locations.
 
     Args:
+    ----
         project_dir: Optional project directory to load config from
 
     Resolution order:
@@ -99,6 +100,7 @@ def load_config(project_dir: Path | None = None) -> dict:
     2. Default to aitrackdown adapter
 
     Returns:
+    -------
         Configuration dictionary with adapter and config keys.
         Defaults to aitrackdown if no local config exists.
 
@@ -149,7 +151,8 @@ def load_config(project_dir: Path | None = None) -> dict:
 def _discover_from_env_files() -> str | None:
     """Discover adapter configuration from .env or .env.local files.
 
-    Returns:
+    Returns
+    -------
         Adapter name if discovered, None otherwise
 
     """
@@ -195,6 +198,7 @@ def _save_adapter_to_config(adapter_name: str) -> None:
     """Save adapter configuration to config file.
 
     Args:
+    ----
         adapter_name: Name of the adapter to save as default
 
     """
@@ -245,9 +249,11 @@ def merge_config(updates: dict) -> dict:
     """Merge updates into existing config.
 
     Args:
+    ----
         updates: Configuration updates to merge
 
     Returns:
+    -------
         Updated configuration
 
     """
@@ -275,6 +281,7 @@ def get_adapter(
     """Get configured adapter instance.
 
     Args:
+    ----
         override_adapter: Override the default adapter type
         override_config: Override configuration for the adapter
 

@@ -144,7 +144,7 @@ mcp_ticketer = ["py.typed", "*.json", "*.yaml", "*.yml", "defaults/*.md"]
 
 [tool.black]
 line-length = 88
-target-version = ['py310', 'py311', 'py312', 'py313']
+target-version = ['py310', 'py311', 'py312']
 include = '\.pyi?$'
 extend-exclude = '''
 /(

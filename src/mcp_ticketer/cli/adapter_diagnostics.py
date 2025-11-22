@@ -14,6 +14,7 @@ def diagnose_adapter_configuration(console: Console) -> None:
     """Diagnose adapter configuration and provide recommendations.
 
     Args:
+    ----
         console: Rich console for output
 
     """
@@ -353,7 +354,8 @@ def _provide_recommendations(console: Console) -> None:
 def get_adapter_status() -> dict[str, Any]:
     """Get current adapter status for programmatic use.
 
-    Returns:
+    Returns
+    -------
         Dictionary with adapter status information
 
     """

@@ -74,6 +74,7 @@ class LinearAdapter(BaseAdapter[Task]):
         """Initialize Linear adapter.
 
         Args:
+        ----
             config: Configuration with:
                 - api_key: Linear API key (or LINEAR_API_KEY env var)
                 - workspace: Linear workspace name (optional, for documentation)
@@ -82,6 +83,7 @@ class LinearAdapter(BaseAdapter[Task]):
                 - api_url: Optional Linear API URL (defaults to https://api.linear.app/graphql)
 
         Raises:
+        ------
             ValueError: If required configuration is missing
 
         """
@@ -141,7 +143,8 @@ class LinearAdapter(BaseAdapter[Task]):
     def validate_credentials(self) -> tuple[bool, str]:
         """Validate Linear API credentials.
 
-        Returns:
+        Returns
+        -------
             Tuple of (is_valid, error_message)
 
         """
@@ -181,10 +184,12 @@ class LinearAdapter(BaseAdapter[Task]):
         Validates that team_id is a UUID. If it looks like a team_key,
         resolves it to the actual UUID.
 
-        Returns:
+        Returns
+        -------
             Valid Linear team UUID
 
-        Raises:
+        Raises
+        ------
             ValueError: If neither team_id nor team_key provided, or resolution fails
 
         """
@@ -247,9 +252,11 @@ class LinearAdapter(BaseAdapter[Task]):
         """Query Linear API to get team by key.
 
         Args:
+        ----
             team_key: Short team identifier (e.g., 'ENG', 'BTA')
 
         Returns:
+        -------
             List of matching teams
 
         """
@@ -279,12 +286,15 @@ class LinearAdapter(BaseAdapter[Task]):
         Supports UUID, slugId, or short ID formats.
 
         Args:
+        ----
             project_id: Project UUID, slugId, or short ID
 
         Returns:
+        -------
             Project dict with fields (id, name, description, state, etc.) or None if not found
 
         Examples:
+        --------
             - "a1b2c3d4-e5f6-7890-abcd-ef1234567890" (UUID)
             - "crm-smart-monitoring-system-f59a41a96c52" (slugId)
             - "6cf55cfcfad4" (short ID - 12 hex chars)
@@ -342,17 +352,21 @@ class LinearAdapter(BaseAdapter[Task]):
         explicit control over whether to load child issues.
 
         Args:
+        ----
             epic_id: Project UUID, slugId, or short ID
             include_issues: Whether to fetch and populate child_issues (default True)
 
         Returns:
+        -------
             Epic object with child_issues populated if include_issues=True,
             or None if project not found
 
         Raises:
+        ------
             ValueError: If credentials invalid
 
         Example:
+        -------
             # Get project with issues
             epic = await adapter.get_epic("c0e6db5a-03b6-479f-8796-5070b8fb7895")
 
@@ -383,15 +397,19 @@ class LinearAdapter(BaseAdapter[Task]):
         """Resolve project identifier (slug, name, short ID, or URL) to full UUID.
 
         Args:
+        ----
             project_identifier: Project slug, name, short ID, or URL
 
         Returns:
+        -------
             Full Linear project UUID, or None if not found
 
         Raises:
+        ------
             ValueError: If project lookup fails
 
         Examples:
+        --------
             - "crm-smart-monitoring-system" (slug)
             - "CRM Smart Monitoring System" (name)
             - "f59a41a96c52" (short ID from URL)
@@ -540,10 +558,12 @@ class LinearAdapter(BaseAdapter[Task]):
         """Check if team is associated with project.
 
         Args:
+        ----
             project_id: Linear project UUID
             team_id: Linear team UUID
 
         Returns:
+        -------
             Tuple of (is_associated, list_of_project_team_ids)
 
         """
@@ -562,10 +582,12 @@ class LinearAdapter(BaseAdapter[Task]):
         """Add team to project if not already associated.
 
         Args:
+        ----
             project_id: Linear project UUID
             team_id: Linear team UUID to add
 
         Returns:
+        -------
             True if successful, False otherwise
 
         """
@@ -620,20 +642,25 @@ class LinearAdapter(BaseAdapter[Task]):
             )
             return False
 
-    async def _get_project_issues(self, project_id: str, limit: int = 100) -> list[Task]:
+    async def _get_project_issues(
+        self, project_id: str, limit: int = 100
+    ) -> list[Task]:
         """Fetch all issues belonging to a Linear project.
 
         Uses existing build_issue_filter() and LIST_ISSUES_QUERY infrastructure
         to fetch issues filtered by project_id.
 
         Args:
+        ----
             project_id: Project UUID, slugId, or short ID
             limit: Maximum issues to return (default 100, max 250)
 
         Returns:
+        -------
             List of Task objects representing project's issues
 
         Raises:
+        ------
             ValueError: If credentials invalid or query fails
         """
         logger = logging.getLogger(__name__)
@@ -643,7 +670,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         variables = {
             "filter": issue_filter,
-            "first": min(limit, 250)  # Linear API max per page
+            "first": min(limit, 250),  # Linear API max per page
         }
 
         try:
@@ -662,15 +689,19 @@ class LinearAdapter(BaseAdapter[Task]):
         """Resolve issue identifier (like "ENG-842") to full UUID.
 
         Args:
+        ----
             issue_identifier: Issue identifier (e.g., "ENG-842") or UUID
 
         Returns:
+        -------
             Full Linear issue UUID, or None if not found
 
         Raises:
+        ------
             ValueError: If issue lookup fails
 
         Examples:
+        --------
             - "ENG-842" (issue identifier)
             - "BTA-123" (issue identifier)
             - "a1b2c3d4-e5f6-7890-abcd-ef1234567890" (already a UUID)
@@ -713,6 +744,7 @@ class LinearAdapter(BaseAdapter[Task]):
         """Load and cache workflow states for the team.
 
         Args:
+        ----
             team_id: Linear team ID
 
         """
@@ -738,6 +770,7 @@ class LinearAdapter(BaseAdapter[Task]):
         """Load and cache labels for the team with retry logic.
 
         Args:
+        ----
             team_id: Linear team ID
 
         """
@@ -788,14 +821,17 @@ class LinearAdapter(BaseAdapter[Task]):
         """Create a new label in Linear.
 
         Args:
+        ----
             name: Label name
             team_id: Linear team ID
             color: Label color (hex format, default: blue)
 
         Returns:
+        -------
             Created label ID
 
         Raises:
+        ------
             ValueError: If label creation fails
 
         """
@@ -839,9 +875,11 @@ class LinearAdapter(BaseAdapter[Task]):
         4. Return list of label IDs
 
         Args:
+        ----
             label_names: List of label names (strings)
 
         Returns:
+        -------
             List of Linear label IDs (UUIDs)
 
         """
@@ -906,9 +944,11 @@ class LinearAdapter(BaseAdapter[Task]):
         This method wraps _ensure_labels_exist for backward compatibility.
 
         Args:
+        ----
             label_names: List of label names
 
         Returns:
+        -------
             List of Linear label IDs
 
         """
@@ -917,7 +957,8 @@ class LinearAdapter(BaseAdapter[Task]):
     def _get_state_mapping(self) -> dict[TicketState, str]:
         """Get mapping from universal states to Linear workflow state IDs.
 
-        Returns:
+        Returns
+        -------
             Dictionary mapping TicketState to Linear state ID
 
         """
@@ -949,9 +990,11 @@ class LinearAdapter(BaseAdapter[Task]):
         """Get Linear user ID from email, display name, or user ID.
 
         Args:
+        ----
             user_identifier: Email, display name, or user ID
 
         Returns:
+        -------
             Linear user ID or None if not found
 
         """
@@ -995,12 +1038,15 @@ class LinearAdapter(BaseAdapter[Task]):
         """Create a new Linear issue or project with full field support.
 
         Args:
+        ----
             ticket: Epic or Task to create
 
         Returns:
+        -------
             Created ticket with populated ID and metadata
 
         Raises:
+        ------
             ValueError: If credentials are invalid or creation fails
 
         """
@@ -1029,9 +1075,11 @@ class LinearAdapter(BaseAdapter[Task]):
         - Sub-issue: Child work item (has parent issue)
 
         Args:
+        ----
             task: Task to create
 
         Returns:
+        -------
             Created task with Linear metadata
 
         """
@@ -1168,9 +1216,11 @@ class LinearAdapter(BaseAdapter[Task]):
         """Create a Linear project from an Epic.
 
         Args:
+        ----
             epic: Epic to create
 
         Returns:
+        -------
             Created epic with Linear metadata
 
         """
@@ -1233,6 +1283,7 @@ class LinearAdapter(BaseAdapter[Task]):
         """Update a Linear project (Epic) with specified fields.
 
         Args:
+        ----
             epic_id: Linear project UUID or slug-shortid
             updates: Dictionary of fields to update. Supported fields:
                 - title: Project name
@@ -1243,9 +1294,11 @@ class LinearAdapter(BaseAdapter[Task]):
                 - icon: Project icon
 
         Returns:
+        -------
             Updated Epic object or None if not found
 
         Raises:
+        ------
             ValueError: If update fails or project not found
 
         """
@@ -1340,9 +1393,11 @@ class LinearAdapter(BaseAdapter[Task]):
         """Read a Linear issue OR project by identifier with full details.
 
         Args:
+        ----
             ticket_id: Linear issue identifier (e.g., 'BTA-123') or project UUID
 
         Returns:
+        -------
             Task with full details if issue found,
             Epic with full details if project found,
             None if not found
@@ -1400,10 +1455,12 @@ class LinearAdapter(BaseAdapter[Task]):
         """Update a Linear issue with comprehensive field support.
 
         Args:
+        ----
             ticket_id: Linear issue identifier
             updates: Dictionary of fields to update
 
         Returns:
+        -------
             Updated task or None if not found
 
         """
@@ -1506,9 +1563,11 @@ class LinearAdapter(BaseAdapter[Task]):
         """Delete a Linear issue (archive it).
 
         Args:
+        ----
             ticket_id: Linear issue identifier
 
         Returns:
+        -------
             True if successfully deleted/archived
 
         """
@@ -1525,11 +1584,13 @@ class LinearAdapter(BaseAdapter[Task]):
         """List Linear issues with optional filtering.
 
         Args:
+        ----
             limit: Maximum number of issues to return
             offset: Number of issues to skip (Note: Linear uses cursor-based pagination)
             filters: Optional filters (state, assignee, priority, etc.)
 
         Returns:
+        -------
             List of tasks matching the criteria
 
         """
@@ -1589,9 +1650,11 @@ class LinearAdapter(BaseAdapter[Task]):
         """Search Linear issues using comprehensive filters.
 
         Args:
+        ----
             query: Search query with filters and criteria
 
         Returns:
+        -------
             List of tasks matching the search criteria
 
         """
@@ -1655,10 +1718,12 @@ class LinearAdapter(BaseAdapter[Task]):
         """Transition Linear issue to new state with workflow validation.
 
         Args:
+        ----
             ticket_id: Linear issue identifier
             target_state: Target state to transition to
 
         Returns:
+        -------
             Updated task or None if transition failed
 
         """
@@ -1675,10 +1740,12 @@ class LinearAdapter(BaseAdapter[Task]):
         """Validate if state transition is allowed.
 
         Args:
+        ----
             ticket_id: Linear issue identifier
             target_state: Target state to validate
 
         Returns:
+        -------
             True if transition is valid
 
         """
@@ -1690,9 +1757,11 @@ class LinearAdapter(BaseAdapter[Task]):
         """Add a comment to a Linear issue.
 
         Args:
+        ----
             comment: Comment to add
 
         Returns:
+        -------
             Created comment with ID
 
         """
@@ -1760,11 +1829,13 @@ class LinearAdapter(BaseAdapter[Task]):
         """Get comments for a Linear issue.
 
         Args:
+        ----
             ticket_id: Linear issue identifier
             limit: Maximum number of comments to return
             offset: Number of comments to skip
 
         Returns:
+        -------
             List of comments for the issue
 
         """
@@ -1813,7 +1884,8 @@ class LinearAdapter(BaseAdapter[Task]):
     async def list_labels(self) -> builtins.list[dict[str, Any]]:
         """List all labels available in the Linear team.
 
-        Returns:
+        Returns
+        -------
             List of label dictionaries with 'id', 'name', and 'color' fields
 
         """
@@ -1845,13 +1917,16 @@ class LinearAdapter(BaseAdapter[Task]):
         3. Return the asset URL for use in attachments
 
         Args:
+        ----
             file_path: Path to the file to upload
             mime_type: MIME type of the file. If None, will be auto-detected.
 
         Returns:
+        -------
             Asset URL that can be used with attachmentCreate mutation
 
         Raises:
+        ------
             ValueError: If file doesn't exist, upload fails, or httpx not available
             FileNotFoundError: If the specified file doesn't exist
 
@@ -1960,6 +2035,7 @@ class LinearAdapter(BaseAdapter[Task]):
         accessible URL.
 
         Args:
+        ----
             issue_id: Linear issue identifier (e.g., "ENG-842") or UUID
             file_url: URL of the file (from upload_file() or external URL)
             title: Title for the attachment
@@ -1967,9 +2043,11 @@ class LinearAdapter(BaseAdapter[Task]):
             comment_body: Optional comment text to include with the attachment
 
         Returns:
+        -------
             Dictionary with attachment details including id, title, url, etc.
 
         Raises:
+        ------
             ValueError: If attachment creation fails or issue not found
 
         """
@@ -2039,15 +2117,18 @@ class LinearAdapter(BaseAdapter[Task]):
         accessible URL.
 
         Args:
+        ----
             epic_id: Linear project UUID or slug-shortid
             file_url: URL of the file (from upload_file() or external URL)
             title: Title for the attachment
             subtitle: Optional subtitle for the attachment
 
         Returns:
+        -------
             Dictionary with attachment details including id, title, url, etc.
 
         Raises:
+        ------
             ValueError: If attachment creation fails or project not found
 
         """
@@ -2109,10 +2190,12 @@ class LinearAdapter(BaseAdapter[Task]):
         """List Linear Cycles (Sprints) for the team.
 
         Args:
+        ----
             team_id: Linear team UUID. If None, uses the configured team.
             limit: Maximum number of cycles to return (default: 50)
 
         Returns:
+        -------
             List of cycle dictionaries with fields:
                 - id: Cycle UUID
                 - name: Cycle name
@@ -2123,6 +2206,7 @@ class LinearAdapter(BaseAdapter[Task]):
                 - progress: Progress percentage (0-1)
 
         Raises:
+        ------
             ValueError: If credentials are invalid or query fails
 
         """
@@ -2171,9 +2255,11 @@ class LinearAdapter(BaseAdapter[Task]):
         """Get rich issue status information for a Linear issue.
 
         Args:
+        ----
             issue_id: Linear issue identifier (e.g., 'BTA-123') or UUID
 
         Returns:
+        -------
             Dictionary with workflow state details:
                 - id: State UUID
                 - name: State name (e.g., "In Progress")
@@ -2184,6 +2270,7 @@ class LinearAdapter(BaseAdapter[Task]):
             Returns None if issue not found.
 
         Raises:
+        ------
             ValueError: If credentials are invalid or query fails
 
         """
@@ -2219,9 +2306,11 @@ class LinearAdapter(BaseAdapter[Task]):
         """List all workflow states for the team.
 
         Args:
+        ----
             team_id: Linear team UUID. If None, uses the configured team.
 
         Returns:
+        -------
             List of workflow state dictionaries with fields:
                 - id: State UUID
                 - name: State name (e.g., "Backlog", "In Progress", "Done")
@@ -2231,6 +2320,7 @@ class LinearAdapter(BaseAdapter[Task]):
                 - position: Position in workflow (lower = earlier)
 
         Raises:
+        ------
             ValueError: If credentials are invalid or query fails
 
         """
@@ -2267,11 +2357,12 @@ class LinearAdapter(BaseAdapter[Task]):
         offset: int = 0,
         state: str | None = None,
         include_completed: bool = True,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> builtins.list[Epic]:
         """List Linear projects (epics) with efficient pagination.
 
         Args:
+        ----
             limit: Maximum number of projects to return (default: 50)
             offset: Number of projects to skip (note: Linear uses cursor-based pagination)
             state: Filter by project state (e.g., "planned", "started", "completed", "canceled")
@@ -2279,9 +2370,11 @@ class LinearAdapter(BaseAdapter[Task]):
             **kwargs: Additional filter parameters (reserved for future use)
 
         Returns:
+        -------
             List of Epic objects mapped from Linear projects
 
         Raises:
+        ------
             ValueError: If credentials are invalid or query fails
 
         """
@@ -2318,9 +2411,7 @@ class LinearAdapter(BaseAdapter[Task]):
                 if after_cursor:
                     variables["after"] = after_cursor
 
-                result = await self.client.execute_query(
-                    LIST_PROJECTS_QUERY, variables
-                )
+                result = await self.client.execute_query(LIST_PROJECTS_QUERY, variables)
 
                 projects_data = result.get("projects", {})
                 page_projects = projects_data.get("nodes", [])
@@ -2337,7 +2428,7 @@ class LinearAdapter(BaseAdapter[Task]):
                     break
 
             # Apply offset and limit
-            paginated_projects = all_projects[offset:offset + limit]
+            paginated_projects = all_projects[offset : offset + limit]
 
             # Map Linear projects to Epic objects using existing mapper
             epics = []

@@ -16,9 +16,11 @@ def map_linear_issue_to_task(issue_data: dict[str, Any]) -> Task:
     with a parent issue).
 
     Args:
+    ----
         issue_data: Raw Linear issue data from GraphQL
 
     Returns:
+    -------
         Universal Task model
 
     """
@@ -105,9 +107,11 @@ def map_linear_project_to_epic(project_data: dict[str, Any]) -> Epic:
     """Convert Linear project data to universal Epic model.
 
     Args:
+    ----
         project_data: Raw Linear project data from GraphQL
 
     Returns:
+    -------
         Universal Epic model
 
     """
@@ -169,10 +173,12 @@ def map_linear_comment_to_comment(
     """Convert Linear comment data to universal Comment model.
 
     Args:
+    ----
         comment_data: Raw Linear comment data from GraphQL
         ticket_id: ID of the ticket this comment belongs to
 
     Returns:
+    -------
         Universal Comment model
 
     """
@@ -216,10 +222,12 @@ def build_linear_issue_input(task: Task, team_id: str) -> dict[str, Any]:
     or for a sub-issue when task.parent_issue is provided.
 
     Args:
+    ----
         task: Universal Task model
         team_id: Linear team ID
 
     Returns:
+    -------
         Linear issue input dictionary
 
     """
@@ -281,9 +289,11 @@ def build_linear_issue_update_input(updates: dict[str, Any]) -> dict[str, Any]:
     """Build Linear issue update input from update dictionary.
 
     Args:
+    ----
         updates: Dictionary of fields to update
 
     Returns:
+    -------
         Linear issue update input dictionary
 
     """
@@ -333,9 +343,11 @@ def extract_child_issue_ids(issue_data: dict[str, Any]) -> list[str]:
     """Extract child issue IDs from Linear issue data.
 
     Args:
+    ----
         issue_data: Raw Linear issue data from GraphQL
 
     Returns:
+    -------
         List of child issue identifiers
 
     """

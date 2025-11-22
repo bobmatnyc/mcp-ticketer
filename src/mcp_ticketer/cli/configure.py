@@ -32,15 +32,18 @@ def _retry_setting(
     """Retry a configuration setting with validation.
 
     Args:
+    ----
         setting_name: Human-readable name of the setting
         prompt_func: Function that prompts for the setting value
         validate_func: Function that validates the value (returns tuple of success, error_msg)
         max_retries: Maximum number of retry attempts
 
     Returns:
+    -------
         Validated setting value
 
     Raises:
+    ------
         typer.Exit: If max retries exceeded
 
     """
@@ -186,6 +189,7 @@ def _configure_linear(
     Supports both interactive (wizard) and programmatic (init command) modes.
 
     Args:
+    ----
         existing_config: Optional existing configuration to preserve/update
         interactive: If True, prompt user for missing values (default: True)
         api_key: Pre-provided API key (optional, for programmatic mode)
@@ -194,6 +198,7 @@ def _configure_linear(
         **kwargs: Additional configuration parameters
 
     Returns:
+    -------
         Tuple of (AdapterConfig, default_values_dict)
         - AdapterConfig: Configured Linear adapter configuration
         - default_values_dict: Dictionary containing default_user, default_epic, default_project, default_tags
@@ -490,6 +495,7 @@ def _configure_jira(
     Supports both interactive (wizard) and programmatic (init command) modes.
 
     Args:
+    ----
         interactive: If True, prompt user for missing values (default: True)
         server: Pre-provided JIRA server URL (optional)
         email: Pre-provided JIRA user email (optional)
@@ -498,6 +504,7 @@ def _configure_jira(
         **kwargs: Additional configuration parameters
 
     Returns:
+    -------
         Tuple of (AdapterConfig, default_values_dict)
         - AdapterConfig: Configured JIRA adapter configuration
         - default_values_dict: Dictionary containing default_user, default_epic, default_project, default_tags
@@ -624,6 +631,7 @@ def _configure_github(
     Supports both interactive (wizard) and programmatic (init command) modes.
 
     Args:
+    ----
         interactive: If True, prompt user for missing values (default: True)
         token: Pre-provided GitHub Personal Access Token (optional)
         owner: Pre-provided repository owner (optional)
@@ -631,6 +639,7 @@ def _configure_github(
         **kwargs: Additional configuration parameters
 
     Returns:
+    -------
         Tuple of (AdapterConfig, default_values_dict)
         - AdapterConfig: Configured GitHub adapter configuration
         - default_values_dict: Dictionary containing default_user, default_epic, default_project, default_tags
@@ -754,11 +763,13 @@ def _configure_aitrackdown(
     Supports both interactive (wizard) and programmatic (init command) modes.
 
     Args:
+    ----
         interactive: If True, prompt user for missing values (default: True)
         base_path: Pre-provided base path for ticket storage (optional)
         **kwargs: Additional configuration parameters
 
     Returns:
+    -------
         Tuple of (AdapterConfig, default_values_dict)
         - AdapterConfig: Configured AITrackdown adapter configuration
         - default_values_dict: Dictionary containing default_user, default_epic, default_project, default_tags
@@ -832,10 +843,12 @@ def prompt_default_values(
     Used when adapter credentials exist but default values need to be set or updated.
 
     Args:
+    ----
         adapter_type: Type of adapter (linear, jira, github, aitrackdown)
         existing_values: Optional existing default values to show as current values
 
     Returns:
+    -------
         Dictionary containing default_user, default_epic, default_project, default_tags
         (only includes keys that were provided by the user)
 
@@ -1111,6 +1124,7 @@ def set_adapter_config(
     """Set specific adapter configuration values.
 
     Args:
+    ----
         adapter: Adapter type to set as default
         api_key: API key/token
         project_id: Project ID

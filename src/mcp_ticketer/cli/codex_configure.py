@@ -4,11 +4,11 @@ Codex CLI only supports global configuration at ~/.codex/config.toml.
 Unlike Claude Code and Gemini CLI, there is no project-level configuration support.
 """
 
+import tomllib
 from pathlib import Path
 from typing import Any
 
 import tomli_w
-import tomllib
 from rich.console import Console
 
 from .mcp_configure import load_project_config
@@ -23,7 +23,8 @@ def find_codex_config() -> Path:
     Codex CLI ONLY supports global configuration at ~/.codex/config.toml.
     No project-level or user-scoped configuration is available.
 
-    Returns:
+    Returns
+    -------
         Path to Codex global config file at ~/.codex/config.toml
 
     """
@@ -36,9 +37,11 @@ def load_codex_config(config_path: Path) -> dict[str, Any]:
     """Load existing Codex configuration or return empty structure.
 
     Args:
+    ----
         config_path: Path to Codex config.toml file
 
     Returns:
+    -------
         Codex configuration dict with mcp_servers section
 
     """
@@ -61,6 +64,7 @@ def save_codex_config(config_path: Path, config: dict[str, Any]) -> None:
     """Save Codex configuration to TOML file.
 
     Args:
+    ----
         config_path: Path to Codex config.toml file
         config: Configuration to save
 
@@ -79,11 +83,13 @@ def create_codex_server_config(
     """Create Codex MCP server configuration for mcp-ticketer.
 
     Args:
+    ----
         python_path: Path to Python executable in mcp-ticketer venv
         project_config: Project configuration from .mcp-ticketer/config.json
         project_path: Project directory path (optional, not used for global config)
 
     Returns:
+    -------
         Codex MCP server configuration dict
 
     """
@@ -157,10 +163,12 @@ def _test_configuration(adapter: str, project_config: dict) -> bool:
     """Test the configuration by validating adapter credentials.
 
     Args:
+    ----
         adapter: Adapter type (linear, github, jira, aitrackdown)
         project_config: Project configuration dict
 
     Returns:
+    -------
         True if validation passed, False otherwise
 
     """
@@ -229,6 +237,7 @@ def remove_codex_mcp(dry_run: bool = False) -> None:
     This will remove mcp-ticketer from the global configuration.
 
     Args:
+    ----
         dry_run: Show what would be removed without making changes
 
     """
@@ -299,9 +308,11 @@ def configure_codex_mcp(force: bool = False) -> None:
     After configuration, you must restart Codex CLI for changes to take effect.
 
     Args:
+    ----
         force: Overwrite existing configuration
 
     Raises:
+    ------
         FileNotFoundError: If Python executable or project config not found
         ValueError: If configuration is invalid
 

@@ -32,10 +32,12 @@ async def _validate_adapter_credentials(
     """Validate adapter credentials by performing real connectivity tests.
 
     Args:
+    ----
         adapter_type: Type of adapter to validate
         config_file_path: Path to config file
 
     Returns:
+    -------
         List of validation issues (empty if valid)
 
     """
@@ -175,12 +177,14 @@ async def _validate_configuration_with_retry(
     """Validate configuration with retry loop for corrections.
 
     Args:
+    ----
         console: Rich console for output
         adapter_type: Type of adapter configured
         config_file_path: Path to config file
         proj_path: Project path
 
     Returns:
+    -------
         True if validation passed or user chose to continue, False if user chose to exit
 
     """
@@ -337,6 +341,7 @@ def _show_next_steps(
     """Show helpful next steps after initialization.
 
     Args:
+    ----
         console: Rich console for output
         adapter_type: Type of adapter that was configured
         config_file_path: Path to the configuration file
@@ -396,6 +401,7 @@ def _init_adapter_internal(
     the Typer CLI command to allow programmatic calls from setup_command.py.
 
     Args:
+    ----
         adapter: Adapter type to use (interactive prompt if not specified)
         project_path: Project path (default: current directory)
         global_config: Save to global config instead of project-specific
@@ -410,6 +416,7 @@ def _init_adapter_internal(
         github_token: GitHub Personal Access Token
 
     Returns:
+    -------
         True if initialization succeeded, False otherwise
 
     """
@@ -703,7 +710,8 @@ def init(
     - You get up to 3 retry attempts to fix configuration issues
     - You can always re-validate later with 'mcp-ticketer doctor'
 
-    Examples:
+    Examples
+    --------
         # For first-time setup, use 'setup' instead (recommended)
         mcp-ticketer setup
 

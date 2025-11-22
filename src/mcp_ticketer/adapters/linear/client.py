@@ -26,6 +26,7 @@ class LinearGraphQLClient:
         """Initialize the Linear GraphQL client.
 
         Args:
+        ----
             api_key: Linear API key
             timeout: Request timeout in seconds
 
@@ -37,10 +38,12 @@ class LinearGraphQLClient:
     def create_client(self) -> Client:
         """Create a new GraphQL client instance.
 
-        Returns:
+        Returns
+        -------
             Configured GraphQL client
 
-        Raises:
+        Raises
+        ------
             AuthenticationError: If API key is invalid
             AdapterError: If client creation fails
 
@@ -80,14 +83,17 @@ class LinearGraphQLClient:
         """Execute a GraphQL query with error handling and retries.
 
         Args:
+        ----
             query_string: GraphQL query string
             variables: Query variables
             retries: Number of retry attempts
 
         Returns:
+        -------
             Query result data
 
         Raises:
+        ------
             AuthenticationError: If authentication fails
             RateLimitError: If rate limit is exceeded
             AdapterError: If query execution fails
@@ -175,14 +181,17 @@ class LinearGraphQLClient:
         """Execute a GraphQL mutation with error handling.
 
         Args:
+        ----
             mutation_string: GraphQL mutation string
             variables: Mutation variables
             retries: Number of retry attempts
 
         Returns:
+        -------
             Mutation result data
 
         Raises:
+        ------
             AuthenticationError: If authentication fails
             RateLimitError: If rate limit is exceeded
             AdapterError: If mutation execution fails
@@ -193,7 +202,8 @@ class LinearGraphQLClient:
     async def test_connection(self) -> bool:
         """Test the connection to Linear API.
 
-        Returns:
+        Returns
+        -------
             True if connection is successful, False otherwise
 
         """
@@ -218,9 +228,11 @@ class LinearGraphQLClient:
         """Get team information by ID.
 
         Args:
+        ----
             team_id: Linear team ID
 
         Returns:
+        -------
             Team information or None if not found
 
         """
@@ -246,9 +258,11 @@ class LinearGraphQLClient:
         """Get user information by email.
 
         Args:
+        ----
             email: User email address
 
         Returns:
+        -------
             User information or None if not found
 
         """
@@ -278,9 +292,11 @@ class LinearGraphQLClient:
         """Search users by display name or full name.
 
         Args:
+        ----
             name: Display name or full name to search for
 
         Returns:
+        -------
             List of matching users (may be empty)
 
         """

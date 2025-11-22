@@ -23,6 +23,7 @@ class BaseAdapter(ABC, Generic[T]):
         """Initialize adapter with configuration.
 
         Args:
+        ----
             config: Adapter-specific configuration dictionary
 
         """
@@ -36,7 +37,8 @@ class BaseAdapter(ABC, Generic[T]):
         This identifier is used in MCP responses to show which adapter
         handled the operation (e.g., "linear", "github", "jira", "asana").
 
-        Returns:
+        Returns
+        -------
             Lowercase adapter type (e.g., "linear", "github")
 
         """
@@ -54,7 +56,8 @@ class BaseAdapter(ABC, Generic[T]):
     def adapter_display_name(self) -> str:
         """Return human-readable adapter name.
 
-        Returns:
+        Returns
+        -------
             Title-cased adapter name (e.g., "Linear", "Github", "Jira")
 
         """
@@ -64,7 +67,8 @@ class BaseAdapter(ABC, Generic[T]):
     def _get_state_mapping(self) -> dict[TicketState, str]:
         """Get mapping from universal states to system-specific states.
 
-        Returns:
+        Returns
+        -------
             Dictionary mapping TicketState to system-specific state strings
 
         """
@@ -74,7 +78,8 @@ class BaseAdapter(ABC, Generic[T]):
     def validate_credentials(self) -> tuple[bool, str]:
         """Validate that required credentials are present.
 
-        Returns:
+        Returns
+        -------
             (is_valid, error_message) - Tuple of validation result and error message
 
         """
@@ -85,9 +90,11 @@ class BaseAdapter(ABC, Generic[T]):
         """Create a new ticket.
 
         Args:
+        ----
             ticket: Ticket to create (Epic or Task)
 
         Returns:
+        -------
             Created ticket with ID populated
 
         """
@@ -98,9 +105,11 @@ class BaseAdapter(ABC, Generic[T]):
         """Read a ticket by ID.
 
         Args:
+        ----
             ticket_id: Unique ticket identifier
 
         Returns:
+        -------
             Ticket if found, None otherwise
 
         """
@@ -111,10 +120,12 @@ class BaseAdapter(ABC, Generic[T]):
         """Update a ticket.
 
         Args:
+        ----
             ticket_id: Ticket identifier
             updates: Fields to update
 
         Returns:
+        -------
             Updated ticket if successful, None otherwise
 
         """
@@ -125,9 +136,11 @@ class BaseAdapter(ABC, Generic[T]):
         """Delete a ticket.
 
         Args:
+        ----
             ticket_id: Ticket identifier
 
         Returns:
+        -------
             True if deleted, False otherwise
 
         """
@@ -140,11 +153,13 @@ class BaseAdapter(ABC, Generic[T]):
         """List tickets with pagination and filters.
 
         Args:
+        ----
             limit: Maximum number of tickets
             offset: Skip this many tickets
             filters: Optional filter criteria
 
         Returns:
+        -------
             List of tickets matching criteria
 
         """
@@ -155,9 +170,11 @@ class BaseAdapter(ABC, Generic[T]):
         """Search tickets using advanced query.
 
         Args:
+        ----
             query: Search parameters
 
         Returns:
+        -------
             List of tickets matching search criteria
 
         """
@@ -170,10 +187,12 @@ class BaseAdapter(ABC, Generic[T]):
         """Transition ticket to a new state.
 
         Args:
+        ----
             ticket_id: Ticket identifier
             target_state: Target state
 
         Returns:
+        -------
             Updated ticket if transition successful, None otherwise
 
         """
@@ -184,9 +203,11 @@ class BaseAdapter(ABC, Generic[T]):
         """Add a comment to a ticket.
 
         Args:
+        ----
             comment: Comment to add
 
         Returns:
+        -------
             Created comment with ID populated
 
         """
@@ -199,11 +220,13 @@ class BaseAdapter(ABC, Generic[T]):
         """Get comments for a ticket.
 
         Args:
+        ----
             ticket_id: Ticket identifier
             limit: Maximum number of comments
             offset: Skip this many comments
 
         Returns:
+        -------
             List of comments for the ticket
 
         """
@@ -213,9 +236,11 @@ class BaseAdapter(ABC, Generic[T]):
         """Map universal state to system-specific state.
 
         Args:
+        ----
             state: Universal ticket state
 
         Returns:
+        -------
             System-specific state string
 
         """
@@ -225,9 +250,11 @@ class BaseAdapter(ABC, Generic[T]):
         """Map system-specific state to universal state.
 
         Args:
+        ----
             system_state: System-specific state string
 
         Returns:
+        -------
             Universal ticket state
 
         """
@@ -242,9 +269,11 @@ class BaseAdapter(ABC, Generic[T]):
         platform-specific state names.
 
         Returns:
+        -------
             List of adapter-specific state names
 
         Example:
+        -------
             >>> # Linear adapter override
             >>> def get_available_states(self):
             ...     return ["Backlog", "Todo", "In Progress", "Done", "Canceled"]
@@ -260,12 +289,15 @@ class BaseAdapter(ABC, Generic[T]):
         inputs and resolve them to universal TicketState values.
 
         Args:
+        ----
             user_input: Natural language state input (e.g., "working on it")
 
         Returns:
+        -------
             Resolved universal TicketState
 
         Example:
+        -------
             >>> adapter = get_adapter()
             >>> state = adapter.resolve_state("working on it")
             >>> print(state)
@@ -287,10 +319,12 @@ class BaseAdapter(ABC, Generic[T]):
         - Standard workflow transitions must be valid
 
         Args:
+        ----
             ticket_id: Ticket identifier
             target_state: Target state
 
         Returns:
+        -------
             True if transition is valid
 
         """
@@ -325,7 +359,9 @@ class BaseAdapter(ABC, Generic[T]):
                             child_state = TicketState(child_state)
                         except ValueError:
                             continue
-                    max_child_level = max(max_child_level, child_state.completion_level())
+                    max_child_level = max(
+                        max_child_level, child_state.completion_level()
+                    )
 
                 # Target state must be at least as complete as most complete child
                 if target_state.completion_level() < max_child_level:
@@ -341,11 +377,13 @@ class BaseAdapter(ABC, Generic[T]):
         """Create epic (top-level grouping).
 
         Args:
+        ----
             title: Epic title
             description: Epic description
             **kwargs: Additional adapter-specific fields
 
         Returns:
+        -------
             Created epic or None if failed
 
         """
@@ -364,9 +402,11 @@ class BaseAdapter(ABC, Generic[T]):
         """Get epic by ID.
 
         Args:
+        ----
             epic_id: Epic identifier
 
         Returns:
+        -------
             Epic if found, None otherwise
 
         """
@@ -380,9 +420,11 @@ class BaseAdapter(ABC, Generic[T]):
         """List all epics.
 
         Args:
+        ----
             **kwargs: Adapter-specific filter parameters
 
         Returns:
+        -------
             List of epics
 
         """
@@ -402,12 +444,14 @@ class BaseAdapter(ABC, Generic[T]):
         """Create issue, optionally linked to epic.
 
         Args:
+        ----
             title: Issue title
             description: Issue description
             epic_id: Optional parent epic ID
             **kwargs: Additional adapter-specific fields
 
         Returns:
+        -------
             Created issue or None if failed
 
         """
@@ -424,9 +468,11 @@ class BaseAdapter(ABC, Generic[T]):
         """List all issues in epic.
 
         Args:
+        ----
             epic_id: Epic identifier
 
         Returns:
+        -------
             List of issues belonging to epic
 
         """
@@ -441,15 +487,18 @@ class BaseAdapter(ABC, Generic[T]):
         """Create task as sub-ticket of parent issue.
 
         Args:
+        ----
             title: Task title
             parent_id: Required parent issue ID
             description: Task description
             **kwargs: Additional adapter-specific fields
 
         Returns:
+        -------
             Created task or None if failed
 
         Raises:
+        ------
             ValueError: If parent_id is not provided
 
         """
@@ -475,9 +524,11 @@ class BaseAdapter(ABC, Generic[T]):
         """List all tasks under an issue.
 
         Args:
+        ----
             issue_id: Issue identifier
 
         Returns:
+        -------
             List of tasks belonging to issue
 
         """
@@ -496,14 +547,17 @@ class BaseAdapter(ABC, Generic[T]):
         """Attach a file to a ticket.
 
         Args:
+        ----
             ticket_id: Ticket identifier
             file_path: Local file path to upload
             description: Optional attachment description
 
         Returns:
+        -------
             Created Attachment with metadata
 
         Raises:
+        ------
             NotImplementedError: If adapter doesn't support attachments
             FileNotFoundError: If file doesn't exist
             ValueError: If ticket doesn't exist or upload fails
@@ -518,9 +572,11 @@ class BaseAdapter(ABC, Generic[T]):
         """Get all attachments for a ticket.
 
         Args:
+        ----
             ticket_id: Ticket identifier
 
         Returns:
+        -------
             List of attachments (empty if none or not supported)
 
         """
@@ -536,13 +592,16 @@ class BaseAdapter(ABC, Generic[T]):
         """Delete an attachment (optional implementation).
 
         Args:
+        ----
             ticket_id: Ticket identifier
             attachment_id: Attachment identifier
 
         Returns:
+        -------
             True if deleted, False otherwise
 
         Raises:
+        ------
             NotImplementedError: If adapter doesn't support deletion
 
         """

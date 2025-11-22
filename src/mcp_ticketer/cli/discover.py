@@ -28,10 +28,12 @@ def _mask_sensitive(value: str, key: str) -> str:
     """Mask sensitive values for display.
 
     Args:
+    ----
         value: Value to potentially mask
         key: Key name to determine if masking needed
 
     Returns:
+    -------
         Masked or original value
 
     """
@@ -61,6 +63,7 @@ def _display_discovered_adapter(
     """Display information about a discovered adapter.
 
     Args:
+    ----
         adapter: Discovered adapter to display
         discovery: EnvDiscovery instance for validation
 
@@ -503,7 +506,8 @@ def onepassword_template(
     This creates a template file that uses op:// secret references,
     which can be used with: op run --env-file=.env.1password -- <command>
 
-    Examples:
+    Examples
+    --------
         # Create Linear template
         mcp-ticketer discover 1password-template linear
 
@@ -568,6 +572,7 @@ def onepassword_test(
     displays the resolved values (with sensitive data masked).
 
     Example:
+    -------
         mcp-ticketer discover 1password-test --file=.env.1password.linear
 
     """

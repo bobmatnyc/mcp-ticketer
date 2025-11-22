@@ -40,6 +40,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Initialize AI-Trackdown adapter.
 
         Args:
+        ----
             config: Configuration with 'base_path' for tickets directory
 
         """
@@ -63,7 +64,8 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
         AITrackdown is file-based and doesn't require credentials.
 
-        Returns:
+        Returns
+        -------
             (is_valid, error_message) - Always returns (True, "") for AITrackdown
 
         """
@@ -286,11 +288,13 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Create a new epic.
 
         Args:
+        ----
             title: Epic title
             description: Epic description
             **kwargs: Additional epic properties
 
         Returns:
+        -------
             Created Epic instance
 
         """
@@ -307,12 +311,14 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Create a new issue.
 
         Args:
+        ----
             title: Issue title
             parent_epic: Parent epic ID
             description: Issue description
             **kwargs: Additional issue properties
 
         Returns:
+        -------
             Created Task instance (representing an issue)
 
         """
@@ -327,12 +333,14 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Create a new task under an issue.
 
         Args:
+        ----
             title: Task title
             parent_id: Parent issue ID
             description: Task description
             **kwargs: Additional task properties
 
         Returns:
+        -------
             Created Task instance
 
         """
@@ -362,13 +370,16 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Update a task or epic.
 
         Args:
+        ----
             ticket_id: ID of ticket to update
             updates: Dictionary of updates or Task object with new values
 
         Returns:
+        -------
             Updated Task or Epic, or None if ticket not found
 
         Raises:
+        ------
             AttributeError: If update fails due to invalid fields
 
         """
@@ -555,9 +566,11 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Get epic by ID.
 
         Args:
+        ----
             epic_id: Epic ID to retrieve
 
         Returns:
+        -------
             Epic if found, None otherwise
 
         """
@@ -580,10 +593,12 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """List all epics.
 
         Args:
+        ----
             limit: Maximum number of epics to return
             offset: Number of epics to skip
 
         Returns:
+        -------
             List of epics
 
         """
@@ -598,9 +613,11 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """List all issues belonging to an epic.
 
         Args:
+        ----
             epic_id: Epic ID to get issues for
 
         Returns:
+        -------
             List of issues (tasks with parent_epic set)
 
         """
@@ -615,9 +632,11 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """List all tasks belonging to an issue.
 
         Args:
+        ----
             issue_id: Issue ID (parent task) to get child tasks for
 
         Returns:
+        -------
             List of tasks
 
         """
@@ -633,9 +652,11 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Sanitize filename to prevent security issues.
 
         Args:
+        ----
             filename: Original filename
 
         Returns:
+        -------
             Sanitized filename safe for filesystem
 
         """
@@ -655,9 +676,11 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Guess MIME type from file extension.
 
         Args:
+        ----
             file_path: Path to file
 
         Returns:
+        -------
             MIME type string
 
         """
@@ -670,9 +693,11 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Calculate SHA256 checksum of file.
 
         Args:
+        ----
             file_path: Path to file
 
         Returns:
+        -------
             Hexadecimal checksum string
 
         """
@@ -695,14 +720,17 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Attach a file to a ticket (local filesystem storage).
 
         Args:
+        ----
             ticket_id: Ticket identifier
             file_path: Local file path to attach
             description: Optional attachment description
 
         Returns:
+        -------
             Attachment metadata
 
         Raises:
+        ------
             ValueError: If ticket doesn't exist
             FileNotFoundError: If file doesn't exist
 
@@ -767,9 +795,11 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Get all attachments for a ticket with path traversal protection.
 
         Args:
+        ----
             ticket_id: Ticket identifier
 
         Returns:
+        -------
             List of attachments (empty if none)
 
         """
@@ -820,10 +850,12 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Delete an attachment and its metadata with path traversal protection.
 
         Args:
+        ----
             ticket_id: Ticket identifier
             attachment_id: Attachment identifier
 
         Returns:
+        -------
             True if deleted, False if not found
 
         """
@@ -865,6 +897,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Update an epic (project) in AITrackdown.
 
         Args:
+        ----
             epic_id: Epic identifier (filename without .json)
             updates: Dictionary of fields to update. Supported fields:
                 - title: Epic title
@@ -876,12 +909,15 @@ class AITrackdownAdapter(BaseAdapter[Task]):
                 - metadata: User metadata dictionary
 
         Returns:
+        -------
             Updated Epic object or None if epic not found
 
         Raises:
+        ------
             ValueError: If epic_id is invalid or epic not found
 
         Note:
+        ----
             AITrackdown stores epics as JSON files in {storage_path}/tickets/
             Updates are applied as partial updates (only specified fields changed)
 
@@ -920,9 +956,11 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """List all tags (labels) used across tickets.
 
         Args:
+        ----
             limit: Maximum number of labels to return (default: 100)
 
         Returns:
+        -------
             List of label dictionaries sorted by usage count (descending).
             Each dictionary contains:
                 - id: Tag name (same as name in AITrackdown)
@@ -930,6 +968,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
                 - count: Number of tickets using this tag
 
         Note:
+        ----
             AITrackdown uses 'tags' terminology. This method scans
             all task and epic files to extract unique tags.
 
@@ -965,10 +1004,12 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Create/register a label (tag) in AITrackdown.
 
         Args:
+        ----
             name: Label name (alphanumeric, hyphens, underscores allowed)
             color: Optional color (not used in file-based storage)
 
         Returns:
+        -------
             Label dictionary with:
                 - id: Label name
                 - name: Label name
@@ -976,9 +1017,11 @@ class AITrackdownAdapter(BaseAdapter[Task]):
                 - created: True (always, as tags are created on use)
 
         Raises:
+        ------
             ValueError: If label name is invalid
 
         Note:
+        ----
             AITrackdown creates tags implicitly when used on tickets.
             This method validates the tag name and returns success.
             Tags are stored as arrays in ticket JSON files.
@@ -1011,10 +1054,12 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """List labels (tags) used in a specific epic and its tasks.
 
         Args:
+        ----
             epic_id: Epic identifier
             limit: Maximum number of labels to return (default: 100)
 
         Returns:
+        -------
             List of label dictionaries used in the epic, sorted by usage count.
             Each dictionary contains:
                 - id: Tag name
@@ -1022,9 +1067,11 @@ class AITrackdownAdapter(BaseAdapter[Task]):
                 - count: Number of tickets using this tag within the epic
 
         Raises:
+        ------
             ValueError: If epic not found
 
         Note:
+        ----
             Scans the epic and all tasks with parent_epic == epic_id.
 
         """
@@ -1061,12 +1108,15 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """List cycles (sprints) - Not supported in file-based AITrackdown.
 
         Args:
+        ----
             limit: Maximum number of cycles to return (unused)
 
         Returns:
+        -------
             Empty list (cycles not supported)
 
         Note:
+        ----
             AITrackdown is a simple file-based system without
             cycle/sprint management. Returns empty list.
 
@@ -1078,9 +1128,11 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Get status details for a ticket.
 
         Args:
+        ----
             ticket_id: Ticket identifier
 
         Returns:
+        -------
             Status dictionary with:
                 - id: Ticket ID
                 - state: Current state
@@ -1092,6 +1144,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             Returns None if ticket not found
 
         Raises:
+        ------
             ValueError: If ticket_id is invalid
 
         """
@@ -1124,12 +1177,14 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """List available ticket statuses.
 
         Returns:
+        -------
             List of status dictionaries with:
                 - id: State identifier
                 - name: Human-readable state name
                 - description: State description
 
         Note:
+        ----
             AITrackdown uses standard TicketState enum values:
             open, in_progress, ready, tested, done, closed, waiting, blocked
 

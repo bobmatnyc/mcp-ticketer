@@ -58,6 +58,7 @@ class MCPTicketServer:
         """Initialize MCP server.
 
         Args:
+        ----
             adapter_type: Type of adapter to use
             config: Adapter configuration
 
@@ -71,9 +72,11 @@ class MCPTicketServer:
         """Handle JSON-RPC request.
 
         Args:
+        ----
             request: JSON-RPC request
 
         Returns:
+        -------
             JSON-RPC response
 
         """
@@ -158,11 +161,13 @@ class MCPTicketServer:
         """Create error response.
 
         Args:
+        ----
             request_id: Request ID
             code: Error code
             message: Error message
 
         Returns:
+        -------
             Error response
 
         """
@@ -758,9 +763,11 @@ class MCPTicketServer:
         """Handle initialize request from MCP client.
 
         Args:
+        ----
             params: Initialize parameters
 
         Returns:
+        -------
             Server capabilities
 
         """
@@ -889,9 +896,11 @@ class MCPTicketServer:
         """Handle tool invocation from MCP client.
 
         Args:
+        ----
             params: Contains 'name' and 'arguments' fields
 
         Returns:
+        -------
             MCP formatted response with content array
 
         """
@@ -1152,7 +1161,8 @@ def _load_env_configuration() -> dict[str, Any] | None:
     2. .env.local file (local overrides)
     3. .env file (default configuration)
 
-    Returns:
+    Returns
+    -------
         Dictionary with 'adapter_type' and 'adapter_config' keys, or None if no config found
 
     """
@@ -1236,10 +1246,12 @@ def _build_adapter_config_from_env_vars(
     """Build adapter configuration from parsed environment variables.
 
     Args:
+    ----
         adapter_type: Type of adapter to configure
         env_vars: Dictionary of environment variables from .env files
 
     Returns:
+    -------
         Dictionary of adapter configuration
 
     """
