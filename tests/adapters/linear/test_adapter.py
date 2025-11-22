@@ -440,7 +440,7 @@ class TestLinearAdapterRead:
 
 
 @pytest.mark.unit
-class TestLinearAdapterValidation:
+class TestLinearAdapterFieldValidation:
     """Test Linear adapter field validation."""
 
     @pytest.mark.asyncio

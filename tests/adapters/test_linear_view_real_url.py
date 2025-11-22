@@ -131,7 +131,7 @@ async def test_regression_valid_issue_id():
     assert result.id == "BTA-123"
     assert result.title == "Test Issue"
     assert result.description == "Test description"
-    print(f"✓ Regression test passed: Valid issue ID works normally")
+    print("✓ Regression test passed: Valid issue ID works normally")
 
 
 @pytest.mark.asyncio
@@ -155,7 +155,7 @@ async def test_regression_invalid_id_returns_none():
 
     # Should return None, not raise exception
     assert result is None
-    print(f"✓ Regression test passed: Invalid ID returns None")
+    print("✓ Regression test passed: Invalid ID returns None")
 
 
 @pytest.mark.asyncio
@@ -188,7 +188,7 @@ async def test_exception_handling_catches_all():
     error_msg = str(exc_info.value)
     assert "Linear view URLs are not supported" in error_msg
     assert view_id in error_msg
-    print(f"✓ Exception handling test passed: Catches all exceptions")
+    print("✓ Exception handling test passed: Catches all exceptions")
 
 
 if __name__ == "__main__":
