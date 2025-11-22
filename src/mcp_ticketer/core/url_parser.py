@@ -7,6 +7,7 @@ issue identifiers.
 Supported URL patterns:
 - Linear: https://linear.app/team-key/project/project-key-123
 - Linear: https://linear.app/team-key/issue/ISS-123
+- Linear: https://linear.app/team-key/view/view-name-uuid (view detection)
 - JIRA: https://company.atlassian.net/browse/PROJ
 - JIRA: https://company.atlassian.net/browse/PROJ-123
 - GitHub: https://github.com/owner/repo/projects/1
@@ -55,11 +56,12 @@ def is_url(value: str) -> bool:
 
 
 def extract_linear_id(url: str) -> tuple[str | None, str | None]:
-    """Extract project or issue ID from Linear URL.
+    """Extract project, issue, view, or team ID from Linear URL.
 
     Supported formats:
     - https://linear.app/workspace/project/project-slug-abc123/overview → "project-slug-abc123"
     - https://linear.app/workspace/issue/ISS-123 → "ISS-123"
+    - https://linear.app/workspace/view/view-name-uuid → "view-name-uuid"
     - https://linear.app/workspace/team/TEAM → "TEAM" (team key)
 
     Args:
@@ -73,6 +75,8 @@ def extract_linear_id(url: str) -> tuple[str | None, str | None]:
         ('crm-system-f59a41', None)
         >>> extract_linear_id("https://linear.app/myteam/issue/BTA-123")
         ('BTA-123', None)
+        >>> extract_linear_id("https://linear.app/myteam/view/my-view-abc123")
+        ('my-view-abc123', None)
 
     """
     if not url:
@@ -96,7 +100,16 @@ def extract_linear_id(url: str) -> tuple[str | None, str | None]:
         logger.debug(f"Extracted Linear issue ID '{issue_id}' from URL")
         return issue_id, None
 
-    # Pattern 3: Team URLs - extract team key
+    # Pattern 3: View URLs - extract view identifier (slug-uuid format)
+    # https://linear.app/workspace/view/view-name-uuid
+    view_pattern = r"https?://linear\.app/[\w-]+/view/([\w-]+)"
+    match = re.search(view_pattern, url, re.IGNORECASE)
+    if match:
+        view_id = match.group(1)
+        logger.debug(f"Extracted Linear view ID '{view_id}' from URL")
+        return view_id, None
+
+    # Pattern 4: Team URLs - extract team key
     # https://linear.app/workspace/team/TEAM
     team_pattern = r"https?://linear\.app/[\w-]+/team/([\w-]+)"
     match = re.search(team_pattern, url, re.IGNORECASE)

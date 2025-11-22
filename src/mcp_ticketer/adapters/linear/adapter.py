@@ -35,6 +35,7 @@ from .queries import (
     ALL_FRAGMENTS,
     CREATE_ISSUE_MUTATION,
     CREATE_LABEL_MUTATION,
+    GET_CUSTOM_VIEW_QUERY,
     GET_ISSUE_STATUS_QUERY,
     LIST_CYCLES_QUERY,
     LIST_ISSUE_STATUSES_QUERY,
@@ -279,6 +280,35 @@ class LinearAdapter(BaseAdapter[Task]):
             return result["teams"]["nodes"]
 
         return []
+
+    async def _get_custom_view(self, view_id: str) -> dict[str, Any] | None:
+        """Get a Linear custom view by ID to check if it exists.
+
+        Args:
+        ----
+            view_id: View identifier (slug-uuid format)
+
+        Returns:
+        -------
+            View dict with fields (id, name, description, issues) or None if not found
+
+        """
+        if not view_id:
+            return None
+
+        try:
+            result = await self.client.execute_query(
+                GET_CUSTOM_VIEW_QUERY, {"viewId": view_id, "first": 10}
+            )
+
+            if result.get("customView"):
+                return result["customView"]
+
+            return None
+
+        except Exception:
+            # Linear returns error if view not found - return None instead of raising
+            return None
 
     async def get_project(self, project_id: str) -> dict[str, Any] | None:
         """Get a Linear project by ID using direct query.
@@ -1405,6 +1435,10 @@ class LinearAdapter(BaseAdapter[Task]):
             Epic with full details if project found,
             None if not found
 
+        Raises:
+        ------
+            ValueError: If ticket_id is a view URL (views are not supported in ticket_read)
+
         """
         # Validate credentials before attempting operation
         is_valid, error_message = self.validate_credentials()
@@ -1451,7 +1485,34 @@ class LinearAdapter(BaseAdapter[Task]):
             # Not found as project either
             pass
 
-        # Not found as either issue or project
+        # If not found as issue or project, check if it's a view URL
+        # Views are collections of issues, not individual tickets
+        try:
+            view_data = await self._get_custom_view(ticket_id)
+            if view_data:
+                # View found - raise informative error
+                view_name = view_data.get("name", "Unknown")
+                issues_data = view_data.get("issues", {})
+                issue_count = len(issues_data.get("nodes", []))
+                has_more = issues_data.get("pageInfo", {}).get("hasNextPage", False)
+                count_str = f"{issue_count}+" if has_more else str(issue_count)
+
+                raise ValueError(
+                    f"Linear view URLs are not supported in ticket_read.\n"
+                    f"\n"
+                    f"View: '{view_name}' ({ticket_id})\n"
+                    f"This view contains {count_str} issues.\n"
+                    f"\n"
+                    f"Use ticket_list or ticket_search to query issues instead."
+                )
+        except ValueError:
+            # Re-raise ValueError (our informative error message)
+            raise
+        except Exception:
+            # View query failed - not a view
+            pass
+
+        # Not found as either issue, project, or view
         return None
 
     async def update(self, ticket_id: str, updates: dict[str, Any]) -> Task | None:

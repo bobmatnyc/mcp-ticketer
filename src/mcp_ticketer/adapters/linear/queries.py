@@ -456,3 +456,24 @@ LIST_ISSUE_STATUSES_QUERY = """
         }
     }
 """
+
+GET_CUSTOM_VIEW_QUERY = (
+    ISSUE_LIST_FRAGMENTS
+    + """
+    query GetCustomView($viewId: String!, $first: Int!) {
+        customView(id: $viewId) {
+            id
+            name
+            description
+            issues(first: $first) {
+                nodes {
+                    ...IssueCompactFields
+                }
+                pageInfo {
+                    hasNextPage
+                }
+            }
+        }
+    }
+"""
+)

@@ -80,6 +80,27 @@ class TestLinearURLParsing:
         assert extracted_id == "ENG"
         assert error is None
 
+    def test_view_url(self):
+        """Test Linear view URL."""
+        url = "https://linear.app/myworkspace/view/my-view-abc123"
+        extracted_id, error = extract_linear_id(url)
+        assert extracted_id == "my-view-abc123"
+        assert error is None
+
+    def test_view_url_with_dashes(self):
+        """Test Linear view URL with multiple dashes in name."""
+        url = "https://linear.app/travel-bta/view/active-bugs-f59a41"
+        extracted_id, error = extract_linear_id(url)
+        assert extracted_id == "active-bugs-f59a41"
+        assert error is None
+
+    def test_view_url_case_insensitive(self):
+        """Test Linear view URL is case-insensitive."""
+        url = "https://LINEAR.APP/workspace/VIEW/my-view-abc123"
+        extracted_id, error = extract_linear_id(url)
+        assert extracted_id == "my-view-abc123"
+        assert error is None
+
     def test_invalid_linear_url(self):
         """Test invalid Linear URL."""
         url = "https://linear.app/invalid"
