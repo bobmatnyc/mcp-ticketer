@@ -1143,6 +1143,53 @@ class AsanaAdapter(BaseAdapter[Task]):
             logger.error(f"Failed to list projects: {e}")
             return []
 
+    async def delete_epic(self, epic_id: str) -> bool:
+        """Delete an Asana project (Epic).
+
+        Args:
+            epic_id: Project GID to delete
+
+        Returns:
+            True if successfully deleted, False otherwise
+
+        Raises:
+            ValueError: If credentials are invalid or GID format is invalid
+
+        """
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        # Validate GID format (should be numeric)
+        if not epic_id or not epic_id.isdigit():
+            raise ValueError(
+                f"Invalid project GID '{epic_id}'. Asana project GIDs must be numeric."
+            )
+
+        try:
+            # Delete project using REST API
+            await self.client.delete(f"/projects/{epic_id}")
+            logger.info(f"Successfully deleted project {epic_id}")
+            return True
+
+        except Exception as e:
+            # Check if it's a 404 (not found) - return False
+            if "404" in str(e) or "Not Found" in str(e):
+                logger.warning(f"Project {epic_id} not found")
+                return False
+
+            # Check for permissions errors
+            if "403" in str(e) or "Forbidden" in str(e):
+                logger.error(f"Permission denied to delete project {epic_id}")
+                raise ValueError(
+                    f"Permission denied: You don't have permission to delete project {epic_id}"
+                ) from e
+
+            # Other errors - log and raise
+            logger.error(f"Failed to delete project {epic_id}: {e}")
+            raise ValueError(f"Failed to delete project: {e}") from e
+
     async def list_issues_by_epic(self, epic_id: str) -> builtins.list[Task]:
         """List all tasks in a project (Epic).
 

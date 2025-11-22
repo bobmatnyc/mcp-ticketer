@@ -1039,6 +1039,59 @@ class GitHubAdapter(BaseAdapter[Task]):
 
         return [self._milestone_to_epic(milestone) for milestone in response.json()]
 
+    async def delete_epic(self, epic_id: str) -> bool:
+        """Delete a GitHub milestone (Epic).
+
+        Args:
+            epic_id: Milestone number (not ID) as a string
+
+        Returns:
+            True if successfully deleted, False otherwise
+
+        Raises:
+            ValueError: If credentials are invalid or epic_id is not a valid number
+
+        """
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        try:
+            # Extract milestone number from epic_id
+            milestone_number = int(epic_id)
+        except ValueError as e:
+            raise ValueError(
+                f"Invalid milestone number '{epic_id}'. GitHub milestones use numeric IDs."
+            ) from e
+
+        try:
+            # Delete milestone using REST API
+            response = await self.client.delete(
+                f"/repos/{self.owner}/{self.repo}/milestones/{milestone_number}"
+            )
+
+            # GitHub returns 204 No Content on successful deletion
+            if response.status_code == 204:
+                return True
+
+            # Handle 404 errors gracefully
+            if response.status_code == 404:
+                return False
+
+            # Other errors - raise for visibility
+            response.raise_for_status()
+            return True
+
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                # Milestone not found
+                return False
+            # Re-raise other HTTP errors
+            raise ValueError(f"Failed to delete milestone: {e}") from e
+        except Exception as e:
+            raise ValueError(f"Failed to delete milestone: {e}") from e
+
     async def link_to_pull_request(self, issue_number: int, pr_number: int) -> bool:
         """Link an issue to a pull request using keywords."""
         # This is typically done through PR description keywords like "fixes #123"

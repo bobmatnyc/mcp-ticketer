@@ -52,6 +52,13 @@ async def epic_create(
 ) -> dict[str, Any]:
     """Create a new epic (strategic level container).
 
+    Adapter Support: All adapters support epic creation
+    - Linear: Creates project with timeline (via create())
+    - JIRA: Creates epic in configured project (dedicated create_epic())
+    - GitHub: Creates milestone (via create_milestone())
+    - Asana: Creates project (dedicated create_epic())
+    - AiTrackDown: Creates epic in local storage (dedicated create_epic())
+
     Args:
         title: Epic title (required)
         description: Detailed description of the epic
@@ -102,26 +109,108 @@ async def epic_create(
 
 
 @mcp.tool()
-async def epic_list(
-    limit: int = 10,
-    offset: int = 0,
-) -> dict[str, Any]:
-    """List all epics with pagination.
+async def epic_get(epic_id: str) -> dict[str, Any]:
+    """Read an epic by its ID.
+
+    This tool retrieves detailed information about a specific epic/project/milestone.
+
+    Adapter Support: All adapters support reading epics
+    - Linear: Reads project details (via read())
+    - JIRA: Reads epic with dedicated get_epic() method
+    - GitHub: Reads milestone (via read())
+    - Asana: Reads project with dedicated get_epic() method
+    - AiTrackDown: Reads epic with dedicated get_epic() method
 
     Args:
-        limit: Maximum number of epics to return (default: 10)
-        offset: Number of epics to skip for pagination (default: 0)
+        epic_id: Unique identifier of the epic to retrieve
 
     Returns:
-        List of epics, or error information
+        Epic details if found, or error information
 
     """
     try:
         adapter = get_adapter()
 
-        # List with epic filter
-        filters = {"ticket_type": TicketType.EPIC}
-        epics = await adapter.list(limit=limit, offset=offset, filters=filters)
+        # Use adapter's get_epic method if available (optimized for some adapters)
+        if hasattr(adapter, "get_epic"):
+            epic = await adapter.get_epic(epic_id)  # type: ignore
+        else:
+            # Fallback to generic read method
+            epic = await adapter.read(epic_id)
+
+        if epic is None:
+            return {
+                "status": "error",
+                "error": f"Epic {epic_id} not found",
+                **_build_adapter_metadata(adapter, epic_id),
+            }
+
+        return {
+            "status": "completed",
+            **_build_adapter_metadata(adapter, epic_id),
+            "epic": epic.model_dump(),
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to get epic: {str(e)}",
+        }
+
+
+@mcp.tool()
+async def epic_list(
+    limit: int = 10,
+    offset: int = 0,
+    state: str | None = None,
+    include_completed: bool = False,
+) -> dict[str, Any]:
+    """List all epics with pagination and optional filtering.
+
+    Adapter Support: All adapters support listing epics
+    - Linear: Optimized list_epics() with state filter and include_completed
+    - JIRA: Optimized list_epics() with state filtering (mapped to JIRA status)
+    - GitHub: Generic list() method (state filter not supported)
+    - Asana: Optimized list_epics() method (state filter not supported)
+    - AiTrackDown: Optimized list_epics() with basic pagination
+
+    Adapter-Specific Parameters:
+    - state: Supported by Linear (e.g., "planned", "started", "completed") and JIRA (e.g., "To Do", "In Progress", "Done")
+    - include_completed: Linear-specific parameter to include/exclude completed projects
+
+    Args:
+        limit: Maximum number of epics to return (default: 10)
+        offset: Number of epics to skip for pagination (default: 0)
+        state: Optional state filter - adapter-specific behavior
+        include_completed: Include completed epics (Linear-specific, default: False)
+
+    Returns:
+        List of epics with adapter information, or error information
+
+    """
+    try:
+        adapter = get_adapter()
+
+        # Check if adapter has optimized list_epics method
+        if hasattr(adapter, "list_epics"):
+            # Build kwargs for adapter-specific parameters
+            kwargs: dict[str, Any] = {"limit": limit, "offset": offset}
+
+            # Add state filter if supported
+            if state is not None:
+                kwargs["state"] = state
+
+            # Add include_completed for Linear adapter
+            adapter_type = adapter.adapter_type.lower()
+            if adapter_type == "linear" and include_completed:
+                kwargs["include_completed"] = include_completed
+
+            epics = await adapter.list_epics(**kwargs)  # type: ignore
+        else:
+            # Fallback to generic list method with epic filter
+            filters = {"ticket_type": TicketType.EPIC}
+            if state is not None:
+                filters["state"] = state
+            epics = await adapter.list(limit=limit, offset=offset, filters=filters)
 
         return {
             "status": "completed",
@@ -130,6 +219,10 @@ async def epic_list(
             "count": len(epics),
             "limit": limit,
             "offset": offset,
+            "filters_applied": {
+                "state": state,
+                "include_completed": include_completed,
+            },
         }
     except Exception as e:
         return {
@@ -596,6 +689,19 @@ async def epic_update(
 ) -> dict[str, Any]:
     """Update an existing epic's metadata and description.
 
+    Adapter Support: All adapters support epic updates with dedicated update_epic() method
+    - Linear: ✓ Updates project fields (title, description, state, target_date, etc.)
+    - JIRA: ✓ Updates epic fields (title, description, status, due date)
+    - GitHub: ✓ Updates milestone (title, description, state, due_on)
+    - Asana: ✓ Updates project metadata (name, notes, due_on, color, etc.)
+    - AiTrackDown: ✓ Updates epic in local storage
+
+    Supported Update Fields:
+    - title: Epic/project/milestone title (all adapters)
+    - description: Detailed description (all adapters)
+    - state: Epic state - adapter-specific values (Linear, JIRA, GitHub)
+    - target_date: Due date in ISO format YYYY-MM-DD (all adapters)
+
     Args:
         epic_id: Epic identifier (required)
         title: New title for the epic
@@ -612,11 +718,12 @@ async def epic_update(
 
         # Check if adapter supports epic updates
         if not hasattr(adapter, "update_epic"):
+            adapter_name = adapter.adapter_display_name
             return {
                 "status": "error",
-                "error": f"Epic updates not supported by {type(adapter).__name__} adapter",
+                "error": f"Epic updates not supported by {adapter_name} adapter",
                 "epic_id": epic_id,
-                "note": "Use ticket_update instead for basic field updates",
+                "note": "This adapter should implement update_epic() method",
             }
 
         # Build updates dictionary
@@ -669,6 +776,75 @@ async def epic_update(
             "status": "error",
             "error": f"Failed to update epic: {str(e)}",
             "epic_id": epic_id,
+        }
+
+
+@mcp.tool()
+async def epic_delete(epic_id: str) -> dict[str, Any]:
+    """Delete an epic/project/milestone by ID.
+
+    Adapter Support:
+    - GitHub: ✓ Deletes milestone (delete_epic() - permanent deletion)
+    - Asana: ✓ Archives project (delete_epic() - can be restored from archive)
+    - Linear: ✗ Linear API doesn't support project deletion
+    - JIRA: ✗ JIRA API doesn't support epic deletion
+    - AiTrackDown: ✗ Epic deletion not implemented yet
+
+    Important Notes:
+    - GitHub: Deletion is permanent and cannot be undone
+    - Asana: Project is archived, not deleted, and can be restored
+    - For unsupported adapters, the tool returns an error with details
+
+    Args:
+        epic_id: Unique identifier of the epic to delete
+
+    Returns:
+        Success/failure status with adapter information
+
+    """
+    try:
+        adapter = get_adapter()
+
+        # Check if adapter supports epic deletion
+        if not hasattr(adapter, "delete_epic"):
+            adapter_name = adapter.adapter_display_name
+            return {
+                "status": "error",
+                "error": f"Epic deletion not supported by {adapter_name} adapter",
+                **_build_adapter_metadata(adapter, epic_id),
+                "supported_adapters": ["GitHub", "Asana"],
+                "note": f"{adapter_name} does not provide API support for deleting epics/projects",
+            }
+
+        # Call adapter's delete_epic method
+        success = await adapter.delete_epic(epic_id)  # type: ignore
+
+        if not success:
+            return {
+                "status": "error",
+                "error": f"Failed to delete epic {epic_id}",
+                **_build_adapter_metadata(adapter, epic_id),
+            }
+
+        return {
+            "status": "completed",
+            **_build_adapter_metadata(adapter, epic_id),
+            "message": f"Epic {epic_id} deleted successfully",
+            "deleted": True,
+        }
+    except AttributeError:
+        adapter_name = adapter.adapter_display_name
+        return {
+            "status": "error",
+            "error": f"Epic deletion not supported by {adapter_name} adapter",
+            **_build_adapter_metadata(adapter, epic_id),
+            "supported_adapters": ["GitHub", "Asana"],
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to delete epic: {str(e)}",
+            **_build_adapter_metadata(adapter, epic_id),
         }
 
 
