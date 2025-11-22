@@ -293,21 +293,30 @@ class LinearAdapter(BaseAdapter[Task]):
             View dict with fields (id, name, description, issues) or None if not found
 
         """
+        logging.debug(f"[VIEW DEBUG] _get_custom_view called with view_id: {view_id}")
+
         if not view_id:
+            logging.debug("[VIEW DEBUG] view_id is empty, returning None")
             return None
 
         try:
+            logging.debug(f"[VIEW DEBUG] Executing GET_CUSTOM_VIEW_QUERY for view_id: {view_id}")
             result = await self.client.execute_query(
                 GET_CUSTOM_VIEW_QUERY, {"viewId": view_id, "first": 10}
             )
+            logging.debug(f"[VIEW DEBUG] Query result: {result}")
 
             if result.get("customView"):
+                logging.debug(f"[VIEW DEBUG] customView found in result: {result.get('customView')}")
                 return result["customView"]
+
+            logging.debug(f"[VIEW DEBUG] No customView in result. Checking pattern: has_hyphen={'-' in view_id}, length={len(view_id)}")
 
             # API query failed but check if this looks like a view identifier
             # View IDs from URLs have format: slug-uuid (e.g., "mcp-skills-issues-0d0359fabcf9")
             # If it has hyphens and is longer than 12 chars, it's likely a view URL identifier
             if "-" in view_id and len(view_id) > 12:
+                logging.debug("[VIEW DEBUG] Pattern matched! Returning minimal view object")
                 # Return minimal view object to trigger helpful error message
                 # We can't fetch the actual name, so use generic "Linear View"
                 return {
@@ -316,18 +325,22 @@ class LinearAdapter(BaseAdapter[Task]):
                     "issues": {"nodes": [], "pageInfo": {"hasNextPage": False}},
                 }
 
+            logging.debug("[VIEW DEBUG] Pattern did not match, returning None")
             return None
 
-        except Exception:
+        except Exception as e:
+            logging.debug(f"[VIEW DEBUG] Exception caught: {type(e).__name__}: {str(e)}")
             # Linear returns error if view not found
             # Check if this looks like a view identifier to provide helpful error
             if "-" in view_id and len(view_id) > 12:
+                logging.debug("[VIEW DEBUG] Exception handler: Pattern matched! Returning minimal view object")
                 # Return minimal view object to trigger helpful error message
                 return {
                     "id": view_id,
                     "name": "Linear View",
                     "issues": {"nodes": [], "pageInfo": {"hasNextPage": False}},
                 }
+            logging.debug("[VIEW DEBUG] Exception handler: Pattern did not match, returning None")
             return None
 
     async def get_project(self, project_id: str) -> dict[str, Any] | None:
@@ -1483,8 +1496,8 @@ class LinearAdapter(BaseAdapter[Task]):
             if result.get("issue"):
                 return map_linear_issue_to_task(result["issue"])
 
-        except TransportQueryError:
-            # Issue not found, try as project
+        except Exception:
+            # Not found as issue, continue to project/view check
             pass
 
         # If not found as issue, try reading as project
@@ -1507,9 +1520,13 @@ class LinearAdapter(BaseAdapter[Task]):
 
         # If not found as issue or project, check if it's a view URL
         # Views are collections of issues, not individual tickets
+        logging.debug(f"[VIEW DEBUG] read() checking if ticket_id is a view: {ticket_id}")
         try:
             view_data = await self._get_custom_view(ticket_id)
+            logging.debug(f"[VIEW DEBUG] read() _get_custom_view returned: {view_data}")
+
             if view_data:
+                logging.debug("[VIEW DEBUG] read() view_data is truthy, preparing to raise ValueError")
                 # View found - raise informative error
                 view_name = view_data.get("name", "Unknown")
                 issues_data = view_data.get("issues", {})
@@ -1517,6 +1534,7 @@ class LinearAdapter(BaseAdapter[Task]):
                 has_more = issues_data.get("pageInfo", {}).get("hasNextPage", False)
                 count_str = f"{issue_count}+" if has_more else str(issue_count)
 
+                logging.debug(f"[VIEW DEBUG] read() raising ValueError with view_name={view_name}, count={count_str}")
                 raise ValueError(
                     f"Linear view URLs are not supported in ticket_read.\n"
                     f"\n"
@@ -1525,14 +1543,19 @@ class LinearAdapter(BaseAdapter[Task]):
                     f"\n"
                     f"Use ticket_list or ticket_search to query issues instead."
                 )
+            else:
+                logging.debug("[VIEW DEBUG] read() view_data is falsy (None or empty)")
         except ValueError:
             # Re-raise ValueError (our informative error message)
+            logging.debug("[VIEW DEBUG] read() re-raising ValueError")
             raise
-        except Exception:
+        except Exception as e:
             # View query failed - not a view
+            logging.debug(f"[VIEW DEBUG] read() caught exception in view check: {type(e).__name__}: {str(e)}")
             pass
 
         # Not found as either issue, project, or view
+        logging.debug("[VIEW DEBUG] read() returning None - not found as issue, project, or view")
         return None
 
     async def update(self, ticket_id: str, updates: dict[str, Any]) -> Task | None:
