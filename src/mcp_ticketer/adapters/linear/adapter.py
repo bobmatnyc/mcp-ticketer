@@ -39,6 +39,7 @@ from .queries import (
     LIST_CYCLES_QUERY,
     LIST_ISSUE_STATUSES_QUERY,
     LIST_ISSUES_QUERY,
+    LIST_PROJECTS_QUERY,
     SEARCH_ISSUES_QUERY,
     UPDATE_ISSUE_MUTATION,
     WORKFLOW_STATES_QUERY,
@@ -372,6 +373,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
             # Get project metadata only (faster)
             epic = await adapter.get_epic("c0e6db5a-03b6-479f-8796-5070b8fb7895", include_issues=False)
+
         """
         # Validate credentials
         is_valid, error_message = self.validate_credentials()
@@ -662,6 +664,7 @@ class LinearAdapter(BaseAdapter[Task]):
         Raises:
         ------
             ValueError: If credentials invalid or query fails
+
         """
         logger = logging.getLogger(__name__)
 

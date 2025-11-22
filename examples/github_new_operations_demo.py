@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Demonstration of new GitHub adapter operations.
+"""Demonstration of new GitHub adapter operations.
 
 This script showcases the four new methods added to the GitHub adapter:
 1. list_cycles() - List GitHub Project iterations
@@ -18,6 +17,7 @@ Requirements:
 
 import asyncio
 import os
+
 from dotenv import load_dotenv
 
 from mcp_ticketer.adapters.github import GitHubAdapter
@@ -91,7 +91,7 @@ async def demo_new_operations():
 
                 print(f"\n✓ Issue #{status['number']}: {status['metadata']['title']}")
                 print(f"  URL: {status['metadata']['url']}")
-                print(f"\nState Information:")
+                print("\nState Information:")
                 print(f"  Native State:   {status['state']}")
                 print(f"  Extended State: {status['extended_state']}")
                 if status["status_label"]:
@@ -99,7 +99,7 @@ async def demo_new_operations():
                 if status["state_reason"]:
                     print(f"  State Reason:   {status['state_reason']}")
 
-                print(f"\nMetadata:")
+                print("\nMetadata:")
                 print(f"  Labels:     {', '.join(status['labels']) or 'None'}")
                 print(f"  Assignees:  {', '.join(status['metadata']['assignees']) or 'None'}")
                 print(f"  Milestone:  {status['metadata']['milestone'] or 'None'}")

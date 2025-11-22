@@ -278,7 +278,7 @@ class TestFuzzyMatching:
             ("wait", TicketState.WAITING),
         ]
 
-        for input_str, expected_state in test_cases:
+        for input_str, _expected_state in test_cases:
             result = matcher.match_state(input_str)
             # Should match with reasonable confidence
             assert result.confidence >= 0.50
@@ -529,7 +529,7 @@ class TestRealWorldScenarios:
             ("Waiting for approval", TicketState.WAITING),
         ]
 
-        for input_str, expected_state in test_cases:
+        for input_str, _expected_state in test_cases:
             result = matcher.match_state(input_str)
             # Should match with reasonable confidence
             # Note: Some may not match exactly but should be close
@@ -545,7 +545,7 @@ class TestRealWorldScenarios:
             ("QA", TicketState.TESTED),
         ]
 
-        for input_str, expected_state in test_cases:
+        for input_str, _expected_state in test_cases:
             result = matcher.match_state(input_str)
             # May not match exactly, but should be reasonable
             assert result.state is not None
