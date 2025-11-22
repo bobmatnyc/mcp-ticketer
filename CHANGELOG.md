@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.1.5] - 2025-01-22
+
 ### Fixed
 - **Linear View URL Error Messages**: Improved error handling when users provide Linear view URLs instead of issue URLs
   - Now detects Linear view URLs (e.g., `https://linear.app/workspace/view/my-view-abc123`) and provides informative error messages
@@ -13,6 +15,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Guides users to use `ticket_list` or `ticket_search` instead for querying multiple issues
   - Fixes confusing "Ticket not found" errors that previously occurred when view URLs were provided
   - Improves user experience by providing actionable guidance instead of generic error messages
+
+## [1.1.4] - 2025-01-22
+
+### Added
+- **Linear View URL Detection**: Added informative error messages when Linear view URLs are provided
+  - Detects view URLs and explains they cannot be used for single ticket operations
+  - Provides actionable guidance to use `ticket_list` or `ticket_search` instead
 
 ## [1.1.3] - 2025-01-22
 
