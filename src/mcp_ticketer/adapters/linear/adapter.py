@@ -304,10 +304,30 @@ class LinearAdapter(BaseAdapter[Task]):
             if result.get("customView"):
                 return result["customView"]
 
+            # API query failed but check if this looks like a view identifier
+            # View IDs from URLs have format: slug-uuid (e.g., "mcp-skills-issues-0d0359fabcf9")
+            # If it has hyphens and is longer than 12 chars, it's likely a view URL identifier
+            if "-" in view_id and len(view_id) > 12:
+                # Return minimal view object to trigger helpful error message
+                # We can't fetch the actual name, so use generic "Linear View"
+                return {
+                    "id": view_id,
+                    "name": "Linear View",
+                    "issues": {"nodes": [], "pageInfo": {"hasNextPage": False}},
+                }
+
             return None
 
         except Exception:
-            # Linear returns error if view not found - return None instead of raising
+            # Linear returns error if view not found
+            # Check if this looks like a view identifier to provide helpful error
+            if "-" in view_id and len(view_id) > 12:
+                # Return minimal view object to trigger helpful error message
+                return {
+                    "id": view_id,
+                    "name": "Linear View",
+                    "issues": {"nodes": [], "pageInfo": {"hasNextPage": False}},
+                }
             return None
 
     async def get_project(self, project_id: str) -> dict[str, Any] | None:
