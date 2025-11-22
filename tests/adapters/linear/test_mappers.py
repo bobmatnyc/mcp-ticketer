@@ -5,9 +5,13 @@ from datetime import UTC, datetime
 import pytest
 
 from mcp_ticketer.adapters.linear.mappers import (
-    build_linear_issue_input, build_linear_issue_update_input,
-    extract_child_issue_ids, map_linear_comment_to_comment,
-    map_linear_issue_to_task, map_linear_project_to_epic)
+    build_linear_issue_input,
+    build_linear_issue_update_input,
+    extract_child_issue_ids,
+    map_linear_comment_to_comment,
+    map_linear_issue_to_task,
+    map_linear_project_to_epic,
+)
 from mcp_ticketer.core.models import Priority, Task, TicketState
 
 

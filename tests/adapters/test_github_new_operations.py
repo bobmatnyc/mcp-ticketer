@@ -408,7 +408,9 @@ class TestListProjectLabels:
         bug_label = next(label for label in labels if label["name"] == "bug")
         assert bug_label["usage_count"] == 2  # Used by 2 issues
 
-        high_priority_label = next(label for label in labels if label["name"] == "high-priority")
+        high_priority_label = next(
+            label for label in labels if label["name"] == "high-priority"
+        )
         assert high_priority_label["usage_count"] == 1
 
     async def test_list_project_labels_excludes_pull_requests(self, github_adapter):

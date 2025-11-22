@@ -15,8 +15,7 @@ Test Coverage:
 import pytest
 
 from mcp_ticketer.core.models import Priority, Task, TicketState, TicketType
-from mcp_ticketer.mcp.server.tools.hierarchy_tools import (issue_get_parent,
-                                                           issue_tasks)
+from mcp_ticketer.mcp.server.tools.hierarchy_tools import issue_get_parent, issue_tasks
 
 
 class MockAdapter:

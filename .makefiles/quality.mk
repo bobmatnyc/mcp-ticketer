@@ -16,10 +16,10 @@ lint-fix: ## Run linters with auto-fix
 	@echo "Linting complete!"
 
 .PHONY: format
-format: ## Format code (black, isort)
+format: ## Format code (black, ruff for imports)
 	@echo "Formatting code..."
+	ruff check --select I --fix src tests
 	black src tests
-	isort src tests
 	@echo "Code formatted!"
 
 .PHONY: format-check
