@@ -309,10 +309,21 @@ def setup(
         console.print(f"\n[cyan]Initializing {adapter_type} adapter...[/cyan]\n")
 
         # Call internal init function programmatically (NOT the CLI command)
+        # Note: Only pass required parameters - all optional params should be None
+        # to avoid passing OptionInfo objects which are not JSON serializable
         success = _init_adapter_internal(
             adapter=adapter_type,
             project_path=str(proj_path),
             global_config=False,
+            base_path=None,
+            api_key=None,
+            team_id=None,
+            jira_server=None,
+            jira_email=None,
+            jira_project=None,
+            github_owner=None,
+            github_repo=None,
+            github_token=None,
         )
 
         if not success:
