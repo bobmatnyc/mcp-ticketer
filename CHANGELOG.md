@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.1.6] - 2025-01-22
+
+### Fixed
+- **Linear View URL Exception Handling**: Corrected exception handling in Linear adapter to ensure view detection code runs
+  - Changed `except TransportQueryError` to `except Exception` on line 1499 of Linear adapter
+  - Fixes critical bug where generic "Ticket not found" errors appeared instead of helpful view URL guidance
+  - Ensures informative error messages are shown when users accidentally provide Linear view URLs
+  - Resolves issue reported after v1.1.5 release where the helpful error messages weren't appearing
+  - No impact on normal issue/project operations - all regression tests passing
+
 ## [1.1.5] - 2025-01-22
 
 ### Fixed
