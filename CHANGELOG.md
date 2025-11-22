@@ -6,7 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
-## [1.1.1] - 2025-11-21
+## [1.1.2] - 2025-01-22
+
+### Fixed
+- **Setup Command JSON Serialization**: Fixed TypeError when running `mcp-ticketer setup`
+  - Prevented `typer.models.OptionInfo` objects from being passed to internal functions
+  - Setup command now correctly passes `None` values for optional parameters
+  - Resolves "Object of type OptionInfo is not JSON serializable" error
+  - Fixes initialization flow in `setup_command.py` when calling `_init_adapter_internal()`
+  - Commit: 7c51acc
+
+## [1.1.1] - 2025-01-21
 
 ### Fixed
 - **Linear Adapter Label Validation**: Fixed labelIds argument validation error in Linear GraphQL API
