@@ -498,44 +498,111 @@ pip install -e ".[dev,test,docs]"
 pre-commit install
 ```
 
+### Modular Build System
+
+mcp-ticketer uses a **modular Makefile architecture** for streamlined development workflows. The build system is organized into specialized modules for quality, testing, releases, documentation, and MCP-specific operations.
+
+**Quick Start**:
+```bash
+# Show all available commands
+make help
+
+# Complete development setup
+make setup
+
+# Run tests in parallel (3-4x faster)
+make test-parallel
+
+# Run all quality checks
+make quality
+
+# View project information
+make info
+```
+
+**Key Features**:
+- ⚡ **Parallel Testing**: 3-4x faster with `make test-parallel`
+- 📊 **Enhanced Help**: Categorized targets with descriptions
+- 🎯 **70+ Targets**: Organized by module (testing, quality, release, docs, MCP)
+- 🔧 **Build Metadata**: Generate build information with `make build-metadata`
+- 📋 **Module Introspection**: View loaded modules with `make modules`
+
+**Common Commands**:
+```bash
+# Testing
+make test               # Run all tests (serial)
+make test-parallel      # Run tests in parallel (3-4x faster)
+make test-fast          # Parallel tests with fail-fast
+make test-coverage      # Tests with HTML coverage report
+
+# Code Quality
+make lint               # Run linters (Ruff + MyPy)
+make lint-fix           # Auto-fix linting issues
+make format             # Format code (Black + isort)
+make typecheck          # Run MyPy type checking
+make quality            # Run all quality checks
+
+# Release
+make check-release      # Validate release readiness
+make release-patch      # Bump patch version and publish
+make release-minor      # Bump minor version and publish
+
+# Documentation
+make docs               # Build documentation
+make docs-serve         # Serve docs at localhost:8000
+make docs-open          # Build and open in browser
+```
+
+**Build System Details**:
+- See [.makefiles/README.md](.makefiles/README.md) for complete module documentation
+- See [.makefiles/QUICK_REFERENCE.md](.makefiles/QUICK_REFERENCE.md) for quick command reference
+- See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for comprehensive development guide
+
 ### Running Tests
 
 ```bash
-# Run all tests
-pytest
+# Quick testing (recommended for development)
+make test-parallel      # Parallel execution (3-4x faster)
+make test-fast          # Parallel with fail-fast
 
-# Run with coverage
-pytest --cov=mcp_ticketer --cov-report=html
-
-# Run specific test file
-pytest tests/test_adapters.py
-
-# Run tests in parallel
-pytest -n auto
+# Standard pytest commands (still supported)
+pytest                  # Run all tests
+pytest --cov=mcp_ticketer --cov-report=html  # With coverage
+pytest tests/test_adapters.py  # Specific test file
+pytest -n auto          # Manual parallel execution
 ```
+
+**Performance Comparison**:
+- Serial execution: ~30-60 seconds
+- Parallel (4 cores): ~8-15 seconds (**3-4x faster**)
 
 ### Code Quality
 
 ```bash
-# Format code
-black src tests
+# Using Makefile (recommended)
+make lint               # Run Ruff and MyPy
+make lint-fix           # Auto-fix issues
+make format             # Format with Black and isort
+make typecheck          # Type checking with MyPy
+make quality            # All quality checks
 
-# Lint code
-ruff check src tests
-
-# Type checking
-mypy src
-
-# Run all checks
-tox
+# Direct commands (still supported)
+black src tests         # Format code
+ruff check src tests    # Lint code
+mypy src                # Type checking
+tox                     # Run all checks
 ```
 
 ### Building Documentation
 
 ```bash
-cd docs
-make html
-# View at docs/_build/html/index.html
+# Using Makefile (recommended)
+make docs               # Build documentation
+make docs-serve         # Serve at localhost:8000
+make docs-open          # Build and open in browser
+
+# Direct command (still supported)
+cd docs && make html    # View at docs/_build/html/index.html
 ```
 
 ## 📋 Roadmap

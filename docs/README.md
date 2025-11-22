@@ -67,9 +67,10 @@ Documentation about documentation, migrations, and configuration
 3. [Bulletproof Ticket Creation](user-docs/guides/BULLETPROOF_TICKET_CREATION.md)
 
 ### I want to contribute
-1. [Developer Guide](developer-docs/getting-started/DEVELOPER_GUIDE.md)
-2. [Contributing Guide](developer-docs/getting-started/CONTRIBUTING.md)
-3. [Code Structure](developer-docs/getting-started/CODE_STRUCTURE.md)
+1. [Development Guide](DEVELOPMENT.md) - Build system, testing, and workflows
+2. [Developer Guide](developer-docs/getting-started/DEVELOPER_GUIDE.md)
+3. [Contributing Guide](developer-docs/getting-started/CONTRIBUTING.md)
+4. [Code Structure](developer-docs/getting-started/CODE_STRUCTURE.md)
 
 ### I need to understand the architecture
 1. [Architecture Overview](architecture/README.md)
