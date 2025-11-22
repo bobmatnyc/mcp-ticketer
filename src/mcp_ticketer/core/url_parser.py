@@ -154,11 +154,12 @@ def extract_jira_id(url: str) -> tuple[str | None, str | None]:
 
 
 def extract_github_id(url: str) -> tuple[str | None, str | None]:
-    """Extract project or issue number from GitHub URL.
+    """Extract project, issue, milestone, or PR number from GitHub URL.
 
     Supported formats:
     - https://github.com/owner/repo/projects/1 → "1"
     - https://github.com/owner/repo/issues/123 → "123"
+    - https://github.com/owner/repo/milestones/5 → "5"
     - https://github.com/owner/repo/pull/456 → "456"
 
     Args:
@@ -172,6 +173,8 @@ def extract_github_id(url: str) -> tuple[str | None, str | None]:
         ('1', None)
         >>> extract_github_id("https://github.com/owner/repo/issues/123")
         ('123', None)
+        >>> extract_github_id("https://github.com/owner/repo/milestones/5")
+        ('5', None)
 
     """
     if not url:
@@ -195,7 +198,16 @@ def extract_github_id(url: str) -> tuple[str | None, str | None]:
         logger.debug(f"Extracted GitHub issue ID '{issue_id}' from URL")
         return issue_id, None
 
-    # Pattern 3: Pull request URLs - extract PR number
+    # Pattern 3: Milestone URLs - extract milestone number
+    # https://github.com/owner/repo/milestones/5
+    milestone_pattern = r"https?://github\.com/[\w-]+/[\w-]+/milestones/(\d+)"
+    match = re.search(milestone_pattern, url, re.IGNORECASE)
+    if match:
+        milestone_id = match.group(1)
+        logger.debug(f"Extracted GitHub milestone ID '{milestone_id}' from URL")
+        return milestone_id, None
+
+    # Pattern 4: Pull request URLs - extract PR number
     # https://github.com/owner/repo/pull/456
     pr_pattern = r"https?://github\.com/[\w-]+/[\w-]+/pull/(\d+)"
     match = re.search(pr_pattern, url, re.IGNORECASE)

@@ -1,6 +1,7 @@
 """GitHub adapter implementation using REST API v3 and GraphQL API v4."""
 
 import builtins
+import logging
 import re
 from datetime import datetime
 from pathlib import Path
@@ -12,6 +13,8 @@ from ..core.adapter import BaseAdapter
 from ..core.env_loader import load_adapter_config, validate_adapter_config
 from ..core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
 from ..core.registry import AdapterRegistry
+
+logger = logging.getLogger(__name__)
 
 
 class GitHubStateMapping:
@@ -568,30 +571,69 @@ class GitHubAdapter(BaseAdapter[Task]):
 
         return self._task_from_github_issue(created_issue)
 
-    async def read(self, ticket_id: str) -> Task | None:
-        """Read a GitHub issue by number."""
+    async def read(self, ticket_id: str) -> Task | Epic | None:
+        """Read a GitHub issue OR milestone by number with unified find.
+
+        Tries to find the entity in the following order:
+        1. Issue (most common case) - returns Task
+        2. Milestone (project/epic) - returns Epic
+
+        Args:
+            ticket_id: GitHub issue number or milestone number (as string)
+
+        Returns:
+            Task if issue found,
+            Epic if milestone found,
+            None if not found as either type
+
+        Examples:
+            >>> # Read issue #123
+            >>> task = await adapter.read("123")
+            >>> isinstance(task, Task)  # True
+            >>>
+            >>> # Read milestone #5
+            >>> epic = await adapter.read("5")
+            >>> isinstance(epic, Epic)  # True (if 5 is milestone, not issue)
+
+        """
         # Validate credentials before attempting operation
         is_valid, error_message = self.validate_credentials()
         if not is_valid:
             raise ValueError(error_message)
 
         try:
-            issue_number = int(ticket_id)
+            entity_number = int(ticket_id)
         except ValueError:
             return None
 
+        # Try reading as Issue first (most common case)
         try:
             response = await self.client.get(
-                f"/repos/{self.owner}/{self.repo}/issues/{issue_number}"
+                f"/repos/{self.owner}/{self.repo}/issues/{entity_number}"
             )
-            if response.status_code == 404:
-                return None
-            response.raise_for_status()
+            if response.status_code == 200:
+                response.raise_for_status()
+                issue = response.json()
+                logger.debug(f"Found GitHub entity as Issue: {ticket_id}")
+                return self._task_from_github_issue(issue)
+            elif response.status_code == 404:
+                # Not found as issue, will try milestone next
+                logger.debug(f"Not found as Issue ({ticket_id}), trying Milestone")
+        except httpx.HTTPError as e:
+            logger.debug(f"Error reading as Issue ({ticket_id}): {e}")
 
-            issue = response.json()
-            return self._task_from_github_issue(issue)
-        except httpx.HTTPError:
-            return None
+        # Try reading as Milestone (Epic)
+        try:
+            milestone = await self.get_milestone(entity_number)
+            if milestone:
+                logger.debug(f"Found GitHub entity as Milestone: {ticket_id}")
+                return milestone
+        except Exception as e:
+            logger.debug(f"Error reading as Milestone ({ticket_id}): {e}")
+
+        # Not found as either Issue or Milestone
+        logger.warning(f"GitHub entity not found: {ticket_id}")
+        return None
 
     async def update(self, ticket_id: str, updates: dict[str, Any]) -> Task | None:
         """Update a GitHub issue."""

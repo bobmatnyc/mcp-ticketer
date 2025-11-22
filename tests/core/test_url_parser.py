@@ -165,6 +165,13 @@ class TestGitHubURLParsing:
         assert extracted_id == "456"
         assert error is None
 
+    def test_milestone_url(self):
+        """Test GitHub milestone URL."""
+        url = "https://github.com/owner/repo/milestones/5"
+        extracted_id, error = extract_github_id(url)
+        assert extracted_id == "5"
+        assert error is None
+
     def test_issue_with_hyphens_in_repo(self):
         """Test GitHub URL with hyphens in owner/repo names."""
         url = "https://github.com/my-org/my-repo/issues/789"
