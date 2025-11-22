@@ -282,6 +282,10 @@ class BaseAdapter(ABC, Generic[T]):
     ) -> bool:
         """Validate if state transition is allowed.
 
+        Validates both workflow rules and parent/child state constraints:
+        - Parent issues must remain at least as complete as their most complete child
+        - Standard workflow transitions must be valid
+
         Args:
             ticket_id: Ticket identifier
             target_state: Target state
@@ -293,6 +297,7 @@ class BaseAdapter(ABC, Generic[T]):
         ticket = await self.read(ticket_id)
         if not ticket:
             return False
+
         # Handle case where state might be stored as string due to use_enum_values=True
         current_state = ticket.state
         if isinstance(current_state, str):
@@ -300,7 +305,33 @@ class BaseAdapter(ABC, Generic[T]):
                 current_state = TicketState(current_state)
             except ValueError:
                 return False
-        return current_state.can_transition_to(target_state)
+
+        # Check workflow transition validity
+        if not current_state.can_transition_to(target_state):
+            return False
+
+        # Check parent/child state constraint
+        # If this ticket has children, ensure target state >= max child state
+        if isinstance(ticket, Task) and ticket.children:
+            # Get all children
+            children = await self.list_tasks_by_issue(ticket_id)
+            if children:
+                # Find max child completion level
+                max_child_level = 0
+                for child in children:
+                    child_state = child.state
+                    if isinstance(child_state, str):
+                        try:
+                            child_state = TicketState(child_state)
+                        except ValueError:
+                            continue
+                    max_child_level = max(max_child_level, child_state.completion_level())
+
+                # Target state must be at least as complete as most complete child
+                if target_state.completion_level() < max_child_level:
+                    return False
+
+        return True
 
     # Epic/Issue/Task Hierarchy Methods
 

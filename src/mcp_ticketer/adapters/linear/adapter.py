@@ -335,6 +335,50 @@ class LinearAdapter(BaseAdapter[Task]):
             # Linear returns error if project not found - return None instead of raising
             return None
 
+    async def get_epic(self, epic_id: str, include_issues: bool = True) -> Epic | None:
+        """Get Linear project as Epic with optional issue loading.
+
+        This is the preferred method for reading projects/epics as it provides
+        explicit control over whether to load child issues.
+
+        Args:
+            epic_id: Project UUID, slugId, or short ID
+            include_issues: Whether to fetch and populate child_issues (default True)
+
+        Returns:
+            Epic object with child_issues populated if include_issues=True,
+            or None if project not found
+
+        Raises:
+            ValueError: If credentials invalid
+
+        Example:
+            # Get project with issues
+            epic = await adapter.get_epic("c0e6db5a-03b6-479f-8796-5070b8fb7895")
+
+            # Get project metadata only (faster)
+            epic = await adapter.get_epic("c0e6db5a-03b6-479f-8796-5070b8fb7895", include_issues=False)
+        """
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        # Fetch project data
+        project_data = await self.get_project(epic_id)
+        if not project_data:
+            return None
+
+        # Map to Epic
+        epic = map_linear_project_to_epic(project_data)
+
+        # Optionally fetch and populate child issues
+        if include_issues:
+            issues = await self._get_project_issues(epic_id)
+            epic.child_issues = [issue.id for issue in issues]
+
+        return epic
+
     async def _resolve_project_id(self, project_identifier: str) -> str | None:
         """Resolve project identifier (slug, name, short ID, or URL) to full UUID.
 
@@ -575,6 +619,44 @@ class LinearAdapter(BaseAdapter[Task]):
                 f"Error adding team {team_id} to project {project_id}: {e}"
             )
             return False
+
+    async def _get_project_issues(self, project_id: str, limit: int = 100) -> list[Task]:
+        """Fetch all issues belonging to a Linear project.
+
+        Uses existing build_issue_filter() and LIST_ISSUES_QUERY infrastructure
+        to fetch issues filtered by project_id.
+
+        Args:
+            project_id: Project UUID, slugId, or short ID
+            limit: Maximum issues to return (default 100, max 250)
+
+        Returns:
+            List of Task objects representing project's issues
+
+        Raises:
+            ValueError: If credentials invalid or query fails
+        """
+        logger = logging.getLogger(__name__)
+
+        # Build filter for issues belonging to this project
+        issue_filter = build_issue_filter(project_id=project_id)
+
+        variables = {
+            "filter": issue_filter,
+            "first": min(limit, 250)  # Linear API max per page
+        }
+
+        try:
+            result = await self.client.execute_query(LIST_ISSUES_QUERY, variables)
+            issues = result.get("issues", {}).get("nodes", [])
+
+            # Map Linear issues to Task objects
+            return [map_linear_issue_to_task(issue) for issue in issues]
+
+        except Exception as e:
+            # Log but don't fail - return empty list if issues can't be fetched
+            logger.warning(f"Failed to fetch project issues for {project_id}: {e}")
+            return []
 
     async def _resolve_issue_id(self, issue_identifier: str) -> str | None:
         """Resolve issue identifier (like "ENG-842") to full UUID.
@@ -1297,7 +1379,16 @@ class LinearAdapter(BaseAdapter[Task]):
         try:
             project_data = await self.get_project(ticket_id)
             if project_data:
-                return map_linear_project_to_epic(project_data)
+                # Fetch project's issues to populate child_issues field
+                issues = await self._get_project_issues(ticket_id)
+
+                # Map to Epic
+                epic = map_linear_project_to_epic(project_data)
+
+                # Populate child_issues with issue IDs
+                epic.child_issues = [issue.id for issue in issues]
+
+                return epic
         except Exception:
             # Not found as project either
             pass
@@ -1466,6 +1557,12 @@ class LinearAdapter(BaseAdapter[Task]):
                 user_id = await self._get_user_id(filters["assignee"])
                 if user_id:
                     issue_filter["assignee"] = {"id": {"eq": user_id}}
+
+            # Support parent_issue filter for listing children (critical for parent state constraints)
+            if "parent_issue" in filters:
+                parent_id = await self._resolve_issue_id(filters["parent_issue"])
+                if parent_id:
+                    issue_filter["parent"] = {"id": {"eq": parent_id}}
 
             if "created_after" in filters:
                 issue_filter["createdAt"] = {"gte": filters["created_after"]}
@@ -2163,6 +2260,94 @@ class LinearAdapter(BaseAdapter[Task]):
 
         except Exception as e:
             raise ValueError(f"Failed to list workflow states: {e}") from e
+
+    async def list_epics(
+        self,
+        limit: int = 50,
+        offset: int = 0,
+        state: str | None = None,
+        include_completed: bool = True,
+        **kwargs: Any
+    ) -> builtins.list[Epic]:
+        """List Linear projects (epics) with efficient pagination.
+
+        Args:
+            limit: Maximum number of projects to return (default: 50)
+            offset: Number of projects to skip (note: Linear uses cursor-based pagination)
+            state: Filter by project state (e.g., "planned", "started", "completed", "canceled")
+            include_completed: Whether to include completed projects (default: True)
+            **kwargs: Additional filter parameters (reserved for future use)
+
+        Returns:
+            List of Epic objects mapped from Linear projects
+
+        Raises:
+            ValueError: If credentials are invalid or query fails
+
+        """
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        await self.initialize()
+        team_id = await self._ensure_team_id()
+
+        # Build project filter using existing helper
+        from .types import build_project_filter
+
+        project_filter = build_project_filter(
+            state=state,
+            team_id=team_id,
+            include_completed=include_completed,
+        )
+
+        try:
+            # Fetch projects with pagination
+            all_projects = []
+            has_next_page = True
+            after_cursor = None
+            projects_fetched = 0
+
+            while has_next_page and projects_fetched < limit + offset:
+                # Calculate how many more we need
+                remaining = (limit + offset) - projects_fetched
+                page_size = min(remaining, 50)  # Linear max page size is typically 50
+
+                variables = {"filter": project_filter, "first": page_size}
+                if after_cursor:
+                    variables["after"] = after_cursor
+
+                result = await self.client.execute_query(
+                    LIST_PROJECTS_QUERY, variables
+                )
+
+                projects_data = result.get("projects", {})
+                page_projects = projects_data.get("nodes", [])
+                page_info = projects_data.get("pageInfo", {})
+
+                all_projects.extend(page_projects)
+                projects_fetched += len(page_projects)
+
+                has_next_page = page_info.get("hasNextPage", False)
+                after_cursor = page_info.get("endCursor")
+
+                # Stop if no more results on this page
+                if not page_projects:
+                    break
+
+            # Apply offset and limit
+            paginated_projects = all_projects[offset:offset + limit]
+
+            # Map Linear projects to Epic objects using existing mapper
+            epics = []
+            for project in paginated_projects:
+                epics.append(map_linear_project_to_epic(project))
+
+            return epics
+
+        except Exception as e:
+            raise ValueError(f"Failed to list Linear projects: {e}") from e
 
     async def close(self) -> None:
         """Close the adapter and clean up resources."""

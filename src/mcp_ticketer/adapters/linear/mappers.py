@@ -76,6 +76,9 @@ def map_linear_issue_to_task(issue_data: dict[str, Any]) -> Task:
             issue_data["updatedAt"].replace("Z", "+00:00")
         )
 
+    # Extract child issue IDs
+    children = extract_child_issue_ids(issue_data)
+
     # Extract Linear-specific metadata
     linear_metadata = extract_linear_metadata(issue_data)
     metadata = {"linear": linear_metadata} if linear_metadata else {}
@@ -91,6 +94,7 @@ def map_linear_issue_to_task(issue_data: dict[str, Any]) -> Task:
         tags=tags,
         parent_epic=parent_epic,
         parent_issue=parent_issue,
+        children=children,
         created_at=created_at,
         updated_at=updated_at,
         metadata=metadata,

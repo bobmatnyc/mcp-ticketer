@@ -1,5 +1,7 @@
 """JIRA adapter implementation using REST API v3."""
 
+from __future__ import annotations
+
 import asyncio
 import builtins
 import logging
@@ -1377,6 +1379,148 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         except Exception as e:
             logger.error(f"Failed to get issue status: {e}")
             raise ValueError(f"Failed to get issue status: {e}") from e
+
+    async def create_epic(
+        self,
+        title: str,
+        description: str = "",
+        priority: Priority = Priority.MEDIUM,
+        tags: list[str] | None = None,
+        **kwargs: Any
+    ) -> Epic:
+        """Create a new JIRA Epic.
+
+        Args:
+            title: Epic title
+            description: Epic description
+            priority: Priority level
+            tags: List of labels
+            **kwargs: Additional fields (reserved for future use)
+
+        Returns:
+            Created Epic with ID populated
+
+        Raises:
+            ValueError: If credentials are invalid or creation fails
+
+        """
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        # Build epic input
+        epic = Epic(
+            id="",  # Will be populated by JIRA
+            title=title,
+            description=description,
+            priority=priority,
+            tags=tags or [],
+            state=TicketState.OPEN,
+        )
+
+        # Create using base create method with Epic type
+        created_epic = await self.create(epic)
+
+        if not isinstance(created_epic, Epic):
+            raise ValueError("Created ticket is not an Epic")
+
+        return created_epic
+
+    async def get_epic(self, epic_id: str) -> Epic | None:
+        """Get a JIRA Epic by key or ID.
+
+        Args:
+            epic_id: Epic identifier (key like PROJ-123)
+
+        Returns:
+            Epic object if found and is an Epic type, None otherwise
+
+        Raises:
+            ValueError: If credentials are invalid
+
+        """
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        # Read issue
+        ticket = await self.read(epic_id)
+
+        if not ticket:
+            return None
+
+        # Verify it's an Epic
+        if not isinstance(ticket, Epic):
+            return None
+
+        return ticket
+
+    async def list_epics(
+        self,
+        limit: int = 50,
+        offset: int = 0,
+        state: str | None = None,
+        **kwargs: Any
+    ) -> builtins.list[Epic]:
+        """List JIRA Epics with pagination.
+
+        Args:
+            limit: Maximum number of epics to return (default: 50)
+            offset: Number of epics to skip for pagination (default: 0)
+            state: Filter by state/status name (e.g., "To Do", "In Progress", "Done")
+            **kwargs: Additional filter parameters (reserved for future use)
+
+        Returns:
+            List of Epic objects
+
+        Raises:
+            ValueError: If credentials are invalid or query fails
+
+        """
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        # Build JQL query for epics
+        jql_parts = [f"project = {self.project_key}", 'issuetype = "Epic"']
+
+        # Add state filter if provided
+        if state:
+            jql_parts.append(f'status = "{state}"')
+
+        jql = " AND ".join(jql_parts) + " ORDER BY updated DESC"
+
+        try:
+            # Execute search
+            data = await self._make_request(
+                "GET",
+                "search/jql",
+                params={
+                    "jql": jql,
+                    "startAt": offset,
+                    "maxResults": limit,
+                    "fields": "*all",
+                    "expand": "renderedFields",
+                },
+            )
+
+            # Convert issues to tickets
+            issues = data.get("issues", [])
+            epics = []
+
+            for issue in issues:
+                ticket = self._issue_to_ticket(issue)
+                # Only include if it's actually an Epic
+                if isinstance(ticket, Epic):
+                    epics.append(ticket)
+
+            return epics
+
+        except Exception as e:
+            raise ValueError(f"Failed to list JIRA epics: {e}") from e
 
     async def update_epic(self, epic_id: str, updates: dict[str, Any]) -> Epic | None:
         """Update a JIRA Epic with epic-specific field handling.
