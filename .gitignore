@@ -264,3 +264,10 @@ QA_*.md
 test_*.py
 !tests/test_*.py
 !tests/*/test_*.py
+
+# Temporary documentation and test reports
+*_COMPARISON.md
+*_REPORT*.md
+*_SUMMARY.md
+*_FIX.md
+demo_*.py
