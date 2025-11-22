@@ -90,6 +90,42 @@ class TestLinearIssueMapping:
         assert task.parent_epic == "project-456"
         assert task.parent_issue == "TEST-100"
 
+    def test_map_linear_issue_to_task_with_children(self):
+        """Test Linear issue mapping with child tasks (CRITICAL for parent state constraints)."""
+        issue_data = {
+            "identifier": "TEST-123",
+            "title": "Parent Issue",
+            "priority": 3,
+            "state": {"type": "started"},
+            "children": {
+                "nodes": [
+                    {"identifier": "TEST-124"},
+                    {"identifier": "TEST-125"},
+                    {"identifier": "TEST-126"},
+                ]
+            },
+        }
+
+        task = map_linear_issue_to_task(issue_data)
+
+        # CRITICAL: Children field must be populated for parent state constraint validation
+        assert task.children == ["TEST-124", "TEST-125", "TEST-126"]
+        assert len(task.children) == 3
+
+    def test_map_linear_issue_to_task_without_children(self):
+        """Test Linear issue mapping without children."""
+        issue_data = {
+            "identifier": "TEST-123",
+            "title": "Leaf Issue",
+            "priority": 3,
+            "state": {"type": "unstarted"},
+        }
+
+        task = map_linear_issue_to_task(issue_data)
+
+        # Issues without children should have empty list
+        assert task.children == []
+
     def test_map_linear_issue_to_task_with_metadata(self):
         """Test Linear issue mapping with metadata."""
         issue_data = {

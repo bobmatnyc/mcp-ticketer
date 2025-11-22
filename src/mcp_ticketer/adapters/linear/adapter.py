@@ -1551,6 +1551,12 @@ class LinearAdapter(BaseAdapter[Task]):
                 if user_id:
                     issue_filter["assignee"] = {"id": {"eq": user_id}}
 
+            # Support parent_issue filter for listing children (critical for parent state constraints)
+            if "parent_issue" in filters:
+                parent_id = await self._resolve_issue_id(filters["parent_issue"])
+                if parent_id:
+                    issue_filter["parent"] = {"id": {"eq": parent_id}}
+
             if "created_after" in filters:
                 issue_filter["createdAt"] = {"gte": filters["created_after"]}
             if "updated_after" in filters:

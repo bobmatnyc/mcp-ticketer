@@ -417,18 +417,75 @@ async def ticket_transition(
 
         target_state = match_result.state
 
-        # Validate transition
-        if not current_state.can_transition_to(target_state):
+        # Validate transition using adapter (includes parent/child state constraints)
+        is_valid = await adapter.validate_transition(ticket_id, target_state)
+        if not is_valid:
+            # Check if it's a workflow violation or parent constraint violation
+            workflow_valid = current_state.can_transition_to(target_state)
             valid_transitions = TicketState.valid_transitions().get(current_state, [])
             valid_values = [s.value for s in valid_transitions]
-            return {
-                **response,
-                "status": "error",
-                "error": f"Invalid transition from '{current_state.value}' to '{target_state.value}'",
-                "valid_transitions": valid_values,
-                "message": f"Cannot transition from {current_state.value} to {target_state.value}. "
-                f"Valid transitions: {', '.join(valid_values) if valid_values else 'none (terminal state)'}",
-            }
+
+            if workflow_valid:
+                # Workflow is valid, so this must be a parent constraint violation
+                # Get children to determine max child state
+                from ....core.models import Task
+
+                if isinstance(ticket, Task) and ticket.children:
+                    try:
+                        children = await adapter.list_tasks_by_issue(ticket_id)
+                        if children:
+                            max_child_state = None
+                            max_child_level = 0
+                            for child in children:
+                                child_state = child.state
+                                if isinstance(child_state, str):
+                                    try:
+                                        child_state = TicketState(child_state)
+                                    except ValueError:
+                                        continue
+                                child_level = child_state.completion_level()
+                                if child_level > max_child_level:
+                                    max_child_level = child_level
+                                    max_child_state = child_state
+
+                            return {
+                                **response,
+                                "status": "error",
+                                "error": f"Cannot transition to '{target_state.value}': parent issue has children in higher completion states",
+                                "reason": "parent_constraint_violation",
+                                "max_child_state": (
+                                    max_child_state.value if max_child_state else None
+                                ),
+                                "message": f"Cannot transition to {target_state.value}: "
+                                f"parent issue has children in higher completion states (max child state: {max_child_state.value if max_child_state else 'unknown'}). "
+                                f"Please update child states first.",
+                                "valid_transitions": valid_values,
+                            }
+                    except Exception:
+                        # Fallback to generic message if we can't determine child states
+                        pass
+
+                # Generic parent constraint violation message
+                return {
+                    **response,
+                    "status": "error",
+                    "error": f"Cannot transition to '{target_state.value}': parent/child state constraint violation",
+                    "reason": "parent_constraint_violation",
+                    "message": f"Cannot transition to {target_state.value}: "
+                    f"parent issue has children in higher completion states. Please update child states first.",
+                    "valid_transitions": valid_values,
+                }
+            else:
+                # Workflow violation
+                return {
+                    **response,
+                    "status": "error",
+                    "error": f"Invalid transition from '{current_state.value}' to '{target_state.value}'",
+                    "reason": "workflow_violation",
+                    "valid_transitions": valid_values,
+                    "message": f"Cannot transition from {current_state.value} to {target_state.value}. "
+                    f"Valid transitions: {', '.join(valid_values) if valid_values else 'none (terminal state)'}",
+                }
 
         # Update ticket state
         updated = await adapter.update(ticket_id, {"state": target_state})

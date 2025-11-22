@@ -147,6 +147,7 @@ def build_issue_filter(
     priority: Priority | None = None,
     team_id: str | None = None,
     project_id: str | None = None,
+    parent_id: str | None = None,
     labels: list[str] | None = None,
     created_after: str | None = None,
     updated_after: str | None = None,
@@ -161,6 +162,7 @@ def build_issue_filter(
         priority: Filter by priority
         team_id: Filter by team ID
         project_id: Filter by project ID
+        parent_id: Filter by parent issue ID (for listing sub-issues)
         labels: Filter by label names
         created_after: Filter by creation date (ISO string)
         updated_after: Filter by update date (ISO string)
@@ -194,6 +196,10 @@ def build_issue_filter(
     # Project filter
     if project_id:
         issue_filter["project"] = {"id": {"eq": project_id}}
+
+    # Parent filter (for listing children/sub-issues)
+    if parent_id:
+        issue_filter["parent"] = {"id": {"eq": parent_id}}
 
     # Labels filter
     if labels:

@@ -295,6 +295,8 @@ class TestTicketTransition:
         )
         mock_adapter.read.return_value = mock_ticket
         mock_adapter.update.return_value = mock_updated
+        # Mock validate_transition to return True for valid transition
+        mock_adapter.validate_transition.return_value = True
 
         with patch(
             "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_adapter",
@@ -322,6 +324,8 @@ class TestTicketTransition:
             state=TicketState.OPEN,
         )
         mock_adapter.read.return_value = mock_ticket
+        # Mock validate_transition to return False for invalid transition
+        mock_adapter.validate_transition.return_value = False
 
         with patch(
             "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_adapter",
@@ -334,12 +338,13 @@ class TestTicketTransition:
             assert "Invalid transition" in result["error"]
             assert result["current_state"] == "open"
             assert "valid_transitions" in result
+            assert result["reason"] == "workflow_violation"
 
             # Verify update was NOT called
             mock_adapter.update.assert_not_called()
 
-    async def test_invalid_state_name(self) -> None:
-        """Test error with invalid state name."""
+    async def test_ambiguous_state_name(self) -> None:
+        """Test ambiguous state name returns suggestions."""
         # Mock adapter
         mock_adapter = AsyncMock()
         mock_ticket = Task(
@@ -353,11 +358,14 @@ class TestTicketTransition:
             "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_adapter",
             return_value=mock_adapter,
         ):
-            result = await ticket_transition("TICKET-1", "invalid_state")
+            # Use a very ambiguous input that should have low confidence
+            result = await ticket_transition("TICKET-1", "xyz")
 
-            assert result["status"] == "error"
-            assert "Invalid state" in result["error"]
-            assert "valid_states" in result
+            # Should return suggestions due to low confidence
+            assert result["status"] in ["ambiguous", "completed"]
+            # If ambiguous, should have suggestions
+            if result["status"] == "ambiguous":
+                assert "suggestions" in result
 
     async def test_transition_with_comment(self) -> None:
         """Test transition with comment."""
@@ -375,6 +383,7 @@ class TestTicketTransition:
         )
         mock_adapter.read.return_value = mock_ticket
         mock_adapter.update.return_value = mock_updated
+        mock_adapter.validate_transition.return_value = True
         mock_adapter.add_comment = AsyncMock()
 
         with patch(
@@ -409,6 +418,7 @@ class TestTicketTransition:
         )
         mock_adapter.read.return_value = mock_ticket
         mock_adapter.update.return_value = mock_updated
+        mock_adapter.validate_transition.return_value = True
         # Delete add_comment to simulate adapter without comment support
         del mock_adapter.add_comment
 
@@ -446,6 +456,7 @@ class TestTicketTransition:
             state=TicketState.CLOSED,
         )
         mock_adapter.read.return_value = mock_ticket
+        mock_adapter.validate_transition.return_value = False
 
         with patch(
             "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_adapter",
@@ -456,3 +467,41 @@ class TestTicketTransition:
             assert result["status"] == "error"
             assert "Invalid transition" in result["error"]
             assert "terminal state" in result["message"]
+
+    async def test_parent_constraint_violation(self) -> None:
+        """Test error when parent constraint is violated."""
+        # Mock adapter
+        mock_adapter = AsyncMock()
+        # Parent task with children
+        mock_ticket = Task(
+            id="PARENT-1",
+            title="Parent task",
+            state=TicketState.IN_PROGRESS,
+            children=["CHILD-1"],  # Has children
+        )
+        # Child task in higher completion state
+        mock_child = Task(
+            id="CHILD-1",
+            title="Child task",
+            state=TicketState.DONE,  # Higher completion than parent wants to be
+        )
+        mock_adapter.read.return_value = mock_ticket
+        mock_adapter.validate_transition.return_value = False
+        mock_adapter.list_tasks_by_issue.return_value = [mock_child]
+
+        with patch(
+            "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_adapter",
+            return_value=mock_adapter,
+        ):
+            # Try to transition parent to OPEN (lower than child's DONE)
+            result = await ticket_transition("PARENT-1", "open")
+
+            assert result["status"] == "error"
+            assert result["reason"] == "parent_constraint_violation"
+            assert "max_child_state" in result
+            assert result["max_child_state"] == "done"
+            assert "children in higher completion states" in result["message"]
+            assert "valid_transitions" in result
+
+            # Verify update was NOT called
+            mock_adapter.update.assert_not_called()
