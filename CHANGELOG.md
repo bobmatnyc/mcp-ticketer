@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.1.3] - 2025-01-22
+
 ### Added
 
 - **Modular Makefile Build System**: Complete build system refactoring for improved maintainability
