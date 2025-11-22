@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Test Linear view URL error handling."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from mcp_ticketer.adapters.linear import LinearAdapter
 
@@ -21,7 +22,9 @@ async def test_view_url_helpful_error_when_api_fails():
 
     # Mock the client to simulate API failure
     adapter.client = MagicMock()
-    adapter.client.execute_query = AsyncMock(return_value={})  # Empty result = API failed
+    adapter.client.execute_query = AsyncMock(
+        return_value={}
+    )  # Empty result = API failed
 
     # Test: Read with a view URL identifier (slug-uuid format)
     view_id = "mcp-skills-issues-0d0359fabcf9"
@@ -60,8 +63,8 @@ async def test_view_url_helpful_error_when_api_succeeds():
                     {"id": "issue1"},
                     {"id": "issue2"},
                 ],
-                "pageInfo": {"hasNextPage": True}
-            }
+                "pageInfo": {"hasNextPage": True},
+            },
         }
     }
 
