@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Fixed
+- **MCP Tool Error Handling**: Fixed `ticket_read` MCP tool to preserve helpful `ValueError` messages from adapters
+  - Previously, `ValueError` exceptions (like Linear view URL errors) were caught by generic `Exception` handler
+  - Generic handler wrapped helpful error messages with "Failed to read ticket: " prefix
+  - Now specifically handles `ValueError` separately to preserve adapter's helpful error messages
+  - Fixes issue where Linear view URL detection errors weren't displayed properly to users
+  - Other exceptions (network errors, auth failures) still get wrapped with "Failed to read ticket: " for clarity
+  - Added comprehensive test coverage for both ValueError preservation and generic exception wrapping
+
 ## [1.1.6] - 2025-01-22
 
 ### Fixed

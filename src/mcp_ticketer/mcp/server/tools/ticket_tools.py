@@ -354,6 +354,14 @@ async def ticket_read(ticket_id: str) -> dict[str, Any]:
             **_build_adapter_metadata(adapter, ticket.id, is_routed),
             "ticket": ticket.model_dump(),
         }
+    except ValueError as e:
+        # ValueError from adapters contains helpful user-facing messages
+        # (e.g., Linear view URL detection error)
+        # Return the error message directly without generic wrapper
+        return {
+            "status": "error",
+            "error": str(e),
+        }
     except Exception as e:
         return {
             "status": "error",
