@@ -186,6 +186,8 @@ class TicketerConfig:
     default_project: str | None = None  # Default project/epic ID (supports URLs)
     default_epic: str | None = None  # Alias for default_project (backward compat)
     default_tags: list[str] | None = None  # Default tags for new tickets
+    default_team: str | None = None  # Default team ID/key for multi-team platforms
+    default_cycle: str | None = None  # Default sprint/cycle ID for timeline scoping
 
     def __post_init__(self):
         """Normalize default_project if it's a URL."""
@@ -249,6 +251,10 @@ class TicketerConfig:
             result["default_epic"] = self.default_epic
         if self.default_tags is not None:
             result["default_tags"] = self.default_tags
+        if self.default_team is not None:
+            result["default_team"] = self.default_team
+        if self.default_cycle is not None:
+            result["default_cycle"] = self.default_cycle
         return result
 
     @classmethod
@@ -280,6 +286,8 @@ class TicketerConfig:
             default_project=data.get("default_project"),
             default_epic=data.get("default_epic"),
             default_tags=data.get("default_tags"),
+            default_team=data.get("default_team"),
+            default_cycle=data.get("default_cycle"),
         )
 
 

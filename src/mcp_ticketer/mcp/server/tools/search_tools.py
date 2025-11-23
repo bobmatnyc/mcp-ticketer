@@ -4,6 +4,7 @@ This module implements advanced search capabilities for tickets using
 various filters and criteria.
 """
 
+import logging
 from typing import Any
 
 from ....core.models import Priority, SearchQuery, TicketState
@@ -38,6 +39,14 @@ async def ticket_search(
     """
     try:
         adapter = get_adapter()
+
+        # Add warning for unscoped searches
+        if not query and not (state or priority or tags or assignee):
+            logging.warning(
+                "Unscoped search with no query or filters. "
+                "This will search ALL tickets across all projects. "
+                "Tip: Configure default_project or default_team for automatic scoping."
+            )
 
         # Validate and build search query
         state_enum = None

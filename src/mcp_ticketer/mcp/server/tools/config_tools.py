@@ -429,6 +429,146 @@ async def config_set_default_tags(
 
 
 @mcp.tool()
+async def config_set_default_team(
+    team_id: str,
+) -> dict[str, Any]:
+    """Set the default team for ticket operations.
+
+    Updates the project-local configuration to automatically scope ticket
+    operations to the specified team. This is useful for multi-team platforms
+    like Linear where teams have separate workspaces.
+
+    Args:
+        team_id: Team ID or key to set as default (e.g., "ENG", UUID)
+
+    Returns:
+        Dictionary containing:
+        - status: "completed" or "error"
+        - message: Success or error message
+        - previous_team: Previous default team (if any)
+        - new_team: New default team ID
+        - error: Error details (if failed)
+
+    Example:
+        >>> result = await config_set_default_team("ENG")
+        >>> print(result)
+        {
+            "status": "completed",
+            "message": "Default team set to 'ENG'",
+            "previous_team": None,
+            "new_team": "ENG"
+        }
+
+    Usage Notes:
+        - Team ID is not validated (allows flexibility across adapters)
+        - Empty string or null clears the default team
+        - Helps scope ticket_list and ticket_search operations
+
+    """
+    try:
+        # Validate team ID
+        if not team_id or len(team_id.strip()) < 1:
+            return {
+                "status": "error",
+                "error": "Team ID must be at least 1 character",
+            }
+
+        # Load current configuration
+        resolver = get_resolver()
+        config = resolver.load_project_config() or TicketerConfig()
+
+        # Store previous team for response
+        previous_team = config.default_team
+
+        # Update default team
+        config.default_team = team_id.strip()
+        resolver.save_project_config(config)
+
+        return {
+            "status": "completed",
+            "message": f"Default team set to '{team_id}'",
+            "previous_team": previous_team,
+            "new_team": config.default_team,
+            "config_path": str(resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH),
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to set default team: {str(e)}",
+        }
+
+
+@mcp.tool()
+async def config_set_default_cycle(
+    cycle_id: str,
+) -> dict[str, Any]:
+    """Set the default cycle/sprint for ticket operations.
+
+    Updates the project-local configuration to automatically scope ticket
+    operations to the specified cycle or sprint. This is useful for platforms
+    that support sprint/cycle-based planning.
+
+    Args:
+        cycle_id: Cycle/sprint ID to set as default (e.g., "Sprint 23", UUID)
+
+    Returns:
+        Dictionary containing:
+        - status: "completed" or "error"
+        - message: Success or error message
+        - previous_cycle: Previous default cycle (if any)
+        - new_cycle: New default cycle ID
+        - error: Error details (if failed)
+
+    Example:
+        >>> result = await config_set_default_cycle("Sprint 23")
+        >>> print(result)
+        {
+            "status": "completed",
+            "message": "Default cycle set to 'Sprint 23'",
+            "previous_cycle": None,
+            "new_cycle": "Sprint 23"
+        }
+
+    Usage Notes:
+        - Cycle ID is not validated (allows flexibility across adapters)
+        - Empty string or null clears the default cycle
+        - Helps scope ticket_list and ticket_search operations
+
+    """
+    try:
+        # Validate cycle ID
+        if not cycle_id or len(cycle_id.strip()) < 1:
+            return {
+                "status": "error",
+                "error": "Cycle ID must be at least 1 character",
+            }
+
+        # Load current configuration
+        resolver = get_resolver()
+        config = resolver.load_project_config() or TicketerConfig()
+
+        # Store previous cycle for response
+        previous_cycle = config.default_cycle
+
+        # Update default cycle
+        config.default_cycle = cycle_id.strip()
+        resolver.save_project_config(config)
+
+        return {
+            "status": "completed",
+            "message": f"Default cycle set to '{cycle_id}'",
+            "previous_cycle": previous_cycle,
+            "new_cycle": config.default_cycle,
+            "config_path": str(resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH),
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to set default cycle: {str(e)}",
+        }
+
+
+@mcp.tool()
 async def config_set_default_epic(
     epic_id: str,
 ) -> dict[str, Any]:

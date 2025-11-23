@@ -198,8 +198,8 @@ class TestTicketListCompactMode:
             assert "actual_hours" not in ticket
             assert "children" not in ticket
 
-    async def test_ticket_list_compact_default_is_false(self) -> None:
-        """Test that compact mode defaults to False for backward compatibility."""
+    async def test_ticket_list_compact_default_is_true(self) -> None:
+        """Test that compact mode defaults to True for token efficiency (1M-133)."""
         mock_adapter = AsyncMock()
         mock_adapter.list.return_value = []
 
@@ -207,11 +207,11 @@ class TestTicketListCompactMode:
             "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
             return_value=mock_adapter,
         ):
-            # Call without compact parameter
+            # Call without compact parameter - should default to True now
             result = await ticket_list(limit=10)
 
             assert result["status"] == "completed"
-            assert result["compact"] is False
+            assert result["compact"] is True
 
     async def test_ticket_list_compact_with_multiple_tickets(self) -> None:
         """Test compact mode with multiple tickets."""
@@ -342,7 +342,11 @@ class TestTicketListBackwardCompatibility:
     """Test backward compatibility of ticket_list changes."""
 
     async def test_existing_calls_without_compact_still_work(self) -> None:
-        """Test that existing code calling ticket_list still works."""
+        """Test that existing code calling ticket_list still works (1M-133).
+
+        Note: After 1M-133, default changed to compact=True for token efficiency.
+        Legacy code without explicit compact=False will get compact mode.
+        """
         mock_adapter = AsyncMock()
         mock_tickets = [
             Task(
@@ -367,9 +371,10 @@ class TestTicketListBackwardCompatibility:
 
             assert result["status"] == "completed"
             assert len(result["tickets"]) == 1
-            assert result["tickets"][0]["description"] == "Should include description"
-            # Compact field should be present and False
-            assert result["compact"] is False
+            # After 1M-133: Compact field should be True by default
+            assert result["compact"] is True
+            # Description excluded in compact mode
+            assert "description" not in result["tickets"][0]
 
     async def test_invalid_state_error_unchanged(self) -> None:
         """Test that invalid state error behavior is unchanged."""

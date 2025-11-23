@@ -679,6 +679,14 @@ async def ticket_list(
                 f"Consider using compact=True to reduce token usage."
             )
 
+        # Add warning for large unscoped queries
+        if limit > 50 and not (state or priority or assignee):
+            logging.warning(
+                f"Large unscoped query: limit={limit} with no filters. "
+                f"Consider using state, priority, or assignee filters to reduce result set. "
+                f"Tip: Configure default_team or default_project for automatic scoping."
+            )
+
         # Build filters dictionary
         filters: dict[str, Any] = {}
 
