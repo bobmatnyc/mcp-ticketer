@@ -251,6 +251,10 @@ class TicketRouter:
                 f"Routing read for '{normalized_id}' to {adapter_name} adapter"
             )
             return await adapter.read(normalized_id)
+        except ValueError:
+            # Re-raise ValueError without wrapping to preserve helpful user messages
+            # (e.g., Linear view URL detection error)
+            raise
         except Exception as e:
             raise RouterError(f"Failed to route read operation: {str(e)}") from e
 
@@ -275,6 +279,10 @@ class TicketRouter:
                 f"Routing update for '{normalized_id}' to {adapter_name} adapter"
             )
             return await adapter.update(normalized_id, updates)
+        except ValueError:
+            # Re-raise ValueError without wrapping to preserve helpful user messages
+            # (e.g., Linear view URL detection error)
+            raise
         except Exception as e:
             raise RouterError(f"Failed to route update operation: {str(e)}") from e
 
@@ -298,6 +306,10 @@ class TicketRouter:
                 f"Routing delete for '{normalized_id}' to {adapter_name} adapter"
             )
             return await adapter.delete(normalized_id)
+        except ValueError:
+            # Re-raise ValueError without wrapping to preserve helpful user messages
+            # (e.g., Linear view URL detection error)
+            raise
         except Exception as e:
             raise RouterError(f"Failed to route delete operation: {str(e)}") from e
 
@@ -325,6 +337,10 @@ class TicketRouter:
             # Update comment's ticket_id to use normalized ID
             comment.ticket_id = normalized_id
             return await adapter.add_comment(comment)
+        except ValueError:
+            # Re-raise ValueError without wrapping to preserve helpful user messages
+            # (e.g., Linear view URL detection error)
+            raise
         except Exception as e:
             raise RouterError(f"Failed to route add_comment operation: {str(e)}") from e
 
@@ -352,6 +368,10 @@ class TicketRouter:
                 f"Routing get_comments for '{normalized_id}' to {adapter_name} adapter"
             )
             return await adapter.get_comments(normalized_id, limit=limit, offset=offset)
+        except ValueError:
+            # Re-raise ValueError without wrapping to preserve helpful user messages
+            # (e.g., Linear view URL detection error)
+            raise
         except Exception as e:
             raise RouterError(
                 f"Failed to route get_comments operation: {str(e)}"
@@ -377,6 +397,10 @@ class TicketRouter:
                 f"Routing list_issues_by_epic for '{normalized_id}' to {adapter_name} adapter"
             )
             return await adapter.list_issues_by_epic(normalized_id)
+        except ValueError:
+            # Re-raise ValueError without wrapping to preserve helpful user messages
+            # (e.g., Linear view URL detection error)
+            raise
         except Exception as e:
             raise RouterError(
                 f"Failed to route list_issues_by_epic operation: {str(e)}"
@@ -402,6 +426,10 @@ class TicketRouter:
                 f"Routing list_tasks_by_issue for '{normalized_id}' to {adapter_name} adapter"
             )
             return await adapter.list_tasks_by_issue(normalized_id)
+        except ValueError:
+            # Re-raise ValueError without wrapping to preserve helpful user messages
+            # (e.g., Linear view URL detection error)
+            raise
         except Exception as e:
             raise RouterError(
                 f"Failed to route list_tasks_by_issue operation: {str(e)}"
