@@ -188,6 +188,7 @@ class TicketerConfig:
     default_tags: list[str] | None = None  # Default tags for new tickets
     default_team: str | None = None  # Default team ID/key for multi-team platforms
     default_cycle: str | None = None  # Default sprint/cycle ID for timeline scoping
+    assignment_labels: list[str] | None = None  # Labels indicating ticket assignment
 
     def __post_init__(self):
         """Normalize default_project if it's a URL."""
@@ -255,6 +256,8 @@ class TicketerConfig:
             result["default_team"] = self.default_team
         if self.default_cycle is not None:
             result["default_cycle"] = self.default_cycle
+        if self.assignment_labels is not None:
+            result["assignment_labels"] = self.assignment_labels
         return result
 
     @classmethod
@@ -288,6 +291,7 @@ class TicketerConfig:
             default_tags=data.get("default_tags"),
             default_team=data.get("default_team"),
             default_cycle=data.get("default_cycle"),
+            assignment_labels=data.get("assignment_labels"),
         )
 
 

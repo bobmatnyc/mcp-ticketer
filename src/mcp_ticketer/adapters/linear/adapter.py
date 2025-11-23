@@ -1870,6 +1870,14 @@ class LinearAdapter(BaseAdapter[Task]):
     ) -> bool:
         """Validate if state transition is allowed.
 
+        Delegates to BaseAdapter for:
+        - Workflow state machine validation
+        - Parent/child state constraint validation (from 1M-93 requirement)
+
+        The BaseAdapter implementation (core/adapter.py lines 312-370) ensures:
+        1. Valid workflow state transitions (OPEN → IN_PROGRESS → READY → etc.)
+        2. Parent issues maintain completion level ≥ max child completion level
+
         Args:
         ----
             ticket_id: Linear issue identifier
@@ -1877,12 +1885,11 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
         -------
-            True if transition is valid
+            True if transition is valid, False otherwise
 
         """
-        # For now, allow all transitions
-        # In practice, you might want to implement Linear's workflow rules
-        return True
+        # Call parent implementation for all validation logic
+        return await super().validate_transition(ticket_id, target_state)
 
     async def add_comment(self, comment: Comment) -> Comment:
         """Add a comment to a Linear issue.

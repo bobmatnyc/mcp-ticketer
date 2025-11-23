@@ -29,7 +29,12 @@ so repeated reads are fast (O(1) after first load).
 from pathlib import Path
 from typing import Any
 
-from ....core.project_config import AdapterType, ConfigResolver, TicketerConfig
+from ....core.project_config import (
+    AdapterType,
+    ConfigResolver,
+    ConfigValidator,
+    TicketerConfig,
+)
 from ..server_sdk import mcp
 
 
@@ -633,6 +638,233 @@ async def config_set_default_epic(
         return {
             "status": "error",
             "error": f"Failed to set default epic: {str(e)}",
+        }
+
+
+@mcp.tool()
+async def config_set_assignment_labels(labels: list[str]) -> dict[str, Any]:
+    """Set labels that indicate ticket assignment to user.
+
+    Assignment labels are used by the check_open_tickets feature to find
+    tickets that should be worked on, in addition to tickets directly
+    assigned to the default_user.
+
+    This is useful for teams that use labels like "assigned-to-me",
+    "my-work", "in-progress" to indicate ticket ownership beyond
+    formal assignment fields.
+
+    Args:
+        labels: List of label names that indicate ticket is assigned to user.
+                Examples: ["assigned-to-me", "my-work", "active-sprint"]
+
+    Returns:
+        Dictionary containing:
+        - status: "completed" or "error"
+        - message: Success message with label list
+        - assignment_labels: The labels that were set
+        - config_path: Path to configuration file
+        - error: Error details (if failed)
+
+    Example:
+        >>> result = await config_set_assignment_labels(["my-work", "in-progress"])
+        >>> print(result)
+        {
+            "status": "completed",
+            "message": "Assignment labels set to: my-work, in-progress",
+            "assignment_labels": ["my-work", "in-progress"],
+            "config_path": "/path/to/.mcp-ticketer/config.json"
+        }
+
+    Usage Notes:
+        - Labels are platform-specific (Linear uses different names than GitHub)
+        - Empty list is valid (disables assignment label filtering)
+        - Labels are case-sensitive
+        - Labels must be 2-50 characters
+
+    """
+    try:
+        # Validate label format
+        for label in labels:
+            if not label or len(label) < 2 or len(label) > 50:
+                return {
+                    "status": "error",
+                    "error": f"Invalid label '{label}': must be 2-50 characters",
+                }
+
+        resolver = get_resolver()
+        config = resolver.load_project_config() or TicketerConfig()
+
+        config.assignment_labels = labels if labels else None
+        resolver.save_project_config(config)
+
+        config_path = Path.cwd() / ".mcp-ticketer" / "config.json"
+
+        return {
+            "status": "completed",
+            "message": (
+                f"Assignment labels set to: {', '.join(labels)}"
+                if labels
+                else "Assignment labels cleared"
+            ),
+            "assignment_labels": labels,
+            "config_path": str(config_path),
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to set assignment labels: {str(e)}",
+        }
+
+
+@mcp.tool()
+async def config_validate() -> dict[str, Any]:
+    """Validate all adapter configurations without testing connectivity.
+
+    Performs structural validation of adapter configurations including:
+    - Required field presence
+    - Field format validation (API keys, URLs, emails)
+    - Team ID/key validation
+    - Configuration consistency checks
+
+    Does NOT test actual API connectivity. Use config_test_adapter() for that.
+
+    Returns:
+        Dictionary containing:
+        - status: "completed" or "error"
+        - validation_results: Dict mapping adapter names to validation status
+        - all_valid: Boolean indicating if all configs are valid
+        - issues: List of validation errors (empty if all valid)
+        - message: Summary message
+
+    Example:
+        >>> result = await config_validate()
+        >>> print(result)
+        {
+            "status": "completed",
+            "validation_results": {
+                "linear": {"valid": True, "error": None},
+                "github": {"valid": False, "error": "GitHub token is missing"}
+            },
+            "all_valid": False,
+            "issues": ["github: GitHub token is missing"]
+        }
+    """
+    try:
+        resolver = get_resolver()
+        config = resolver.load_project_config() or TicketerConfig()
+
+        if not config.adapters:
+            return {
+                "status": "completed",
+                "validation_results": {},
+                "all_valid": True,
+                "issues": [],
+                "message": "No adapters configured",
+            }
+
+        results = {}
+        issues = []
+
+        for adapter_name, adapter_config in config.adapters.items():
+            is_valid, error = ConfigValidator.validate(
+                adapter_name, adapter_config.to_dict()
+            )
+
+            results[adapter_name] = {
+                "valid": is_valid,
+                "error": error,
+            }
+
+            if not is_valid:
+                issues.append(f"{adapter_name}: {error}")
+
+        return {
+            "status": "completed",
+            "validation_results": results,
+            "all_valid": len(issues) == 0,
+            "issues": issues,
+            "message": (
+                "All configurations valid"
+                if len(issues) == 0
+                else f"Found {len(issues)} validation issue(s)"
+            ),
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to validate configuration: {str(e)}",
+        }
+
+
+@mcp.tool()
+async def config_test_adapter(adapter_name: str) -> dict[str, Any]:
+    """Test connectivity for a specific adapter.
+
+    Performs actual API connectivity test by:
+    1. Loading adapter configuration
+    2. Initializing adapter with credentials
+    3. Making test API call (list operation)
+    4. Reporting success or specific error
+
+    Args:
+        adapter_name: Name of adapter to test (linear, github, jira, aitrackdown)
+
+    Returns:
+        Dictionary containing:
+        - status: "completed" or "error"
+        - adapter: Adapter name
+        - healthy: Boolean indicating if test passed
+        - message: Success or error message
+        - error_type: Type of error (if failed)
+
+    Example:
+        >>> result = await config_test_adapter("linear")
+        >>> print(result)
+        {
+            "status": "completed",
+            "adapter": "linear",
+            "healthy": True,
+            "message": "Adapter initialized and API call successful"
+        }
+
+    Error Conditions:
+        - Adapter not configured: Returns error with available adapters
+        - Invalid credentials: Returns healthy=False with specific error
+        - Network issues: Returns healthy=False with connection error
+    """
+    try:
+        # Import diagnostic tool
+        from .diagnostic_tools import check_adapter_health
+
+        # Validate adapter name
+        valid_adapters = [adapter_type.value for adapter_type in AdapterType]
+        if adapter_name.lower() not in valid_adapters:
+            return {
+                "status": "error",
+                "error": f"Invalid adapter '{adapter_name}'",
+                "valid_adapters": valid_adapters,
+            }
+
+        # Use existing health check infrastructure
+        result = await check_adapter_health(adapter_name=adapter_name)
+
+        if result["status"] == "error":
+            return result
+
+        # Extract adapter-specific result
+        adapter_result = result["adapters"][adapter_name]
+
+        return {
+            "status": "completed",
+            "adapter": adapter_name,
+            "healthy": adapter_result["status"] == "healthy",
+            "message": adapter_result.get("message") or adapter_result.get("error"),
+            "error_type": adapter_result.get("error_type"),
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to test adapter: {str(e)}",
         }
 
 
