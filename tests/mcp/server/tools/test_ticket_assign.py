@@ -37,16 +37,17 @@ class TestTicketAssignBasic:
             state=TicketState.OPEN,
             assignee=None,
         )
-        # Updated ticket state (assigned)
+        # Updated ticket state (assigned and auto-transitioned to IN_PROGRESS)
         mock_updated = Task(
             id="TICKET-1",
             title="Test ticket",
-            state=TicketState.OPEN,
+            state=TicketState.IN_PROGRESS,
             assignee="user@example.com",
         )
 
         mock_adapter.read.return_value = mock_ticket
         mock_adapter.update.return_value = mock_updated
+        mock_adapter.add_comment = AsyncMock()
 
         with patch(
             "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
@@ -62,7 +63,10 @@ class TestTicketAssignBasic:
                 assert result["ticket"]["id"] == "TICKET-1"
                 assert result["previous_assignee"] is None
                 assert result["new_assignee"] == "user@example.com"
-                assert result["comment_added"] is False
+                assert result["previous_state"] == "open"
+                assert result["new_state"] == "in_progress"
+                assert result["state_auto_transitioned"] is True
+                assert result["comment_added"] is True
                 assert result["adapter"] == "linear"
                 assert result["adapter_name"] == "Linear"
                 assert "routed_from_url" not in result
@@ -70,7 +74,7 @@ class TestTicketAssignBasic:
                 # Verify adapter methods were called correctly
                 mock_adapter.read.assert_called_once_with("TICKET-1")
                 mock_adapter.update.assert_called_once_with(
-                    "TICKET-1", {"assignee": "user@example.com"}
+                    "TICKET-1", {"assignee": "user@example.com", "state": TicketState.IN_PROGRESS}
                 )
 
     async def test_assign_ticket_with_user_id(self) -> None:
@@ -242,10 +246,11 @@ class TestTicketAssignWithComment:
             state=TicketState.OPEN,
             assignee=None,
         )
+        # Auto-transitions to IN_PROGRESS when assigned
         mock_updated = Task(
             id="TICKET-1",
             title="Test",
-            state=TicketState.OPEN,
+            state=TicketState.IN_PROGRESS,
             assignee="user@example.com",
         )
 
@@ -267,15 +272,16 @@ class TestTicketAssignWithComment:
 
                 assert result["status"] == "completed"
                 assert result["comment_added"] is True
+                assert result["state_auto_transitioned"] is True
 
-                # Verify comment was added
+                # Verify comment was added (user comment, not auto-comment)
                 mock_adapter.add_comment.assert_called_once()
                 call_args = mock_adapter.add_comment.call_args[0][0]
                 assert call_args.ticket_id == "TICKET-1"
                 assert call_args.content == "Taking ownership of this issue"
 
     async def test_assign_without_comment(self) -> None:
-        """Test assignment without comment."""
+        """Test assignment without explicit comment - auto-comment is added due to state transition."""
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "linear"
         mock_adapter.adapter_display_name = "Linear"
@@ -286,15 +292,17 @@ class TestTicketAssignWithComment:
             state=TicketState.OPEN,
             assignee=None,
         )
+        # Auto-transitions to IN_PROGRESS when assigned
         mock_updated = Task(
             id="TICKET-1",
             title="Test",
-            state=TicketState.OPEN,
+            state=TicketState.IN_PROGRESS,
             assignee="user@example.com",
         )
 
         mock_adapter.read.return_value = mock_ticket
         mock_adapter.update.return_value = mock_updated
+        mock_adapter.add_comment = AsyncMock()
 
         with patch(
             "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
@@ -307,7 +315,14 @@ class TestTicketAssignWithComment:
                 result = await ticket_assign("TICKET-1", "user@example.com", None)
 
                 assert result["status"] == "completed"
-                assert result["comment_added"] is False
+                # Auto-comment is added when state transitions
+                assert result["comment_added"] is True
+                assert result["state_auto_transitioned"] is True
+
+                # Verify auto-comment was added
+                mock_adapter.add_comment.assert_called_once()
+                call_args = mock_adapter.add_comment.call_args[0][0]
+                assert "automatically transitioned" in call_args.content.lower()
 
     async def test_assign_comment_fails_gracefully(self) -> None:
         """Test that assignment succeeds even if comment fails."""
@@ -367,16 +382,18 @@ class TestTicketAssignWithURLs:
             state=TicketState.OPEN,
             assignee=None,
         )
+        # Auto-transitions to IN_PROGRESS
         mock_updated = Task(
             id="ABC-123",
             title="Test",
-            state=TicketState.OPEN,
+            state=TicketState.IN_PROGRESS,
             assignee="user@example.com",
         )
 
         mock_router = AsyncMock()
         mock_router.route_read.return_value = mock_ticket
         mock_router.route_update.return_value = mock_updated
+        mock_router.route_add_comment = AsyncMock()
         # _normalize_ticket_id is synchronous, not async
         mock_router._normalize_ticket_id = lambda x: ("ABC-123", "linear", "url")
         mock_router._get_adapter = lambda x: mock_adapter
@@ -402,11 +419,12 @@ class TestTicketAssignWithURLs:
                     assert result["status"] == "completed"
                     assert result["routed_from_url"] is True
                     assert result["ticket"]["id"] == "ABC-123"
+                    assert result["state_auto_transitioned"] is True
 
-                    # Verify routing was used
+                    # Verify routing was used with auto-transition
                     mock_router.route_read.assert_called_once_with(linear_url)
                     mock_router.route_update.assert_called_once_with(
-                        linear_url, {"assignee": "user@example.com"}
+                        linear_url, {"assignee": "user@example.com", "state": TicketState.IN_PROGRESS}
                     )
 
     async def test_assign_with_github_url(self) -> None:

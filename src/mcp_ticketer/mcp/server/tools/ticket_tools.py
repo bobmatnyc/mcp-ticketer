@@ -669,11 +669,13 @@ async def ticket_assign(
     ticket_id: str,
     assignee: str | None,
     comment: str | None = None,
+    auto_transition: bool = True,
 ) -> dict[str, Any]:
-    """Assign or reassign a ticket to a user using ID or URL.
+    """Assign or reassign a ticket to a user with automatic state transition.
 
-    This tool provides dedicated assignment functionality with audit trail support.
-    It accepts both plain ticket IDs and full URLs from multiple platforms:
+    This tool provides dedicated assignment functionality with audit trail support
+    and automatic state transitions. It accepts both plain ticket IDs and full URLs
+    from multiple platforms:
     - Plain IDs: Use the configured default adapter (e.g., "ABC-123", "456")
     - Linear URLs: https://linear.app/team/issue/ABC-123
     - GitHub URLs: https://github.com/owner/repo/issues/123
@@ -682,6 +684,20 @@ async def ticket_assign(
 
     The tool automatically detects the platform from URLs and routes to the
     appropriate adapter. Multi-platform support must be configured for URL access.
+
+    Auto-Transition Behavior:
+    When a ticket is assigned (not unassigned), the tool automatically transitions
+    the ticket to IN_PROGRESS if it's currently in one of these states:
+    - OPEN → IN_PROGRESS: When starting work on new ticket
+    - WAITING → IN_PROGRESS: When resuming after waiting period
+    - BLOCKED → IN_PROGRESS: When resuming after block removed
+
+    States that do NOT auto-transition:
+    - Already IN_PROGRESS: No change needed
+    - READY, TESTED, DONE: Don't move backwards in workflow
+    - CLOSED: Terminal state, should not be worked on
+    - Unassignment (assignee=None): No state change
+    - Can be disabled with auto_transition=False
 
     User Resolution:
     - Accepts user IDs, emails, or names (adapter-dependent)
@@ -694,16 +710,19 @@ async def ticket_assign(
     Unassignment:
     - Set assignee=None to unassign the ticket
     - The ticket will be moved to unassigned state
+    - No automatic state change occurs during unassignment
 
     Audit Trail:
     - Optional comment parameter adds a note to the ticket
     - Useful for explaining assignment/reassignment decisions
+    - Automatic comment is added if state is auto-transitioned and no comment provided
     - Comment support is adapter-dependent
 
     Args:
         ticket_id: Ticket ID or URL to assign
         assignee: User identifier (ID, email, or name) or None to unassign
         comment: Optional comment to add explaining the assignment
+        auto_transition: Automatically transition to IN_PROGRESS when appropriate (default: True)
 
     Returns:
         Dictionary containing:
@@ -711,26 +730,36 @@ async def ticket_assign(
         - ticket: Full updated ticket object
         - previous_assignee: Who the ticket was assigned to before (if any)
         - new_assignee: Who the ticket is now assigned to (if any)
+        - previous_state: State before assignment
+        - new_state: State after assignment
+        - state_auto_transitioned: Boolean indicating if state was automatically changed
         - comment_added: Boolean indicating if comment was added
         - adapter: Which adapter handled the operation
         - adapter_name: Human-readable adapter name
         - routed_from_url: True if ticket_id was a URL (optional)
 
     Example:
-        # Assign ticket to user by email
+        # Assign ticket to user by email (auto-transitions OPEN → IN_PROGRESS)
         >>> ticket_assign(
         ...     ticket_id="PROJ-123",
         ...     assignee="user@example.com",
         ...     comment="Taking ownership of this issue"
         ... )
 
-        # Assign ticket using URL
+        # Assign ticket using URL (with auto-transition)
         >>> ticket_assign(
         ...     ticket_id="https://linear.app/team/issue/ABC-123",
         ...     assignee="john.doe@example.com"
         ... )
 
-        # Unassign ticket
+        # Assign without auto-transition
+        >>> ticket_assign(
+        ...     ticket_id="PROJ-123",
+        ...     assignee="user@example.com",
+        ...     auto_transition=False
+        ... )
+
+        # Unassign ticket (no state change)
         >>> ticket_assign(ticket_id="PROJ-123", assignee=None)
 
         # Reassign with explanation
@@ -775,11 +804,40 @@ async def ticket_assign(
                 "error": f"Ticket {ticket_id} not found",
             }
 
-        # Store previous assignee for response
+        # Store previous assignee and state for response
         previous_assignee = ticket.assignee
+        current_state = ticket.state
 
-        # Update ticket with new assignee
+        # Import TicketState for state transitions
+        from ....core.models import TicketState
+
+        # Convert string state to enum if needed (Pydantic uses use_enum_values=True)
+        if isinstance(current_state, str):
+            current_state = TicketState(current_state)
+
+        # Build updates dictionary
         updates: dict[str, Any] = {"assignee": assignee}
+
+        # Auto-transition logic
+        state_transitioned = False
+        auto_comment = None
+
+        if auto_transition and assignee is not None:  # Only when assigning (not unassigning)
+            # Check if current state should auto-transition to IN_PROGRESS
+            if current_state in [TicketState.OPEN, TicketState.WAITING, TicketState.BLOCKED]:
+                # Validate workflow allows this transition
+                if current_state.can_transition_to(TicketState.IN_PROGRESS):
+                    updates["state"] = TicketState.IN_PROGRESS
+                    state_transitioned = True
+
+                    # Add automatic comment if no comment provided
+                    if comment is None:
+                        auto_comment = f"Automatically transitioned from {current_state.value} to in_progress when assigned to {assignee}"
+                else:
+                    # Log warning if transition validation fails (shouldn't happen based on our rules)
+                    logging.warning(
+                        f"State transition from {current_state.value} to IN_PROGRESS failed validation"
+                    )
 
         if is_routed:
             updated = await router.route_update(ticket_id, updates)
@@ -792,9 +850,11 @@ async def ticket_assign(
                 "error": f"Failed to update assignment for ticket {ticket_id}",
             }
 
-        # Add comment if provided and adapter supports it
+        # Add comment if provided or auto-generated, and adapter supports it
         comment_added = False
-        if comment:
+        comment_to_add = comment or auto_comment
+
+        if comment_to_add:
             try:
                 from ....core.models import Comment as CommentModel
 
@@ -802,7 +862,7 @@ async def ticket_assign(
                 comment_ticket_id = ticket_id if is_routed else actual_ticket_id
 
                 comment_obj = CommentModel(
-                    ticket_id=comment_ticket_id, content=comment, author=""
+                    ticket_id=comment_ticket_id, content=comment_to_add, author=""
                 )
 
                 if is_routed:
@@ -815,12 +875,19 @@ async def ticket_assign(
                 logging.warning(f"Assignment succeeded but comment failed: {str(e)}")
 
         # Build response
+        # Handle both string and enum state values
+        previous_state_value = current_state.value if hasattr(current_state, 'value') else str(current_state)
+        new_state_value = updated.state.value if hasattr(updated.state, 'value') else str(updated.state)
+
         response = {
             "status": "completed",
             **_build_adapter_metadata(adapter, updated.id, is_routed),
             "ticket": updated.model_dump(),
             "previous_assignee": previous_assignee,
             "new_assignee": assignee,
+            "previous_state": previous_state_value,
+            "new_state": new_state_value,
+            "state_auto_transitioned": state_transitioned,
             "comment_added": comment_added,
         }
 
