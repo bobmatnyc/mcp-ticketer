@@ -1,4 +1,10 @@
-"""Exception classes for MCP Ticketer."""
+"""Exception classes for MCP Ticketer.
+
+Error Severity Classification:
+    CRITICAL - System-level issues (auth, config, network) → Always suggest diagnostics
+    MEDIUM - Resource issues (not found, permissions) → Suggest diagnostics
+    LOW - User input errors (validation, state transitions) → No diagnostics
+"""
 
 from __future__ import annotations
 
