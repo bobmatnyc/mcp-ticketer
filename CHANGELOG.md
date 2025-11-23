@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.1.9] - 2025-11-23
+
+### Fixed
+- **Critical: URL Handling Without Router**: Fixed ticket tools to extract ticket IDs from URLs when multi-platform router is not configured
+  - `ticket_read()`, `ticket_update()`, `ticket_delete()`, `ticket_assign()` were passing full URLs to adapters instead of extracted IDs
+  - This caused "Ticket not found" errors when users provided URLs without router configuration
+  - Now extracts ID from URL using `extract_id_from_url()` before calling adapter methods
+  - Works for Linear, GitHub, JIRA, and Asana URLs
+  - Makes single-adapter setups work with URLs (more flexible and user-friendly)
+  - No breaking changes - plain IDs continue to work as before
+  - Added comprehensive test coverage (9 new tests, all passing)
+
 ## [1.1.8] - 2025-11-23
 
 ### Fixed
