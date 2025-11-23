@@ -117,7 +117,9 @@ async def test_ticket_read_url_routing_with_view_error():
                 "mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=True
             ):
                 # Test with full Linear view URL
-                url = "https://linear.app/1m-hyperdev/view/mcp-skills-issues-0d0359fabcf9"
+                url = (
+                    "https://linear.app/1m-hyperdev/view/mcp-skills-issues-0d0359fabcf9"
+                )
                 result = await ticket_read(url)
 
                 # Should preserve the helpful error message
