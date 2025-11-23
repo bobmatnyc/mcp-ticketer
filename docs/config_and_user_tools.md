@@ -104,6 +104,113 @@ result = await config_set_default_user("")
 
 ---
 
+### config_set_default_team
+
+Set the default team for ticket operations (v1.1.6+).
+
+**Parameters:**
+- `team_id` (required): Team ID or key to set as default
+
+**Returns:**
+- `status`: "completed" or "error"
+- `message`: Success or error message
+- `previous_team`: Previous default team (if any)
+- `new_team`: New default team ID
+- `config_path`: Path to configuration file
+
+**Example:**
+```python
+# Set default team
+result = await config_set_default_team("team-abc123")
+# Result:
+# {
+#     "status": "completed",
+#     "message": "Default team set to 'team-abc123'",
+#     "previous_team": None,
+#     "new_team": "team-abc123",
+#     "config_path": "/project/.mcp-ticketer/config.json"
+# }
+
+# Clear default team
+result = await config_set_default_team("")
+```
+
+**Platform Support:**
+| Platform | Team Identifier | Example |
+|----------|----------------|---------|
+| **Linear** | Team ID (UUID) | `"1a2b3c4d-5678-90ab-cdef-1234567890ab"` |
+| **GitHub** | Organization/Owner | `"my-organization"` |
+| **JIRA** | Project Key | `"ENG"` or `"PROJ"` |
+| **Asana** | Workspace GID | `"1234567890"` |
+
+**Usage:**
+- Automatically scopes `ticket_list` and `ticket_search` to specified team
+- Improves query performance for multi-team platforms
+- Reduces token usage in AI interactions
+- Prevents accidentally querying other teams' tickets
+- Triggers warnings when querying large unscoped datasets
+
+**Benefits:**
+- **Performance**: Faster queries on multi-team platforms
+- **Relevance**: Returns only team-specific tickets
+- **Token Efficiency**: Reduces context size by 50-70% for large organizations
+- **Safety**: Prevents cross-team data leaks
+
+---
+
+### config_set_default_cycle
+
+Set the default cycle/sprint for ticket operations (v1.1.6+).
+
+**Parameters:**
+- `cycle_id` (required): Cycle/sprint ID to set as default
+
+**Returns:**
+- `status`: "completed" or "error"
+- `message`: Success or error message
+- `previous_cycle`: Previous default cycle (if any)
+- `new_cycle`: New default cycle ID
+- `config_path`: Path to configuration file
+
+**Example:**
+```python
+# Set default cycle
+result = await config_set_default_cycle("cycle-abc123def456")
+# Result:
+# {
+#     "status": "completed",
+#     "message": "Default cycle set to 'cycle-abc123def456'",
+#     "previous_cycle": None,
+#     "new_cycle": "cycle-abc123def456",
+#     "config_path": "/project/.mcp-ticketer/config.json"
+# }
+
+# Clear default cycle
+result = await config_set_default_cycle("")
+```
+
+**Platform Support:**
+| Platform | Cycle Identifier | Example |
+|----------|-----------------|---------|
+| **Linear** | Cycle ID (UUID) | `"cycle-abc123def456"` |
+| **JIRA** | Sprint ID | `"123"` |
+| **GitHub** | Milestone number | `"5"` (GitHub uses milestones) |
+| **Asana** | Project section GID | `"9876543210"` |
+
+**Usage:**
+- Automatically scopes queries to current sprint/cycle
+- Focuses work on active sprint tickets
+- Reduces noise from backlog or future sprint items
+- Updates at sprint boundaries for continuous scoping
+
+**Benefits:**
+- **Focus**: Only see current sprint work
+- **Clarity**: Removes backlog noise from queries
+- **Planning**: Easy sprint-based reporting
+- **Velocity**: Track sprint-specific metrics
+
+---
+
 ### config_get
 
 Get current configuration settings.

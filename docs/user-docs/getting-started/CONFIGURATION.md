@@ -421,6 +421,373 @@ mcp-ticketer init --adapter linear --team-url https://linear.app/your-org/team/E
 | `GITHUB_REPO` | Repository name | ✅ |
 | `GITHUB_BASE_URL` | API base URL | ❌ |
 
+## Ticket Scoping Configuration
+
+### Overview
+
+Ticket scoping improves query performance and reduces token usage by automatically limiting queries to specific teams and cycles/sprints. This is particularly useful for:
+
+- **Multi-team platforms** (Linear, JIRA, Asana) where teams work in separate workspaces
+- **Sprint/cycle-based workflows** where you want to focus on current sprint work
+- **Large organizations** with hundreds or thousands of tickets
+- **AI agent interactions** to minimize context size and improve response time
+
+### Configuration Fields
+
+#### default_team
+
+**Purpose**: Automatically scope ticket operations to a specific team or project.
+
+**Type**: `string` (optional)
+
+**Platform Support**:
+| Platform | Team Identifier | Example |
+|----------|----------------|---------|
+| **Linear** | Team ID (UUID) | `"1a2b3c4d-5678-90ab-cdef-1234567890ab"` |
+| **GitHub** | Organization/Owner | `"my-organization"` |
+| **JIRA** | Project Key | `"ENG"` or `"PROJ"` |
+| **Asana** | Workspace GID | `"1234567890"` |
+
+**Configuration Example**:
+```json
+{
+  "default_team": "1a2b3c4d-5678-90ab-cdef-1234567890ab",
+  "adapter": "linear"
+}
+```
+
+#### default_cycle
+
+**Purpose**: Automatically scope ticket operations to a specific sprint or cycle.
+
+**Type**: `string` (optional)
+
+**Platform Support**:
+| Platform | Cycle Identifier | Example |
+|----------|-----------------|---------|
+| **Linear** | Cycle ID (UUID) | `"cycle-abc123def456"` |
+| **JIRA** | Sprint ID | `"123"` |
+| **GitHub** | Milestone number | `"5"` (GitHub uses milestones, not native cycles) |
+| **Asana** | Project section GID | `"9876543210"` |
+
+**Configuration Example**:
+```json
+{
+  "default_cycle": "cycle-abc123def456",
+  "adapter": "linear"
+}
+```
+
+### Setting Scope via MCP Tools
+
+Use MCP tools to configure scope dynamically:
+
+**Set Default Team**:
+```python
+# Using MCP tool
+config_set_default_team(team_id="1a2b3c4d-5678-90ab-cdef-1234567890ab")
+
+# Result
+{
+    "status": "completed",
+    "message": "Default team set to '1a2b3c4d-5678-90ab-cdef-1234567890ab'",
+    "previous_team": None,
+    "new_team": "1a2b3c4d-5678-90ab-cdef-1234567890ab"
+}
+```
+
+**Set Default Cycle**:
+```python
+# Using MCP tool
+config_set_default_cycle(cycle_id="cycle-abc123def456")
+
+# Result
+{
+    "status": "completed",
+    "message": "Default cycle set to 'cycle-abc123def456'",
+    "previous_cycle": None,
+    "new_cycle": "cycle-abc123def456"
+}
+```
+
+**View Current Configuration**:
+```python
+# Using MCP tool
+config_get()
+
+# Result includes scope configuration
+{
+    "status": "completed",
+    "config": {
+        "default_adapter": "linear",
+        "default_team": "1a2b3c4d-5678-90ab-cdef-1234567890ab",
+        "default_cycle": "cycle-abc123def456",
+        "default_project": "PROJ-123",
+        "default_user": "user@example.com",
+        ...
+    }
+}
+```
+
+### Scope Warnings
+
+The system provides warnings for inefficient unscoped queries to help you optimize performance:
+
+#### ticket_list Warnings
+
+**Triggers when**:
+- Query limit > 50 tickets
+- No filters applied (no `state`, `priority`, or `assignee`)
+
+**Example Warning**:
+```
+⚠️  Large unscoped query: limit=100 with no filters.
+    Consider using state, priority, or assignee filters to reduce result set.
+    Tip: Configure default_team or default_project for automatic scoping.
+```
+
+**How to Fix**:
+```python
+# Before (triggers warning)
+ticket_list(limit=100)
+
+# After (no warning) - Option 1: Add filters
+ticket_list(limit=100, state="in_progress")
+
+# After (no warning) - Option 2: Set default scope
+config_set_default_team(team_id="your-team-id")
+ticket_list(limit=100)
+```
+
+#### ticket_search Warnings
+
+**Triggers when**:
+- No search query provided
+- No filters applied (no `state`, `priority`, `tags`, or `assignee`)
+
+**Example Warning**:
+```
+⚠️  Unscoped search with no query or filters.
+    This will search ALL tickets across all projects.
+    Tip: Configure default_project or default_team for automatic scoping.
+```
+
+**How to Fix**:
+```python
+# Before (triggers warning)
+ticket_search()
+
+# After (no warning) - Option 1: Add search query
+ticket_search(query="authentication bug")
+
+# After (no warning) - Option 2: Add filters
+ticket_search(state="open", priority="high")
+
+# After (no warning) - Option 3: Set default scope
+config_set_default_team(team_id="your-team-id")
+ticket_search()
+```
+
+### Platform-Specific Examples
+
+#### Linear
+
+**Finding Your Team ID**:
+```bash
+# Method 1: From team URL
+# URL: https://linear.app/my-org/team/ENG/active
+# Team key is "ENG"
+
+# Method 2: Use Linear API to resolve team key to ID
+# The system can auto-resolve team keys when needed
+```
+
+**Configuration**:
+```python
+# Set team scope (required for multi-team workspaces)
+config_set_default_team(team_id="1a2b3c4d-5678-90ab-cdef-1234567890ab")
+
+# Set cycle scope (optional, filters to current sprint)
+config_set_default_cycle(cycle_id="cycle-abc123def456")
+
+# Query tickets (automatically scoped to team and cycle)
+ticket_list(state="in_progress", limit=50)
+```
+
+**Benefits**:
+- Queries only your team's tickets (not entire organization)
+- Focuses on current sprint work when cycle is set
+- Dramatically reduces response time for large workspaces
+
+#### GitHub
+
+**Configuration**:
+```python
+# Set organization/owner (team level)
+config_set_default_team(team_id="my-organization")
+
+# GitHub doesn't have native sprint/cycle concept
+# Use milestones instead (not directly compatible with default_cycle)
+
+# Query issues (scoped to organization)
+ticket_list(state="open", limit=50)
+```
+
+**Note**: GitHub's issue model is repository-scoped, so `default_team` typically maps to the repository owner.
+
+#### JIRA
+
+**Finding Your Project Key**:
+```bash
+# From JIRA URL: https://company.atlassian.net/browse/ENG-123
+# Project key is "ENG"
+```
+
+**Configuration**:
+```python
+# Set project key (team level)
+config_set_default_team(team_id="ENG")
+
+# Set sprint ID (cycle level)
+config_set_default_cycle(cycle_id="123")
+
+# Query issues (scoped to project and sprint)
+ticket_list(state="in_progress", limit=50)
+```
+
+**Benefits**:
+- JQL queries automatically filtered by project
+- Sprint filtering reduces query complexity
+- Faster response times for large JIRA instances
+
+#### Asana
+
+**Configuration**:
+```python
+# Set workspace GID (team level)
+config_set_default_team(team_id="1234567890")
+
+# Set project section GID (cycle level - optional)
+config_set_default_cycle(cycle_id="9876543210")
+
+# Query tasks (scoped to workspace)
+ticket_list(state="open", limit=50)
+```
+
+### Best Practices
+
+#### 1. Always Set default_team for Multi-Team Platforms
+
+**Why**: Prevents accidentally querying tickets from other teams.
+
+```python
+# ✅ Good: Set team scope first
+config_set_default_team(team_id="your-team-id")
+ticket_list(limit=100)
+
+# ❌ Bad: No scope, queries entire organization
+ticket_list(limit=100)
+```
+
+#### 2. Set default_cycle During Active Sprints
+
+**Why**: Focuses queries on current sprint work, reducing noise.
+
+```python
+# ✅ Good: Scope to current sprint
+config_set_default_cycle(cycle_id="current-sprint-id")
+ticket_list(state="in_progress")
+
+# ❌ Bad: Returns tickets from all sprints
+ticket_list(state="in_progress")
+```
+
+#### 3. Use Explicit Filters for Cross-Team Queries
+
+**Why**: Makes intent clear when you need to query across multiple teams.
+
+```python
+# ✅ Good: Explicit cross-team query
+config_set_default_team(team_id=None)  # Clear scope
+ticket_search(query="critical security", limit=20)
+
+# ✅ Good: Override scope with explicit filter
+ticket_search(query="critical security", assignee="security-team-lead@example.com")
+```
+
+#### 4. Monitor Warnings to Identify Inefficient Queries
+
+**Why**: Warnings help you optimize token usage and response time.
+
+```python
+# Watch for warnings in logs
+# Adjust queries or scope configuration based on warnings
+```
+
+#### 5. Update Scope When Switching Contexts
+
+**Why**: Ensures queries return relevant tickets for current work context.
+
+```python
+# Switch to new sprint
+config_set_default_cycle(cycle_id="sprint-24")
+
+# Switch to different team
+config_set_default_team(team_id="backend-team-id")
+```
+
+### Configuration File Examples
+
+#### Minimal Configuration (No Scoping)
+```json
+{
+  "adapter": "linear",
+  "default_user": "user@example.com"
+}
+```
+
+#### Team-Scoped Configuration
+```json
+{
+  "adapter": "linear",
+  "default_team": "1a2b3c4d-5678-90ab-cdef-1234567890ab",
+  "default_user": "user@example.com"
+}
+```
+
+#### Full Scoping Configuration
+```json
+{
+  "adapter": "linear",
+  "default_team": "1a2b3c4d-5678-90ab-cdef-1234567890ab",
+  "default_cycle": "cycle-abc123def456",
+  "default_project": "PROJ-123",
+  "default_user": "user@example.com",
+  "default_tags": ["backend", "api"]
+}
+```
+
+### Migration Notes
+
+**For Existing Users**: These new fields are **completely optional** and **backwards compatible**.
+
+- ✅ Existing configurations continue to work without changes
+- ✅ No action required if you don't need scoping features
+- ✅ Add `default_team` and `default_cycle` when ready to optimize queries
+- ✅ All existing tests pass (100% backward compatibility)
+
+**When to Adopt**:
+- You work in multi-team environments (Linear, JIRA, Asana)
+- You regularly query large ticket sets (>50 tickets)
+- You want to reduce token usage in AI interactions
+- You follow sprint/cycle-based workflows
+
+**How to Adopt**:
+1. Identify your team ID (see platform-specific examples above)
+2. Set `default_team` via MCP tool or configuration file
+3. Optionally set `default_cycle` for sprint-based scoping
+4. Monitor warnings to identify optimization opportunities
+
 ## Advanced Configuration
 
 ### Performance Tuning
