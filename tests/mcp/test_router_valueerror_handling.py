@@ -200,9 +200,7 @@ class TestRouterOtherExceptionWrapping:
     ):
         """Test route_add_comment wraps non-ValueError exceptions."""
         router, mock_adapter = router_with_mock_adapter
-        mock_adapter.add_comment = AsyncMock(
-            side_effect=RuntimeError("Comment failed")
-        )
+        mock_adapter.add_comment = AsyncMock(side_effect=RuntimeError("Comment failed"))
 
         comment = MagicMock()
         comment.ticket_id = "PROJ-123"
@@ -219,9 +217,7 @@ class TestRouterOtherExceptionWrapping:
     ):
         """Test route_get_comments wraps non-ValueError exceptions."""
         router, mock_adapter = router_with_mock_adapter
-        mock_adapter.get_comments = AsyncMock(
-            side_effect=RuntimeError("Fetch failed")
-        )
+        mock_adapter.get_comments = AsyncMock(side_effect=RuntimeError("Fetch failed"))
 
         with pytest.raises(RouterError) as exc_info:
             await router.route_get_comments("PROJ-123")
