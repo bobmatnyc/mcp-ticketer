@@ -13,6 +13,11 @@ from ....core.models import Priority, Task, TicketState
 from ....core.project_config import ConfigResolver, TicketerConfig
 from ....core.session_state import SessionStateManager
 from ....core.url_parser import extract_id_from_url, is_url
+from ..diagnostic_helper import (
+    build_diagnostic_suggestion,
+    get_quick_diagnostic_info,
+    should_suggest_diagnostics,
+)
 from ..server_sdk import get_adapter, get_router, has_router, mcp
 
 
@@ -302,6 +307,19 @@ async def ticket_create(
             error_response.update(_build_adapter_metadata(adapter))
         except Exception:
             pass  # If adapter not available, return error without metadata
+
+        # Add diagnostic suggestion for system-level errors
+        if should_suggest_diagnostics(e):
+            logging.debug(f"Error classified as system-level, adding diagnostic suggestion")
+            try:
+                quick_info = await get_quick_diagnostic_info()
+                error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(
+                    e, quick_info
+                )
+            except Exception as diag_error:
+                # Never block error response on diagnostic failure
+                logging.debug(f"Diagnostic suggestion generation failed: {diag_error}")
+
         return error_response
 
 
@@ -376,10 +394,24 @@ async def ticket_read(ticket_id: str) -> dict[str, Any]:
             "error": str(e),
         }
     except Exception as e:
-        return {
+        error_response = {
             "status": "error",
             "error": f"Failed to read ticket: {str(e)}",
         }
+
+        # Add diagnostic suggestion for system-level errors
+        if should_suggest_diagnostics(e):
+            logging.debug(f"Error classified as system-level, adding diagnostic suggestion")
+            try:
+                quick_info = await get_quick_diagnostic_info()
+                error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(
+                    e, quick_info
+                )
+            except Exception as diag_error:
+                # Never block error response on diagnostic failure
+                logging.debug(f"Diagnostic suggestion generation failed: {diag_error}")
+
+        return error_response
 
 
 @mcp.tool()
@@ -481,10 +513,24 @@ async def ticket_update(
             "ticket": updated.model_dump(),
         }
     except Exception as e:
-        return {
+        error_response = {
             "status": "error",
             "error": f"Failed to update ticket: {str(e)}",
         }
+
+        # Add diagnostic suggestion for system-level errors
+        if should_suggest_diagnostics(e):
+            logging.debug(f"Error classified as system-level, adding diagnostic suggestion")
+            try:
+                quick_info = await get_quick_diagnostic_info()
+                error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(
+                    e, quick_info
+                )
+            except Exception as diag_error:
+                # Never block error response on diagnostic failure
+                logging.debug(f"Diagnostic suggestion generation failed: {diag_error}")
+
+        return error_response
 
 
 @mcp.tool()
@@ -658,10 +704,24 @@ async def ticket_list(
             "compact": compact,
         }
     except Exception as e:
-        return {
+        error_response = {
             "status": "error",
             "error": f"Failed to list tickets: {str(e)}",
         }
+
+        # Add diagnostic suggestion for system-level errors
+        if should_suggest_diagnostics(e):
+            logging.debug(f"Error classified as system-level, adding diagnostic suggestion")
+            try:
+                quick_info = await get_quick_diagnostic_info()
+                error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(
+                    e, quick_info
+                )
+            except Exception as diag_error:
+                # Never block error response on diagnostic failure
+                logging.debug(f"Diagnostic suggestion generation failed: {diag_error}")
+
+        return error_response
 
 
 @mcp.tool()
@@ -894,7 +954,21 @@ async def ticket_assign(
         return response
 
     except Exception as e:
-        return {
+        error_response = {
             "status": "error",
             "error": f"Failed to assign ticket: {str(e)}",
         }
+
+        # Add diagnostic suggestion for system-level errors
+        if should_suggest_diagnostics(e):
+            logging.debug(f"Error classified as system-level, adding diagnostic suggestion")
+            try:
+                quick_info = await get_quick_diagnostic_info()
+                error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(
+                    e, quick_info
+                )
+            except Exception as diag_error:
+                # Never block error response on diagnostic failure
+                logging.debug(f"Diagnostic suggestion generation failed: {diag_error}")
+
+        return error_response
