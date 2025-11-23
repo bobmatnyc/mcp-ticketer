@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.2.0] - 2025-11-23
+
+### Added
+- **Automatic State Transition on Assignment**: Tickets now automatically transition to IN_PROGRESS when assigned
+  - Added `auto_transition` parameter (default: `True`) to `ticket_assign()` MCP tool
+  - Automatically transitions OPEN, WAITING, and BLOCKED tickets to IN_PROGRESS when assigned to a user
+  - Validates transitions using existing workflow state machine to ensure valid state changes
+  - Generates automatic comment when state transitions without explicit user comment
+  - Returns `previous_state`, `new_state`, and `state_auto_transitioned` in assignment response
+  - No backwards transitions from READY, TESTED, DONE, or CLOSED states
+  - No state change when unassigning (setting assignee to None)
+  - Can be disabled with `auto_transition=False` parameter for manual state control
+  - Aligns with common workflow patterns: assigning work means starting work
+  - Maintains full backward compatibility with default auto-transition enabled
+  - Comprehensive test coverage: 14 new tests + 20 updated existing tests, all passing
+
+### Workflow Enhancement Details
+- **OPEN → IN_PROGRESS**: Starting work on new ticket
+- **WAITING → IN_PROGRESS**: Resuming after waiting period
+- **BLOCKED → IN_PROGRESS**: Resuming after block removed
+- **IN_PROGRESS**: No change when already in progress
+- **READY/TESTED/DONE/CLOSED**: No automatic backwards movement
+- **Unassignment**: No automatic state change (requires explicit decision)
+
 ## [1.1.9] - 2025-11-23
 
 ### Fixed
