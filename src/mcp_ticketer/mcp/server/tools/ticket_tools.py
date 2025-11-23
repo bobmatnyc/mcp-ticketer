@@ -626,38 +626,58 @@ def _compact_ticket(ticket_dict: dict[str, Any]) -> dict[str, Any]:
 
 @mcp.tool()
 async def ticket_list(
-    limit: int = 10,
+    limit: int = 20,
     offset: int = 0,
     state: str | None = None,
     priority: str | None = None,
     assignee: str | None = None,
-    compact: bool = False,
+    compact: bool = True,
 ) -> dict[str, Any]:
     """List tickets with pagination and optional filters.
 
     Token Usage Optimization:
-        When listing many tickets, use compact=True to reduce token usage by ~70%.
-        - Standard mode: ~185 tokens per ticket (full details including description,
-          metadata, timestamps, children, hours)
-        - Compact mode: ~55 tokens per ticket (only id, title, state, priority,
-          assignee, tags, parent_epic)
+        Default settings (limit=20, compact=True) return ~1.1k tokens per response.
+        For detailed information, use compact=False (returns ~185 tokens per ticket).
 
-        Example: 100 tickets = 18,500 tokens (standard) vs 5,500 tokens (compact)
+        Token usage examples:
+        - 20 tickets, compact=True: ~1.1k tokens (~0.55% of context)
+        - 20 tickets, compact=False: ~3.7k tokens (~1.85% of context)
+        - 50 tickets, compact=True: ~2.75k tokens (~1.4% of context)
+        - 50 tickets, compact=False: ~9.25k tokens (~4.6% of context)
 
     Args:
-        limit: Maximum number of tickets to return (default: 10)
+        limit: Maximum number of tickets to return (default: 20, max: 100)
         offset: Number of tickets to skip for pagination (default: 0)
         state: Filter by state - must be one of: open, in_progress, ready, tested, done, closed, waiting, blocked
         priority: Filter by priority - must be one of: low, medium, high, critical
         assignee: Filter by assigned user ID or email
-        compact: Return minimal fields for reduced token usage (default: False)
+        compact: Return minimal fields for reduced token usage (default: True)
+                Set to False for full ticket details with description, metadata, etc.
 
     Returns:
         List of tickets matching criteria, or error information
 
+    Examples:
+        # Default: 20 compact tickets (~1.1k tokens)
+        tickets = await ticket_list()
+
+        # Get full details for fewer tickets
+        tickets = await ticket_list(limit=10, compact=False)
+
+        # Large query with compact mode
+        tickets = await ticket_list(limit=50, compact=True)
+
     """
     try:
         adapter = get_adapter()
+
+        # Add warning for large non-compact queries
+        if limit > 30 and not compact:
+            logging.warning(
+                f"Large query requested: limit={limit}, compact={compact}. "
+                f"This may generate ~{limit * 185} tokens. "
+                f"Consider using compact=True to reduce token usage."
+            )
 
         # Build filters dictionary
         filters: dict[str, Any] = {}
