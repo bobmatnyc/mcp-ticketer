@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.1.7] - 2025-11-22
+
 ### Fixed
 - **MCP Tool Error Handling**: Fixed `ticket_read` MCP tool to preserve helpful `ValueError` messages from adapters
   - Previously, `ValueError` exceptions (like Linear view URL errors) were caught by generic `Exception` handler
