@@ -12,7 +12,7 @@ from ....core.adapter import BaseAdapter
 from ....core.models import Priority, Task, TicketState
 from ....core.project_config import ConfigResolver, TicketerConfig
 from ....core.session_state import SessionStateManager
-from ....core.url_parser import is_url
+from ....core.url_parser import extract_id_from_url, is_url
 from ..server_sdk import get_adapter, get_router, has_router, mcp
 
 
@@ -339,9 +339,22 @@ async def ticket_read(ticket_id: str) -> dict[str, Any]:
             normalized_id, _, _ = router._normalize_ticket_id(ticket_id)
             adapter = router._get_adapter(router._detect_adapter_from_url(ticket_id))
         else:
-            # Use default adapter for plain IDs
+            # Use default adapter for plain IDs OR URLs (without multi-platform routing)
             adapter = get_adapter()
-            ticket = await adapter.read(ticket_id)
+
+            # If URL provided, extract ID for the adapter
+            if is_url(ticket_id):
+                # Extract ID from URL for default adapter
+                adapter_type = type(adapter).__name__.lower().replace("adapter", "")
+                extracted_id, error = extract_id_from_url(ticket_id, adapter_type=adapter_type)
+                if error or not extracted_id:
+                    return {
+                        "status": "error",
+                        "error": f"Failed to extract ticket ID from URL: {ticket_id}. {error}"
+                    }
+                ticket = await adapter.read(extracted_id)
+            else:
+                ticket = await adapter.read(ticket_id)
 
         if ticket is None:
             return {
@@ -441,7 +454,20 @@ async def ticket_update(
             adapter = router._get_adapter(router._detect_adapter_from_url(ticket_id))
         else:
             adapter = get_adapter()
-            updated = await adapter.update(ticket_id, updates)
+
+            # If URL provided, extract ID for the adapter
+            if is_url(ticket_id):
+                # Extract ID from URL for default adapter
+                adapter_type = type(adapter).__name__.lower().replace("adapter", "")
+                extracted_id, error = extract_id_from_url(ticket_id, adapter_type=adapter_type)
+                if error or not extracted_id:
+                    return {
+                        "status": "error",
+                        "error": f"Failed to extract ticket ID from URL: {ticket_id}. {error}"
+                    }
+                updated = await adapter.update(extracted_id, updates)
+            else:
+                updated = await adapter.update(ticket_id, updates)
 
         if updated is None:
             return {
@@ -487,7 +513,20 @@ async def ticket_delete(ticket_id: str) -> dict[str, Any]:
             adapter = router._get_adapter(router._detect_adapter_from_url(ticket_id))
         else:
             adapter = get_adapter()
-            success = await adapter.delete(ticket_id)
+
+            # If URL provided, extract ID for the adapter
+            if is_url(ticket_id):
+                # Extract ID from URL for default adapter
+                adapter_type = type(adapter).__name__.lower().replace("adapter", "")
+                extracted_id, error = extract_id_from_url(ticket_id, adapter_type=adapter_type)
+                if error or not extracted_id:
+                    return {
+                        "status": "error",
+                        "error": f"Failed to extract ticket ID from URL: {ticket_id}. {error}"
+                    }
+                success = await adapter.delete(extracted_id)
+            else:
+                success = await adapter.delete(ticket_id)
 
         if not success:
             return {
@@ -714,7 +753,21 @@ async def ticket_assign(
             adapter = router._get_adapter(adapter_name)
         else:
             adapter = get_adapter()
-            ticket = await adapter.read(ticket_id)
+
+            # If URL provided, extract ID for the adapter
+            actual_ticket_id = ticket_id
+            if is_url(ticket_id):
+                # Extract ID from URL for default adapter
+                adapter_type = type(adapter).__name__.lower().replace("adapter", "")
+                extracted_id, error = extract_id_from_url(ticket_id, adapter_type=adapter_type)
+                if error or not extracted_id:
+                    return {
+                        "status": "error",
+                        "error": f"Failed to extract ticket ID from URL: {ticket_id}. {error}"
+                    }
+                actual_ticket_id = extracted_id
+
+            ticket = await adapter.read(actual_ticket_id)
 
         if ticket is None:
             return {
@@ -731,7 +784,7 @@ async def ticket_assign(
         if is_routed:
             updated = await router.route_update(ticket_id, updates)
         else:
-            updated = await adapter.update(ticket_id, updates)
+            updated = await adapter.update(actual_ticket_id, updates)
 
         if updated is None:
             return {
@@ -745,8 +798,11 @@ async def ticket_assign(
             try:
                 from ....core.models import Comment as CommentModel
 
+                # Use actual_ticket_id for non-routed case, original ticket_id for routed
+                comment_ticket_id = ticket_id if is_routed else actual_ticket_id
+
                 comment_obj = CommentModel(
-                    ticket_id=ticket_id, content=comment, author=""
+                    ticket_id=comment_ticket_id, content=comment, author=""
                 )
 
                 if is_routed:
