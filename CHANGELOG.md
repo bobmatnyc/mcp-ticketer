@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.1.8] - 2025-11-23
+
+### Fixed
+- **Router ValueError Handling**: Fixed router to preserve helpful `ValueError` messages from adapters
+  - Router was wrapping ALL exceptions (including `ValueError`) in `RouterError`
+  - This prevented helpful error messages from reaching users via ticket_read's ValueError handler
+  - Modified all 7 router methods (`route_read`, `route_update`, `route_delete`, `route_add_comment`, `route_get_comments`, `route_list_issues_by_epic`, `route_list_tasks_by_issue`) to re-raise `ValueError` without wrapping
+  - Other exceptions still wrapped in `RouterError` for proper error context
+  - Completes the Linear view URL error handling fix started in v1.1.7
+  - Added comprehensive test coverage (15 new tests) for router ValueError handling
+  - All 38 router/view tests passing with no regressions
+
 ## [1.1.7] - 2025-11-22
 
 ### Fixed
@@ -16,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Fixes issue where Linear view URL detection errors weren't displayed properly to users
   - Other exceptions (network errors, auth failures) still get wrapped with "Failed to read ticket: " for clarity
   - Added comprehensive test coverage for both ValueError preservation and generic exception wrapping
+  - **Note**: This fix was incomplete - router was still wrapping ValueError. See fix in next release.
 
 ## [1.1.6] - 2025-01-22
 
