@@ -286,7 +286,9 @@ async def _validate_configuration_with_retry(
 
                 elif adapter_type == "aitrackdown":
                     # Returns tuple: (AdapterConfig, default_values_dict)
-                    adapter_config, default_values = _configure_aitrackdown(interactive=True)
+                    adapter_config, default_values = _configure_aitrackdown(
+                        interactive=True
+                    )
                     current_config["adapters"]["aitrackdown"] = adapter_config.to_dict()
                     # Save updated configuration
                     with open(config_file_path, "w") as f:

@@ -557,6 +557,172 @@ def comment(
 
 
 @app.command()
+def attach(
+    ticket_id: str = typer.Argument(..., help="Ticket ID or URL"),
+    file_path: Path = typer.Argument(..., help="Path to file to attach", exists=True),
+    description: str | None = typer.Option(
+        None, "--description", "-d", help="Attachment description or comment"
+    ),
+    adapter: AdapterType | None = typer.Option(
+        None, "--adapter", help="Override default adapter"
+    ),
+) -> None:
+    """Attach a file to a ticket.
+
+    Examples:
+        mcp-ticketer ticket attach 1M-157 docs/analysis.md
+        mcp-ticketer ticket attach PROJ-123 screenshot.png -d "Error screenshot"
+        mcp-ticketer ticket attach https://linear.app/.../issue/ABC-123 diagram.pdf
+    """
+
+    async def _attach() -> dict[str, Any]:
+        import mimetypes
+
+        adapter_instance = get_adapter(
+            override_adapter=adapter.value if adapter else None
+        )
+
+        # Detect MIME type
+        mime_type, _ = mimetypes.guess_type(str(file_path))
+        if not mime_type:
+            mime_type = "application/octet-stream"
+
+        # Method 1: Try Linear-specific upload (if available)
+        if hasattr(adapter_instance, "upload_file") and hasattr(
+            adapter_instance, "attach_file_to_issue"
+        ):
+            try:
+                # Upload file to Linear's S3
+                file_url = await adapter_instance.upload_file(
+                    file_path=str(file_path), mime_type=mime_type
+                )
+
+                # Attach to issue
+                attachment = await adapter_instance.attach_file_to_issue(
+                    issue_id=ticket_id,
+                    file_url=file_url,
+                    title=file_path.name,
+                    subtitle=description,
+                )
+
+                return {
+                    "status": "completed",
+                    "attachment": attachment,
+                    "file_url": file_url,
+                    "method": "linear_native_upload",
+                }
+            except Exception as e:
+                # If Linear upload fails, fall through to next method
+                pass
+
+        # Method 2: Try generic add_attachment (if available)
+        if hasattr(adapter_instance, "add_attachment"):
+            try:
+                attachment = await adapter_instance.add_attachment(
+                    ticket_id=ticket_id,
+                    file_path=str(file_path),
+                    description=description or "",
+                )
+                return {
+                    "status": "completed",
+                    "attachment": attachment,
+                    "method": "adapter_native",
+                }
+            except NotImplementedError:
+                pass
+
+        # Method 3: Fallback - Add file reference as comment
+        from ..core.models import Comment
+
+        comment_content = f"📎 File reference: {file_path.name}"
+        if description:
+            comment_content += f"\n\n{description}"
+
+        comment_obj = Comment(
+            ticket_id=ticket_id,
+            content=comment_content,
+            author="cli-user",
+        )
+
+        comment = await adapter_instance.add_comment(comment_obj)
+        return {
+            "status": "completed",
+            "comment": comment,
+            "method": "comment_reference",
+            "note": "Adapter doesn't support attachments - added file reference as comment",
+        }
+
+    # Validate file before attempting upload
+    if not file_path.exists():
+        console.print(f"[red]✗[/red] File not found: {file_path}")
+        raise typer.Exit(1) from None
+
+    if not file_path.is_file():
+        console.print(f"[red]✗[/red] Path is not a file: {file_path}")
+        raise typer.Exit(1) from None
+
+    # Display file info
+    file_size = file_path.stat().st_size
+    size_mb = file_size / (1024 * 1024)
+    console.print(f"\n[dim]Attaching file to ticket {ticket_id}...[/dim]")
+    console.print(f"  File: {file_path.name} ({size_mb:.2f} MB)")
+
+    # Detect MIME type
+    import mimetypes
+    mime_type, _ = mimetypes.guess_type(str(file_path))
+    if mime_type:
+        console.print(f"  Type: {mime_type}")
+
+    try:
+        result = asyncio.run(_attach())
+
+        if result["status"] == "completed":
+            console.print(f"\n[green]✓[/green] File attached successfully to {ticket_id}")
+
+            # Display attachment details based on method used
+            method = result.get("method", "unknown")
+
+            if method == "linear_native_upload":
+                console.print(f"  Method: Linear native upload")
+                if "file_url" in result:
+                    console.print(f"  URL: {result['file_url']}")
+                if "attachment" in result and isinstance(result["attachment"], dict):
+                    att = result["attachment"]
+                    if "id" in att:
+                        console.print(f"  ID: {att['id']}")
+                    if "title" in att:
+                        console.print(f"  Title: {att['title']}")
+
+            elif method == "adapter_native":
+                console.print(f"  Method: Adapter native")
+                if "attachment" in result:
+                    att = result["attachment"]
+                    if isinstance(att, dict):
+                        if "id" in att:
+                            console.print(f"  ID: {att['id']}")
+                        if "url" in att:
+                            console.print(f"  URL: {att['url']}")
+
+            elif method == "comment_reference":
+                console.print(f"  Method: Comment reference")
+                console.print(f"  [dim]{result.get('note', '')}[/dim]")
+                if "comment" in result:
+                    comment = result["comment"]
+                    if isinstance(comment, dict) and "id" in comment:
+                        console.print(f"  Comment ID: {comment['id']}")
+
+        else:
+            # Error case
+            error_msg = result.get("error", "Unknown error")
+            console.print(f"\n[red]✗[/red] Failed to attach file: {error_msg}")
+            raise typer.Exit(1) from None
+
+    except Exception as e:
+        console.print(f"\n[red]✗[/red] Failed to attach file: {e}")
+        raise typer.Exit(1) from None
+
+
+@app.command()
 def update(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
     title: str | None = typer.Option(None, "--title", help="New title"),

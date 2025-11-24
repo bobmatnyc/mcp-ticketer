@@ -453,7 +453,10 @@ class MCPTicketServer:
             if max_depth > 1:
                 issues = await self.adapter.list_issues_by_epic(epic_id)
                 for issue in issues:
-                    issue_node: dict[str, Any] = {"issue": issue.model_dump(), "tasks": []}
+                    issue_node: dict[str, Any] = {
+                        "issue": issue.model_dump(),
+                        "tasks": [],
+                    }
 
                     # Get tasks in issue if depth allows (depth 3+ = tasks)
                     if max_depth > 2 and issue.id:
@@ -739,9 +742,11 @@ class MCPTicketServer:
 
             if isinstance(self.adapter, GitHubAdapter):
                 try:
-                    result: dict[str, Any] = await self.adapter.link_existing_pull_request(
-                        ticket_id=ticket_id,
-                        pr_url=pr_url,
+                    result: dict[str, Any] = (
+                        await self.adapter.link_existing_pull_request(
+                            ticket_id=ticket_id,
+                            pr_url=pr_url,
+                        )
                     )
                     return result
                 except Exception as e:
@@ -763,9 +768,11 @@ class MCPTicketServer:
 
             if isinstance(self.adapter, LinearAdapter):
                 try:
-                    link_result: dict[str, Any] = await self.adapter.link_to_pull_request(
-                        ticket_id=ticket_id,
-                        pr_url=pr_url,
+                    link_result: dict[str, Any] = (
+                        await self.adapter.link_to_pull_request(
+                            ticket_id=ticket_id,
+                            pr_url=pr_url,
+                        )
                     )
                     return link_result
                 except Exception as e:

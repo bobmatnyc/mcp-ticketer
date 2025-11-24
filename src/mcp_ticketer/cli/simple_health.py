@@ -217,9 +217,7 @@ def simple_diagnose() -> dict[str, Any]:
         recommendations.append("🚨 Critical issues detected - see above")
 
     if not config_found and env_count == 0:
-        recommendations.append(
-            "💡 Consider running: mcp-ticketer init-aitrackdown"
-        )
+        recommendations.append("💡 Consider running: mcp-ticketer init-aitrackdown")
 
     # Display summary
     console.print("\n" + "=" * 60)
