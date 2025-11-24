@@ -201,6 +201,9 @@ def create_mcp_server_config(
 ) -> dict:
     """Create MCP server configuration for mcp-ticketer.
 
+    Uses the CLI command (mcp-ticketer mcp) which implements proper
+    Content-Length framing via FastMCP SDK, required for modern MCP clients.
+
     Args:
         python_path: Path to Python executable in mcp-ticketer venv
         project_config: Project configuration from .mcp-ticketer/config.json
@@ -211,21 +214,33 @@ def create_mcp_server_config(
         MCP server configuration dict matching Claude Code stdio pattern
 
     """
-    # Use Python module invocation pattern (works regardless of where package is installed)
-    args = ["-m", "mcp_ticketer.mcp.server"]
+    # IMPORTANT: Use CLI command, NOT Python module invocation
+    # The CLI uses FastMCP SDK which implements proper Content-Length framing
+    # Legacy python -m mcp_ticketer.mcp.server uses line-delimited JSON (incompatible)
+
+    # Get mcp-ticketer CLI path from Python path
+    # If python_path is /path/to/venv/bin/python, CLI is /path/to/venv/bin/mcp-ticketer
+    python_dir = Path(python_path).parent
+    cli_path = str(python_dir / "mcp-ticketer")
+
+    # Build CLI arguments
+    args = ["mcp"]
 
     # Add project path if provided and not global config
     if project_path and not is_global_config:
-        args.append(project_path)
+        args.extend(["--path", project_path])
 
     # REQUIRED: Add "type": "stdio" for Claude Code compatibility
     config = {
         "type": "stdio",
-        "command": python_path,
+        "command": cli_path,
         "args": args,
     }
 
-    # Add environment variables based on adapter
+    # NOTE: The CLI command loads configuration from .mcp-ticketer/config.json
+    # Environment variables below are optional fallbacks for backward compatibility
+    # The FastMCP SDK server will automatically load config from the project directory
+
     adapter = project_config.get("default_adapter", "aitrackdown")
     adapters_config = project_config.get("adapters", {})
     adapter_config = adapters_config.get(adapter, {})
@@ -236,7 +251,7 @@ def create_mcp_server_config(
     if project_path and not is_global_config:
         env_vars["PYTHONPATH"] = project_path
 
-    # Add MCP_TICKETER_ADAPTER to identify which adapter to use
+    # Add MCP_TICKETER_ADAPTER to identify which adapter to use (optional fallback)
     env_vars["MCP_TICKETER_ADAPTER"] = adapter
 
     # Load environment variables from .env.local if it exists
@@ -281,6 +296,52 @@ def create_mcp_server_config(
         config["env"] = env_vars
 
     return config
+
+
+def detect_legacy_claude_config(
+    config_path: Path, is_claude_code: bool = True, project_path: str | None = None
+) -> tuple[bool, dict | None]:
+    """Detect if existing Claude config uses legacy Python module invocation.
+
+    Args:
+    ----
+        config_path: Path to Claude configuration file
+        is_claude_code: Whether this is Claude Code (project-level) or Claude Desktop (global)
+        project_path: Project path for Claude Code configs
+
+    Returns:
+    -------
+        Tuple of (is_legacy, server_config):
+        - is_legacy: True if config uses 'python -m mcp_ticketer.mcp.server'
+        - server_config: The legacy server config dict, or None if not legacy
+
+    """
+    if not config_path.exists():
+        return False, None
+
+    try:
+        mcp_config = load_claude_mcp_config(config_path, is_claude_code=is_claude_code)
+    except Exception:
+        return False, None
+
+    # For Claude Code, check project-specific config
+    if is_claude_code and project_path:
+        projects = mcp_config.get("projects", {})
+        project_config = projects.get(project_path, {})
+        mcp_servers = project_config.get("mcpServers", {})
+    else:
+        # For Claude Desktop, check global config
+        mcp_servers = mcp_config.get("mcpServers", {})
+
+    if "mcp-ticketer" in mcp_servers:
+        server_config = mcp_servers["mcp-ticketer"]
+        args = server_config.get("args", [])
+
+        # Check for legacy pattern: ["-m", "mcp_ticketer.mcp.server", ...]
+        if len(args) >= 2 and args[0] == "-m" and "mcp_ticketer.mcp.server" in args[1]:
+            return True, server_config
+
+    return False, None
 
 
 def remove_claude_mcp(global_config: bool = False, dry_run: bool = False) -> None:
@@ -474,6 +535,28 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
     # Detect if using new global config location
     is_global_mcp_config = str(mcp_config_path).endswith(".config/claude/mcp.json")
 
+    # Step 4.5: Check for legacy configuration (DETECTION & MIGRATION)
+    is_legacy, legacy_config = detect_legacy_claude_config(
+        mcp_config_path, is_claude_code=is_claude_code, project_path=absolute_project_path
+    )
+    if is_legacy:
+        console.print("\n[yellow]⚠ LEGACY CONFIGURATION DETECTED[/yellow]")
+        console.print(
+            "[yellow]Your current configuration uses the legacy line-delimited JSON server:[/yellow]"
+        )
+        console.print(f"[dim]  Command: {legacy_config.get('command')}[/dim]")
+        console.print(f"[dim]  Args: {legacy_config.get('args')}[/dim]")
+        console.print(
+            f"\n[red]This legacy server is incompatible with modern MCP clients ({config_type}).[/red]"
+        )
+        console.print(
+            "[red]The legacy server uses line-delimited JSON instead of Content-Length framing.[/red]"
+        )
+        console.print(
+            "\n[cyan]✨ Automatically migrating to modern FastMCP-based server...[/cyan]"
+        )
+        force = True  # Auto-enable force mode for migration
+
     # Step 5: Check if mcp-ticketer already configured
     already_configured = False
     if is_global_mcp_config:
@@ -570,12 +653,27 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
         console.print("  Server name: mcp-ticketer")
         console.print(f"  Adapter: {adapter}")
         console.print(f"  Python: {python_path}")
-        console.print("  Command: python -m mcp_ticketer.mcp.server")
+        console.print(f"  Command: {server_config.get('command')}")
+        console.print(f"  Args: {server_config.get('args')}")
+        console.print("  Protocol: Content-Length framing (FastMCP SDK)")
         if absolute_project_path:
             console.print(f"  Project path: {absolute_project_path}")
         if "env" in server_config:
             console.print(
                 f"  Environment variables: {list(server_config['env'].keys())}"
+            )
+
+        # Migration success message (if legacy config was detected)
+        if is_legacy:
+            console.print("\n[green]✅ Migration Complete![/green]")
+            console.print(
+                "[green]Your configuration has been upgraded from legacy line-delimited JSON[/green]"
+            )
+            console.print(
+                "[green]to modern Content-Length framing (FastMCP SDK).[/green]"
+            )
+            console.print(
+                f"\n[cyan]This fixes MCP connection issues with {config_type}.[/cyan]"
             )
 
         # Next steps

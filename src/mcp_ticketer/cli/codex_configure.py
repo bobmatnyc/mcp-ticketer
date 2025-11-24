@@ -82,78 +82,39 @@ def create_codex_server_config(
 ) -> dict[str, Any]:
     """Create Codex MCP server configuration for mcp-ticketer.
 
+    Uses the CLI command (mcp-ticketer mcp) which implements proper
+    Content-Length framing via FastMCP SDK, required for modern MCP clients.
+
     Args:
     ----
         python_path: Path to Python executable in mcp-ticketer venv
         project_config: Project configuration from .mcp-ticketer/config.json
-        project_path: Project directory path (optional, not used for global config)
+        project_path: Project directory path (optional)
 
     Returns:
     -------
         Codex MCP server configuration dict
 
     """
-    # Use Python module invocation pattern (works regardless of where package is installed)
+    # IMPORTANT: Use CLI command, NOT Python module invocation
+    # The CLI uses FastMCP SDK which implements proper Content-Length framing
+    # Legacy python -m mcp_ticketer.mcp.server uses line-delimited JSON (incompatible)
 
-    # Get adapter configuration
-    adapter = project_config.get("default_adapter", "aitrackdown")
-    adapters_config = project_config.get("adapters", {})
-    adapter_config = adapters_config.get(adapter, {})
+    # Get mcp-ticketer CLI path from Python path
+    # If python_path is /path/to/venv/bin/python, CLI is /path/to/venv/bin/mcp-ticketer
+    python_dir = Path(python_path).parent
+    cli_path = str(python_dir / "mcp-ticketer")
 
-    # Build environment variables
-    env_vars: dict[str, str] = {}
-
-    # Add PYTHONPATH for project context
+    # Build CLI arguments
+    args = ["mcp"]
     if project_path:
-        env_vars["PYTHONPATH"] = project_path
-
-    # Add adapter type
-    env_vars["MCP_TICKETER_ADAPTER"] = adapter
-
-    # Add adapter-specific environment variables
-    if adapter == "aitrackdown":
-        # Set base path for local adapter
-        base_path = adapter_config.get("base_path", ".aitrackdown")
-        if project_path:
-            # Use absolute path if project_path is provided
-            env_vars["MCP_TICKETER_BASE_PATH"] = str(Path(project_path) / base_path)
-        else:
-            env_vars["MCP_TICKETER_BASE_PATH"] = base_path
-
-    elif adapter == "linear":
-        if "api_key" in adapter_config:
-            env_vars["LINEAR_API_KEY"] = adapter_config["api_key"]
-        if "team_id" in adapter_config:
-            env_vars["LINEAR_TEAM_ID"] = adapter_config["team_id"]
-
-    elif adapter == "github":
-        if "token" in adapter_config:
-            env_vars["GITHUB_TOKEN"] = adapter_config["token"]
-        if "owner" in adapter_config:
-            env_vars["GITHUB_OWNER"] = adapter_config["owner"]
-        if "repo" in adapter_config:
-            env_vars["GITHUB_REPO"] = adapter_config["repo"]
-
-    elif adapter == "jira":
-        if "api_token" in adapter_config:
-            env_vars["JIRA_API_TOKEN"] = adapter_config["api_token"]
-        if "email" in adapter_config:
-            env_vars["JIRA_EMAIL"] = adapter_config["email"]
-        if "server" in adapter_config:
-            env_vars["JIRA_SERVER"] = adapter_config["server"]
-        if "project_key" in adapter_config:
-            env_vars["JIRA_PROJECT_KEY"] = adapter_config["project_key"]
-
-    # Use Python module invocation pattern
-    args = ["-m", "mcp_ticketer.mcp.server"]
-    if project_path:
-        args.append(project_path)
+        args.extend(["--path", project_path])
 
     # Create server configuration with Codex-specific structure
+    # No environment variables needed - config loaded from .mcp-ticketer/config.json
     config: dict[str, Any] = {
-        "command": python_path,
+        "command": cli_path,
         "args": args,
-        "env": env_vars,
     }
 
     return config
@@ -228,6 +189,37 @@ def _test_configuration(adapter: str, project_config: dict) -> bool:
     except Exception as e:
         console.print(f"  [red]✗[/red] Configuration test error: {e}")
         return False
+
+
+def detect_legacy_config(config_path: Path) -> tuple[bool, dict[str, Any] | None]:
+    """Detect if existing config uses legacy Python module invocation.
+
+    Args:
+    ----
+        config_path: Path to Codex config.toml file
+
+    Returns:
+    -------
+        Tuple of (is_legacy, server_config):
+        - is_legacy: True if config uses 'python -m mcp_ticketer.mcp.server'
+        - server_config: The legacy server config dict, or None if not legacy
+
+    """
+    if not config_path.exists():
+        return False, None
+
+    codex_config = load_codex_config(config_path)
+    mcp_servers = codex_config.get("mcp_servers", {})
+
+    if "mcp-ticketer" in mcp_servers:
+        server_config = mcp_servers["mcp-ticketer"]
+        args = server_config.get("args", [])
+
+        # Check for legacy pattern: ["-m", "mcp_ticketer.mcp.server", ...]
+        if len(args) >= 2 and args[0] == "-m" and "mcp_ticketer.mcp.server" in args[1]:
+            return True, server_config
+
+    return False, None
 
 
 def remove_codex_mcp(dry_run: bool = False) -> None:
@@ -349,6 +341,26 @@ def configure_codex_mcp(force: bool = False) -> None:
     codex_config_path = find_codex_config()
     console.print(f"[dim]Config location: {codex_config_path}[/dim]")
 
+    # Step 3.5: Check for legacy configuration (DETECTION & MIGRATION)
+    is_legacy, legacy_config = detect_legacy_config(codex_config_path)
+    if is_legacy:
+        console.print("\n[yellow]⚠ LEGACY CONFIGURATION DETECTED[/yellow]")
+        console.print(
+            "[yellow]Your current configuration uses the legacy line-delimited JSON server:[/yellow]"
+        )
+        console.print(f"[dim]  Command: {legacy_config.get('command')}[/dim]")
+        console.print(f"[dim]  Args: {legacy_config.get('args')}[/dim]")
+        console.print(
+            "\n[red]This legacy server is incompatible with modern MCP clients (Codex, Claude Desktop/Code).[/red]"
+        )
+        console.print(
+            "[red]The legacy server uses line-delimited JSON instead of Content-Length framing.[/red]"
+        )
+        console.print(
+            "\n[cyan]✨ Automatically migrating to modern FastMCP-based server...[/cyan]"
+        )
+        force = True  # Auto-enable force mode for migration
+
     # Step 4: Load existing Codex configuration
     codex_config = load_codex_config(codex_config_path)
 
@@ -361,7 +373,9 @@ def configure_codex_mcp(force: bool = False) -> None:
             console.print("[dim]Use --force to overwrite existing configuration[/dim]")
             return
         else:
-            console.print("[yellow]⚠ Overwriting existing configuration[/yellow]")
+            if not is_legacy:
+                console.print("[yellow]⚠ Overwriting existing configuration[/yellow]")
+            # If is_legacy, we already printed migration message above
 
     # Step 6: Create mcp-ticketer server config
     # For global config, include current working directory for context
@@ -389,13 +403,11 @@ def configure_codex_mcp(force: bool = False) -> None:
         console.print("  Server name: mcp-ticketer")
         console.print(f"  Adapter: {adapter}")
         console.print(f"  Python: {python_path}")
-        console.print("  Command: python -m mcp_ticketer.mcp.server")
+        console.print(f"  Command: {server_config.get('command')}")
+        console.print(f"  Args: {server_config.get('args')}")
+        console.print("  Protocol: Content-Length framing (FastMCP SDK)")
         console.print("  Scope: global (Codex only supports global config)")
         console.print(f"  Project path: {project_path}")
-        if "env" in server_config:
-            console.print(
-                f"  Environment variables: {list(server_config['env'].keys())}"
-            )
 
         # Step 9: Test configuration
         console.print("\n[cyan]🧪 Testing configuration...[/cyan]")
@@ -405,6 +417,19 @@ def configure_codex_mcp(force: bool = False) -> None:
             console.print(
                 "[yellow]⚠ Configuration saved but validation failed. "
                 "Please check your credentials and settings.[/yellow]"
+            )
+
+        # Migration success message (if legacy config was detected)
+        if is_legacy:
+            console.print("\n[green]✅ Migration Complete![/green]")
+            console.print(
+                "[green]Your configuration has been upgraded from legacy line-delimited JSON[/green]"
+            )
+            console.print(
+                "[green]to modern Content-Length framing (FastMCP SDK).[/green]"
+            )
+            console.print(
+                "\n[cyan]This fixes MCP connection issues with Codex and other modern clients.[/cyan]"
             )
 
         # Next steps

@@ -78,6 +78,9 @@ def create_gemini_server_config(
 ) -> dict:
     """Create Gemini MCP server configuration for mcp-ticketer.
 
+    Uses the CLI command (mcp-ticketer mcp) which implements proper
+    Content-Length framing via FastMCP SDK, required for modern MCP clients.
+
     Args:
         python_path: Path to Python executable in mcp-ticketer venv
         project_config: Project configuration from .mcp-ticketer/config.json
@@ -87,7 +90,9 @@ def create_gemini_server_config(
         Gemini MCP server configuration dict
 
     """
-    # Use Python module invocation pattern (works regardless of where package is installed)
+    # IMPORTANT: Use CLI command, NOT Python module invocation
+    # The CLI uses FastMCP SDK which implements proper Content-Length framing
+    # Legacy python -m mcp_ticketer.mcp.server uses line-delimited JSON (incompatible)
 
     # Get adapter configuration
     adapter = project_config.get("default_adapter", "aitrackdown")
@@ -138,14 +143,21 @@ def create_gemini_server_config(
         if "project_key" in adapter_config:
             env_vars["JIRA_PROJECT_KEY"] = adapter_config["project_key"]
 
-    # Use Python module invocation pattern
-    args = ["-m", "mcp_ticketer.mcp.server"]
+    # Get mcp-ticketer CLI path from Python path
+    # If python_path is /path/to/venv/bin/python, CLI is /path/to/venv/bin/mcp-ticketer
+    python_dir = Path(python_path).parent
+    cli_path = str(python_dir / "mcp-ticketer")
+
+    # Build CLI arguments
+    args = ["mcp"]
     if project_path:
-        args.append(project_path)
+        args.extend(["--path", project_path])
 
     # Create server configuration with Gemini-specific options
+    # NOTE: Environment variables below are optional fallbacks
+    # The CLI loads config from .mcp-ticketer/config.json
     config = {
-        "command": python_path,
+        "command": cli_path,
         "args": args,
         "env": env_vars,
         "timeout": 15000,  # 15 seconds timeout
