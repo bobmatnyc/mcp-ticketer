@@ -113,7 +113,9 @@ class TestAsanaAttachments:
             mock_response.status_code = 200
             mock_response.json.return_value = {"data": mock_response_data}
             mock_client_instance.post = AsyncMock(return_value=mock_response)
-            mock_client_class.return_value.__aenter__.return_value = mock_client_instance
+            mock_client_class.return_value.__aenter__.return_value = (
+                mock_client_instance
+            )
 
             # Execute attachment upload
             result = await adapter.add_attachment(
@@ -161,7 +163,9 @@ class TestAsanaAttachments:
             mock_response.status_code = 200
             mock_response.json.return_value = {"data": mock_response_data}
             mock_client_instance.post = AsyncMock(return_value=mock_response)
-            mock_client_class.return_value.__aenter__.return_value = mock_client_instance
+            mock_client_class.return_value.__aenter__.return_value = (
+                mock_client_instance
+            )
 
             result = await adapter.add_attachment(
                 task_gid, str(temp_file), description=description
@@ -192,7 +196,9 @@ class TestAsanaAttachments:
             mock_response.status_code = 200
             mock_response.json.return_value = {"data": mock_response_data}
             mock_client_instance.post = AsyncMock(return_value=mock_response)
-            mock_client_class.return_value.__aenter__.return_value = mock_client_instance
+            mock_client_class.return_value.__aenter__.return_value = (
+                mock_client_instance
+            )
 
             # Call without description parameter
             result = await adapter.add_attachment(task_gid, str(temp_file))
@@ -201,9 +207,7 @@ class TestAsanaAttachments:
             assert result.filename == temp_file.name
 
     @pytest.mark.asyncio
-    async def test_add_attachment_file_not_found(
-        self, adapter: AsanaAdapter
-    ) -> None:
+    async def test_add_attachment_file_not_found(self, adapter: AsanaAdapter) -> None:
         """Test that non-existent files raise FileNotFoundError."""
         task_gid = "1234567890123456"
         nonexistent_path = "/nonexistent/directory/file.txt"
@@ -237,7 +241,9 @@ class TestAsanaAttachments:
             mock_response.status_code = 500
             mock_response.text = "Internal Server Error"
             mock_client_instance.post = AsyncMock(return_value=mock_response)
-            mock_client_class.return_value.__aenter__.return_value = mock_client_instance
+            mock_client_class.return_value.__aenter__.return_value = (
+                mock_client_instance
+            )
 
             with pytest.raises(ValueError, match="Failed to upload attachment"):
                 await adapter.add_attachment(task_gid, str(temp_file))
@@ -256,7 +262,9 @@ class TestAsanaAttachments:
             mock_response.status_code = 401
             mock_response.text = '{"errors": [{"message": "Unauthorized"}]}'
             mock_client_instance.post = AsyncMock(return_value=mock_response)
-            mock_client_class.return_value.__aenter__.return_value = mock_client_instance
+            mock_client_class.return_value.__aenter__.return_value = (
+                mock_client_instance
+            )
 
             with pytest.raises(ValueError, match="Failed to upload attachment"):
                 await adapter.add_attachment(task_gid, str(temp_file))
@@ -275,7 +283,9 @@ class TestAsanaAttachments:
             mock_response.status_code = 404
             mock_response.text = '{"errors": [{"message": "Not Found"}]}'
             mock_client_instance.post = AsyncMock(return_value=mock_response)
-            mock_client_class.return_value.__aenter__.return_value = mock_client_instance
+            mock_client_class.return_value.__aenter__.return_value = (
+                mock_client_instance
+            )
 
             with pytest.raises(ValueError, match="Failed to upload attachment"):
                 await adapter.add_attachment(task_gid, str(temp_file))
@@ -355,9 +365,7 @@ class TestAsanaAttachments:
         assert len(result) == 0
 
     @pytest.mark.asyncio
-    async def test_get_attachments_task_not_found(
-        self, adapter: AsanaAdapter
-    ) -> None:
+    async def test_get_attachments_task_not_found(self, adapter: AsanaAdapter) -> None:
         """Test retrieving attachments for non-existent task."""
         task_gid = "999999999999999"
 
@@ -457,7 +465,9 @@ class TestAsanaAttachments:
                     Mock(status_code=200, json=lambda: {"data": mock_response_2}),
                 ]
             )
-            mock_client_class.return_value.__aenter__.return_value = mock_client_instance
+            mock_client_class.return_value.__aenter__.return_value = (
+                mock_client_instance
+            )
 
             # Upload first attachment
             result1 = await adapter.add_attachment(task_gid, str(temp_file))
@@ -503,7 +513,9 @@ class TestAsanaAttachments:
             mock_response.status_code = 200
             mock_response.json.return_value = {"data": mock_response_data}
             mock_client_instance.post = AsyncMock(return_value=mock_response)
-            mock_client_class.return_value.__aenter__.return_value = mock_client_instance
+            mock_client_class.return_value.__aenter__.return_value = (
+                mock_client_instance
+            )
 
             result = await adapter.add_attachment(task_gid, str(temp_file))
 
@@ -550,7 +562,9 @@ class TestAsanaAttachments:
                 mock_response.status_code = 200
                 mock_response.json.return_value = {"data": mock_response_data}
                 mock_client_instance.post = AsyncMock(return_value=mock_response)
-                mock_client_class.return_value.__aenter__.return_value = mock_client_instance
+                mock_client_class.return_value.__aenter__.return_value = (
+                    mock_client_instance
+                )
 
                 result = await adapter.add_attachment(task_gid, str(test_file))
                 assert result.filename == filename
@@ -604,7 +618,9 @@ class TestAsanaAttachmentEdgeCases:
             mock_response.status_code = 200
             mock_response.json.return_value = {"data": mock_response_data}
             mock_client_instance.post = AsyncMock(return_value=mock_response)
-            mock_client_class.return_value.__aenter__.return_value = mock_client_instance
+            mock_client_class.return_value.__aenter__.return_value = (
+                mock_client_instance
+            )
 
             result = await adapter.add_attachment(task_gid, str(test_file))
             assert result.filename == unicode_filename
@@ -639,7 +655,9 @@ class TestAsanaAttachmentEdgeCases:
             mock_response.status_code = 200
             mock_response.json.return_value = {"data": mock_response_data}
             mock_client_instance.post = AsyncMock(return_value=mock_response)
-            mock_client_class.return_value.__aenter__.return_value = mock_client_instance
+            mock_client_class.return_value.__aenter__.return_value = (
+                mock_client_instance
+            )
 
             result = await adapter.add_attachment(task_gid, str(large_file))
             assert result.size_bytes == large_file.stat().st_size
@@ -670,7 +688,9 @@ class TestAsanaAttachmentEdgeCases:
             mock_response.status_code = 200
             mock_response.json.return_value = {"data": mock_response_data}
             mock_client_instance.post = AsyncMock(return_value=mock_response)
-            mock_client_class.return_value.__aenter__.return_value = mock_client_instance
+            mock_client_class.return_value.__aenter__.return_value = (
+                mock_client_instance
+            )
 
             result = await adapter.add_attachment(task_gid, str(test_file))
             assert result.filename == special_filename
@@ -699,7 +719,9 @@ class TestAsanaAttachmentEdgeCases:
             mock_response.status_code = 200
             mock_response.json.return_value = {"data": mock_response_data}
             mock_client_instance.post = AsyncMock(return_value=mock_response)
-            mock_client_class.return_value.__aenter__.return_value = mock_client_instance
+            mock_client_class.return_value.__aenter__.return_value = (
+                mock_client_instance
+            )
 
             result = await adapter.add_attachment(task_gid, str(empty_file))
             assert result.size_bytes == 0

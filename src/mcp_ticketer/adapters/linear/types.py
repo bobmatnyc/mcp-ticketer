@@ -128,7 +128,9 @@ def get_linear_state_type(state: TicketState) -> str:
     return LinearStateMapping.TO_LINEAR.get(state, "unstarted")
 
 
-def get_universal_state(linear_state_type: str, state_name: str | None = None) -> TicketState:
+def get_universal_state(
+    linear_state_type: str, state_name: str | None = None
+) -> TicketState:
     """Convert Linear workflow state type to universal TicketState with synonym matching.
 
     This function implements intelligent state mapping with fallback strategies:
@@ -158,17 +160,33 @@ def get_universal_state(linear_state_type: str, state_name: str | None = None) -
 
         # Check for "done/closed" synonyms - these become CLOSED
         closed_synonyms = [
-            "done", "closed", "cancelled", "canceled", "completed",
-            "won't do", "wont do", "rejected", "resolved", "finished"
+            "done",
+            "closed",
+            "cancelled",
+            "canceled",
+            "completed",
+            "won't do",
+            "wont do",
+            "rejected",
+            "resolved",
+            "finished",
         ]
 
         if any(synonym in state_name_lower for synonym in closed_synonyms):
-            return TicketState.DONE if state_name_lower == "done" else TicketState.CLOSED
+            return (
+                TicketState.DONE if state_name_lower == "done" else TicketState.CLOSED
+            )
 
         # Check for "in progress" synonyms
         in_progress_synonyms = [
-            "in progress", "in-progress", "working", "active",
-            "started", "doing", "in development", "in dev"
+            "in progress",
+            "in-progress",
+            "working",
+            "active",
+            "started",
+            "doing",
+            "in development",
+            "in dev",
         ]
 
         if any(synonym in state_name_lower for synonym in in_progress_synonyms):
@@ -176,8 +194,14 @@ def get_universal_state(linear_state_type: str, state_name: str | None = None) -
 
         # Check for "review/testing" synonyms
         review_synonyms = [
-            "review", "in review", "in-review", "testing",
-            "in test", "in-test", "qa", "ready for review"
+            "review",
+            "in review",
+            "in-review",
+            "testing",
+            "in test",
+            "in-test",
+            "qa",
+            "ready for review",
         ]
 
         if any(synonym in state_name_lower for synonym in review_synonyms):

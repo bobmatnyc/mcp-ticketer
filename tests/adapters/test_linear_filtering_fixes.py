@@ -373,7 +373,9 @@ class TestLinearProjectFiltering:
     @pytest.mark.asyncio
     async def test_project_filter_by_url(self, adapter):
         """Test searching with project parameter by Linear URL."""
-        project_url = "https://linear.app/test/project/crm-smart-monitoring-f59a41a96c52/overview"
+        project_url = (
+            "https://linear.app/test/project/crm-smart-monitoring-f59a41a96c52/overview"
+        )
         project_id = "resolved-uuid-from-url"
         query = SearchQuery(project=project_url, limit=10)
 
@@ -603,10 +605,7 @@ class TestLinearFilteringIntegration:
         user_email = "user@example.com"
         user_id = "user-uuid-12345"
         query = SearchQuery(
-            project=project_id,
-            state=TicketState.OPEN,
-            assignee=user_email,
-            limit=10
+            project=project_id, state=TicketState.OPEN, assignee=user_email, limit=10
         )
 
         captured_filter = None
@@ -642,10 +641,7 @@ class TestLinearFilteringIntegration:
         user_id = "developer-uuid"
 
         query = SearchQuery(
-            project=project_name,
-            state=TicketState.OPEN,
-            assignee=user_email,
-            limit=50
+            project=project_name, state=TicketState.OPEN, assignee=user_email, limit=50
         )
 
         captured_filter = None
@@ -730,7 +726,7 @@ class TestLinearFilteringIntegration:
             assignee="test@example.com",
             priority=Priority.HIGH,
             tags=["bug", "urgent"],
-            limit=20
+            limit=20,
         )
 
         captured_filter = None
