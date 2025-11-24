@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.2.5] - 2025-11-24
+
+### Fixed
+- **GitHub/Jira/AiTrackDown Setup**: Fixed critical tuple unpacking bug blocking adapter initialization (1M-176)
+  - Resolved AttributeError crashes when setting up GitHub, Jira, and AiTrackDown adapters
+  - Fixed 5 instances of missing tuple unpacking in init_command.py
+  - All adapter configure functions now properly unpack (AdapterConfig, default_values) tuples
+  - Unblocks setup for 3 of 4 adapters (75% of codebase)
+  - Verified with 25/25 setup tests passing
+- **Type Safety**: Reduced mypy type errors by 127 (493 → 366, -26%)
+  - Phase 1: Fixed 49 quick wins (type stubs, Field() patterns, variable annotations)
+  - Phase 2: Fixed 78 errors in high-priority files (diagnostics, server, adapters)
+  - Added types-PyYAML type stubs
+  - Improved dict type inference and optional handling
+  - Added comprehensive remediation plan documentation
+
+### Documentation
+- Added research analysis for GitHub setup error (1M-176)
+- Created type error remediation plan and quick reference guide
+- Documented tuple unpacking patterns across all adapters
+
 ## [1.2.4] - 2025-11-24
 
 ### Added
