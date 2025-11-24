@@ -473,51 +473,122 @@ def list_tickets(
 @app.command()
 def show(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
-    comments: bool = typer.Option(False, "--comments", "-c", help="Show comments"),
+    no_comments: bool = typer.Option(
+        False, "--no-comments", help="Hide comments (shown by default)"
+    ),
     adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
-    """Show detailed ticket information."""
+    """Show detailed ticket information with full context.
 
-    async def _show() -> tuple[Any, Any]:
+    By default, displays ticket details along with all comments to provide
+    a holistic view of the ticket's history and context.
+
+    Use --no-comments to display only ticket metadata without comments.
+    """
+
+    async def _show() -> tuple[Any, Any, Any]:
         adapter_instance = get_adapter(
             override_adapter=adapter.value if adapter else None
         )
         ticket = await adapter_instance.read(ticket_id)
         ticket_comments = None
-        if comments and ticket:
-            ticket_comments = await adapter_instance.get_comments(ticket_id)
-        return ticket, ticket_comments
+        attachments = None
 
-    ticket, ticket_comments = asyncio.run(_show())
+        # Fetch comments by default (unless explicitly disabled)
+        if not no_comments and ticket:
+            try:
+                ticket_comments = await adapter_instance.get_comments(ticket_id)
+            except (NotImplementedError, AttributeError):
+                # Adapter doesn't support comments
+                pass
+
+        # Try to fetch attachments if available
+        if ticket and hasattr(adapter_instance, "list_attachments"):
+            try:
+                attachments = await adapter_instance.list_attachments(ticket_id)
+            except (NotImplementedError, AttributeError):
+                pass
+
+        return ticket, ticket_comments, attachments
+
+    ticket, ticket_comments, attachments = asyncio.run(_show())
 
     if not ticket:
         console.print(f"[red]✗[/red] Ticket not found: {ticket_id}")
         raise typer.Exit(1) from None
 
-    # Display ticket details
-    console.print(f"\n[bold]Ticket: {ticket.id}[/bold]")
-    console.print(f"Title: {ticket.title}")
-    console.print(f"State: [green]{ticket.state}[/green]")
-    console.print(f"Priority: [yellow]{ticket.priority}[/yellow]")
+    # Display ticket header with metadata
+    console.print(f"\n[bold cyan]┌─ Ticket: {ticket.id}[/bold cyan]")
+    console.print(f"[bold]│ {ticket.title}[/bold]")
+    console.print("└" + "─" * 60)
 
-    if ticket.description:
-        console.print("\n[dim]Description:[/dim]")
-        console.print(ticket.description)
-
-    if ticket.tags:
-        console.print(f"\nTags: {', '.join(ticket.tags)}")
+    # Display metadata in organized sections
+    console.print(f"\n[bold]Status[/bold]")
+    console.print(f"  State: [green]{ticket.state}[/green]")
+    console.print(f"  Priority: [yellow]{ticket.priority}[/yellow]")
 
     if ticket.assignee:
-        console.print(f"Assignee: {ticket.assignee}")
+        console.print(f"  Assignee: {ticket.assignee}")
 
-    # Display comments if requested
+    # Display timestamps if available
+    if ticket.created_at or ticket.updated_at:
+        console.print(f"\n[bold]Timeline[/bold]")
+        if ticket.created_at:
+            console.print(f"  Created: {ticket.created_at}")
+        if ticket.updated_at:
+            console.print(f"  Updated: {ticket.updated_at}")
+
+    # Display tags
+    if ticket.tags:
+        console.print(f"\n[bold]Tags[/bold]")
+        console.print(f"  {', '.join(ticket.tags)}")
+
+    # Display description
+    if ticket.description:
+        console.print(f"\n[bold]Description[/bold]")
+        console.print(f"  {ticket.description}")
+
+    # Display parent/child relationships
+    parent_info = []
+    if hasattr(ticket, "parent_epic") and ticket.parent_epic:
+        parent_info.append(f"Epic: {ticket.parent_epic}")
+    if hasattr(ticket, "parent_issue") and ticket.parent_issue:
+        parent_info.append(f"Parent Issue: {ticket.parent_issue}")
+
+    if parent_info:
+        console.print(f"\n[bold]Hierarchy[/bold]")
+        for info in parent_info:
+            console.print(f"  {info}")
+
+    # Display attachments if available
+    if attachments and len(attachments) > 0:
+        console.print(f"\n[bold]Attachments ({len(attachments)})[/bold]")
+        for att in attachments:
+            att_title = att.get("title", "Untitled")
+            att_url = att.get("url", "")
+            console.print(f"  📎 {att_title}")
+            if att_url:
+                console.print(f"     {att_url}")
+
+    # Display comments with enhanced formatting
     if ticket_comments:
-        console.print(f"\n[bold]Comments ({len(ticket_comments)}):[/bold]")
-        for comment in ticket_comments:
-            console.print(f"\n[dim]{comment.created_at} - {comment.author}:[/dim]")
-            console.print(comment.content)
+        console.print(f"\n[bold]Activity & Comments ({len(ticket_comments)})[/bold]")
+        for i, comment in enumerate(ticket_comments, 1):
+            # Format timestamp
+            timestamp = comment.created_at if comment.created_at else "Unknown time"
+            author = comment.author if comment.author else "Unknown author"
+
+            console.print(f"\n[dim]  {i}. {timestamp}[/dim]")
+            console.print(f"  [cyan]@{author}[/cyan]")
+            console.print(f"  {comment.content}")
+
+    # Footer with hint
+    if no_comments:
+        console.print(
+            "\n[dim]💡 Tip: Remove --no-comments to see activity and comments[/dim]"
+        )
 
 
 @app.command()
