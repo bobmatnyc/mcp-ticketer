@@ -6,6 +6,58 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+- **MCP Setup Tools (Phase 1)**: Configuration validation and testing tools (1M-92)
+  - `config_validate()` - Structural validation of adapter configurations without API calls
+  - `config_test_adapter(adapter_name)` - Connectivity testing for specific adapters with API verification
+  - `config_set_assignment_labels(labels)` - Set labels indicating ticket assignment status
+  - Comprehensive error handling with actionable error messages
+  - Support for all adapters: Linear, GitHub, JIRA, Asana, AITrackdown
+  - 13 new tests covering validation, connectivity testing, and error scenarios
+- **Assignment Labels Configuration**: New field for filtering tickets by assignment status (1M-91)
+  - Added `assignment_labels` field to TicketerConfig model
+  - Enables filtering tickets to check if they're assigned (e.g., labels like "assigned", "in-progress")
+  - Integrated into configuration validation and MCP tools
+  - Optional field with empty list default for backward compatibility
+
+### Fixed
+- **Critical: Parent/Child State Constraints**: Fixed unreachable state validation in adapters (1M-93)
+  - Fixed `BaseAdapter.validate_transition()` returning early before checking parent/child constraints
+  - Fixed `LinearAdapter.validate_transition()` to properly call `super().validate_transition()`
+  - Now correctly enforces: "Parent issues must maintain completion level >= maximum child completion level"
+  - Prevents invalid transitions like: parent OPEN with children in DONE state
+  - Prevents invalid transitions like: parent IN_PROGRESS with children in TESTED state
+  - 9 comprehensive tests added to verify constraint enforcement across all scenarios
+
+### Testing
+- **Setup Tools Test Suite**: 13 new tests for configuration management (1M-92)
+  - Validation tests: valid configs, invalid adapter types, missing fields, malformed JSON
+  - Connectivity tests: successful connections, network errors, authentication failures
+  - Assignment label tests: valid settings, empty labels, validation errors
+  - 100% pass rate across all new tests
+- **Parent/Child Constraint Tests**: 9 new tests for state validation (1M-93)
+  - Valid transition tests: parent advancement with children at lower completion
+  - Invalid transition tests: parent regression below child completion level
+  - Edge case tests: multiple children at different states, transitions across multiple levels
+  - 100% pass rate with comprehensive scenario coverage
+
+### Technical Details
+- **Config Validation** (1M-92):
+  - Structural validation checks adapter configuration fields without network calls
+  - Field validation: adapter type, required fields (api_key, team_id, etc.)
+  - JSON structure validation with detailed error messages
+  - No API calls during validation for fast feedback
+- **Adapter Connectivity Testing** (1M-92):
+  - Tests actual API connectivity for specific adapters
+  - Verifies authentication credentials work
+  - Returns detailed connection status with error context
+  - Handles network errors, auth failures, and invalid configurations gracefully
+- **State Constraint Validation** (1M-93):
+  - Validates parent/child state relationships during transitions
+  - Completion level calculation: OPEN/WAITING/BLOCKED (0), IN_PROGRESS (1), READY (2), TESTED (3), DONE/CLOSED (4)
+  - Prevents parent completion level from dropping below max child completion level
+  - Applies to all parent-child relationships: Epic→Issue and Issue→Task
+
 ## [1.2.0] - 2025-11-23
 
 ### Added

@@ -346,7 +346,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         # Check parent/child state constraint
         # If this ticket has children, ensure target state >= max child state
-        if isinstance(ticket, Task) and ticket.children:
+        if isinstance(ticket, Task):
             # Get all children
             children = await self.list_tasks_by_issue(ticket_id)
             if children:
