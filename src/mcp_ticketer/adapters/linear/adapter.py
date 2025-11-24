@@ -145,7 +145,7 @@ class LinearAdapter(BaseAdapter[Task]):
     def validate_credentials(self) -> tuple[bool, str]:
         """Validate Linear API credentials.
 
-        Returns
+        Returns:
         -------
             Tuple of (is_valid, error_message)
 
@@ -186,11 +186,11 @@ class LinearAdapter(BaseAdapter[Task]):
         Validates that team_id is a UUID. If it looks like a team_key,
         resolves it to the actual UUID.
 
-        Returns
+        Returns:
         -------
             Valid Linear team UUID
 
-        Raises
+        Raises:
         ------
             ValueError: If neither team_id nor team_key provided, or resolution fails
 
@@ -1037,7 +1037,7 @@ class LinearAdapter(BaseAdapter[Task]):
     def _get_state_mapping(self) -> dict[TicketState, str]:
         """Get mapping from universal states to Linear workflow state IDs.
 
-        Returns
+        Returns:
         -------
             Dictionary mapping TicketState to Linear state ID
 
@@ -2035,7 +2035,7 @@ class LinearAdapter(BaseAdapter[Task]):
     async def list_labels(self) -> builtins.list[dict[str, Any]]:
         """List all labels available in the Linear team.
 
-        Returns
+        Returns:
         -------
             List of label dictionaries with 'id', 'name', and 'color' fields
 

@@ -506,7 +506,7 @@ def onepassword_template(
     This creates a template file that uses op:// secret references,
     which can be used with: op run --env-file=.env.1password -- <command>
 
-    Examples
+    Examples:
     --------
         # Create Linear template
         mcp-ticketer discover 1password-template linear

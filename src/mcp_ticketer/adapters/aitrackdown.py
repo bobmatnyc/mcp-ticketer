@@ -64,7 +64,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
         AITrackdown is file-based and doesn't require credentials.
 
-        Returns
+        Returns:
         -------
             (is_valid, error_message) - Always returns (True, "") for AITrackdown
 

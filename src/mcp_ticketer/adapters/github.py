@@ -232,7 +232,7 @@ class GitHubAdapter(BaseAdapter[Task]):
     def validate_credentials(self) -> tuple[bool, str]:
         """Validate that required credentials are present.
 
-        Returns
+        Returns:
         -------
             (is_valid, error_message) - Tuple of validation result and error message
 
@@ -1444,7 +1444,7 @@ Fixes #{issue_number}
     async def list_labels(self) -> builtins.list[dict[str, Any]]:
         """List all labels available in the repository.
 
-        Returns
+        Returns:
         -------
             List of label dictionaries with 'id', 'name', and 'color' fields
 

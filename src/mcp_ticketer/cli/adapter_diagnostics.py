@@ -354,7 +354,7 @@ def _provide_recommendations(console: Console) -> None:
 def get_adapter_status() -> dict[str, Any]:
     """Get current adapter status for programmatic use.
 
-    Returns
+    Returns:
     -------
         Dictionary with adapter status information
 

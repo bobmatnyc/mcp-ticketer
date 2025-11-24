@@ -27,7 +27,7 @@ def mcp_callback(
 ) -> None:
     """MCP command group - runs MCP server if no subcommand provided.
 
-    Examples
+    Examples:
     --------
         mcp-ticketer mcp              # Start server in current directory
         mcp-ticketer mcp --path /dir  # Start server in specific directory
@@ -162,7 +162,7 @@ def mcp_claude(
     By default, configures project-level (.mcp/config.json).
     Use --global to configure Claude Desktop instead.
 
-    Examples
+    Examples:
     --------
         # Configure for current project (default)
         mcp-ticketer mcp claude
@@ -203,7 +203,7 @@ def mcp_gemini(
     By default, configures project-level (.gemini/settings.json).
     Use --scope user to configure user-level (~/.gemini/settings.json).
 
-    Examples
+    Examples:
     --------
         # Configure for current project (default)
         mcp-ticketer mcp gemini
@@ -246,7 +246,7 @@ def mcp_codex(
     There is no project-level configuration support. After configuration,
     you must restart Codex CLI for changes to take effect.
 
-    Examples
+    Examples:
     --------
         # Configure Codex CLI globally
         mcp-ticketer mcp codex
@@ -279,7 +279,7 @@ def mcp_auggie(
     There is no project-level configuration support. After configuration,
     you must restart Auggie CLI for changes to take effect.
 
-    Examples
+    Examples:
     --------
         # Configure Auggie CLI globally
         mcp-ticketer mcp auggie
@@ -303,7 +303,7 @@ def mcp_status() -> None:
 
     Shows whether the MCP server is configured and running for various platforms.
 
-    Examples
+    Examples:
     --------
         mcp-ticketer mcp status
 
@@ -401,7 +401,7 @@ def mcp_stop() -> None:
     It doesn't run as a persistent background service, so there's nothing to stop.
     This command is provided for consistency but has no effect.
 
-    Examples
+    Examples:
     --------
         mcp-ticketer mcp stop
 

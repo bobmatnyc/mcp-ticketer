@@ -187,7 +187,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
     def validate_credentials(self) -> tuple[bool, str]:
         """Validate that required credentials are present.
 
-        Returns
+        Returns:
         -------
             (is_valid, error_message) - Tuple of validation result and error message
 
@@ -1022,7 +1022,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         JIRA doesn't have a direct "list all labels" endpoint, so we query
         recent issues and extract unique labels from them.
 
-        Returns
+        Returns:
         -------
             List of label dictionaries with 'id' and 'name' fields
 

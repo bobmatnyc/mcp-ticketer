@@ -23,7 +23,7 @@ async def instructions_get() -> dict[str, Any]:
     Retrieves the active instructions for the current project, which may be
     custom project-specific instructions or the default embedded instructions.
 
-    Returns
+    Returns:
     -------
         A dictionary containing:
         - status: "completed" or "error"
@@ -154,7 +154,7 @@ async def instructions_reset() -> dict[str, Any]:
     Removes any custom project-specific instructions, causing the system
     to revert to using the default embedded instructions.
 
-    Returns
+    Returns:
     -------
         A dictionary containing:
         - status: "completed" or "error"

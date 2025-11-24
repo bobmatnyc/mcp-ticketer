@@ -37,7 +37,7 @@ class BaseAdapter(ABC, Generic[T]):
         This identifier is used in MCP responses to show which adapter
         handled the operation (e.g., "linear", "github", "jira", "asana").
 
-        Returns
+        Returns:
         -------
             Lowercase adapter type (e.g., "linear", "github")
 
@@ -56,7 +56,7 @@ class BaseAdapter(ABC, Generic[T]):
     def adapter_display_name(self) -> str:
         """Return human-readable adapter name.
 
-        Returns
+        Returns:
         -------
             Title-cased adapter name (e.g., "Linear", "Github", "Jira")
 
@@ -67,7 +67,7 @@ class BaseAdapter(ABC, Generic[T]):
     def _get_state_mapping(self) -> dict[TicketState, str]:
         """Get mapping from universal states to system-specific states.
 
-        Returns
+        Returns:
         -------
             Dictionary mapping TicketState to system-specific state strings
 
@@ -78,7 +78,7 @@ class BaseAdapter(ABC, Generic[T]):
     def validate_credentials(self) -> tuple[bool, str]:
         """Validate that required credentials are present.
 
-        Returns
+        Returns:
         -------
             (is_valid, error_message) - Tuple of validation result and error message
 

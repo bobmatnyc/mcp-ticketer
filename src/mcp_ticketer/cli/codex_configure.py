@@ -23,7 +23,7 @@ def find_codex_config() -> Path:
     Codex CLI ONLY supports global configuration at ~/.codex/config.toml.
     No project-level or user-scoped configuration is available.
 
-    Returns
+    Returns:
     -------
         Path to Codex global config file at ~/.codex/config.toml
 

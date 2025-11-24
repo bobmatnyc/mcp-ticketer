@@ -38,11 +38,11 @@ class LinearGraphQLClient:
     def create_client(self) -> Client:
         """Create a new GraphQL client instance.
 
-        Returns
+        Returns:
         -------
             Configured GraphQL client
 
-        Raises
+        Raises:
         ------
             AuthenticationError: If API key is invalid
             AdapterError: If client creation fails
@@ -202,7 +202,7 @@ class LinearGraphQLClient:
     async def test_connection(self) -> bool:
         """Test the connection to Linear API.
 
-        Returns
+        Returns:
         -------
             True if connection is successful, False otherwise
 

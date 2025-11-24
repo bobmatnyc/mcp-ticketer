@@ -710,7 +710,7 @@ def init(
     - You get up to 3 retry attempts to fix configuration issues
     - You can always re-validate later with 'mcp-ticketer doctor'
 
-    Examples
+    Examples:
     --------
         # For first-time setup, use 'setup' instead (recommended)
         mcp-ticketer setup

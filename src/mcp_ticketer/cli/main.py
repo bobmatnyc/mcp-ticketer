@@ -151,7 +151,7 @@ def load_config(project_dir: Path | None = None) -> dict:
 def _discover_from_env_files() -> str | None:
     """Discover adapter configuration from .env or .env.local files.
 
-    Returns
+    Returns:
     -------
         Adapter name if discovered, None otherwise
 

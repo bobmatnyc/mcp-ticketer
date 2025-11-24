@@ -121,7 +121,7 @@ class AsanaAdapter(BaseAdapter[Task]):
     def validate_credentials(self) -> tuple[bool, str]:
         """Validate Asana API credentials.
 
-        Returns
+        Returns:
         -------
             Tuple of (is_valid, error_message)
 
@@ -347,7 +347,7 @@ class AsanaAdapter(BaseAdapter[Task]):
         Asana uses completed boolean, not state strings.
         We return a mapping to "true"/"false" strings for compatibility.
 
-        Returns
+        Returns:
         -------
             Dictionary mapping TicketState to completion status string
 

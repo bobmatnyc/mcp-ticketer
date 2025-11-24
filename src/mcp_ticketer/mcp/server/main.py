@@ -1161,7 +1161,7 @@ def _load_env_configuration() -> dict[str, Any] | None:
     2. .env.local file (local overrides)
     3. .env file (default configuration)
 
-    Returns
+    Returns:
     -------
         Dictionary with 'adapter_type' and 'adapter_config' keys, or None if no config found
 
