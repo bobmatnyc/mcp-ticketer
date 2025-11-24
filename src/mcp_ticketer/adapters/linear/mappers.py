@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from ...core.models import Comment, Epic, Priority, Task, TicketState
+from ...core.models import Attachment, Comment, Epic, Priority, Task, TicketState
 from .types import extract_linear_metadata, get_universal_priority, get_universal_state
 
 
@@ -356,3 +356,68 @@ def extract_child_issue_ids(issue_data: dict[str, Any]) -> list[str]:
     if issue_data.get("children", {}).get("nodes"):
         child_ids = [child["identifier"] for child in issue_data["children"]["nodes"]]
     return child_ids
+
+
+def map_linear_attachment_to_attachment(
+    attachment_data: dict[str, Any], ticket_id: str
+) -> Attachment:
+    """Convert Linear attachment data to universal Attachment model.
+
+    Args:
+    ----
+        attachment_data: Raw Linear attachment data from GraphQL
+        ticket_id: ID of the ticket this attachment belongs to
+
+    Returns:
+    -------
+        Universal Attachment model
+
+    Note:
+    ----
+        Linear attachment URLs require authentication with API key.
+        URLs are in format: https://files.linear.app/workspace/attachment-id/filename
+        Authentication header: Authorization: Bearer {api_key}
+
+    """
+    # Extract basic fields
+    attachment_id = attachment_data.get("id")
+    title = attachment_data.get("title", "Untitled")
+    url = attachment_data.get("url")
+    subtitle = attachment_data.get("subtitle")
+
+    # Extract dates
+    created_at = None
+    if attachment_data.get("createdAt"):
+        created_at = datetime.fromisoformat(
+            attachment_data["createdAt"].replace("Z", "+00:00")
+        )
+
+    updated_at = None
+    if attachment_data.get("updatedAt"):
+        updated_at = datetime.fromisoformat(
+            attachment_data["updatedAt"].replace("Z", "+00:00")
+        )
+
+    # Build metadata with Linear-specific fields
+    metadata = {
+        "linear": {
+            "id": attachment_id,
+            "title": title,
+            "subtitle": subtitle,
+            "metadata": attachment_data.get("metadata"),
+            "updated_at": attachment_data.get("updatedAt"),
+        }
+    }
+
+    return Attachment(
+        id=attachment_id,
+        ticket_id=ticket_id,
+        filename=title,  # Linear uses 'title' as filename
+        url=url,
+        content_type=None,  # Linear doesn't provide MIME type in GraphQL
+        size_bytes=None,  # Linear doesn't provide size in GraphQL
+        created_at=created_at,
+        created_by=None,  # Not included in standard fragment
+        description=subtitle,
+        metadata=metadata,
+    )

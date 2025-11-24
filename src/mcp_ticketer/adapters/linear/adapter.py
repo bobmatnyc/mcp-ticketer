@@ -21,13 +21,14 @@ except ImportError:
 import builtins
 
 from ...core.adapter import BaseAdapter
-from ...core.models import Comment, Epic, SearchQuery, Task, TicketState
+from ...core.models import Attachment, Comment, Epic, SearchQuery, Task, TicketState
 from ...core.registry import AdapterRegistry
 from ...core.url_parser import URLParserError, normalize_project_id
 from .client import LinearGraphQLClient
 from .mappers import (
     build_linear_issue_input,
     build_linear_issue_update_input,
+    map_linear_attachment_to_attachment,
     map_linear_comment_to_comment,
     map_linear_issue_to_task,
     map_linear_project_to_epic,
@@ -2337,6 +2338,134 @@ class LinearAdapter(BaseAdapter[Task]):
             raise ValueError(
                 f"Failed to attach file to project '{epic_id}': {e}"
             ) from e
+
+    async def get_attachments(self, ticket_id: str) -> builtins.list[Attachment]:
+        """Get all attachments for a Linear issue or project.
+
+        This method retrieves attachment metadata from Linear's GraphQL API.
+        Note that Linear attachment URLs require authentication to access.
+
+        Args:
+        ----
+            ticket_id: Linear issue identifier (e.g., "ENG-842") or project UUID
+
+        Returns:
+        -------
+            List of Attachment objects with metadata
+
+        Raises:
+        ------
+            ValueError: If credentials are invalid
+
+        Authentication Note:
+        -------------------
+            Linear attachment URLs require authentication headers:
+            Authorization: Bearer {api_key}
+
+            URLs are in format: https://files.linear.app/workspace/attachment-id/filename
+            Direct access without authentication will return 401 Unauthorized.
+
+        """
+        logger = logging.getLogger(__name__)
+
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        # Try as issue first (most common case)
+        issue_uuid = await self._resolve_issue_id(ticket_id)
+
+        if issue_uuid:
+            # Query issue attachments
+            query = """
+                query GetIssueAttachments($issueId: String!) {
+                    issue(id: $issueId) {
+                        id
+                        identifier
+                        attachments {
+                            nodes {
+                                id
+                                title
+                                url
+                                subtitle
+                                metadata
+                                createdAt
+                                updatedAt
+                            }
+                        }
+                    }
+                }
+            """
+
+            try:
+                result = await self.client.execute_query(query, {"issueId": issue_uuid})
+
+                if not result.get("issue"):
+                    logger.warning(f"Issue {ticket_id} not found")
+                    return []
+
+                attachments_data = (
+                    result["issue"].get("attachments", {}).get("nodes", [])
+                )
+
+                # Map to Attachment objects using identifier (not UUID)
+                return [
+                    map_linear_attachment_to_attachment(att, ticket_id)
+                    for att in attachments_data
+                ]
+
+            except Exception as e:
+                logger.error(f"Failed to get attachments for issue {ticket_id}: {e}")
+                return []
+
+        # Try as project if not an issue
+        project_uuid = await self._resolve_project_id(ticket_id)
+
+        if project_uuid:
+            # Query project attachments (documents)
+            query = """
+                query GetProjectAttachments($projectId: String!) {
+                    project(id: $projectId) {
+                        id
+                        name
+                        documents {
+                            nodes {
+                                id
+                                title
+                                url
+                                createdAt
+                                updatedAt
+                            }
+                        }
+                    }
+                }
+            """
+
+            try:
+                result = await self.client.execute_query(
+                    query, {"projectId": project_uuid}
+                )
+
+                if not result.get("project"):
+                    logger.warning(f"Project {ticket_id} not found")
+                    return []
+
+                documents_data = result["project"].get("documents", {}).get("nodes", [])
+
+                # Map documents to Attachment objects
+                return [
+                    map_linear_attachment_to_attachment(doc, ticket_id)
+                    for doc in documents_data
+                ]
+
+            except Exception as e:
+                logger.error(f"Failed to get attachments for project {ticket_id}: {e}")
+                return []
+
+        # Not found as either issue or project
+        logger.warning(f"Ticket {ticket_id} not found as issue or project")
+        return []
 
     async def list_cycles(
         self, team_id: str | None = None, limit: int = 50
