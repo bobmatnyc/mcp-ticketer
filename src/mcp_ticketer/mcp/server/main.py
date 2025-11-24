@@ -183,7 +183,7 @@ class MCPTicketServer:
         request = CreateTicketRequest(**params)
 
         # Build task from validated DTO
-        task = Task(
+        task = Task(  # type: ignore[call-arg]
             title=request.title,
             description=request.description,
             priority=Priority(request.priority),
@@ -261,7 +261,7 @@ class MCPTicketServer:
 
     async def _handle_search(self, params: dict[str, Any]) -> dict[str, Any]:
         """Handle ticket search - SYNCHRONOUS."""
-        query = SearchQuery(
+        query = SearchQuery(  # type: ignore[call-arg]
             query=params.get("query"),
             state=TicketState(params["state"]) if params.get("state") else None,
             priority=Priority(params["priority"]) if params.get("priority") else None,
@@ -297,7 +297,7 @@ class MCPTicketServer:
         operation = params.get("operation", "add")
 
         if operation == "add":
-            comment = Comment(
+            comment = Comment(  # type: ignore[call-arg]
                 ticket_id=params["ticket_id"],
                 content=params["content"],
                 author=params.get("author"),
@@ -331,12 +331,17 @@ class MCPTicketServer:
         request = CreateEpicRequest(**params)
 
         # Build epic from validated DTO
-        epic = Epic(
+        metadata: dict[str, Any] = {}
+        if request.target_date:
+            metadata["target_date"] = request.target_date
+        if request.lead_id:
+            metadata["lead_id"] = request.lead_id
+
+        epic = Epic(  # type: ignore[call-arg]
             title=request.title,
             description=request.description,
             child_issues=request.child_issues,
-            target_date=request.target_date,
-            lead_id=request.lead_id,
+            metadata=metadata,
         )
 
         # Create directly
@@ -377,7 +382,7 @@ class MCPTicketServer:
         request = CreateIssueRequest(**params)
 
         # Build task (issue) from validated DTO
-        task = Task(
+        task = Task(  # type: ignore[call-arg]
             title=request.title,
             description=request.description,
             parent_epic=request.epic_id,  # Issues are tasks under epics
@@ -410,7 +415,7 @@ class MCPTicketServer:
         request = CreateTaskRequest(**params)
 
         # Build task from validated DTO
-        task = Task(
+        task = Task(  # type: ignore[call-arg]
             title=request.title,
             parent_issue=request.parent_id,
             description=request.description,
@@ -442,16 +447,16 @@ class MCPTicketServer:
                 )
 
             # Build tree structure
-            tree = {"epic": epic.model_dump(), "issues": []}
+            tree: dict[str, Any] = {"epic": epic.model_dump(), "issues": []}
 
             # Get issues in epic if depth allows (depth 1 = epic only, depth 2+ = issues)
             if max_depth > 1:
                 issues = await self.adapter.list_issues_by_epic(epic_id)
                 for issue in issues:
-                    issue_node = {"issue": issue.model_dump(), "tasks": []}
+                    issue_node: dict[str, Any] = {"issue": issue.model_dump(), "tasks": []}
 
                     # Get tasks in issue if depth allows (depth 3+ = tasks)
-                    if max_depth > 2:
+                    if max_depth > 2 and issue.id:
                         tasks = await self.adapter.list_tasks_by_issue(issue.id)
                         issue_node["tasks"] = [task.model_dump() for task in tasks]
 
@@ -549,7 +554,7 @@ class MCPTicketServer:
         include_parents = params.get("include_parents", True)
 
         # Perform basic search
-        search_query = SearchQuery(
+        search_query = SearchQuery(  # type: ignore[call-arg]
             query=query,
             state=TicketState(params["state"]) if params.get("state") else None,
             priority=Priority(params["priority"]) if params.get("priority") else None,
@@ -654,6 +659,12 @@ class MCPTicketServer:
                         "error": str(e),
                         "ticket_id": ticket_id,
                     }
+            # Fallback if not GitHub adapter instance
+            return {
+                "success": False,
+                "error": "GitHub adapter not properly initialized",
+                "ticket_id": ticket_id,
+            }
         elif "linear" in adapter_name:
             # Linear adapter needs GitHub config for PR creation
             from ..adapters.linear import LinearAdapter
@@ -698,6 +709,12 @@ class MCPTicketServer:
                         "error": str(e),
                         "ticket_id": ticket_id,
                     }
+            # Fallback if not Linear adapter instance
+            return {
+                "success": False,
+                "error": "Linear adapter not properly initialized",
+                "ticket_id": ticket_id,
+            }
         else:
             return {
                 "success": False,
@@ -722,7 +739,7 @@ class MCPTicketServer:
 
             if isinstance(self.adapter, GitHubAdapter):
                 try:
-                    result = await self.adapter.link_existing_pull_request(
+                    result: dict[str, Any] = await self.adapter.link_existing_pull_request(
                         ticket_id=ticket_id,
                         pr_url=pr_url,
                     )
@@ -734,16 +751,23 @@ class MCPTicketServer:
                         "ticket_id": ticket_id,
                         "pr_url": pr_url,
                     }
+            # Fallback if not GitHub adapter instance
+            return {
+                "success": False,
+                "error": "GitHub adapter not properly initialized",
+                "ticket_id": ticket_id,
+                "pr_url": pr_url,
+            }
         elif "linear" in adapter_name:
             from ..adapters.linear import LinearAdapter
 
             if isinstance(self.adapter, LinearAdapter):
                 try:
-                    result = await self.adapter.link_to_pull_request(
+                    link_result: dict[str, Any] = await self.adapter.link_to_pull_request(
                         ticket_id=ticket_id,
                         pr_url=pr_url,
                     )
-                    return result
+                    return link_result
                 except Exception as e:
                     return {
                         "success": False,
@@ -751,6 +775,13 @@ class MCPTicketServer:
                         "ticket_id": ticket_id,
                         "pr_url": pr_url,
                     }
+            # Fallback if not Linear adapter instance
+            return {
+                "success": False,
+                "error": "Linear adapter not properly initialized",
+                "ticket_id": ticket_id,
+                "pr_url": pr_url,
+            }
         else:
             return {
                 "success": False,
@@ -1255,7 +1286,7 @@ def _build_adapter_config_from_env_vars(
         Dictionary of adapter configuration
 
     """
-    config = {}
+    config: dict[str, Any] = {}
 
     if adapter_type == "linear":
         # Linear adapter configuration

@@ -211,7 +211,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
             if uuid_pattern.match(self.team_id):
                 # Already a valid UUID
-                return self.team_id
+                return str(self.team_id)
             # Looks like a team_key string - need to resolve it
             logger.warning(
                 f"team_id '{self.team_id}' is not a UUID - treating as team_key and resolving"
@@ -470,7 +470,7 @@ class LinearAdapter(BaseAdapter[Task]):
         # Optionally fetch and populate child issues
         if include_issues:
             issues = await self._get_project_issues(epic_id)
-            epic.child_issues = [issue.id for issue in issues]
+            epic.child_issues = [issue.id for issue in issues if issue.id is not None]
 
         return epic
 
@@ -2506,7 +2506,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         try:
             # Fetch all cycles with pagination
-            all_cycles = []
+            all_cycles: list[dict[str, Any]] = []
             has_next_page = True
             after_cursor = None
 

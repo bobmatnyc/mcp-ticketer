@@ -311,3 +311,8 @@ deps =
 commands =
     sphinx-build -W -b html docs docs/_build
 """
+
+[dependency-groups]
+dev = [
+    "types-pyyaml>=6.0.12.20250915",
+]

@@ -154,14 +154,18 @@ def simple_diagnose() -> dict[str, Any]:
     console.print("\n🔍 [bold blue]MCP Ticketer Simple Diagnosis[/bold blue]")
     console.print("=" * 60)
 
+    issues: list[str] = []
+    warnings: list[str] = []
+    recommendations: list[str] = []
+
     report = {
         "timestamp": "2025-10-24",  # Static for now
         "version": "0.1.28",
         "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         "working_directory": str(Path.cwd()),
-        "issues": [],
-        "warnings": [],
-        "recommendations": [],
+        "issues": issues,
+        "warnings": warnings,
+        "recommendations": recommendations,
     }
 
     # Basic checks
@@ -179,7 +183,7 @@ def simple_diagnose() -> dict[str, Any]:
         console.print(f"✅ mcp-ticketer {mcp_ticketer.__version__} installed")
     except Exception as e:
         issue = f"Installation check failed: {e}"
-        report["issues"].append(issue)
+        issues.append(issue)
         console.print(f"❌ {issue}")
 
     # Configuration check
@@ -207,13 +211,13 @@ def simple_diagnose() -> dict[str, Any]:
         console.print("ℹ️  No adapter environment variables (using aitrackdown)")
 
     # Recommendations
-    if not report["issues"]:
-        report["recommendations"].append("✅ System appears healthy")
+    if not issues:
+        recommendations.append("✅ System appears healthy")
     else:
-        report["recommendations"].append("🚨 Critical issues detected - see above")
+        recommendations.append("🚨 Critical issues detected - see above")
 
     if not config_found and env_count == 0:
-        report["recommendations"].append(
+        recommendations.append(
             "💡 Consider running: mcp-ticketer init-aitrackdown"
         )
 

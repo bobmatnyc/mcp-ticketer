@@ -359,7 +359,7 @@ def get_adapter_status() -> dict[str, Any]:
         Dictionary with adapter status information
 
     """
-    status = {
+    status: dict[str, Any] = {
         "adapter_type": None,
         "configuration_source": None,
         "credentials_valid": False,

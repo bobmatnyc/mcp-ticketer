@@ -146,7 +146,7 @@ def map_linear_project_to_epic(project_data: dict[str, Any]) -> Epic:
         )
 
     # Extract Linear-specific metadata
-    metadata = {"linear": {}}
+    metadata: dict[str, Any] = {"linear": {}}
     if project_data.get("url"):
         metadata["linear"]["linear_url"] = project_data["url"]
     if project_data.get("icon"):

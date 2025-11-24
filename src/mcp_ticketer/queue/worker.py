@@ -184,7 +184,7 @@ class Worker:
         logger.info(f"Processing batch of {len(batch)} items")
 
         # Group items by adapter for concurrent processing
-        adapter_groups = {}
+        adapter_groups: dict[str, list[Any]] = {}
         for item in batch:
             if item.adapter not in adapter_groups:
                 adapter_groups[item.adapter] = []

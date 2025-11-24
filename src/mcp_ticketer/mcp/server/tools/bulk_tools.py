@@ -35,7 +35,7 @@ async def ticket_bulk_create(
                 "error": "No tickets provided for bulk creation",
             }
 
-        results = {
+        results: dict[str, list[Any]] = {
             "created": [],
             "failed": [],
         }
@@ -155,7 +155,7 @@ async def ticket_bulk_update(
                 "error": "No updates provided for bulk operation",
             }
 
-        results = {
+        results: dict[str, list[Any]] = {
             "updated": [],
             "failed": [],
         }

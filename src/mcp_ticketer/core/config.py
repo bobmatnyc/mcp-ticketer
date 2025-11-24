@@ -38,9 +38,9 @@ class GitHubConfig(BaseAdapterConfig):
     """GitHub adapter configuration."""
 
     type: AdapterType = AdapterType.GITHUB
-    token: str | None = Field(None, env="GITHUB_TOKEN")
-    owner: str | None = Field(None, env="GITHUB_OWNER")
-    repo: str | None = Field(None, env="GITHUB_REPO")
+    token: str | None = Field(default=None)
+    owner: str | None = Field(default=None)
+    repo: str | None = Field(default=None)
     api_url: str = "https://api.github.com"
     use_projects_v2: bool = False
     custom_priority_scheme: dict[str, list[str]] | None = None
@@ -80,10 +80,10 @@ class JiraConfig(BaseAdapterConfig):
     """JIRA adapter configuration."""
 
     type: AdapterType = AdapterType.JIRA
-    server: str | None = Field(None, env="JIRA_SERVER")
-    email: str | None = Field(None, env="JIRA_EMAIL")
-    api_token: str | None = Field(None, env="JIRA_API_TOKEN")
-    project_key: str | None = Field(None, env="JIRA_PROJECT_KEY")
+    server: str | None = Field(default=None)
+    email: str | None = Field(default=None)
+    api_token: str | None = Field(default=None)
+    project_key: str | None = Field(default=None)
     cloud: bool = True
     verify_ssl: bool = True
 
@@ -122,7 +122,7 @@ class LinearConfig(BaseAdapterConfig):
     """Linear adapter configuration."""
 
     type: AdapterType = AdapterType.LINEAR
-    api_key: str | None = Field(None, env="LINEAR_API_KEY")
+    api_key: str | None = Field(default=None)
     workspace: str | None = None
     team_key: str | None = None  # Short team key like "BTA"
     team_id: str | None = None  # UUID team identifier
@@ -382,7 +382,7 @@ class ConfigurationManager:
                 }
 
             # Convert discovered adapters to config format
-            config_data = {"adapters": {}, "default_adapter": None}
+            config_data: dict[str, Any] = {"adapters": {}, "default_adapter": None}
 
             for adapter in discovered.adapters:
                 adapter_config = {"type": adapter.adapter_type, "enabled": True}

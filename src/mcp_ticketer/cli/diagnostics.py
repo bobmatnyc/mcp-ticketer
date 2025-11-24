@@ -154,7 +154,7 @@ class SystemDiagnostics:
         """Diagnose configuration issues."""
         console.print("\n📋 [yellow]Configuration Analysis[/yellow]")
 
-        config_status = {
+        config_status: dict[str, Any] = {
             "status": "healthy",
             "adapters_configured": 0,
             "default_adapter": None,
@@ -260,7 +260,7 @@ class SystemDiagnostics:
         """Diagnose adapter functionality."""
         console.print("\n🔌 [yellow]Adapter Diagnosis[/yellow]")
 
-        adapter_status = {
+        adapter_status: dict[str, Any] = {
             "total_adapters": 0,
             "healthy_adapters": 0,
             "failed_adapters": 0,
@@ -278,7 +278,7 @@ class SystemDiagnostics:
             for name, adapter_config in adapters_config.items():
                 adapter_type = adapter_config.get("type", name)
 
-                details = {
+                details: dict[str, Any] = {
                     "type": adapter_type,
                     "status": "unknown",
                     "last_test": None,
@@ -330,7 +330,7 @@ class SystemDiagnostics:
         """Diagnose queue system health with active testing."""
         console.print("\n⚡ [yellow]Queue System Diagnosis[/yellow]")
 
-        queue_status = {
+        queue_status: dict[str, Any] = {
             "worker_running": False,
             "worker_pid": None,
             "queue_stats": {},
@@ -455,7 +455,7 @@ class SystemDiagnostics:
 
     async def _test_worker_startup(self) -> dict[str, Any]:
         """Test starting a queue worker."""
-        test_result = {
+        test_result: dict[str, Any] = {
             "attempted": True,
             "success": False,
             "error": None,
@@ -497,7 +497,7 @@ class SystemDiagnostics:
 
     async def _test_queue_operations(self) -> dict[str, Any]:
         """Test basic queue operations."""
-        test_result = {
+        test_result: dict[str, Any] = {
             "attempted": True,
             "success": False,
             "error": None,
@@ -509,7 +509,7 @@ class SystemDiagnostics:
             from ..core.models import Priority, Task
             from ..queue.queue import Queue
 
-            test_task = Task(
+            test_task = Task(  # type: ignore[call-arg]
                 title="[DIAGNOSTIC TEST] Queue functionality test",
                 description="This is a diagnostic test - safe to ignore",
                 priority=Priority.LOW,
@@ -532,7 +532,7 @@ class SystemDiagnostics:
 
     async def _test_basic_queue_functionality(self) -> dict[str, Any]:
         """Test basic queue functionality in fallback mode."""
-        test_result = {
+        test_result: dict[str, Any] = {
             "attempted": True,
             "success": False,
             "error": None,
@@ -544,7 +544,7 @@ class SystemDiagnostics:
             from ..adapters.aitrackdown import AITrackdownAdapter
             from ..core.models import Priority, Task
 
-            test_task = Task(
+            test_task = Task(  # type: ignore[call-arg]
                 title="[DIAGNOSTIC TEST] Direct adapter test",
                 description="Testing direct adapter functionality",
                 priority=Priority.LOW,
@@ -564,7 +564,8 @@ class SystemDiagnostics:
             test_result["details"] = f"Direct adapter test passed: {result.id}"
 
             # Clean up test
-            await adapter.delete(result.id)
+            if result.id:
+                await adapter.delete(result.id)
 
         except Exception as e:
             test_result["error"] = str(e)
@@ -575,7 +576,7 @@ class SystemDiagnostics:
         """Analyze recent log entries for issues."""
         console.print("\n📝 [yellow]Recent Log Analysis[/yellow]")
 
-        log_analysis = {
+        log_analysis: dict[str, Any] = {
             "log_files_found": [],
             "recent_errors": [],
             "recent_warnings": [],
@@ -644,7 +645,7 @@ class SystemDiagnostics:
         """Analyze system performance metrics."""
         console.print("\n⚡ [yellow]Performance Analysis[/yellow]")
 
-        performance = {
+        performance: dict[str, Any] = {
             "response_times": {},
             "throughput": {},
             "resource_usage": {},

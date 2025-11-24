@@ -334,7 +334,7 @@ def check_op_cli_status() -> dict[str, Any]:
     """
     loader = OnePasswordSecretsLoader()
 
-    status = {
+    status: dict[str, Any] = {
         "installed": loader.is_op_available(),
         "authenticated": False,
         "version": None,

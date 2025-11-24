@@ -22,7 +22,7 @@ def load_env_file(env_path: Path) -> dict[str, str]:
         Dict of environment variable key-value pairs
 
     """
-    env_vars = {}
+    env_vars: dict[str, str] = {}
     if not env_path.exists():
         return env_vars
 

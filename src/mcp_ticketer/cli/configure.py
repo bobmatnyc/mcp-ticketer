@@ -153,7 +153,7 @@ def _configure_single_adapter() -> TicketerConfig:
     adapter_type = adapter_type_map[adapter_choice]
 
     # Configure the selected adapter
-    default_values = {}
+    default_values: dict[str, str] = {}
     if adapter_type == AdapterType.LINEAR:
         adapter_config, default_values = _configure_linear(interactive=True)
     elif adapter_type == AdapterType.JIRA:
@@ -977,7 +977,7 @@ def _configure_hybrid_mode() -> TicketerConfig:
 
     # Configure each adapter
     adapters = {}
-    default_values = {}
+    default_values: dict[str, str] = {}
     for adapter_type in selected_adapters:
         console.print(f"\n[cyan]Configuring {adapter_type.value}...[/cyan]")
 
