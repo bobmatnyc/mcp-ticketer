@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.2.1] - 2025-11-24
+
 ### Added
 - **MCP Setup Tools (Phase 2)**: Interactive configuration wizard (1M-92)
   - `config_list_adapters()` - List available adapters with configuration status
