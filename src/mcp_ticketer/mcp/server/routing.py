@@ -234,7 +234,9 @@ class TicketRouter:
             # Get config requirements for this adapter
             required_config = self.ADAPTER_CONFIG_SPECS.get(
                 adapter_name,
-                {"config": "Required configuration fields (check adapter documentation)"},
+                {
+                    "config": "Required configuration fields (check adapter documentation)"
+                },
             )
 
             return AdapterResult(
@@ -539,7 +541,9 @@ class TicketRouter:
                 f"Failed to route get_comments operation: {str(e)}"
             ) from e
 
-    async def route_list_issues_by_epic(self, epic_id: str) -> list[Any] | dict[str, Any]:
+    async def route_list_issues_by_epic(
+        self, epic_id: str
+    ) -> list[Any] | dict[str, Any]:
         """Route list issues by epic to appropriate adapter.
 
         Args:
@@ -585,7 +589,9 @@ class TicketRouter:
                 f"Failed to route list_issues_by_epic operation: {str(e)}"
             ) from e
 
-    async def route_list_tasks_by_issue(self, issue_id: str) -> list[Any] | dict[str, Any]:
+    async def route_list_tasks_by_issue(
+        self, issue_id: str
+    ) -> list[Any] | dict[str, Any]:
         """Route list tasks by issue to appropriate adapter.
 
         Args:

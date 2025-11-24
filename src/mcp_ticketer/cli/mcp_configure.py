@@ -537,7 +537,9 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
 
     # Step 4.5: Check for legacy configuration (DETECTION & MIGRATION)
     is_legacy, legacy_config = detect_legacy_claude_config(
-        mcp_config_path, is_claude_code=is_claude_code, project_path=absolute_project_path
+        mcp_config_path,
+        is_claude_code=is_claude_code,
+        project_path=absolute_project_path,
     )
     if is_legacy:
         console.print("\n[yellow]⚠ LEGACY CONFIGURATION DETECTED[/yellow]")

@@ -693,13 +693,19 @@ def _configure_github(
             if not final_owner:
                 final_owner = parsed_owner
                 if interactive:
-                    console.print(f"[dim]Extracted owner '{parsed_owner}' from URL[/dim]")
+                    console.print(
+                        f"[dim]Extracted owner '{parsed_owner}' from URL[/dim]"
+                    )
             final_repo = parsed_repo
             if interactive:
                 console.print(f"[dim]Extracted repo '{parsed_repo}' from URL[/dim]")
         elif interactive:
-            console.print(f"[yellow]Warning: Could not parse GitHub URL. {error}[/yellow]")
-            console.print("[yellow]Please enter repository name (not full URL)[/yellow]")
+            console.print(
+                f"[yellow]Warning: Could not parse GitHub URL. {error}[/yellow]"
+            )
+            console.print(
+                "[yellow]Please enter repository name (not full URL)[/yellow]"
+            )
             final_repo = ""
 
     if interactive and not final_repo:

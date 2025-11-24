@@ -525,7 +525,7 @@ def show(
     console.print("└" + "─" * 60)
 
     # Display metadata in organized sections
-    console.print(f"\n[bold]Status[/bold]")
+    console.print("\n[bold]Status[/bold]")
     console.print(f"  State: [green]{ticket.state}[/green]")
     console.print(f"  Priority: [yellow]{ticket.priority}[/yellow]")
 
@@ -534,7 +534,7 @@ def show(
 
     # Display timestamps if available
     if ticket.created_at or ticket.updated_at:
-        console.print(f"\n[bold]Timeline[/bold]")
+        console.print("\n[bold]Timeline[/bold]")
         if ticket.created_at:
             console.print(f"  Created: {ticket.created_at}")
         if ticket.updated_at:
@@ -542,12 +542,12 @@ def show(
 
     # Display tags
     if ticket.tags:
-        console.print(f"\n[bold]Tags[/bold]")
+        console.print("\n[bold]Tags[/bold]")
         console.print(f"  {', '.join(ticket.tags)}")
 
     # Display description
     if ticket.description:
-        console.print(f"\n[bold]Description[/bold]")
+        console.print("\n[bold]Description[/bold]")
         console.print(f"  {ticket.description}")
 
     # Display parent/child relationships
@@ -558,7 +558,7 @@ def show(
         parent_info.append(f"Parent Issue: {ticket.parent_issue}")
 
     if parent_info:
-        console.print(f"\n[bold]Hierarchy[/bold]")
+        console.print("\n[bold]Hierarchy[/bold]")
         for info in parent_info:
             console.print(f"  {info}")
 
@@ -682,7 +682,7 @@ def attach(
                     "file_url": file_url,
                     "method": "linear_native_upload",
                 }
-            except Exception as e:
+            except Exception:
                 # If Linear upload fails, fall through to next method
                 pass
 
@@ -740,6 +740,7 @@ def attach(
 
     # Detect MIME type
     import mimetypes
+
     mime_type, _ = mimetypes.guess_type(str(file_path))
     if mime_type:
         console.print(f"  Type: {mime_type}")
@@ -748,13 +749,15 @@ def attach(
         result = asyncio.run(_attach())
 
         if result["status"] == "completed":
-            console.print(f"\n[green]✓[/green] File attached successfully to {ticket_id}")
+            console.print(
+                f"\n[green]✓[/green] File attached successfully to {ticket_id}"
+            )
 
             # Display attachment details based on method used
             method = result.get("method", "unknown")
 
             if method == "linear_native_upload":
-                console.print(f"  Method: Linear native upload")
+                console.print("  Method: Linear native upload")
                 if "file_url" in result:
                     console.print(f"  URL: {result['file_url']}")
                 if "attachment" in result and isinstance(result["attachment"], dict):
@@ -765,7 +768,7 @@ def attach(
                         console.print(f"  Title: {att['title']}")
 
             elif method == "adapter_native":
-                console.print(f"  Method: Adapter native")
+                console.print("  Method: Adapter native")
                 if "attachment" in result:
                     att = result["attachment"]
                     if isinstance(att, dict):
@@ -775,7 +778,7 @@ def attach(
                             console.print(f"  URL: {att['url']}")
 
             elif method == "comment_reference":
-                console.print(f"  Method: Comment reference")
+                console.print("  Method: Comment reference")
                 console.print(f"  [dim]{result.get('note', '')}[/dim]")
                 if "comment" in result:
                     comment = result["comment"]
