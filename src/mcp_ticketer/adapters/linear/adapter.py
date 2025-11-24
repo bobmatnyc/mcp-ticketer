@@ -23,6 +23,7 @@ import builtins
 from ...core.adapter import BaseAdapter
 from ...core.models import Comment, Epic, SearchQuery, Task, TicketState
 from ...core.registry import AdapterRegistry
+from ...core.url_parser import URLParserError, normalize_project_id
 from .client import LinearGraphQLClient
 from .mappers import (
     build_linear_issue_input,
@@ -498,18 +499,20 @@ class LinearAdapter(BaseAdapter[Task]):
         if not project_identifier:
             return None
 
-        # Extract slug/ID from URL if full URL provided
-        if project_identifier.startswith("http"):
-            # Extract slug-shortid from URL like:
-            # https://linear.app/travel-bta/project/crm-smart-monitoring-system-f59a41a96c52/overview
-            parts = project_identifier.split("/project/")
-            if len(parts) > 1:
-                slug_with_id = parts[1].split("/")[
-                    0
-                ]  # Get "crm-smart-monitoring-system-f59a41a96c52"
-                project_identifier = slug_with_id
-            else:
-                raise ValueError(f"Invalid Linear project URL: {project_identifier}")
+        # Use tested URL parser to normalize the identifier
+        # This correctly extracts project IDs from URLs and handles:
+        # - Full URLs: https://linear.app/team/project/slug-id/overview
+        # - Slug-ID format: slug-id
+        # - Plain identifiers: id
+        try:
+            project_identifier = normalize_project_id(
+                project_identifier, adapter_type="linear"
+            )
+        except URLParserError as e:
+            logging.getLogger(__name__).warning(
+                f"Failed to parse project identifier: {e}"
+            )
+            # Continue with original identifier - may still work if it's a name
 
         # If it looks like a full UUID already (exactly 36 chars with exactly 4 dashes), return it
         # UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
