@@ -26,6 +26,7 @@ Example:
 """
 
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 from ...core.adapter import BaseAdapter
@@ -33,6 +34,36 @@ from ...core.registry import AdapterRegistry
 from ...core.url_parser import extract_id_from_url, is_url
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class AdapterResult:
+    """Result of adapter lookup operation.
+
+    This class represents both successful adapter retrieval and
+    unconfigured adapter scenarios, allowing tools to provide
+    helpful setup guidance instead of failing with errors.
+
+    Attributes:
+        status: "configured" or "unconfigured"
+        adapter: The adapter instance if configured, None otherwise
+        adapter_name: Name of the adapter
+        message: Human-readable status message
+        required_config: Dictionary of required config fields (if unconfigured)
+        setup_instructions: Command to configure the adapter (if unconfigured)
+
+    """
+
+    status: str
+    adapter: BaseAdapter | None
+    adapter_name: str
+    message: str
+    required_config: dict[str, str] | None = None
+    setup_instructions: str | None = None
+
+    def is_configured(self) -> bool:
+        """Check if adapter is configured and ready to use."""
+        return self.status == "configured" and self.adapter is not None
 
 
 class RouterError(Exception):
@@ -56,6 +87,25 @@ class TicketRouter:
         _adapters: Cache of initialized adapter instances
 
     """
+
+    # Configuration requirements for each adapter type
+    ADAPTER_CONFIG_SPECS = {
+        "linear": {
+            "api_key": "Linear API key (from linear.app/settings/api)",
+            "team_id": "Linear team UUID or team_key: Team key (e.g., 'BTA')",
+        },
+        "github": {
+            "token": "GitHub Personal Access Token (from github.com/settings/tokens)",
+            "owner": "Repository owner (username or organization)",
+            "repo": "Repository name",
+        },
+        "jira": {
+            "server": "JIRA server URL (e.g., https://company.atlassian.net)",
+            "email": "User email for authentication",
+            "api_token": "JIRA API token",
+            "project_key": "Default project key",
+        },
+    }
 
     def __init__(
         self, default_adapter: str, adapter_configs: dict[str, dict[str, Any]]
@@ -157,30 +207,43 @@ class TicketRouter:
         logger.debug(f"Extracted ticket ID '{extracted_id}' from URL")
         return extracted_id, adapter_name, "url"
 
-    def _get_adapter(self, adapter_name: str) -> BaseAdapter:
-        """Get or create adapter instance.
+    def _get_adapter(self, adapter_name: str) -> AdapterResult:
+        """Get or create adapter instance with configuration status.
 
-        Adapters are cached after first creation for performance.
+        Returns a result object that indicates whether the adapter is configured
+        and ready to use, or provides setup instructions if not configured.
 
         Args:
             adapter_name: Name of adapter to get
 
         Returns:
-            Adapter instance
-
-        Raises:
-            RouterError: If adapter is not configured or cannot be created
+            AdapterResult with configuration status and adapter (if available)
 
         """
         # Return cached adapter if available
         if adapter_name in self._adapters:
-            return self._adapters[adapter_name]
+            return AdapterResult(
+                status="configured",
+                adapter=self._adapters[adapter_name],
+                adapter_name=adapter_name,
+                message=f"{adapter_name.title()} adapter is configured and ready",
+            )
 
         # Check if adapter is configured
         if adapter_name not in self.adapter_configs:
-            raise RouterError(
-                f"Adapter '{adapter_name}' is not configured. "
-                f"Available adapters: {list(self.adapter_configs.keys())}"
+            # Get config requirements for this adapter
+            required_config = self.ADAPTER_CONFIG_SPECS.get(
+                adapter_name,
+                {"config": "Required configuration fields (check adapter documentation)"},
+            )
+
+            return AdapterResult(
+                status="unconfigured",
+                adapter=None,
+                adapter_name=adapter_name,
+                message=f"{adapter_name.title()} adapter detected but not configured",
+                required_config=required_config,
+                setup_instructions=f"Run: mcp-ticketer configure {adapter_name}",
             )
 
         # Create and cache adapter
@@ -189,11 +252,25 @@ class TicketRouter:
             adapter = AdapterRegistry.get_adapter(adapter_name, config)
             self._adapters[adapter_name] = adapter
             logger.info(f"Created and cached adapter: {adapter_name}")
-            return adapter
+
+            return AdapterResult(
+                status="configured",
+                adapter=adapter,
+                adapter_name=adapter_name,
+                message=f"{adapter_name.title()} adapter configured successfully",
+            )
         except Exception as e:
-            raise RouterError(
-                f"Failed to create adapter '{adapter_name}': {str(e)}"
-            ) from e
+            # Failed to create adapter - return unconfigured with error details
+            logger.error(f"Failed to create adapter '{adapter_name}': {e}")
+
+            return AdapterResult(
+                status="unconfigured",
+                adapter=None,
+                adapter_name=adapter_name,
+                message=f"Failed to initialize {adapter_name.title()} adapter: {str(e)}",
+                required_config=self.ADAPTER_CONFIG_SPECS.get(adapter_name, {}),
+                setup_instructions=f"Run: mcp-ticketer configure {adapter_name}",
+            )
 
     def _build_adapter_metadata(
         self,
@@ -238,15 +315,32 @@ class TicketRouter:
             ticket_id: Ticket ID or URL
 
         Returns:
-            Ticket object from adapter
+            Ticket object from adapter, or dict with unconfigured status if adapter not set up
 
         Raises:
             RouterError: If routing or read operation fails
+            ValueError: If URL parsing fails
 
         """
         try:
             normalized_id, adapter_name, _ = self._normalize_ticket_id(ticket_id)
-            adapter = self._get_adapter(adapter_name)
+            adapter_result = self._get_adapter(adapter_name)
+
+            # Check if adapter is configured
+            if not adapter_result.is_configured():
+                logger.warning(
+                    f"Adapter '{adapter_name}' not configured for ticket: {ticket_id}"
+                )
+                return {
+                    "status": "unconfigured",
+                    "adapter_detected": adapter_name,
+                    "message": adapter_result.message,
+                    "required_config": adapter_result.required_config,
+                    "setup_instructions": adapter_result.setup_instructions,
+                }
+
+            # Adapter is configured - proceed with read
+            adapter = adapter_result.adapter
             logger.debug(
                 f"Routing read for '{normalized_id}' to {adapter_name} adapter"
             )
@@ -266,15 +360,32 @@ class TicketRouter:
             updates: Dictionary of field updates
 
         Returns:
-            Updated ticket object from adapter
+            Updated ticket object from adapter, or dict with unconfigured status
 
         Raises:
             RouterError: If routing or update operation fails
+            ValueError: If URL parsing fails
 
         """
         try:
             normalized_id, adapter_name, _ = self._normalize_ticket_id(ticket_id)
-            adapter = self._get_adapter(adapter_name)
+            adapter_result = self._get_adapter(adapter_name)
+
+            # Check if adapter is configured
+            if not adapter_result.is_configured():
+                logger.warning(
+                    f"Adapter '{adapter_name}' not configured for ticket: {ticket_id}"
+                )
+                return {
+                    "status": "unconfigured",
+                    "adapter_detected": adapter_name,
+                    "message": adapter_result.message,
+                    "required_config": adapter_result.required_config,
+                    "setup_instructions": adapter_result.setup_instructions,
+                }
+
+            # Adapter is configured - proceed with update
+            adapter = adapter_result.adapter
             logger.debug(
                 f"Routing update for '{normalized_id}' to {adapter_name} adapter"
             )
@@ -286,22 +397,39 @@ class TicketRouter:
         except Exception as e:
             raise RouterError(f"Failed to route update operation: {str(e)}") from e
 
-    async def route_delete(self, ticket_id: str) -> bool:
+    async def route_delete(self, ticket_id: str) -> bool | dict[str, Any]:
         """Route delete operation to appropriate adapter.
 
         Args:
             ticket_id: Ticket ID or URL
 
         Returns:
-            True if deletion was successful
+            True if deletion was successful, or dict with unconfigured status
 
         Raises:
             RouterError: If routing or delete operation fails
+            ValueError: If URL parsing fails
 
         """
         try:
             normalized_id, adapter_name, _ = self._normalize_ticket_id(ticket_id)
-            adapter = self._get_adapter(adapter_name)
+            adapter_result = self._get_adapter(adapter_name)
+
+            # Check if adapter is configured
+            if not adapter_result.is_configured():
+                logger.warning(
+                    f"Adapter '{adapter_name}' not configured for ticket: {ticket_id}"
+                )
+                return {
+                    "status": "unconfigured",
+                    "adapter_detected": adapter_name,
+                    "message": adapter_result.message,
+                    "required_config": adapter_result.required_config,
+                    "setup_instructions": adapter_result.setup_instructions,
+                }
+
+            # Adapter is configured - proceed with delete
+            adapter = adapter_result.adapter
             logger.debug(
                 f"Routing delete for '{normalized_id}' to {adapter_name} adapter"
             )
@@ -321,15 +449,32 @@ class TicketRouter:
             comment: Comment object to add
 
         Returns:
-            Created comment object from adapter
+            Created comment object from adapter, or dict with unconfigured status
 
         Raises:
             RouterError: If routing or comment operation fails
+            ValueError: If URL parsing fails
 
         """
         try:
             normalized_id, adapter_name, _ = self._normalize_ticket_id(ticket_id)
-            adapter = self._get_adapter(adapter_name)
+            adapter_result = self._get_adapter(adapter_name)
+
+            # Check if adapter is configured
+            if not adapter_result.is_configured():
+                logger.warning(
+                    f"Adapter '{adapter_name}' not configured for ticket: {ticket_id}"
+                )
+                return {
+                    "status": "unconfigured",
+                    "adapter_detected": adapter_name,
+                    "message": adapter_result.message,
+                    "required_config": adapter_result.required_config,
+                    "setup_instructions": adapter_result.setup_instructions,
+                }
+
+            # Adapter is configured - proceed with add_comment
+            adapter = adapter_result.adapter
             logger.debug(
                 f"Routing add_comment for '{normalized_id}' to {adapter_name} adapter"
             )
@@ -346,7 +491,7 @@ class TicketRouter:
 
     async def route_get_comments(
         self, ticket_id: str, limit: int = 10, offset: int = 0
-    ) -> list[Any]:
+    ) -> list[Any] | dict[str, Any]:
         """Route get comments operation to appropriate adapter.
 
         Args:
@@ -355,15 +500,32 @@ class TicketRouter:
             offset: Number of comments to skip
 
         Returns:
-            List of comment objects from adapter
+            List of comment objects from adapter, or dict with unconfigured status
 
         Raises:
             RouterError: If routing or get comments operation fails
+            ValueError: If URL parsing fails
 
         """
         try:
             normalized_id, adapter_name, _ = self._normalize_ticket_id(ticket_id)
-            adapter = self._get_adapter(adapter_name)
+            adapter_result = self._get_adapter(adapter_name)
+
+            # Check if adapter is configured
+            if not adapter_result.is_configured():
+                logger.warning(
+                    f"Adapter '{adapter_name}' not configured for ticket: {ticket_id}"
+                )
+                return {
+                    "status": "unconfigured",
+                    "adapter_detected": adapter_name,
+                    "message": adapter_result.message,
+                    "required_config": adapter_result.required_config,
+                    "setup_instructions": adapter_result.setup_instructions,
+                }
+
+            # Adapter is configured - proceed with get_comments
+            adapter = adapter_result.adapter
             logger.debug(
                 f"Routing get_comments for '{normalized_id}' to {adapter_name} adapter"
             )
@@ -377,22 +539,39 @@ class TicketRouter:
                 f"Failed to route get_comments operation: {str(e)}"
             ) from e
 
-    async def route_list_issues_by_epic(self, epic_id: str) -> list[Any]:
+    async def route_list_issues_by_epic(self, epic_id: str) -> list[Any] | dict[str, Any]:
         """Route list issues by epic to appropriate adapter.
 
         Args:
             epic_id: Epic ID or URL
 
         Returns:
-            List of issue objects from adapter
+            List of issue objects from adapter, or dict with unconfigured status
 
         Raises:
             RouterError: If routing or list operation fails
+            ValueError: If URL parsing fails
 
         """
         try:
             normalized_id, adapter_name, _ = self._normalize_ticket_id(epic_id)
-            adapter = self._get_adapter(adapter_name)
+            adapter_result = self._get_adapter(adapter_name)
+
+            # Check if adapter is configured
+            if not adapter_result.is_configured():
+                logger.warning(
+                    f"Adapter '{adapter_name}' not configured for epic: {epic_id}"
+                )
+                return {
+                    "status": "unconfigured",
+                    "adapter_detected": adapter_name,
+                    "message": adapter_result.message,
+                    "required_config": adapter_result.required_config,
+                    "setup_instructions": adapter_result.setup_instructions,
+                }
+
+            # Adapter is configured - proceed with list_issues_by_epic
+            adapter = adapter_result.adapter
             logger.debug(
                 f"Routing list_issues_by_epic for '{normalized_id}' to {adapter_name} adapter"
             )
@@ -406,22 +585,39 @@ class TicketRouter:
                 f"Failed to route list_issues_by_epic operation: {str(e)}"
             ) from e
 
-    async def route_list_tasks_by_issue(self, issue_id: str) -> list[Any]:
+    async def route_list_tasks_by_issue(self, issue_id: str) -> list[Any] | dict[str, Any]:
         """Route list tasks by issue to appropriate adapter.
 
         Args:
             issue_id: Issue ID or URL
 
         Returns:
-            List of task objects from adapter
+            List of task objects from adapter, or dict with unconfigured status
 
         Raises:
             RouterError: If routing or list operation fails
+            ValueError: If URL parsing fails
 
         """
         try:
             normalized_id, adapter_name, _ = self._normalize_ticket_id(issue_id)
-            adapter = self._get_adapter(adapter_name)
+            adapter_result = self._get_adapter(adapter_name)
+
+            # Check if adapter is configured
+            if not adapter_result.is_configured():
+                logger.warning(
+                    f"Adapter '{adapter_name}' not configured for issue: {issue_id}"
+                )
+                return {
+                    "status": "unconfigured",
+                    "adapter_detected": adapter_name,
+                    "message": adapter_result.message,
+                    "required_config": adapter_result.required_config,
+                    "setup_instructions": adapter_result.setup_instructions,
+                }
+
+            # Adapter is configured - proceed with list_tasks_by_issue
+            adapter = adapter_result.adapter
             logger.debug(
                 f"Routing list_tasks_by_issue for '{normalized_id}' to {adapter_name} adapter"
             )
