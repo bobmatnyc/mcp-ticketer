@@ -127,7 +127,9 @@ class MockAdapterWithChildren(BaseAdapter[Task]):
 
 
 @pytest.fixture
-def adapter_with_children(mock_adapter_config: dict[str, Any]) -> MockAdapterWithChildren:
+def adapter_with_children(
+    mock_adapter_config: dict[str, Any],
+) -> MockAdapterWithChildren:
     """Create mock adapter with parent/child support.
 
     Args:
@@ -160,7 +162,7 @@ class TestParentChildStateConstraints:
             title="Child Task",
             state=TicketState.DONE,
             parent_issue=parent.id,
-            ticket_type=TicketType.TASK
+            ticket_type=TicketType.TASK,
         )
         await adapter_with_children.create(child)
 
@@ -170,7 +172,9 @@ class TestParentChildStateConstraints:
         is_valid = await adapter_with_children.validate_transition(
             parent.id, TicketState.OPEN
         )
-        assert is_valid is False, "Parent should not be able to move to less complete state than child"
+        assert (
+            is_valid is False
+        ), "Parent should not be able to move to less complete state than child"
 
     @pytest.mark.asyncio
     async def test_parent_can_move_to_equal_or_more_complete_state(
@@ -186,7 +190,7 @@ class TestParentChildStateConstraints:
             title="Child Task",
             state=TicketState.READY,
             parent_issue=parent.id,
-            ticket_type=TicketType.TASK
+            ticket_type=TicketType.TASK,
         )
         await adapter_with_children.create(child)
 
@@ -216,7 +220,7 @@ class TestParentChildStateConstraints:
             title="Child 1",
             state=TicketState.IN_PROGRESS,  # completion_level = 3
             parent_issue=parent.id,
-            ticket_type=TicketType.TASK
+            ticket_type=TicketType.TASK,
         )
         await adapter_with_children.create(child1)
 
@@ -224,7 +228,7 @@ class TestParentChildStateConstraints:
             title="Child 2",
             state=TicketState.DONE,  # completion_level = 6 (highest)
             parent_issue=parent.id,
-            ticket_type=TicketType.TASK
+            ticket_type=TicketType.TASK,
         )
         await adapter_with_children.create(child2)
 
@@ -232,7 +236,7 @@ class TestParentChildStateConstraints:
             title="Child 3",
             state=TicketState.READY,  # completion_level = 4
             parent_issue=parent.id,
-            ticket_type=TicketType.TASK
+            ticket_type=TicketType.TASK,
         )
         await adapter_with_children.create(child3)
 
@@ -259,7 +263,9 @@ class TestParentChildStateConstraints:
         is_valid = await adapter_with_children.validate_transition(
             parent.id, TicketState.IN_PROGRESS
         )
-        assert is_valid is True, "Parent without children should follow workflow rules only"
+        assert (
+            is_valid is True
+        ), "Parent without children should follow workflow rules only"
 
     @pytest.mark.asyncio
     async def test_completion_level_ordering(
@@ -267,13 +273,30 @@ class TestParentChildStateConstraints:
     ) -> None:
         """Test that completion_level() returns correct ordering."""
         # Verify the completion level ordering
-        assert TicketState.OPEN.completion_level() < TicketState.BLOCKED.completion_level()
-        assert TicketState.BLOCKED.completion_level() < TicketState.WAITING.completion_level()
-        assert TicketState.WAITING.completion_level() < TicketState.IN_PROGRESS.completion_level()
-        assert TicketState.IN_PROGRESS.completion_level() < TicketState.READY.completion_level()
-        assert TicketState.READY.completion_level() < TicketState.TESTED.completion_level()
-        assert TicketState.TESTED.completion_level() < TicketState.DONE.completion_level()
-        assert TicketState.DONE.completion_level() < TicketState.CLOSED.completion_level()
+        assert (
+            TicketState.OPEN.completion_level() < TicketState.BLOCKED.completion_level()
+        )
+        assert (
+            TicketState.BLOCKED.completion_level()
+            < TicketState.WAITING.completion_level()
+        )
+        assert (
+            TicketState.WAITING.completion_level()
+            < TicketState.IN_PROGRESS.completion_level()
+        )
+        assert (
+            TicketState.IN_PROGRESS.completion_level()
+            < TicketState.READY.completion_level()
+        )
+        assert (
+            TicketState.READY.completion_level() < TicketState.TESTED.completion_level()
+        )
+        assert (
+            TicketState.TESTED.completion_level() < TicketState.DONE.completion_level()
+        )
+        assert (
+            TicketState.DONE.completion_level() < TicketState.CLOSED.completion_level()
+        )
 
     @pytest.mark.asyncio
     async def test_string_state_handling_in_parent_child_validation(
@@ -289,7 +312,7 @@ class TestParentChildStateConstraints:
             title="Child Task",
             state="done",
             parent_issue=parent.id,
-            ticket_type=TicketType.TASK
+            ticket_type=TicketType.TASK,
         )
         await adapter_with_children.create(child)
 
@@ -298,7 +321,9 @@ class TestParentChildStateConstraints:
         is_valid = await adapter_with_children.validate_transition(
             parent.id, TicketState.OPEN
         )
-        assert is_valid is False, "String states should be handled correctly in validation"
+        assert (
+            is_valid is False
+        ), "String states should be handled correctly in validation"
 
     @pytest.mark.asyncio
     async def test_transition_state_respects_parent_child_constraints(
@@ -314,7 +339,7 @@ class TestParentChildStateConstraints:
             title="Child Task",
             state=TicketState.DONE,
             parent_issue=parent.id,
-            ticket_type=TicketType.TASK
+            ticket_type=TicketType.TASK,
         )
         await adapter_with_children.create(child)
 
@@ -323,12 +348,16 @@ class TestParentChildStateConstraints:
         result = await adapter_with_children.transition_state(
             parent.id, TicketState.OPEN
         )
-        assert result is None, "transition_state should return None when validation fails"
+        assert (
+            result is None
+        ), "transition_state should return None when validation fails"
 
         # Verify parent state unchanged
         parent_check = await adapter_with_children.read(parent.id)
         assert parent_check is not None
-        assert parent_check.state == TicketState.IN_PROGRESS, "Parent state should remain unchanged"
+        assert (
+            parent_check.state == TicketState.IN_PROGRESS
+        ), "Parent state should remain unchanged"
 
 
 class TestLinearAdapterDelegation:
@@ -346,23 +375,27 @@ class TestLinearAdapterDelegation:
             content = f.read()
 
         # Verify the implementation calls super()
-        assert "await super().validate_transition" in content, \
-            "LinearAdapter.validate_transition must delegate to BaseAdapter"
+        assert (
+            "await super().validate_transition" in content
+        ), "LinearAdapter.validate_transition must delegate to BaseAdapter"
 
         # Verify it's in the validate_transition method
         import re
+
         match = re.search(
-            r'async def validate_transition\([^)]+\)[^:]*:.*?(?=\n    async def|\nclass|\Z)',
+            r"async def validate_transition\([^)]+\)[^:]*:.*?(?=\n    async def|\nclass|\Z)",
             content,
-            re.DOTALL
+            re.DOTALL,
         )
         assert match is not None, "validate_transition method not found"
 
         method_body = match.group(0)
-        assert "await super().validate_transition" in method_body, \
-            "super().validate_transition call must be in the method body"
-        assert "return await super().validate_transition" in method_body, \
-            "Must return the result from super().validate_transition"
+        assert (
+            "await super().validate_transition" in method_body
+        ), "super().validate_transition call must be in the method body"
+        assert (
+            "return await super().validate_transition" in method_body
+        ), "Must return the result from super().validate_transition"
 
     @pytest.mark.asyncio
     async def test_base_adapter_has_parent_child_logic(self) -> None:
@@ -372,11 +405,15 @@ class TestLinearAdapterDelegation:
             content = f.read()
 
         # Verify the implementation has parent/child constraint logic
-        assert "list_tasks_by_issue" in content, \
-            "BaseAdapter must call list_tasks_by_issue to get children"
-        assert "max_child_level" in content, \
-            "BaseAdapter must track max child completion level"
-        assert "target_state.completion_level()" in content, \
-            "BaseAdapter must compare completion levels"
-        assert "target_state.completion_level() < max_child_level" in content, \
-            "BaseAdapter must enforce parent >= child constraint"
+        assert (
+            "list_tasks_by_issue" in content
+        ), "BaseAdapter must call list_tasks_by_issue to get children"
+        assert (
+            "max_child_level" in content
+        ), "BaseAdapter must track max child completion level"
+        assert (
+            "target_state.completion_level()" in content
+        ), "BaseAdapter must compare completion levels"
+        assert (
+            "target_state.completion_level() < max_child_level" in content
+        ), "BaseAdapter must enforce parent >= child constraint"

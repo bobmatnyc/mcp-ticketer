@@ -513,12 +513,15 @@ class TestConfigTestAdapter:
             },
         }
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
-            return_value=tmp_path,
-        ), patch(
-            "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
-            return_value=mock_health_result,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+                return_value=tmp_path,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
+                return_value=mock_health_result,
+            ),
         ):
             result = await config_test_adapter("aitrackdown")
 
@@ -541,12 +544,15 @@ class TestConfigTestAdapter:
             },
         }
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
-            return_value=tmp_path,
-        ), patch(
-            "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
-            return_value=mock_health_result,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+                return_value=tmp_path,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
+                return_value=mock_health_result,
+            ),
         ):
             result = await config_test_adapter("linear")
 
@@ -582,12 +588,15 @@ class TestConfigTestAdapter:
             "error": "Adapter 'github' is not configured",
         }
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
-            return_value=tmp_path,
-        ), patch(
-            "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
-            return_value=mock_health_result,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+                return_value=tmp_path,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
+                return_value=mock_health_result,
+            ),
         ):
             result = await config_test_adapter("github")
 
@@ -1093,8 +1102,12 @@ class TestConfigGetAdapterRequirements:
 
                 # All fields should have descriptions
                 for field_name, field_spec in result["requirements"].items():
-                    assert "description" in field_spec, f"{adapter_name}.{field_name} missing description"
-                    assert len(field_spec["description"]) > 10, f"{adapter_name}.{field_name} description too short"
+                    assert (
+                        "description" in field_spec
+                    ), f"{adapter_name}.{field_name} missing description"
+                    assert (
+                        len(field_spec["description"]) > 10
+                    ), f"{adapter_name}.{field_name} description too short"
 
     async def test_requirements_total_fields_accurate(self, tmp_path: Path) -> None:
         """Test that total_fields count is accurate."""
@@ -1128,12 +1141,15 @@ class TestConfigSetupWizard:
             },
         }
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
-            return_value=tmp_path,
-        ), patch(
-            "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
-            return_value=mock_health_result,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+                return_value=tmp_path,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
+                return_value=mock_health_result,
+            ),
         ):
             result = await config_setup_wizard(
                 adapter_type="aitrackdown",
@@ -1211,12 +1227,15 @@ class TestConfigSetupWizard:
             },
         }
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
-            return_value=tmp_path,
-        ), patch(
-            "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
-            return_value=mock_health_result,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+                return_value=tmp_path,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
+                return_value=mock_health_result,
+            ),
         ):
             result = await config_setup_wizard(
                 adapter_type="aitrackdown",
@@ -1279,7 +1298,9 @@ class TestConfigSetupWizard:
             with open(config_path) as f:
                 config_data = json.load(f)
             assert config_data["default_adapter"] == "linear"  # Still linear
-            assert "aitrackdown" in config_data["adapters"]  # But aitrackdown configured
+            assert (
+                "aitrackdown" in config_data["adapters"]
+            )  # But aitrackdown configured
 
     async def test_config_setup_wizard_update_existing(self, tmp_path: Path) -> None:
         """Test updating existing adapter configuration."""
@@ -1334,12 +1355,15 @@ class TestConfigSetupWizard:
             },
         }
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
-            return_value=tmp_path,
-        ), patch(
-            "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
-            return_value=mock_health_result,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+                return_value=tmp_path,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
+                return_value=mock_health_result,
+            ),
         ):
             result = await config_setup_wizard(
                 adapter_type="linear",
@@ -1376,12 +1400,15 @@ class TestConfigSetupWizard:
 
         team_uuid = "12345678-1234-1234-1234-123456789012"
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
-            return_value=tmp_path,
-        ), patch(
-            "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
-            return_value=mock_health_result,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+                return_value=tmp_path,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
+                return_value=mock_health_result,
+            ),
         ):
             result = await config_setup_wizard(
                 adapter_type="linear",
@@ -1414,12 +1441,15 @@ class TestConfigSetupWizard:
             },
         }
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
-            return_value=tmp_path,
-        ), patch(
-            "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
-            return_value=mock_health_result,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+                return_value=tmp_path,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
+                return_value=mock_health_result,
+            ),
         ):
             result = await config_setup_wizard(
                 adapter_type="github",
@@ -1453,12 +1483,15 @@ class TestConfigSetupWizard:
             },
         }
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
-            return_value=tmp_path,
-        ), patch(
-            "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
-            return_value=mock_health_result,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+                return_value=tmp_path,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
+                return_value=mock_health_result,
+            ),
         ):
             result = await config_setup_wizard(
                 adapter_type="jira",
@@ -1477,7 +1510,10 @@ class TestConfigSetupWizard:
             config_path = tmp_path / ".mcp-ticketer" / "config.json"
             with open(config_path) as f:
                 config_data = json.load(f)
-            assert config_data["adapters"]["jira"]["server"] == "https://test.atlassian.net"
+            assert (
+                config_data["adapters"]["jira"]["server"]
+                == "https://test.atlassian.net"
+            )
             assert config_data["adapters"]["jira"]["email"] == "test@example.com"
 
     async def test_config_setup_wizard_case_insensitive(self, tmp_path: Path) -> None:

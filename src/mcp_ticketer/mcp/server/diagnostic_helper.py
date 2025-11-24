@@ -53,6 +53,7 @@ def should_suggest_diagnostics(exception: Exception) -> bool:
 
     Returns:
         True if diagnostics should be suggested
+
     """
     severity = get_error_severity(exception)
     return severity in (ErrorSeverity.CRITICAL, ErrorSeverity.MEDIUM)
@@ -66,6 +67,7 @@ def get_error_severity(exception: Exception) -> ErrorSeverity:
 
     Returns:
         Error severity level
+
     """
     exception_type = type(exception)
     return ERROR_SEVERITY_MAP.get(exception_type, ErrorSeverity.MEDIUM)
@@ -81,6 +83,7 @@ async def get_quick_diagnostic_info() -> dict[str, Any]:
 
     Returns:
         Dictionary with quick diagnostic results
+
     """
     info: dict[str, Any] = {}
 
@@ -135,6 +138,7 @@ def build_diagnostic_suggestion(
 
     Returns:
         Diagnostic suggestion dictionary for inclusion in error response
+
     """
     severity = get_error_severity(exception)
 

@@ -310,7 +310,9 @@ async def ticket_create(
 
         # Add diagnostic suggestion for system-level errors
         if should_suggest_diagnostics(e):
-            logging.debug(f"Error classified as system-level, adding diagnostic suggestion")
+            logging.debug(
+                "Error classified as system-level, adding diagnostic suggestion"
+            )
             try:
                 quick_info = await get_quick_diagnostic_info()
                 error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(
@@ -364,11 +366,13 @@ async def ticket_read(ticket_id: str) -> dict[str, Any]:
             if is_url(ticket_id):
                 # Extract ID from URL for default adapter
                 adapter_type = type(adapter).__name__.lower().replace("adapter", "")
-                extracted_id, error = extract_id_from_url(ticket_id, adapter_type=adapter_type)
+                extracted_id, error = extract_id_from_url(
+                    ticket_id, adapter_type=adapter_type
+                )
                 if error or not extracted_id:
                     return {
                         "status": "error",
-                        "error": f"Failed to extract ticket ID from URL: {ticket_id}. {error}"
+                        "error": f"Failed to extract ticket ID from URL: {ticket_id}. {error}",
                     }
                 ticket = await adapter.read(extracted_id)
             else:
@@ -401,7 +405,9 @@ async def ticket_read(ticket_id: str) -> dict[str, Any]:
 
         # Add diagnostic suggestion for system-level errors
         if should_suggest_diagnostics(e):
-            logging.debug(f"Error classified as system-level, adding diagnostic suggestion")
+            logging.debug(
+                "Error classified as system-level, adding diagnostic suggestion"
+            )
             try:
                 quick_info = await get_quick_diagnostic_info()
                 error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(
@@ -491,11 +497,13 @@ async def ticket_update(
             if is_url(ticket_id):
                 # Extract ID from URL for default adapter
                 adapter_type = type(adapter).__name__.lower().replace("adapter", "")
-                extracted_id, error = extract_id_from_url(ticket_id, adapter_type=adapter_type)
+                extracted_id, error = extract_id_from_url(
+                    ticket_id, adapter_type=adapter_type
+                )
                 if error or not extracted_id:
                     return {
                         "status": "error",
-                        "error": f"Failed to extract ticket ID from URL: {ticket_id}. {error}"
+                        "error": f"Failed to extract ticket ID from URL: {ticket_id}. {error}",
                     }
                 updated = await adapter.update(extracted_id, updates)
             else:
@@ -520,7 +528,9 @@ async def ticket_update(
 
         # Add diagnostic suggestion for system-level errors
         if should_suggest_diagnostics(e):
-            logging.debug(f"Error classified as system-level, adding diagnostic suggestion")
+            logging.debug(
+                "Error classified as system-level, adding diagnostic suggestion"
+            )
             try:
                 quick_info = await get_quick_diagnostic_info()
                 error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(
@@ -564,11 +574,13 @@ async def ticket_delete(ticket_id: str) -> dict[str, Any]:
             if is_url(ticket_id):
                 # Extract ID from URL for default adapter
                 adapter_type = type(adapter).__name__.lower().replace("adapter", "")
-                extracted_id, error = extract_id_from_url(ticket_id, adapter_type=adapter_type)
+                extracted_id, error = extract_id_from_url(
+                    ticket_id, adapter_type=adapter_type
+                )
                 if error or not extracted_id:
                     return {
                         "status": "error",
-                        "error": f"Failed to extract ticket ID from URL: {ticket_id}. {error}"
+                        "error": f"Failed to extract ticket ID from URL: {ticket_id}. {error}",
                     }
                 success = await adapter.delete(extracted_id)
             else:
@@ -739,7 +751,9 @@ async def ticket_list(
 
         # Add diagnostic suggestion for system-level errors
         if should_suggest_diagnostics(e):
-            logging.debug(f"Error classified as system-level, adding diagnostic suggestion")
+            logging.debug(
+                "Error classified as system-level, adding diagnostic suggestion"
+            )
             try:
                 quick_info = await get_quick_diagnostic_info()
                 error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(
@@ -876,11 +890,13 @@ async def ticket_assign(
             if is_url(ticket_id):
                 # Extract ID from URL for default adapter
                 adapter_type = type(adapter).__name__.lower().replace("adapter", "")
-                extracted_id, error = extract_id_from_url(ticket_id, adapter_type=adapter_type)
+                extracted_id, error = extract_id_from_url(
+                    ticket_id, adapter_type=adapter_type
+                )
                 if error or not extracted_id:
                     return {
                         "status": "error",
-                        "error": f"Failed to extract ticket ID from URL: {ticket_id}. {error}"
+                        "error": f"Failed to extract ticket ID from URL: {ticket_id}. {error}",
                     }
                 actual_ticket_id = extracted_id
 
@@ -910,9 +926,15 @@ async def ticket_assign(
         state_transitioned = False
         auto_comment = None
 
-        if auto_transition and assignee is not None:  # Only when assigning (not unassigning)
+        if (
+            auto_transition and assignee is not None
+        ):  # Only when assigning (not unassigning)
             # Check if current state should auto-transition to IN_PROGRESS
-            if current_state in [TicketState.OPEN, TicketState.WAITING, TicketState.BLOCKED]:
+            if current_state in [
+                TicketState.OPEN,
+                TicketState.WAITING,
+                TicketState.BLOCKED,
+            ]:
                 # Validate workflow allows this transition
                 if current_state.can_transition_to(TicketState.IN_PROGRESS):
                     updates["state"] = TicketState.IN_PROGRESS
@@ -964,8 +986,16 @@ async def ticket_assign(
 
         # Build response
         # Handle both string and enum state values
-        previous_state_value = current_state.value if hasattr(current_state, 'value') else str(current_state)
-        new_state_value = updated.state.value if hasattr(updated.state, 'value') else str(updated.state)
+        previous_state_value = (
+            current_state.value
+            if hasattr(current_state, "value")
+            else str(current_state)
+        )
+        new_state_value = (
+            updated.state.value
+            if hasattr(updated.state, "value")
+            else str(updated.state)
+        )
 
         response = {
             "status": "completed",
@@ -989,7 +1019,9 @@ async def ticket_assign(
 
         # Add diagnostic suggestion for system-level errors
         if should_suggest_diagnostics(e):
-            logging.debug(f"Error classified as system-level, adding diagnostic suggestion")
+            logging.debug(
+                "Error classified as system-level, adding diagnostic suggestion"
+            )
             try:
                 quick_info = await get_quick_diagnostic_info()
                 error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(

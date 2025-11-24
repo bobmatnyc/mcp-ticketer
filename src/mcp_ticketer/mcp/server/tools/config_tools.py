@@ -749,6 +749,7 @@ async def config_validate() -> dict[str, Any]:
             "all_valid": False,
             "issues": ["github: GitHub token is missing"]
         }
+
     """
     try:
         resolver = get_resolver()
@@ -832,6 +833,7 @@ async def config_test_adapter(adapter_name: str) -> dict[str, Any]:
         - Adapter not configured: Returns error with available adapters
         - Invalid credentials: Returns healthy=False with specific error
         - Network issues: Returns healthy=False with connection error
+
     """
     try:
         # Import diagnostic tool
@@ -937,7 +939,7 @@ async def config_list_adapters() -> dict[str, Any]:
 
         # Build adapter list with status
         adapters = []
-        for adapter_type, adapter_class in available_adapters.items():
+        for adapter_type, _adapter_class in available_adapters.items():
             # Check if this adapter is configured
             is_configured = adapter_type in config.adapters
             is_default = config.default_adapter == adapter_type
@@ -1254,12 +1256,23 @@ async def config_setup_wizard(
                 # Check if field is present and non-empty
                 if field_name not in credentials or not credentials.get(field_name):
                     # For Linear, check if either team_key or team_id is provided
-                    if adapter_lower == "linear" and field_name in ["team_key", "team_id"]:
+                    if adapter_lower == "linear" and field_name in [
+                        "team_key",
+                        "team_id",
+                    ]:
                         # Special handling: either team_key OR team_id is required
-                        has_team_key = credentials.get("team_key") and str(credentials["team_key"]).strip()
-                        has_team_id = credentials.get("team_id") and str(credentials["team_id"]).strip()
+                        has_team_key = (
+                            credentials.get("team_key")
+                            and str(credentials["team_key"]).strip()
+                        )
+                        has_team_id = (
+                            credentials.get("team_id")
+                            and str(credentials["team_id"]).strip()
+                        )
                         if not has_team_key and not has_team_id:
-                            missing_fields.append("team_key OR team_id (at least one required)")
+                            missing_fields.append(
+                                "team_key OR team_id (at least one required)"
+                            )
                         # If one is provided, we're good - don't add to missing_fields
                     else:
                         missing_fields.append(field_name)
@@ -1275,6 +1288,7 @@ async def config_setup_wizard(
 
         # Step 4: Validate credential formats
         import re
+
         for field_name, field_value in credentials.items():
             if field_name not in requirements:
                 continue
@@ -1285,15 +1299,18 @@ async def config_setup_wizard(
             if validation_pattern and field_value:
                 try:
                     if not re.match(validation_pattern, str(field_value)):
-                        invalid_fields.append({
-                            "field": field_name,
-                            "error": f"Invalid format for {field_name}",
-                            "pattern": validation_pattern,
-                            "description": field_spec.get("description", ""),
-                        })
+                        invalid_fields.append(
+                            {
+                                "field": field_name,
+                                "error": f"Invalid format for {field_name}",
+                                "pattern": validation_pattern,
+                                "description": field_spec.get("description", ""),
+                            }
+                        )
                 except Exception as e:
                     # If regex fails, log but continue (don't block on validation)
                     import logging
+
                     logger = logging.getLogger(__name__)
                     logger.warning(f"Validation pattern error for {field_name}: {e}")
 
@@ -1307,15 +1324,11 @@ async def config_setup_wizard(
         # Step 5: Build adapter config
         from ....core.project_config import AdapterConfig
 
-        adapter_config = AdapterConfig(
-            adapter=adapter_lower,
-            **credentials
-        )
+        adapter_config = AdapterConfig(adapter=adapter_lower, **credentials)
 
         # Step 6: Validate using ConfigValidator
         is_valid, validation_error = ConfigValidator.validate(
-            adapter_lower,
-            adapter_config.to_dict()
+            adapter_lower, adapter_config.to_dict()
         )
 
         if not is_valid:
@@ -1387,6 +1400,7 @@ async def config_setup_wizard(
 
     except Exception as e:
         import traceback
+
         return {
             "status": "error",
             "error": f"Setup wizard failed: {str(e)}",

@@ -367,7 +367,8 @@ class TestWarningSystem:
                     for record in caplog.records
                 )
                 assert any(
-                    "default_team" in record.message or "default_project" in record.message
+                    "default_team" in record.message
+                    or "default_project" in record.message
                     for record in caplog.records
                 )
 
@@ -436,7 +437,8 @@ class TestWarningSystem:
                     "Unscoped search" in record.message for record in caplog.records
                 )
                 assert any(
-                    "default_project" in record.message or "default_team" in record.message
+                    "default_project" in record.message
+                    or "default_team" in record.message
                     for record in caplog.records
                 )
 

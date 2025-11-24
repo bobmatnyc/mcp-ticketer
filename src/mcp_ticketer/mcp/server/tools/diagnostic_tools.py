@@ -57,6 +57,7 @@ async def system_diagnostics(simple: bool = False) -> dict[str, Any]:
 
         # Quick diagnostics if full fails
         result = await system_diagnostics(simple=True)
+
     """
     try:
         if simple:
@@ -138,6 +139,7 @@ async def check_adapter_health(adapter_name: str | None = None) -> dict[str, Any
 
         # Check specific adapter
         result = await check_adapter_health(adapter_name="linear")
+
     """
     try:
         from ....cli.utils import CommonPatterns
