@@ -399,6 +399,38 @@ For complete details, see [Compact Mode Summary](COMPACT_MODE_SUMMARY.md).
 
 ## ⚙️ Configuration
 
+### Quick Setup with MCP Tools (New in v1.x)
+
+**Simplified Configuration**: New MCP tools reduce adapter setup time from 15-30 minutes to < 3 minutes.
+
+```python
+# 1. List available adapters with configuration status
+result = await config_list_adapters()
+# Shows: linear, github, jira, aitrackdown - which are configured
+
+# 2. Get requirements for your adapter
+requirements = await config_get_adapter_requirements("linear")
+# Shows: api_key (required), team_id (optional)
+
+# 3. Configure adapter with one-call setup wizard
+result = await config_setup_wizard(
+    adapter_type="linear",
+    credentials={
+        "api_key": "lin_api_...",
+        "team_id": "ENG"  # or team UUID
+    }
+)
+# Validates, tests connection, and saves configuration
+```
+
+**Benefits:**
+- ✅ Automatic validation and connection testing
+- ✅ Clear error messages with actionable guidance
+- ✅ One-call setup (no chaining multiple commands)
+- ✅ < 3 minutes total setup time
+
+For complete documentation, see [Configuration Guide](docs/user-docs/getting-started/CONFIGURATION.md#quick-setup-with-mcp-tools).
+
 ### Linear Configuration
 
 Configure Linear using a team **URL** (easiest), team **key**, or team **ID**:

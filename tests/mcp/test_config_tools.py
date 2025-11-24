@@ -18,10 +18,13 @@ import pytest
 
 from mcp_ticketer.mcp.server.tools.config_tools import (
     config_get,
+    config_get_adapter_requirements,
+    config_list_adapters,
     config_set_assignment_labels,
     config_set_default_project,
     config_set_default_user,
     config_set_primary_adapter,
+    config_setup_wizard,
     config_test_adapter,
     config_validate,
 )
@@ -730,3 +733,825 @@ class TestConfigSetAssignmentLabels:
             assert config_data["default_user"] == "user@example.com"
             assert config_data["default_project"] == "PROJ-123"
             assert config_data["assignment_labels"] == ["my-work"]
+
+
+@pytest.mark.asyncio
+class TestConfigListAdapters:
+    """Test suite for config_list_adapters MCP tool."""
+
+    async def test_list_adapters_no_config(self, tmp_path: Path) -> None:
+        """Test listing adapters when no config file exists."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_list_adapters()
+
+            assert result["status"] == "completed"
+            assert "adapters" in result
+            assert isinstance(result["adapters"], list)
+            assert len(result["adapters"]) > 0  # Should have registered adapters
+            assert result["default_adapter"] == "aitrackdown"  # Default
+            assert result["total_configured"] == 0  # No adapters configured
+            assert "No adapters configured" in result["message"]
+
+    async def test_list_adapters_with_configured(self, tmp_path: Path) -> None:
+        """Test listing adapters with some configured."""
+        # Create config with Linear configured
+        config_dir = tmp_path / ".mcp-ticketer"
+        config_dir.mkdir(parents=True)
+        config_path = config_dir / "config.json"
+
+        config_data = {
+            "default_adapter": "linear",
+            "adapters": {
+                "linear": {
+                    "adapter": "linear",
+                    "api_key": "test_key",
+                    "team_key": "ENG",
+                },
+                "aitrackdown": {
+                    "adapter": "aitrackdown",
+                },
+            },
+        }
+        with open(config_path, "w") as f:
+            json.dump(config_data, f)
+
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_list_adapters()
+
+            assert result["status"] == "completed"
+            assert result["total_configured"] == 2
+            assert result["default_adapter"] == "linear"
+
+            # Find Linear adapter in list
+            linear_adapter = next(
+                (a for a in result["adapters"] if a["type"] == "linear"), None
+            )
+            assert linear_adapter is not None
+            assert linear_adapter["configured"] is True
+            assert linear_adapter["is_default"] is True
+            assert linear_adapter["name"] == "Linear"
+            assert "description" in linear_adapter
+
+            # Find GitHub adapter (should not be configured)
+            github_adapter = next(
+                (a for a in result["adapters"] if a["type"] == "github"), None
+            )
+            if github_adapter:  # Only test if GitHub adapter is registered
+                assert github_adapter["configured"] is False
+                assert github_adapter["is_default"] is False
+
+    async def test_list_adapters_default_marked(self, tmp_path: Path) -> None:
+        """Test that default adapter is correctly marked."""
+        # Create config with multiple adapters, GitHub as default
+        config_dir = tmp_path / ".mcp-ticketer"
+        config_dir.mkdir(parents=True)
+        config_path = config_dir / "config.json"
+
+        config_data = {
+            "default_adapter": "github",
+            "adapters": {
+                "linear": {
+                    "adapter": "linear",
+                    "api_key": "test_key",
+                    "team_key": "ENG",
+                },
+                "github": {
+                    "adapter": "github",
+                    "token": "gh_token",
+                    "owner": "test",
+                    "repo": "test-repo",
+                },
+            },
+        }
+        with open(config_path, "w") as f:
+            json.dump(config_data, f)
+
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_list_adapters()
+
+            assert result["status"] == "completed"
+            assert result["default_adapter"] == "github"
+
+            # GitHub should be default
+            github_adapter = next(
+                (a for a in result["adapters"] if a["type"] == "github"), None
+            )
+            if github_adapter:
+                assert github_adapter["is_default"] is True
+                assert github_adapter["configured"] is True
+
+            # Linear should not be default
+            linear_adapter = next(
+                (a for a in result["adapters"] if a["type"] == "linear"), None
+            )
+            assert linear_adapter is not None
+            assert linear_adapter["is_default"] is False
+            assert linear_adapter["configured"] is True
+
+    async def test_list_adapters_sorting(self, tmp_path: Path) -> None:
+        """Test that configured adapters are sorted before unconfigured."""
+        # Create config with one adapter configured
+        config_dir = tmp_path / ".mcp-ticketer"
+        config_dir.mkdir(parents=True)
+        config_path = config_dir / "config.json"
+
+        config_data = {
+            "default_adapter": "jira",
+            "adapters": {
+                "jira": {
+                    "adapter": "jira",
+                    "server": "https://test.atlassian.net",
+                    "email": "test@example.com",
+                    "api_token": "token",
+                },
+            },
+        }
+        with open(config_path, "w") as f:
+            json.dump(config_data, f)
+
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_list_adapters()
+
+            assert result["status"] == "completed"
+
+            # Find configured and unconfigured adapters
+            configured_adapters = [a for a in result["adapters"] if a["configured"]]
+            unconfigured_adapters = [
+                a for a in result["adapters"] if not a["configured"]
+            ]
+
+            # Configured should appear before unconfigured
+            if configured_adapters and unconfigured_adapters:
+                first_configured_idx = result["adapters"].index(configured_adapters[0])
+                first_unconfigured_idx = result["adapters"].index(
+                    unconfigured_adapters[0]
+                )
+                assert first_configured_idx < first_unconfigured_idx
+
+    async def test_list_adapters_metadata(self, tmp_path: Path) -> None:
+        """Test that adapter metadata is included."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_list_adapters()
+
+            assert result["status"] == "completed"
+
+            # Check each adapter has required fields
+            for adapter in result["adapters"]:
+                assert "type" in adapter
+                assert "name" in adapter
+                assert "configured" in adapter
+                assert "is_default" in adapter
+                assert "description" in adapter
+                assert isinstance(adapter["configured"], bool)
+                assert isinstance(adapter["is_default"], bool)
+                assert isinstance(adapter["description"], str)
+
+
+@pytest.mark.asyncio
+class TestConfigGetAdapterRequirements:
+    """Test suite for config_get_adapter_requirements MCP tool."""
+
+    async def test_get_linear_requirements(self, tmp_path: Path) -> None:
+        """Test getting Linear adapter requirements."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_get_adapter_requirements("linear")
+
+            assert result["status"] == "completed"
+            assert result["adapter"] == "linear"
+            assert "requirements" in result
+
+            # Check required fields
+            assert "api_key" in result["requirements"]
+            assert result["requirements"]["api_key"]["required"] is True
+            assert result["requirements"]["api_key"]["type"] == "string"
+            assert "env_var" in result["requirements"]["api_key"]
+            assert result["requirements"]["api_key"]["env_var"] == "LINEAR_API_KEY"
+
+            # Check team_key field
+            assert "team_key" in result["requirements"]
+            assert result["requirements"]["team_key"]["required"] is True
+
+            # Check optional fields
+            assert "workspace" in result["requirements"]
+            assert result["requirements"]["workspace"]["required"] is False
+
+            # Check summary fields
+            assert "total_fields" in result
+            assert "required_fields" in result
+            assert "optional_fields" in result
+            assert "api_key" in result["required_fields"]
+            assert "workspace" in result["optional_fields"]
+
+    async def test_get_github_requirements(self, tmp_path: Path) -> None:
+        """Test getting GitHub adapter requirements."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_get_adapter_requirements("github")
+
+            assert result["status"] == "completed"
+            assert result["adapter"] == "github"
+
+            # Check required fields
+            assert "token" in result["requirements"]
+            assert result["requirements"]["token"]["required"] is True
+            assert result["requirements"]["token"]["env_var"] == "GITHUB_TOKEN"
+
+            assert "owner" in result["requirements"]
+            assert result["requirements"]["owner"]["required"] is True
+
+            assert "repo" in result["requirements"]
+            assert result["requirements"]["repo"]["required"] is True
+
+            # Verify all GitHub required fields are in the list
+            assert set(result["required_fields"]) == {"token", "owner", "repo"}
+
+    async def test_get_jira_requirements(self, tmp_path: Path) -> None:
+        """Test getting JIRA adapter requirements."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_get_adapter_requirements("jira")
+
+            assert result["status"] == "completed"
+            assert result["adapter"] == "jira"
+
+            # Check required fields
+            assert "server" in result["requirements"]
+            assert result["requirements"]["server"]["required"] is True
+            assert "validation" in result["requirements"]["server"]
+
+            assert "email" in result["requirements"]
+            assert result["requirements"]["email"]["required"] is True
+            assert "validation" in result["requirements"]["email"]
+
+            assert "api_token" in result["requirements"]
+            assert result["requirements"]["api_token"]["required"] is True
+
+            # Check optional project_key
+            assert "project_key" in result["requirements"]
+            assert result["requirements"]["project_key"]["required"] is False
+
+    async def test_get_aitrackdown_requirements(self, tmp_path: Path) -> None:
+        """Test getting AITrackdown adapter requirements."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_get_adapter_requirements("aitrackdown")
+
+            assert result["status"] == "completed"
+            assert result["adapter"] == "aitrackdown"
+
+            # AITrackdown has minimal requirements
+            assert "base_path" in result["requirements"]
+            assert result["requirements"]["base_path"]["required"] is False
+
+            # Should have no required fields
+            assert len(result["required_fields"]) == 0
+            assert "base_path" in result["optional_fields"]
+
+    async def test_get_invalid_adapter_requirements(self, tmp_path: Path) -> None:
+        """Test getting requirements for invalid adapter."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_get_adapter_requirements("invalid_adapter")
+
+            assert result["status"] == "error"
+            assert "Invalid adapter" in result["error"]
+            assert "valid_adapters" in result
+            assert isinstance(result["valid_adapters"], list)
+            # Should contain known adapters
+            assert "linear" in result["valid_adapters"]
+            assert "github" in result["valid_adapters"]
+
+    async def test_get_adapter_requirements_case_insensitive(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that adapter names are case-insensitive."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_get_adapter_requirements("LINEAR")
+
+            assert result["status"] == "completed"
+            assert result["adapter"] == "linear"  # Normalized to lowercase
+
+    async def test_requirements_include_validation_patterns(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that requirements include validation patterns where applicable."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            # Linear API key has a validation pattern
+            result = await config_get_adapter_requirements("linear")
+            assert result["status"] == "completed"
+            assert "validation" in result["requirements"]["api_key"]
+            assert "lin_api_" in result["requirements"]["api_key"]["validation"]
+
+            # JIRA email has validation pattern
+            result = await config_get_adapter_requirements("jira")
+            assert result["status"] == "completed"
+            assert "validation" in result["requirements"]["email"]
+            assert "@" in result["requirements"]["email"]["validation"]
+
+    async def test_requirements_include_descriptions(self, tmp_path: Path) -> None:
+        """Test that all requirements include helpful descriptions."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            for adapter_name in ["linear", "github", "jira", "aitrackdown"]:
+                result = await config_get_adapter_requirements(adapter_name)
+
+                assert result["status"] == "completed"
+
+                # All fields should have descriptions
+                for field_name, field_spec in result["requirements"].items():
+                    assert "description" in field_spec, f"{adapter_name}.{field_name} missing description"
+                    assert len(field_spec["description"]) > 10, f"{adapter_name}.{field_name} description too short"
+
+    async def test_requirements_total_fields_accurate(self, tmp_path: Path) -> None:
+        """Test that total_fields count is accurate."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_get_adapter_requirements("linear")
+
+            assert result["status"] == "completed"
+            assert result["total_fields"] == len(result["requirements"])
+            assert result["total_fields"] == len(result["required_fields"]) + len(
+                result["optional_fields"]
+            )
+
+
+@pytest.mark.asyncio
+class TestConfigSetupWizard:
+    """Test suite for config_setup_wizard MCP tool."""
+
+    async def test_config_setup_wizard_success(self, tmp_path: Path) -> None:
+        """Test complete successful setup with connection test."""
+        # Mock successful health check
+        mock_health_result = {
+            "status": "completed",
+            "adapters": {
+                "aitrackdown": {
+                    "status": "healthy",
+                    "message": "Adapter initialized and API call successful",
+                }
+            },
+        }
+
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ), patch(
+            "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
+            return_value=mock_health_result,
+        ):
+            result = await config_setup_wizard(
+                adapter_type="aitrackdown",
+                credentials={"base_path": str(tmp_path / "tickets")},
+                set_as_default=True,
+                test_connection=True,
+            )
+
+            assert result["status"] == "completed"
+            assert result["adapter"] == "aitrackdown"
+            assert result["tested"] is True
+            assert result["connection_healthy"] is True
+            assert result["set_as_default"] is True
+            assert "config_path" in result
+            assert "successfully" in result["message"].lower()
+
+            # Verify config was saved
+            config_path = tmp_path / ".mcp-ticketer" / "config.json"
+            assert config_path.exists()
+
+            with open(config_path) as f:
+                config_data = json.load(f)
+            assert config_data["default_adapter"] == "aitrackdown"
+            assert "aitrackdown" in config_data["adapters"]
+
+    async def test_config_setup_wizard_invalid_adapter(self, tmp_path: Path) -> None:
+        """Test setup with invalid adapter type."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_setup_wizard(
+                adapter_type="invalid_adapter",
+                credentials={},
+            )
+
+            assert result["status"] == "error"
+            assert "Invalid adapter" in result["error"]
+            assert "valid_adapters" in result
+            assert isinstance(result["valid_adapters"], list)
+            assert "linear" in result["valid_adapters"]
+
+    async def test_config_setup_wizard_missing_credentials(
+        self, tmp_path: Path
+    ) -> None:
+        """Test setup with missing required credentials."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            # Linear requires api_key and team_key/team_id
+            result = await config_setup_wizard(
+                adapter_type="linear",
+                credentials={},  # Missing all required fields
+            )
+
+            assert result["status"] == "error"
+            assert "Missing required credentials" in result["error"]
+            assert "missing_fields" in result
+            assert "api_key" in result["missing_fields"]
+
+    async def test_config_setup_wizard_connection_test_fails(
+        self, tmp_path: Path
+    ) -> None:
+        """Test setup when connection test fails."""
+        # Mock failed health check
+        mock_health_result = {
+            "status": "completed",
+            "adapters": {
+                "aitrackdown": {
+                    "status": "unhealthy",
+                    "message": "Connection failed",
+                    "error_type": "connection",
+                }
+            },
+        }
+
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ), patch(
+            "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
+            return_value=mock_health_result,
+        ):
+            result = await config_setup_wizard(
+                adapter_type="aitrackdown",
+                credentials={"base_path": str(tmp_path / "tickets")},
+                test_connection=True,
+            )
+
+            assert result["status"] == "error"
+            assert "Connection test failed" in result["error"]
+            assert "test_result" in result
+
+    async def test_config_setup_wizard_skip_connection_test(
+        self, tmp_path: Path
+    ) -> None:
+        """Test setup with connection test disabled."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_setup_wizard(
+                adapter_type="aitrackdown",
+                credentials={"base_path": str(tmp_path / "tickets")},
+                test_connection=False,  # Skip connection test
+            )
+
+            assert result["status"] == "completed"
+            assert result["tested"] is False
+            assert result["connection_healthy"] is None
+
+            # Verify config was still saved
+            config_path = tmp_path / ".mcp-ticketer" / "config.json"
+            assert config_path.exists()
+
+    async def test_config_setup_wizard_not_default(self, tmp_path: Path) -> None:
+        """Test setup without setting as default adapter."""
+        # Create initial config with different default
+        config_dir = tmp_path / ".mcp-ticketer"
+        config_dir.mkdir(parents=True)
+        config_path = config_dir / "config.json"
+
+        initial_config = {"default_adapter": "linear"}
+        with open(config_path, "w") as f:
+            json.dump(initial_config, f)
+
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_setup_wizard(
+                adapter_type="aitrackdown",
+                credentials={"base_path": str(tmp_path / "tickets")},
+                set_as_default=False,  # Don't set as default
+                test_connection=False,
+            )
+
+            assert result["status"] == "completed"
+            assert result["set_as_default"] is False
+
+            # Verify default adapter was not changed
+            with open(config_path) as f:
+                config_data = json.load(f)
+            assert config_data["default_adapter"] == "linear"  # Still linear
+            assert "aitrackdown" in config_data["adapters"]  # But aitrackdown configured
+
+    async def test_config_setup_wizard_update_existing(self, tmp_path: Path) -> None:
+        """Test updating existing adapter configuration."""
+        # Create initial config with aitrackdown
+        config_dir = tmp_path / ".mcp-ticketer"
+        config_dir.mkdir(parents=True)
+        config_path = config_dir / "config.json"
+
+        initial_config = {
+            "default_adapter": "aitrackdown",
+            "adapters": {
+                "aitrackdown": {
+                    "adapter": "aitrackdown",
+                    "base_path": str(tmp_path / "old_path"),
+                }
+            },
+        }
+        with open(config_path, "w") as f:
+            json.dump(initial_config, f)
+
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            # Update with new base_path
+            result = await config_setup_wizard(
+                adapter_type="aitrackdown",
+                credentials={"base_path": str(tmp_path / "new_path")},
+                test_connection=False,
+            )
+
+            assert result["status"] == "completed"
+
+            # Verify config was updated
+            with open(config_path) as f:
+                config_data = json.load(f)
+            assert config_data["adapters"]["aitrackdown"]["base_path"] == str(
+                tmp_path / "new_path"
+            )
+
+    async def test_config_setup_wizard_linear_with_team_key(
+        self, tmp_path: Path
+    ) -> None:
+        """Test Linear setup with team_key."""
+        mock_health_result = {
+            "status": "completed",
+            "adapters": {
+                "linear": {
+                    "status": "healthy",
+                    "message": "Adapter initialized and API call successful",
+                }
+            },
+        }
+
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ), patch(
+            "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
+            return_value=mock_health_result,
+        ):
+            result = await config_setup_wizard(
+                adapter_type="linear",
+                credentials={
+                    # Test API key (not real, for testing format validation only)
+                    "api_key": "lin_api_TESTKEY0000000000000000000000000000000",
+                    "team_key": "ENG",
+                },
+                test_connection=True,
+            )
+
+            assert result["status"] == "completed"
+            assert result["adapter"] == "linear"
+
+            # Verify config
+            config_path = tmp_path / ".mcp-ticketer" / "config.json"
+            with open(config_path) as f:
+                config_data = json.load(f)
+            assert config_data["adapters"]["linear"]["team_key"] == "ENG"
+
+    async def test_config_setup_wizard_linear_with_team_id(
+        self, tmp_path: Path
+    ) -> None:
+        """Test Linear setup with team_id instead of team_key."""
+        mock_health_result = {
+            "status": "completed",
+            "adapters": {
+                "linear": {
+                    "status": "healthy",
+                    "message": "Adapter initialized and API call successful",
+                }
+            },
+        }
+
+        team_uuid = "12345678-1234-1234-1234-123456789012"
+
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ), patch(
+            "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
+            return_value=mock_health_result,
+        ):
+            result = await config_setup_wizard(
+                adapter_type="linear",
+                credentials={
+                    # Test API key (not real, for testing format validation only)
+                    "api_key": "lin_api_TESTKEY0000000000000000000000000000000",
+                    "team_id": team_uuid,
+                },
+                test_connection=True,
+            )
+
+            assert result["status"] == "completed"
+            assert result["adapter"] == "linear"
+
+            # Verify config
+            config_path = tmp_path / ".mcp-ticketer" / "config.json"
+            with open(config_path) as f:
+                config_data = json.load(f)
+            assert config_data["adapters"]["linear"]["team_id"] == team_uuid
+
+    async def test_config_setup_wizard_github_success(self, tmp_path: Path) -> None:
+        """Test GitHub adapter setup."""
+        mock_health_result = {
+            "status": "completed",
+            "adapters": {
+                "github": {
+                    "status": "healthy",
+                    "message": "Adapter initialized and API call successful",
+                }
+            },
+        }
+
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ), patch(
+            "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
+            return_value=mock_health_result,
+        ):
+            result = await config_setup_wizard(
+                adapter_type="github",
+                credentials={
+                    "token": "ghp_test1234567890",
+                    "owner": "testuser",
+                    "repo": "testrepo",
+                },
+                test_connection=True,
+            )
+
+            assert result["status"] == "completed"
+            assert result["adapter"] == "github"
+
+            # Verify config
+            config_path = tmp_path / ".mcp-ticketer" / "config.json"
+            with open(config_path) as f:
+                config_data = json.load(f)
+            assert config_data["adapters"]["github"]["owner"] == "testuser"
+            assert config_data["adapters"]["github"]["repo"] == "testrepo"
+
+    async def test_config_setup_wizard_jira_success(self, tmp_path: Path) -> None:
+        """Test JIRA adapter setup."""
+        mock_health_result = {
+            "status": "completed",
+            "adapters": {
+                "jira": {
+                    "status": "healthy",
+                    "message": "Adapter initialized and API call successful",
+                }
+            },
+        }
+
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ), patch(
+            "mcp_ticketer.mcp.server.tools.diagnostic_tools.check_adapter_health",
+            return_value=mock_health_result,
+        ):
+            result = await config_setup_wizard(
+                adapter_type="jira",
+                credentials={
+                    "server": "https://test.atlassian.net",
+                    "email": "test@example.com",
+                    "api_token": "test_token_12345",
+                },
+                test_connection=True,
+            )
+
+            assert result["status"] == "completed"
+            assert result["adapter"] == "jira"
+
+            # Verify config
+            config_path = tmp_path / ".mcp-ticketer" / "config.json"
+            with open(config_path) as f:
+                config_data = json.load(f)
+            assert config_data["adapters"]["jira"]["server"] == "https://test.atlassian.net"
+            assert config_data["adapters"]["jira"]["email"] == "test@example.com"
+
+    async def test_config_setup_wizard_case_insensitive(self, tmp_path: Path) -> None:
+        """Test that adapter type is case-insensitive."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_setup_wizard(
+                adapter_type="AITRACKDOWN",  # Uppercase
+                credentials={"base_path": str(tmp_path / "tickets")},
+                test_connection=False,
+            )
+
+            assert result["status"] == "completed"
+            assert result["adapter"] == "aitrackdown"  # Normalized to lowercase
+
+    async def test_config_setup_wizard_preserves_other_adapters(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that setting up one adapter preserves other adapters."""
+        # Create initial config with Linear
+        config_dir = tmp_path / ".mcp-ticketer"
+        config_dir.mkdir(parents=True)
+        config_path = config_dir / "config.json"
+
+        initial_config = {
+            "default_adapter": "linear",
+            "adapters": {
+                "linear": {
+                    "adapter": "linear",
+                    "api_key": "lin_api_existing",
+                    "team_key": "ENG",
+                }
+            },
+        }
+        with open(config_path, "w") as f:
+            json.dump(initial_config, f)
+
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            # Add aitrackdown
+            result = await config_setup_wizard(
+                adapter_type="aitrackdown",
+                credentials={"base_path": str(tmp_path / "tickets")},
+                set_as_default=False,
+                test_connection=False,
+            )
+
+            assert result["status"] == "completed"
+
+            # Verify both adapters exist
+            with open(config_path) as f:
+                config_data = json.load(f)
+            assert "linear" in config_data["adapters"]
+            assert "aitrackdown" in config_data["adapters"]
+            assert config_data["adapters"]["linear"]["api_key"] == "lin_api_existing"
+
+    async def test_config_setup_wizard_validation_error(self, tmp_path: Path) -> None:
+        """Test that setup fails with detailed error on validation failure."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            # GitHub missing required fields
+            result = await config_setup_wizard(
+                adapter_type="github",
+                credentials={"token": "test_token"},  # Missing owner and repo
+            )
+
+            assert result["status"] == "error"
+            assert "Missing required credentials" in result["error"]
+            assert "missing_fields" in result
+            assert "owner" in result["missing_fields"]
+            assert "repo" in result["missing_fields"]

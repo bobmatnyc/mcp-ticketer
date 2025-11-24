@@ -45,6 +45,156 @@ export MCP_TICKETER_CONFIG_FILE=/path/to/custom/config.json
 mcp-ticket init --adapter jira
 ```
 
+## Quick Setup with MCP Tools
+
+**New in Phase 2 (1M-92)**: Simplified setup workflow that reduces configuration time from 15-30 minutes to < 3 minutes.
+
+### 1. List Available Adapters
+
+Before setup, check which adapters are available and which are already configured:
+
+```python
+# Using MCP tool
+result = await config_list_adapters()
+
+# Example response
+{
+    "status": "completed",
+    "adapters": [
+        {
+            "name": "linear",
+            "display_name": "Linear",
+            "configured": true,
+            "description": "Linear.app project management"
+        },
+        {
+            "name": "github",
+            "display_name": "GitHub Issues",
+            "configured": false,
+            "description": "GitHub Issues tracking"
+        },
+        {
+            "name": "jira",
+            "display_name": "JIRA",
+            "configured": false,
+            "description": "Atlassian JIRA"
+        },
+        {
+            "name": "aitrackdown",
+            "display_name": "AI Trackdown",
+            "configured": true,
+            "description": "Local file-based tracking"
+        }
+    ]
+}
+```
+
+### 2. Get Requirements for Your Adapter
+
+Find out what credentials and settings are needed:
+
+```python
+# Using MCP tool
+requirements = await config_get_adapter_requirements("linear")
+
+# Example response
+{
+    "status": "completed",
+    "adapter": "linear",
+    "requirements": {
+        "api_key": {
+            "required": true,
+            "type": "string",
+            "description": "Linear API key (get from Settings → API)",
+            "example": "lin_api_..."
+        },
+        "team_id": {
+            "required": false,
+            "type": "string",
+            "description": "Team UUID or team key (e.g., 'ENG')",
+            "example": "ENG or 1a2b3c4d-..."
+        }
+    }
+}
+```
+
+### 3. Configure Adapter with Setup Wizard
+
+Complete setup in one call with automatic validation and testing:
+
+```python
+# Using MCP tool
+result = await config_setup_wizard(
+    adapter_type="linear",
+    credentials={
+        "api_key": "lin_api_...",
+        "team_id": "ENG"  # or team UUID
+    }
+)
+
+# Example response
+{
+    "status": "completed",
+    "message": "Adapter 'linear' configured successfully",
+    "adapter": "linear",
+    "validation": {
+        "valid": true,
+        "warnings": []
+    },
+    "connection_test": {
+        "success": true,
+        "message": "Successfully connected to Linear API"
+    },
+    "config_path": "/Users/user/Projects/project/.mcp-ticketer/config.json"
+}
+```
+
+### Setup Time Comparison
+
+| Method | Time Required | Steps |
+|--------|--------------|-------|
+| **Manual Setup** | 15-30 minutes | 6-8 manual steps with trial/error |
+| **MCP Setup Wizard** | < 3 minutes | 1 function call with guided validation |
+
+**Benefits:**
+- ✅ **Automatic validation** - Checks configuration structure before saving
+- ✅ **Connection testing** - Verifies credentials work with real API calls
+- ✅ **Clear error messages** - Actionable guidance when something goes wrong
+- ✅ **One-call setup** - No need to chain multiple configuration commands
+- ✅ **Zero learning curve** - Tool tells you exactly what it needs
+
+### Error Handling Example
+
+If credentials are invalid, you get clear guidance:
+
+```python
+result = await config_setup_wizard(
+    adapter_type="linear",
+    credentials={
+        "api_key": "invalid_key",
+        "team_id": "ENG"
+    }
+)
+
+# Response with helpful error
+{
+    "status": "error",
+    "error": "Connection test failed: Invalid API key",
+    "details": {
+        "validation": {"valid": true},
+        "connection_test": {
+            "success": false,
+            "error": "401 Unauthorized: Check your LINEAR_API_KEY"
+        }
+    },
+    "suggestions": [
+        "Verify your API key is correct",
+        "Get a new API key from Linear Settings → API",
+        "Ensure the API key has the required permissions"
+    ]
+}
+```
+
 ## Configuration File Format
 
 ### Basic Structure

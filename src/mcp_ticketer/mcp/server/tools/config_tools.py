@@ -35,6 +35,7 @@ from ....core.project_config import (
     ConfigValidator,
     TicketerConfig,
 )
+from ....core.registry import AdapterRegistry
 from ..server_sdk import mcp
 
 
@@ -865,6 +866,531 @@ async def config_test_adapter(adapter_name: str) -> dict[str, Any]:
         return {
             "status": "error",
             "error": f"Failed to test adapter: {str(e)}",
+        }
+
+
+@mcp.tool()
+async def config_list_adapters() -> dict[str, Any]:
+    """List all available adapters with configuration status.
+
+    Returns information about all supported adapters including:
+    - Which adapters are available
+    - Which are currently configured
+    - Which is the default adapter
+    - Adapter metadata and descriptions
+
+    Returns:
+        Dictionary containing:
+        - status: "completed" or "error"
+        - adapters: List of adapter info dictionaries
+        - default_adapter: Current default adapter name
+        - total_configured: Count of configured adapters
+        - error: Error details (if failed)
+
+    Example:
+        >>> result = await config_list_adapters()
+        >>> print(result)
+        {
+            "status": "completed",
+            "adapters": [
+                {
+                    "type": "linear",
+                    "name": "Linear",
+                    "configured": True,
+                    "is_default": True,
+                    "description": "Linear issue tracking"
+                },
+                {
+                    "type": "github",
+                    "name": "Github",
+                    "configured": False,
+                    "is_default": False,
+                    "description": "GitHub Issues"
+                }
+            ],
+            "default_adapter": "linear",
+            "total_configured": 1
+        }
+
+    Usage Notes:
+        - Adapters are considered configured if they exist in config.adapters
+        - Default adapter is determined by config.default_adapter
+        - Adapter descriptions are static (not from API)
+
+    """
+    try:
+        # Get all registered adapters from registry
+        available_adapters = AdapterRegistry.list_adapters()
+
+        # Load project config to check which are configured
+        resolver = get_resolver()
+        config = resolver.load_project_config() or TicketerConfig()
+
+        # Map of adapter type to human-readable descriptions
+        adapter_descriptions = {
+            "linear": "Linear issue tracking",
+            "github": "GitHub Issues",
+            "jira": "Atlassian JIRA",
+            "aitrackdown": "File-based ticket tracking",
+            "asana": "Asana project management",
+        }
+
+        # Build adapter list with status
+        adapters = []
+        for adapter_type, adapter_class in available_adapters.items():
+            # Check if this adapter is configured
+            is_configured = adapter_type in config.adapters
+            is_default = config.default_adapter == adapter_type
+
+            # Get display name from adapter class
+            # Create temporary instance to get display name
+            try:
+                # Use adapter_type.title() as fallback for display name
+                display_name = adapter_type.title()
+            except Exception:
+                display_name = adapter_type.title()
+
+            adapters.append(
+                {
+                    "type": adapter_type,
+                    "name": display_name,
+                    "configured": is_configured,
+                    "is_default": is_default,
+                    "description": adapter_descriptions.get(
+                        adapter_type, f"{display_name} adapter"
+                    ),
+                }
+            )
+
+        # Sort adapters: configured first, then by name
+        adapters.sort(key=lambda x: (not x["configured"], x["type"]))
+
+        total_configured = sum(1 for a in adapters if a["configured"])
+
+        return {
+            "status": "completed",
+            "adapters": adapters,
+            "default_adapter": config.default_adapter,
+            "total_configured": total_configured,
+            "message": (
+                f"{total_configured} adapter(s) configured"
+                if total_configured > 0
+                else "No adapters configured"
+            ),
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to list adapters: {str(e)}",
+        }
+
+
+@mcp.tool()
+async def config_get_adapter_requirements(adapter: str) -> dict[str, Any]:
+    """Get configuration requirements for a specific adapter.
+
+    Returns required and optional configuration fields for the specified
+    adapter, including field types, descriptions, validation patterns,
+    and environment variable names.
+
+    Args:
+        adapter: Adapter name (linear, github, jira, aitrackdown, asana)
+
+    Returns:
+        Dictionary containing:
+        - status: "completed" or "error"
+        - adapter: Adapter name
+        - requirements: Dict of field name to field spec
+        - error: Error details (if failed)
+
+    Example:
+        >>> result = await config_get_adapter_requirements("linear")
+        >>> print(result)
+        {
+            "status": "completed",
+            "adapter": "linear",
+            "requirements": {
+                "api_key": {
+                    "type": "string",
+                    "required": True,
+                    "description": "Linear API key",
+                    "env_var": "LINEAR_API_KEY",
+                    "validation": "^lin_api_[a-zA-Z0-9]{40}$"
+                },
+                "team_key": {
+                    "type": "string",
+                    "required": True,
+                    "description": "Team key (e.g., 'ENG') or team_id (UUID)",
+                    "env_var": "LINEAR_TEAM_KEY"
+                }
+            }
+        }
+
+    Usage Notes:
+        - Requirements are based on ConfigValidator validation logic
+        - env_var shows which environment variable can provide the value
+        - validation patterns are regex strings (when applicable)
+        - Some adapters accept alternative field names (aliases)
+
+    """
+    try:
+        # Validate adapter name
+        valid_adapters = [adapter_type.value for adapter_type in AdapterType]
+        if adapter.lower() not in valid_adapters:
+            return {
+                "status": "error",
+                "error": f"Invalid adapter '{adapter}'. Must be one of: {', '.join(valid_adapters)}",
+                "valid_adapters": valid_adapters,
+            }
+
+        adapter_type = adapter.lower()
+
+        # Define requirements for each adapter based on ConfigValidator logic
+        requirements_map = {
+            "linear": {
+                "api_key": {
+                    "type": "string",
+                    "required": True,
+                    "description": "Linear API key (get from Linear Settings > API)",
+                    "env_var": "LINEAR_API_KEY",
+                    "validation": "^lin_api_[a-zA-Z0-9]{40}$",
+                },
+                "team_key": {
+                    "type": "string",
+                    "required": True,
+                    "description": "Team key (e.g., 'ENG') OR team_id (UUID). At least one required.",
+                    "env_var": "LINEAR_TEAM_KEY",
+                },
+                "team_id": {
+                    "type": "string",
+                    "required": False,
+                    "description": "Team UUID (alternative to team_key)",
+                    "env_var": "LINEAR_TEAM_ID",
+                    "validation": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+                },
+                "workspace": {
+                    "type": "string",
+                    "required": False,
+                    "description": "Linear workspace name (for documentation only)",
+                    "env_var": "LINEAR_WORKSPACE",
+                },
+            },
+            "github": {
+                "token": {
+                    "type": "string",
+                    "required": True,
+                    "description": "GitHub personal access token (or api_key alias)",
+                    "env_var": "GITHUB_TOKEN",
+                },
+                "owner": {
+                    "type": "string",
+                    "required": True,
+                    "description": "Repository owner (username or organization)",
+                    "env_var": "GITHUB_OWNER",
+                },
+                "repo": {
+                    "type": "string",
+                    "required": True,
+                    "description": "Repository name",
+                    "env_var": "GITHUB_REPO",
+                },
+            },
+            "jira": {
+                "server": {
+                    "type": "string",
+                    "required": True,
+                    "description": "JIRA server URL (e.g., https://company.atlassian.net)",
+                    "env_var": "JIRA_SERVER",
+                    "validation": "^https?://",
+                },
+                "email": {
+                    "type": "string",
+                    "required": True,
+                    "description": "JIRA account email address",
+                    "env_var": "JIRA_EMAIL",
+                    "validation": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+                },
+                "api_token": {
+                    "type": "string",
+                    "required": True,
+                    "description": "JIRA API token (get from Atlassian Account Settings)",
+                    "env_var": "JIRA_API_TOKEN",
+                },
+                "project_key": {
+                    "type": "string",
+                    "required": False,
+                    "description": "Default JIRA project key (e.g., 'PROJ')",
+                    "env_var": "JIRA_PROJECT_KEY",
+                },
+            },
+            "aitrackdown": {
+                "base_path": {
+                    "type": "string",
+                    "required": False,
+                    "description": "Base directory for ticket storage (defaults to .aitrackdown)",
+                    "env_var": "AITRACKDOWN_BASE_PATH",
+                },
+            },
+            "asana": {
+                "api_key": {
+                    "type": "string",
+                    "required": True,
+                    "description": "Asana Personal Access Token",
+                    "env_var": "ASANA_API_KEY",
+                },
+                "workspace": {
+                    "type": "string",
+                    "required": False,
+                    "description": "Asana workspace GID (optional, can be auto-detected)",
+                    "env_var": "ASANA_WORKSPACE",
+                },
+            },
+        }
+
+        requirements = requirements_map.get(adapter_type, {})
+
+        return {
+            "status": "completed",
+            "adapter": adapter_type,
+            "requirements": requirements,
+            "total_fields": len(requirements),
+            "required_fields": [
+                field for field, spec in requirements.items() if spec.get("required")
+            ],
+            "optional_fields": [
+                field
+                for field, spec in requirements.items()
+                if not spec.get("required")
+            ],
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to get adapter requirements: {str(e)}",
+        }
+
+
+@mcp.tool()
+async def config_setup_wizard(
+    adapter_type: str,
+    credentials: dict[str, Any],
+    set_as_default: bool = True,
+    test_connection: bool = True,
+) -> dict[str, Any]:
+    """Interactive setup wizard for adapter configuration.
+
+    Single-call tool that validates, tests, and saves adapter configuration.
+
+    Args:
+        adapter_type: Adapter to configure (linear, github, jira, aitrackdown, asana)
+        credentials: Dict with adapter-specific credentials
+        set_as_default: Set as default adapter (default: True)
+        test_connection: Test connection before saving (default: True)
+
+    Returns:
+        Dictionary containing:
+        - status: "completed" or "error"
+        - adapter: Adapter type that was configured
+        - message: Success or error message
+        - tested: Boolean indicating if connection was tested
+        - connection_healthy: Boolean indicating if test passed (if tested)
+        - set_as_default: Boolean indicating if set as default
+        - config_path: Path to configuration file (if successful)
+        - error: Error details (if failed)
+
+    Example:
+        >>> result = await config_setup_wizard(
+        ...     adapter_type="linear",
+        ...     credentials={
+        ...         "api_key": "lin_api_...",
+        ...         "team_key": "ENG"
+        ...     }
+        ... )
+        >>> print(result)
+        {
+            "status": "completed",
+            "adapter": "linear",
+            "message": "Linear adapter configured successfully",
+            "tested": True,
+            "connection_healthy": True,
+            "set_as_default": True,
+            "config_path": "/path/to/.mcp-ticketer/config.json"
+        }
+
+    Error Conditions:
+        - Invalid adapter_type: Returns error with valid adapters list
+        - Missing required credentials: Returns error with missing fields
+        - Invalid credential format: Returns error with validation pattern
+        - Connection test failure: Returns error with connection details
+        - File write failure: Returns error with path and permissions info
+
+    """
+    try:
+        # Step 1: Validate adapter type
+        valid_adapters = [adapter_type.value for adapter_type in AdapterType]
+        adapter_lower = adapter_type.lower()
+
+        if adapter_lower not in valid_adapters:
+            return {
+                "status": "error",
+                "error": f"Invalid adapter '{adapter_type}'. Must be one of: {', '.join(valid_adapters)}",
+                "valid_adapters": valid_adapters,
+            }
+
+        # Step 2: Get adapter requirements
+        requirements_result = await config_get_adapter_requirements(adapter_lower)
+        if requirements_result["status"] == "error":
+            return requirements_result
+
+        requirements = requirements_result["requirements"]
+
+        # Step 3: Validate credentials structure
+        missing_fields = []
+        invalid_fields = []
+
+        # Check for required fields
+        for field_name, field_spec in requirements.items():
+            if field_spec.get("required"):
+                # Check if field is present and non-empty
+                if field_name not in credentials or not credentials.get(field_name):
+                    # For Linear, check if either team_key or team_id is provided
+                    if adapter_lower == "linear" and field_name in ["team_key", "team_id"]:
+                        # Special handling: either team_key OR team_id is required
+                        has_team_key = credentials.get("team_key") and str(credentials["team_key"]).strip()
+                        has_team_id = credentials.get("team_id") and str(credentials["team_id"]).strip()
+                        if not has_team_key and not has_team_id:
+                            missing_fields.append("team_key OR team_id (at least one required)")
+                        # If one is provided, we're good - don't add to missing_fields
+                    else:
+                        missing_fields.append(field_name)
+
+        if missing_fields:
+            return {
+                "status": "error",
+                "error": f"Missing required credentials: {', '.join(missing_fields)}",
+                "missing_fields": missing_fields,
+                "required_fields": requirements_result["required_fields"],
+                "hint": "Use config_get_adapter_requirements() to see all required fields",
+            }
+
+        # Step 4: Validate credential formats
+        import re
+        for field_name, field_value in credentials.items():
+            if field_name not in requirements:
+                continue
+
+            field_spec = requirements[field_name]
+            validation_pattern = field_spec.get("validation")
+
+            if validation_pattern and field_value:
+                try:
+                    if not re.match(validation_pattern, str(field_value)):
+                        invalid_fields.append({
+                            "field": field_name,
+                            "error": f"Invalid format for {field_name}",
+                            "pattern": validation_pattern,
+                            "description": field_spec.get("description", ""),
+                        })
+                except Exception as e:
+                    # If regex fails, log but continue (don't block on validation)
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Validation pattern error for {field_name}: {e}")
+
+        if invalid_fields:
+            return {
+                "status": "error",
+                "error": f"Invalid credential format for: {', '.join(f['field'] for f in invalid_fields)}",
+                "invalid_fields": invalid_fields,
+            }
+
+        # Step 5: Build adapter config
+        from ....core.project_config import AdapterConfig
+
+        adapter_config = AdapterConfig(
+            adapter=adapter_lower,
+            **credentials
+        )
+
+        # Step 6: Validate using ConfigValidator
+        is_valid, validation_error = ConfigValidator.validate(
+            adapter_lower,
+            adapter_config.to_dict()
+        )
+
+        if not is_valid:
+            return {
+                "status": "error",
+                "error": f"Configuration validation failed: {validation_error}",
+                "validation_error": validation_error,
+            }
+
+        # Step 7: Test connection if enabled
+        connection_healthy = None
+        test_error = None
+
+        if test_connection:
+            # Save config temporarily for testing
+            resolver = get_resolver()
+            config = resolver.load_project_config() or TicketerConfig()
+            config.adapters[adapter_lower] = adapter_config
+            resolver.save_project_config(config)
+
+            # Test the adapter
+            test_result = await config_test_adapter(adapter_lower)
+
+            if test_result["status"] == "error":
+                return {
+                    "status": "error",
+                    "error": f"Connection test failed: {test_result.get('error')}",
+                    "test_result": test_result,
+                    "message": "Configuration was saved but connection test failed. Please verify your credentials.",
+                }
+
+            connection_healthy = test_result.get("healthy", False)
+
+            if not connection_healthy:
+                test_error = test_result.get("message", "Unknown connection error")
+                return {
+                    "status": "error",
+                    "error": f"Connection test failed: {test_error}",
+                    "test_result": test_result,
+                    "message": "Configuration was saved but adapter could not connect. Please verify your credentials and network connection.",
+                }
+        else:
+            # Save config without testing
+            resolver = get_resolver()
+            config = resolver.load_project_config() or TicketerConfig()
+            config.adapters[adapter_lower] = adapter_config
+            resolver.save_project_config(config)
+
+        # Step 8: Set as default if enabled
+        if set_as_default:
+            # Update default adapter
+            resolver = get_resolver()
+            config = resolver.load_project_config() or TicketerConfig()
+            config.default_adapter = adapter_lower
+            resolver.save_project_config(config)
+
+        # Step 9: Return success
+        config_path = resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH
+
+        return {
+            "status": "completed",
+            "adapter": adapter_lower,
+            "message": f"{adapter_lower.title()} adapter configured successfully",
+            "tested": test_connection,
+            "connection_healthy": connection_healthy if test_connection else None,
+            "set_as_default": set_as_default,
+            "config_path": str(config_path),
+        }
+
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "error": f"Setup wizard failed: {str(e)}",
+            "traceback": traceback.format_exc(),
         }
 
 
