@@ -275,15 +275,18 @@ async def _validate_configuration_with_retry(
                         current_config["default_tags"] = default_values["default_tags"]
 
                 elif adapter_type == "jira":
-                    adapter_config = _configure_jira(interactive=True)
+                    # Returns tuple: (AdapterConfig, default_values_dict)
+                    adapter_config, default_values = _configure_jira(interactive=True)
                     current_config["adapters"]["jira"] = adapter_config.to_dict()
 
                 elif adapter_type == "github":
-                    adapter_config = _configure_github(interactive=True)
+                    # Returns tuple: (AdapterConfig, default_values_dict)
+                    adapter_config, default_values = _configure_github(interactive=True)
                     current_config["adapters"]["github"] = adapter_config.to_dict()
 
                 elif adapter_type == "aitrackdown":
-                    adapter_config = _configure_aitrackdown(interactive=True)
+                    # Returns tuple: (AdapterConfig, default_values_dict)
+                    adapter_config, default_values = _configure_aitrackdown(interactive=True)
                     current_config["adapters"]["aitrackdown"] = adapter_config.to_dict()
                     # Save updated configuration
                     with open(config_file_path, "w") as f:
@@ -560,7 +563,8 @@ def _init_adapter_internal(
                 )
 
                 # Use consolidated configure function (interactive if missing params)
-                adapter_config = _configure_jira(
+                # Returns tuple: (AdapterConfig, default_values_dict) - following Linear pattern
+                adapter_config, _ = _configure_jira(
                     interactive=not has_all_params,
                     server=jira_server,
                     email=jira_email,
@@ -586,7 +590,8 @@ def _init_adapter_internal(
                 )
 
                 # Use consolidated configure function (interactive if missing params)
-                adapter_config = _configure_github(
+                # Returns tuple: (AdapterConfig, default_values_dict) - following Linear pattern
+                adapter_config, _ = _configure_github(
                     interactive=not has_all_params,
                     owner=github_owner,
                     repo=github_repo,
