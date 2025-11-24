@@ -183,6 +183,8 @@ ignore = [
     "D100",  # Missing docstring in public module
     "D104",  # Missing docstring in public package
     "D107",  # Missing docstring in __init__
+    "D203",  # one-blank-line-before-class (conflicts with D211)
+    "D213",  # multi-line-summary-second-line (conflicts with D212)
     "D401",  # Docstring mood (cosmetic, not enforcing imperative)
     "N817",  # Import naming conventions (allow acronyms)
     "S101",  # Use of assert detected
@@ -203,6 +205,9 @@ ignore = [
 "scripts/*" = ["T201", "D103", "S603"]  # Allow print, missing docs, subprocess in scripts
 "docs/*" = ["D103"]  # Allow missing docs in Sphinx config
 "test/*" = ["S", "D", "T"]  # Allow security, doc, and print warnings in test utilities
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"  # Use Google-style docstrings (compatible with D211 and D212)
 
 [tool.ruff.lint.isort]
 known-first-party = ["mcp_ticketer"]
