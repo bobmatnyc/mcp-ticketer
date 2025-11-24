@@ -58,7 +58,7 @@ async def ticket_create_pr(
             source_branch = f"feature/{ticket_id}"
 
         # Create PR via adapter
-        pr_data = await adapter.create_pull_request(  # type: ignore
+        pr_data = await adapter.create_pull_request(
             ticket_id=ticket_id,
             title=title,
             description=description,
@@ -118,7 +118,7 @@ async def ticket_link_pr(
 
         # Check if adapter has specialized PR linking
         if hasattr(adapter, "link_pull_request"):
-            result = await adapter.link_pull_request(  # type: ignore
+            result = await adapter.link_pull_request(
                 ticket_id=ticket_id, pr_url=pr_url
             )
             return {

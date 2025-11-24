@@ -133,7 +133,7 @@ async def epic_get(epic_id: str) -> dict[str, Any]:
 
         # Use adapter's get_epic method if available (optimized for some adapters)
         if hasattr(adapter, "get_epic"):
-            epic = await adapter.get_epic(epic_id)  # type: ignore
+            epic = await adapter.get_epic(epic_id)
         else:
             # Fallback to generic read method
             epic = await adapter.read(epic_id)
@@ -204,7 +204,7 @@ async def epic_list(
             if adapter_type == "linear" and include_completed:
                 kwargs["include_completed"] = include_completed
 
-            epics = await adapter.list_epics(**kwargs)  # type: ignore
+            epics = await adapter.list_epics(**kwargs)
         else:
             # Fallback to generic list method with epic filter
             filters = {"ticket_type": TicketType.EPIC}
@@ -752,7 +752,7 @@ async def epic_update(
             }
 
         # Update via adapter
-        updated = await adapter.update_epic(epic_id, updates)  # type: ignore
+        updated = await adapter.update_epic(epic_id, updates)
 
         if updated is None:
             return {
@@ -817,7 +817,7 @@ async def epic_delete(epic_id: str) -> dict[str, Any]:
             }
 
         # Call adapter's delete_epic method
-        success = await adapter.delete_epic(epic_id)  # type: ignore
+        success = await adapter.delete_epic(epic_id)
 
         if not success:
             return {

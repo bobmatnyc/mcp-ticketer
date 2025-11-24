@@ -202,7 +202,7 @@ class TestEpicUpdateMCPTool:
         ):
             # This should be caught by type checking, but test runtime behavior
             with pytest.raises(TypeError):
-                await epic_update(description="test")  # type: ignore
+                await epic_update(description="test")
 
     @pytest.mark.asyncio
     async def test_epic_update_no_updates_provided(

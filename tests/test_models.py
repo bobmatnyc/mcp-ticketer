@@ -123,7 +123,7 @@ class TestTask:
     def test_task_requires_title(self) -> None:
         """Test task creation fails without title."""
         with pytest.raises(ValidationError) as exc_info:
-            Task()  # type: ignore[call-arg]
+            Task()
         errors = exc_info.value.errors()
         assert any(error["loc"] == ("title",) for error in errors)
 
@@ -215,7 +215,7 @@ class TestEpic:
 
         # Attempting to modify frozen field should raise error
         with pytest.raises(ValidationError):
-            epic.ticket_type = "task"  # type: ignore[misc]
+            epic.ticket_type = "task"
 
 
 @pytest.mark.unit
@@ -242,14 +242,14 @@ class TestComment:
     def test_comment_requires_ticket_id(self) -> None:
         """Test comment requires ticket_id."""
         with pytest.raises(ValidationError) as exc_info:
-            Comment(content="Test")  # type: ignore[call-arg]
+            Comment(content="Test")
         errors = exc_info.value.errors()
         assert any(error["loc"] == ("ticket_id",) for error in errors)
 
     def test_comment_requires_content(self) -> None:
         """Test comment requires content."""
         with pytest.raises(ValidationError) as exc_info:
-            Comment(ticket_id="TEST-123")  # type: ignore[call-arg]
+            Comment(ticket_id="TEST-123")
         errors = exc_info.value.errors()
         assert any(error["loc"] == ("content",) for error in errors)
 

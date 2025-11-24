@@ -60,7 +60,7 @@ async def ticket_attach(
                 mime_type = mimetypes.guess_type(file_path)[0]
 
                 # Upload file to Linear's storage
-                file_url = await adapter.upload_file(file_path, mime_type)  # type: ignore
+                file_url = await adapter.upload_file(file_path, mime_type)
 
                 # Determine ticket type and attach accordingly
                 ticket_type = getattr(ticket, "ticket_type", None)
@@ -70,7 +70,7 @@ async def ticket_attach(
                     adapter, "attach_file_to_epic"
                 ):
                     # Attach to epic (project)
-                    result = await adapter.attach_file_to_epic(  # type: ignore
+                    result = await adapter.attach_file_to_epic(
                         epic_id=ticket_id,
                         file_url=file_url,
                         title=description or filename,
@@ -78,7 +78,7 @@ async def ticket_attach(
                     )
                 else:
                     # Attach to issue/task
-                    result = await adapter.attach_file_to_issue(  # type: ignore
+                    result = await adapter.attach_file_to_issue(
                         issue_id=ticket_id,
                         file_url=file_url,
                         title=description or filename,
@@ -99,7 +99,7 @@ async def ticket_attach(
 
         # Try legacy add_attachment method
         if hasattr(adapter, "add_attachment"):
-            attachment = await adapter.add_attachment(  # type: ignore
+            attachment = await adapter.add_attachment(
                 ticket_id=ticket_id, file_path=file_path, description=description
             )
 
@@ -182,7 +182,7 @@ async def ticket_attachments(
             }
 
         # Get attachments via adapter
-        attachments = await adapter.get_attachments(ticket_id)  # type: ignore
+        attachments = await adapter.get_attachments(ticket_id)
 
         return {
             "status": "completed",

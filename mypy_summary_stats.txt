@@ -1,0 +1,56 @@
+# MyPy Error Analysis Summary for 1M-169
+# Generated: 2025-11-24
+
+## Quick Stats
+Total Errors: 1,927
+Files Affected: 158
+Source Files: 803 errors (41.7%)
+Test Files: 1,124 errors (58.3%)
+
+## Top 5 Error Types
+1. no-untyped-def: 1,209 (62.7%) - Missing return type annotations
+2. attr-defined: 119 (6.2%) - Incorrect attribute access
+3. no-any-return: 104 (5.4%) - Functions returning Any
+4. arg-type: 82 (4.3%) - Wrong argument types
+5. assignment: 79 (4.1%) - Type mismatches
+
+## Top 10 Files (Source)
+45  src/mcp_ticketer/cli/diagnostics.py
+34  src/mcp_ticketer/adapters/aitrackdown.py
+29  src/mcp_ticketer/adapters/linear/adapter.py
+20  src/mcp_ticketer/adapters/jira.py
+20  src/mcp_ticketer/adapters/hybrid.py
+17  src/mcp_ticketer/core/config.py
+17  src/mcp_ticketer/cli/configure.py
+16  src/mcp_ticketer/queue/worker.py
+16  src/mcp_ticketer/cli/init_command.py
+11  src/mcp_ticketer/cli/linear_commands.py
+
+## Top 10 Files (Tests)
+126 tests/core/test_url_parser.py
+92  tests/unit/test_core_exceptions.py
+91  tests/unit/test_core_models.py
+84  tests/adapters/test_linear_filtering_fixes.py
+83  tests/test_error_handling.py
+83  tests/core/test_state_matcher.py
+64  tests/unit/test_cache_memory.py
+58  tests/adapters/linear/test_adapter.py
+54  tests/adapters/linear/test_queries.py
+53  tests/unit/test_core_registry.py
+
+## Fix Plan Summary
+Phase 1 (Quick Wins): 4-5 hours → 53% reduction (1,927 → ~900)
+Phase 2 (Critical): 4-5 hours → 68% total reduction (1,927 → ~600)
+Phase 3 (Complex): 3-4 hours → 85% total reduction (1,927 → ~300)
+Phase 4 (Cleanup): 2-3 hours → 97%+ reduction (1,927 → 0-50)
+
+Total Estimated Effort: 13-17 hours (conservative) or 8-10 hours (aggressive)
+
+## Next Steps
+1. Review detailed analysis: docs/research/mypy-error-analysis-1M-169.md
+2. Create subtasks for each phase
+3. Start with Phase 1, Batch 1.1 (remove 16 unused type ignores - 10 min)
+4. Continue with Phase 1, Batch 1.2 (add return types to test functions - 3-4 hours)
+
+For full analysis, see: docs/research/mypy-error-analysis-1M-169.md
+For raw output, see: mypy_errors.txt
