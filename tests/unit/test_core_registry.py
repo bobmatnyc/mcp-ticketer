@@ -83,7 +83,7 @@ class InvalidAdapter:
 
 
 @pytest.fixture(autouse=True)
-def clear_registry():
+def clear_registry() -> None:
     """Clear registry before and after each test."""
     AdapterRegistry.clear_registry()
     yield
@@ -94,7 +94,7 @@ def clear_registry():
 class TestAdapterRegistry:
     """Test AdapterRegistry class."""
 
-    def test_register_valid_adapter(self):
+    def test_register_valid_adapter(self) -> None:
         """Test registering a valid adapter."""
         AdapterRegistry.register("mock", MockAdapter)
 
@@ -103,14 +103,14 @@ class TestAdapterRegistry:
         assert "mock" in adapters
         assert adapters["mock"] == MockAdapter
 
-    def test_register_invalid_adapter_raises_error(self):
+    def test_register_invalid_adapter_raises_error(self) -> None:
         """Test that registering an invalid adapter raises TypeError."""
         with pytest.raises(TypeError) as exc_info:
             AdapterRegistry.register("invalid", InvalidAdapter)
 
         assert "must be a subclass of BaseAdapter" in str(exc_info.value)
 
-    def test_unregister_adapter(self):
+    def test_unregister_adapter(self) -> None:
         """Test unregistering an adapter."""
         AdapterRegistry.register("mock", MockAdapter)
         assert AdapterRegistry.is_registered("mock")
@@ -121,16 +121,16 @@ class TestAdapterRegistry:
         adapters = AdapterRegistry.list_adapters()
         assert "mock" not in adapters
 
-    def test_unregister_nonexistent_adapter_no_error(self):
+    def test_unregister_nonexistent_adapter_no_error(self) -> None:
         """Test that unregistering a nonexistent adapter doesn't raise error."""
         # Should not raise any error
         AdapterRegistry.unregister("nonexistent")
 
-    def test_is_registered_returns_false_for_nonexistent(self):
+    def test_is_registered_returns_false_for_nonexistent(self) -> None:
         """Test that is_registered returns False for nonexistent adapters."""
         assert not AdapterRegistry.is_registered("nonexistent")
 
-    def test_list_adapters_returns_copy(self):
+    def test_list_adapters_returns_copy(self) -> None:
         """Test that list_adapters returns a copy, not the original dict."""
         AdapterRegistry.register("mock1", MockAdapter)
         AdapterRegistry.register("mock2", MockAdapter)
@@ -141,14 +141,14 @@ class TestAdapterRegistry:
         assert adapters1 == adapters2
         assert adapters1 is not adapters2  # Different objects
 
-    def test_list_adapters_empty(self):
+    def test_list_adapters_empty(self) -> None:
         """Test listing adapters when none are registered."""
         adapters = AdapterRegistry.list_adapters()
 
         assert adapters == {}
         assert isinstance(adapters, dict)
 
-    def test_get_adapter_creates_instance(self):
+    def test_get_adapter_creates_instance(self) -> None:
         """Test getting an adapter creates an instance."""
         AdapterRegistry.register("mock", MockAdapter)
         config = {"key": "value"}
@@ -158,7 +158,7 @@ class TestAdapterRegistry:
         assert isinstance(adapter, MockAdapter)
         assert adapter.config == config
 
-    def test_get_adapter_caches_instance(self):
+    def test_get_adapter_caches_instance(self) -> None:
         """Test that get_adapter caches instances."""
         AdapterRegistry.register("mock", MockAdapter)
         config = {"key": "value"}
@@ -168,7 +168,7 @@ class TestAdapterRegistry:
 
         assert adapter1 is adapter2  # Same instance
 
-    def test_get_adapter_force_new_creates_new_instance(self):
+    def test_get_adapter_force_new_creates_new_instance(self) -> None:
         """Test that force_new creates a new instance."""
         AdapterRegistry.register("mock", MockAdapter)
         config = {"key": "value"}
@@ -180,7 +180,7 @@ class TestAdapterRegistry:
         assert isinstance(adapter1, MockAdapter)
         assert isinstance(adapter2, MockAdapter)
 
-    def test_get_adapter_unregistered_raises_error(self):
+    def test_get_adapter_unregistered_raises_error(self) -> None:
         """Test that getting an unregistered adapter raises ValueError."""
         with pytest.raises(ValueError) as exc_info:
             AdapterRegistry.get_adapter("nonexistent")
@@ -188,7 +188,7 @@ class TestAdapterRegistry:
         assert "not registered" in str(exc_info.value)
         assert "nonexistent" in str(exc_info.value)
 
-    def test_get_adapter_error_shows_available_adapters(self):
+    def test_get_adapter_error_shows_available_adapters(self) -> None:
         """Test that error message shows available adapters."""
         AdapterRegistry.register("mock1", MockAdapter)
         AdapterRegistry.register("mock2", MockAdapter)
@@ -201,7 +201,7 @@ class TestAdapterRegistry:
         assert "mock1" in error_msg
         assert "mock2" in error_msg
 
-    def test_get_adapter_with_no_config(self):
+    def test_get_adapter_with_no_config(self) -> None:
         """Test getting an adapter with no config."""
         AdapterRegistry.register("mock", MockAdapter)
 
@@ -234,7 +234,7 @@ class TestAdapterRegistry:
         adapter2 = AdapterRegistry.get_adapter("mock", {"key": "value"})
         assert adapter1 is not adapter2
 
-    def test_clear_registry_removes_all(self):
+    def test_clear_registry_removes_all(self) -> None:
         """Test that clear_registry removes all registrations and instances."""
         AdapterRegistry.register("mock1", MockAdapter)
         AdapterRegistry.register("mock2", MockAdapter)
@@ -246,7 +246,7 @@ class TestAdapterRegistry:
         assert not AdapterRegistry.is_registered("mock2")
         assert AdapterRegistry.list_adapters() == {}
 
-    def test_unregister_removes_instance_cache(self):
+    def test_unregister_removes_instance_cache(self) -> None:
         """Test that unregister also removes cached instances."""
         AdapterRegistry.register("mock", MockAdapter)
         adapter1 = AdapterRegistry.get_adapter("mock", {"key": "value"})
@@ -264,7 +264,7 @@ class TestAdapterRegistry:
 class TestAdapterFactory:
     """Test adapter_factory function."""
 
-    def test_adapter_factory_creates_adapter(self):
+    def test_adapter_factory_creates_adapter(self) -> None:
         """Test that adapter_factory creates an adapter."""
         AdapterRegistry.register("mock", MockAdapter)
         config = {"key": "value"}
@@ -274,7 +274,7 @@ class TestAdapterFactory:
         assert isinstance(adapter, MockAdapter)
         assert adapter.config == config
 
-    def test_adapter_factory_uses_registry(self):
+    def test_adapter_factory_uses_registry(self) -> None:
         """Test that adapter_factory uses the registry."""
         AdapterRegistry.register("mock", MockAdapter)
 
@@ -284,7 +284,7 @@ class TestAdapterFactory:
         # Should use cached instance from registry
         assert adapter1 is adapter2
 
-    def test_adapter_factory_unregistered_raises_error(self):
+    def test_adapter_factory_unregistered_raises_error(self) -> None:
         """Test that adapter_factory raises error for unregistered adapters."""
         with pytest.raises(ValueError) as exc_info:
             adapter_factory("nonexistent", {})
@@ -296,7 +296,7 @@ class TestAdapterFactory:
 class TestRegistryMultipleAdapters:
     """Test registry with multiple adapters."""
 
-    def test_register_multiple_adapters(self):
+    def test_register_multiple_adapters(self) -> None:
         """Test registering multiple different adapters."""
         AdapterRegistry.register("mock1", MockAdapter)
         AdapterRegistry.register("mock2", MockAdapter)
@@ -307,7 +307,7 @@ class TestRegistryMultipleAdapters:
         adapters = AdapterRegistry.list_adapters()
         assert len(adapters) == 2
 
-    def test_get_different_adapters(self):
+    def test_get_different_adapters(self) -> None:
         """Test getting different adapters."""
         AdapterRegistry.register("mock1", MockAdapter)
         AdapterRegistry.register("mock2", MockAdapter)
@@ -319,7 +319,7 @@ class TestRegistryMultipleAdapters:
         assert adapter1.config == {"id": 1}
         assert adapter2.config == {"id": 2}
 
-    def test_unregister_one_keeps_others(self):
+    def test_unregister_one_keeps_others(self) -> None:
         """Test that unregistering one adapter keeps others."""
         AdapterRegistry.register("mock1", MockAdapter)
         AdapterRegistry.register("mock2", MockAdapter)

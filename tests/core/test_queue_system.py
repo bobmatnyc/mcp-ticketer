@@ -16,7 +16,7 @@ from mcp_ticketer.queue import Queue, QueueStatus, Worker, WorkerManager
 console = Console()
 
 
-def test_queue_operations():
+def test_queue_operations() -> None:
     """Test basic queue operations."""
     console.print("\n[bold cyan]Testing Queue Operations[/bold cyan]")
 
@@ -81,7 +81,7 @@ def test_queue_operations():
     return queue_ids
 
 
-def test_worker_manager():
+def test_worker_manager() -> None:
     """Test worker manager operations."""
     console.print("\n[bold cyan]Testing Worker Manager[/bold cyan]")
 
@@ -116,7 +116,7 @@ def test_worker_manager():
     return True
 
 
-def test_queue_status_check(queue_ids):
+def test_queue_status_check(queue_ids) -> None:
     """Check status of queued items."""
     console.print("\n[bold cyan]Checking Queue Item Status[/bold cyan]")
 
@@ -136,7 +136,7 @@ def test_queue_status_check(queue_ids):
                 console.print(f"  Result: {item.result}")
 
 
-def test_worker_logs():
+def test_worker_logs() -> None:
     """Check worker logs."""
     console.print("\n[bold cyan]Worker Logs (last 10 lines)[/bold cyan]")
 

@@ -11,7 +11,7 @@ import sys
 from datetime import datetime
 
 
-def test_core_imports():
+def test_core_imports() -> None:
     """Test importing core components."""
     print("=== Testing Core Imports ===")
 
@@ -58,7 +58,7 @@ def test_core_imports():
         return False
 
 
-def test_adapter_imports():
+def test_adapter_imports() -> None:
     """Test importing adapters."""
     print("\n=== Testing Adapter Imports ===")
 
@@ -79,7 +79,7 @@ def test_adapter_imports():
         return False
 
 
-def test_queue_system():
+def test_queue_system() -> None:
     """Test queue system imports."""
     print("\n=== Testing Queue System ===")
 
@@ -137,7 +137,7 @@ def test_cli_components():
         return False
 
 
-def test_cache_system():
+def test_cache_system() -> None:
     """Test cache system."""
     print("\n=== Testing Cache System ===")
 
@@ -157,7 +157,7 @@ def test_cache_system():
         return False
 
 
-def test_version_info():
+def test_version_info() -> None:
     """Test package version information."""
     print("\n=== Testing Version Info ===")
 

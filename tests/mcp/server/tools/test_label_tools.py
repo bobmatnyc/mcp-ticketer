@@ -8,26 +8,26 @@ from mcp_ticketer.core.label_manager import LabelDeduplicator, LabelNormalizer
 class TestLabelNormalization:
     """Test label normalization functionality."""
 
-    def test_normalize_lowercase(self):
+    def test_normalize_lowercase(self) -> None:
         """Test lowercase normalization."""
         normalizer = LabelNormalizer(casing="lowercase")
         assert normalizer.normalize("Bug Report") == "bug report"
         assert normalizer.normalize("FEATURE-REQUEST") == "feature-request"
 
-    def test_normalize_kebab_case(self):
+    def test_normalize_kebab_case(self) -> None:
         """Test kebab-case normalization."""
         normalizer = LabelNormalizer(casing="kebab-case")
         assert normalizer.normalize("Bug Report") == "bug-report"
         assert normalizer.normalize("FEATURE REQUEST") == "feature-request"
         assert normalizer.normalize("snake_case_label") == "snake-case-label"
 
-    def test_normalize_snake_case(self):
+    def test_normalize_snake_case(self) -> None:
         """Test snake_case normalization."""
         normalizer = LabelNormalizer(casing="snake_case")
         assert normalizer.normalize("Bug Report") == "bug_report"
         assert normalizer.normalize("FEATURE-REQUEST") == "feature_request"
 
-    def test_normalize_invalid_casing(self):
+    def test_normalize_invalid_casing(self) -> None:
         """Test invalid casing strategy raises ValueError."""
         with pytest.raises(ValueError, match="Invalid casing strategy"):
             LabelNormalizer(casing="invalid-casing")
@@ -36,7 +36,7 @@ class TestLabelNormalization:
 class TestLabelDeduplication:
     """Test label deduplication functionality."""
 
-    def test_find_exact_duplicates(self):
+    def test_find_exact_duplicates(self) -> None:
         """Test finding exact duplicates with different cases."""
         deduplicator = LabelDeduplicator()
         labels = ["bug", "Bug", "BUG", "feature"]
@@ -53,7 +53,7 @@ class TestLabelDeduplication:
         ]
         assert len(bug_duplicates) >= 2
 
-    def test_find_fuzzy_duplicates(self):
+    def test_find_fuzzy_duplicates(self) -> None:
         """Test finding fuzzy duplicates with similar names."""
         deduplicator = LabelDeduplicator()
         labels = ["feature", "feture", "featrue", "bug"]
@@ -67,7 +67,7 @@ class TestLabelDeduplication:
         ]
         assert len(feature_duplicates) >= 1
 
-    def test_suggest_consolidation(self):
+    def test_suggest_consolidation(self) -> None:
         """Test consolidation suggestions for similar labels."""
         deduplicator = LabelDeduplicator()
         labels = ["bug", "Bug", "bugs", "feature", "feture"]
@@ -85,7 +85,7 @@ class TestLabelDeduplication:
 class TestLabelMatcher:
     """Test label matching and similarity detection."""
 
-    def test_find_similar_exact_match(self):
+    def test_find_similar_exact_match(self) -> None:
         """Test exact match has confidence 1.0."""
         normalizer = LabelNormalizer()
         available = ["bug", "feature", "performance"]
@@ -96,7 +96,7 @@ class TestLabelMatcher:
         assert matches[0].confidence == 1.0
         assert matches[0].match_type == "exact"
 
-    def test_find_similar_spelling_correction(self):
+    def test_find_similar_spelling_correction(self) -> None:
         """Test spelling correction match."""
         normalizer = LabelNormalizer()
         available = ["feature", "bug", "performance"]
@@ -107,7 +107,7 @@ class TestLabelMatcher:
             assert matches[0].label == "feature"
             assert matches[0].confidence >= 0.90
 
-    def test_find_similar_no_match(self):
+    def test_find_similar_no_match(self) -> None:
         """Test no match returns empty list."""
         normalizer = LabelNormalizer()
         available = ["bug", "feature"]
@@ -122,7 +122,7 @@ class TestLabelMatcher:
 class TestSpellingCorrection:
     """Test spelling correction dictionary."""
 
-    def test_common_misspellings(self):
+    def test_common_misspellings(self) -> None:
         """Test known misspellings are corrected."""
         normalizer = LabelNormalizer()
 
@@ -132,7 +132,7 @@ class TestSpellingCorrection:
         assert normalizer._apply_spelling_correction("bugfix") == "bug-fix"
         assert normalizer._apply_spelling_correction("databse") == "database"
 
-    def test_correct_spelling_unchanged(self):
+    def test_correct_spelling_unchanged(self) -> None:
         """Test correct spelling is not changed."""
         normalizer = LabelNormalizer()
 

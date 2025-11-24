@@ -12,7 +12,7 @@ from mcp_ticketer.core.models import TicketState
 class TestLinearAdapterInit:
     """Test Linear adapter initialization."""
 
-    def test_init_with_api_key_and_team_id(self):
+    def test_init_with_api_key_and_team_id(self) -> None:
         """Test initialization with API key and team ID."""
         config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
 
@@ -23,7 +23,7 @@ class TestLinearAdapterInit:
         assert adapter.team_key is None
         assert adapter.api_url == "https://api.linear.app/graphql"
 
-    def test_init_with_api_key_and_team_key(self):
+    def test_init_with_api_key_and_team_key(self) -> None:
         """Test initialization with API key and team key."""
         config = {"api_key": "lin_api_test_key_12345", "team_key": "TEST"}
 
@@ -32,7 +32,7 @@ class TestLinearAdapterInit:
         assert adapter.team_key == "TEST"
         assert adapter.team_id is None
 
-    def test_init_with_bearer_prefix(self):
+    def test_init_with_bearer_prefix(self) -> None:
         """Test initialization when API key already has Bearer prefix."""
         config = {"api_key": "Bearer lin_api_test_key_12345", "team_id": "team-123"}
 
@@ -41,7 +41,7 @@ class TestLinearAdapterInit:
         assert adapter.api_key == "lin_api_test_key_12345"
 
     @patch.dict("os.environ", {}, clear=True)
-    def test_init_missing_api_key(self):
+    def test_init_missing_api_key(self) -> None:
         """Test initialization without API key."""
         config = {"team_id": "team-123"}
 
@@ -50,7 +50,7 @@ class TestLinearAdapterInit:
 
         assert "Linear API key is required" in str(exc_info.value)
 
-    def test_init_missing_team_info(self):
+    def test_init_missing_team_info(self) -> None:
         """Test initialization without team key or ID."""
         config = {"api_key": "lin_api_test_key_12345"}
 
@@ -60,7 +60,7 @@ class TestLinearAdapterInit:
         assert "Either team_key or team_id must be provided" in str(exc_info.value)
 
     @patch.dict("os.environ", {"LINEAR_API_KEY": "lin_api_env_key_12345"})
-    def test_init_with_env_api_key(self):
+    def test_init_with_env_api_key(self) -> None:
         """Test initialization with API key from environment."""
         config = {"team_id": "team-123"}
 
@@ -68,7 +68,7 @@ class TestLinearAdapterInit:
 
         assert adapter.api_key == "lin_api_env_key_12345"
 
-    def test_init_with_custom_api_url(self):
+    def test_init_with_custom_api_url(self) -> None:
         """Test initialization with custom API URL."""
         config = {
             "api_key": "lin_api_test_key_12345",
@@ -85,7 +85,7 @@ class TestLinearAdapterInit:
 class TestLinearAdapterValidation:
     """Test Linear adapter validation methods."""
 
-    def test_validate_credentials_success(self):
+    def test_validate_credentials_success(self) -> None:
         """Test successful credential validation."""
         config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
         adapter = LinearAdapter(config)
@@ -95,7 +95,7 @@ class TestLinearAdapterValidation:
         assert is_valid is True
         assert error_message == ""
 
-    def test_validate_credentials_missing_api_key(self):
+    def test_validate_credentials_missing_api_key(self) -> None:
         """Test credential validation with missing API key."""
 
         # Create adapter with missing API key by bypassing __init__ validation
@@ -109,7 +109,7 @@ class TestLinearAdapterValidation:
         assert is_valid is False
         assert "Linear API key is required" in error_message
 
-    def test_validate_credentials_missing_team_info(self):
+    def test_validate_credentials_missing_team_info(self) -> None:
         """Test credential validation with missing team info."""
 
         # Create adapter with missing team info by bypassing __init__ validation
@@ -128,7 +128,7 @@ class TestLinearAdapterValidation:
 class TestLinearAdapterStateMapping:
     """Test Linear adapter state mapping."""
 
-    def test_get_state_mapping_without_workflow_states(self):
+    def test_get_state_mapping_without_workflow_states(self) -> None:
         """Test state mapping when workflow states are not loaded."""
         config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
         adapter = LinearAdapter(config)
@@ -144,7 +144,7 @@ class TestLinearAdapterStateMapping:
         assert mapping[TicketState.DONE] == "completed"
         assert mapping[TicketState.CLOSED] == "canceled"
 
-    def test_get_state_mapping_with_workflow_states(self):
+    def test_get_state_mapping_with_workflow_states(self) -> None:
         """Test state mapping when workflow states are loaded."""
         config = {"api_key": "lin_api_test_key_12345", "team_id": "team-123"}
         adapter = LinearAdapter(config)

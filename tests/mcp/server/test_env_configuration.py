@@ -30,7 +30,7 @@ JIRA_API_TOKEN=file_token_789
 """
 
 
-def test_load_from_os_environ(mock_env_vars):
+def test_load_from_os_environ(mock_env_vars) -> None:
     """Test loading configuration from os.environ (highest priority)."""
     with patch.dict(os.environ, mock_env_vars, clear=False):
         with patch("pathlib.Path.exists", return_value=False):
@@ -42,7 +42,7 @@ def test_load_from_os_environ(mock_env_vars):
     assert result["adapter_config"]["team_id"] == "team_test_456"
 
 
-def test_os_environ_overrides_env_file(mock_env_vars, mock_env_file_content):
+def test_os_environ_overrides_env_file(mock_env_vars, mock_env_file_content) -> None:
     """Test that os.environ takes priority over .env files."""
     with patch.dict(os.environ, mock_env_vars, clear=False):
         with patch("pathlib.Path.exists", return_value=True):
@@ -55,7 +55,7 @@ def test_os_environ_overrides_env_file(mock_env_vars, mock_env_file_content):
     assert result["adapter_config"]["api_key"] == "test_api_key_123"
 
 
-def test_load_from_env_file_when_no_environ():
+def test_load_from_env_file_when_no_environ() -> None:
     """Test loading from .env file when os.environ is empty."""
     env_content = """
 MCP_TICKETER_ADAPTER=github
@@ -73,7 +73,7 @@ GITHUB_REPO=owner/repo
     assert result["adapter_config"]["repo"] == "owner/repo"
 
 
-def test_no_configuration_returns_none():
+def test_no_configuration_returns_none() -> None:
     """Test that None is returned when no configuration found."""
     with patch.dict(os.environ, {}, clear=True):
         with patch("pathlib.Path.exists", return_value=False):
@@ -82,7 +82,7 @@ def test_no_configuration_returns_none():
     assert result is None
 
 
-def test_missing_adapter_type_returns_none():
+def test_missing_adapter_type_returns_none() -> None:
     """Test that None is returned when MCP_TICKETER_ADAPTER is missing."""
     env_vars = {
         "SOME_OTHER_VAR": "test_value",
@@ -95,7 +95,7 @@ def test_missing_adapter_type_returns_none():
     assert result is None
 
 
-def test_linear_missing_api_key_returns_none():
+def test_linear_missing_api_key_returns_none() -> None:
     """Test that None is returned when Linear adapter missing API key."""
     env_vars = {
         "MCP_TICKETER_ADAPTER": "linear",
@@ -108,7 +108,7 @@ def test_linear_missing_api_key_returns_none():
     assert result is None
 
 
-def test_jira_configuration():
+def test_jira_configuration() -> None:
     """Test JIRA adapter configuration."""
     env_vars = {
         "MCP_TICKETER_ADAPTER": "jira",
@@ -127,7 +127,7 @@ def test_jira_configuration():
     assert result["adapter_config"]["api_token"] == "test_token"
 
 
-def test_aitrackdown_configuration():
+def test_aitrackdown_configuration() -> None:
     """Test aitrackdown adapter configuration."""
     env_vars = {
         "MCP_TICKETER_ADAPTER": "aitrackdown",
@@ -142,7 +142,7 @@ def test_aitrackdown_configuration():
     assert result["adapter_config"]["base_path"] == "/custom/path"
 
 
-def test_unknown_adapter_type_returns_none():
+def test_unknown_adapter_type_returns_none() -> None:
     """Test that unknown adapter types return None."""
     env_vars = {
         "MCP_TICKETER_ADAPTER": "unknown_adapter",
@@ -154,7 +154,7 @@ def test_unknown_adapter_type_returns_none():
     assert result is None
 
 
-def test_auto_detect_linear_from_env_keys():
+def test_auto_detect_linear_from_env_keys() -> None:
     """Test auto-detection of Linear adapter from LINEAR_* environment keys."""
     env_vars = {
         # No MCP_TICKETER_ADAPTER specified
@@ -170,7 +170,7 @@ def test_auto_detect_linear_from_env_keys():
     assert result["adapter_config"]["api_key"] == "test_key"
 
 
-def test_auto_detect_github_from_env_keys():
+def test_auto_detect_github_from_env_keys() -> None:
     """Test auto-detection of GitHub adapter from GITHUB_* environment keys."""
     env_vars = {
         # No MCP_TICKETER_ADAPTER specified
@@ -186,7 +186,7 @@ def test_auto_detect_github_from_env_keys():
     assert result["adapter_config"]["token"] == "ghp_test"
 
 
-def test_env_file_provides_fallback_values():
+def test_env_file_provides_fallback_values() -> None:
     """Test that .env file provides fallback values for keys not in os.environ."""
     env_content = """
 MCP_TICKETER_ADAPTER=linear
@@ -214,7 +214,7 @@ LINEAR_TEAM_KEY=file_team_key
     assert result["adapter_config"]["team_key"] == "file_team_key"
 
 
-def test_github_with_owner_and_repo():
+def test_github_with_owner_and_repo() -> None:
     """Test GitHub configuration with owner and repo."""
     env_vars = {
         "MCP_TICKETER_ADAPTER": "github",

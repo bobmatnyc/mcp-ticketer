@@ -16,7 +16,7 @@ from mcp_ticketer.core.session_state import (
 class TestSessionState:
     """Test SessionState dataclass."""
 
-    def test_session_state_creation(self):
+    def test_session_state_creation(self) -> None:
         """Test creating a new session state."""
         state = SessionState()
         assert state.session_id is not None
@@ -24,7 +24,7 @@ class TestSessionState:
         assert state.ticket_opted_out is False
         assert state.last_activity is not None
 
-    def test_session_state_to_dict(self):
+    def test_session_state_to_dict(self) -> None:
         """Test serialization to dictionary."""
         state = SessionState(
             session_id="test-123",
@@ -37,7 +37,7 @@ class TestSessionState:
         assert data["ticket_opted_out"] is True
         assert "last_activity" in data
 
-    def test_session_state_from_dict(self):
+    def test_session_state_from_dict(self) -> None:
         """Test deserialization from dictionary."""
         data = {
             "session_id": "test-123",
@@ -51,7 +51,7 @@ class TestSessionState:
         assert state.ticket_opted_out is True
         assert state.last_activity == "2025-01-19T12:00:00"
 
-    def test_session_state_is_expired(self):
+    def test_session_state_is_expired(self) -> None:
         """Test session expiration check."""
         # Fresh session (not expired)
         state = SessionState()
@@ -68,7 +68,7 @@ class TestSessionState:
         # This might be expired depending on execution time, so we check either way
         # The key is it's testing the boundary condition
 
-    def test_session_state_touch(self):
+    def test_session_state_touch(self) -> None:
         """Test updating last activity timestamp."""
         state = SessionState()
         old_activity = state.last_activity
@@ -83,7 +83,7 @@ class TestSessionState:
 class TestSessionStateManager:
     """Test SessionStateManager."""
 
-    def test_load_session_no_file(self, tmp_path):
+    def test_load_session_no_file(self, tmp_path) -> None:
         """Test loading session when no file exists."""
         manager = SessionStateManager(project_path=tmp_path)
         state = manager.load_session()
@@ -93,7 +93,7 @@ class TestSessionStateManager:
         assert state.current_ticket is None
         assert not state.ticket_opted_out
 
-    def test_save_and_load_session(self, tmp_path):
+    def test_save_and_load_session(self, tmp_path) -> None:
         """Test saving and loading a session."""
         manager = SessionStateManager(project_path=tmp_path)
         state = SessionState(
@@ -114,7 +114,7 @@ class TestSessionStateManager:
         assert loaded_state.current_ticket == "EPIC-001"
         assert not loaded_state.ticket_opted_out
 
-    def test_load_expired_session(self, tmp_path):
+    def test_load_expired_session(self, tmp_path) -> None:
         """Test loading an expired session creates new one."""
         manager = SessionStateManager(project_path=tmp_path)
 
@@ -139,7 +139,7 @@ class TestSessionStateManager:
         assert loaded_state.current_ticket is None
         assert not loaded_state.ticket_opted_out
 
-    def test_clear_session(self, tmp_path):
+    def test_clear_session(self, tmp_path) -> None:
         """Test clearing session state."""
         manager = SessionStateManager(project_path=tmp_path)
         state = SessionState(current_ticket="TEST-123")
@@ -151,7 +151,7 @@ class TestSessionStateManager:
         manager.clear_session()
         assert not session_file.exists()
 
-    def test_get_current_ticket(self, tmp_path):
+    def test_get_current_ticket(self, tmp_path) -> None:
         """Test getting current ticket."""
         manager = SessionStateManager(project_path=tmp_path)
 
@@ -166,7 +166,7 @@ class TestSessionStateManager:
         manager.opt_out_ticket()
         assert manager.get_current_ticket() is None
 
-    def test_set_current_ticket(self, tmp_path):
+    def test_set_current_ticket(self, tmp_path) -> None:
         """Test setting current ticket."""
         manager = SessionStateManager(project_path=tmp_path)
 
@@ -182,7 +182,7 @@ class TestSessionStateManager:
         assert state.current_ticket == "NEW-TICKET"
         assert not state.ticket_opted_out
 
-    def test_opt_out_ticket(self, tmp_path):
+    def test_opt_out_ticket(self, tmp_path) -> None:
         """Test opting out of ticket association."""
         manager = SessionStateManager(project_path=tmp_path)
 
@@ -194,7 +194,7 @@ class TestSessionStateManager:
         assert state.current_ticket is None
         assert state.ticket_opted_out
 
-    def test_corrupted_session_file(self, tmp_path):
+    def test_corrupted_session_file(self, tmp_path) -> None:
         """Test handling corrupted session file."""
         session_file = tmp_path / ".mcp-ticketer" / "session.json"
         session_file.parent.mkdir(parents=True, exist_ok=True)
@@ -210,7 +210,7 @@ class TestSessionStateManager:
         assert state is not None
         assert state.session_id is not None
 
-    def test_touch_updates_activity(self, tmp_path):
+    def test_touch_updates_activity(self, tmp_path) -> None:
         """Test that loading/saving touches the session."""
         manager = SessionStateManager(project_path=tmp_path)
 

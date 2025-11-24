@@ -102,7 +102,7 @@ def sample_tickets(
 class TestOrphanedTicketDetector:
     """Test cases for OrphanedTicketDetector."""
 
-    def test_find_orphaned_tickets(self, sample_tickets):
+    def test_find_orphaned_tickets(self, sample_tickets) -> None:
         """Test finding orphaned tickets."""
         detector = OrphanedTicketDetector()
         results = detector.find_orphaned_tickets(sample_tickets)
@@ -121,7 +121,7 @@ class TestOrphanedTicketDetector:
                 "no_project",
             ]
 
-    def test_orphaned_issue_detected(self, orphaned_issue):
+    def test_orphaned_issue_detected(self, orphaned_issue) -> None:
         """Test that orphaned issue is detected."""
         detector = OrphanedTicketDetector()
         results = detector.find_orphaned_tickets([orphaned_issue])
@@ -132,7 +132,7 @@ class TestOrphanedTicketDetector:
         assert "no_epic" in orphan_types
         assert "no_project" in orphan_types
 
-    def test_orphaned_task_detected(self, orphaned_task):
+    def test_orphaned_task_detected(self, orphaned_task) -> None:
         """Test that orphaned task is detected."""
         detector = OrphanedTicketDetector()
         results = detector.find_orphaned_tickets([orphaned_task])
@@ -141,7 +141,7 @@ class TestOrphanedTicketDetector:
         assert results[0].ticket_id == "TASK-1"
         assert results[0].orphan_type == "no_parent"
 
-    def test_issue_with_epic_only(self, issue_with_epic):
+    def test_issue_with_epic_only(self, issue_with_epic) -> None:
         """Test issue with epic but no project."""
         detector = OrphanedTicketDetector()
         results = detector.find_orphaned_tickets([issue_with_epic])
@@ -151,7 +151,7 @@ class TestOrphanedTicketDetector:
         assert "no_project" in orphan_types
         assert "no_epic" not in orphan_types
 
-    def test_issue_with_project_only(self, issue_with_project):
+    def test_issue_with_project_only(self, issue_with_project) -> None:
         """Test issue with project but no epic."""
         detector = OrphanedTicketDetector()
         results = detector.find_orphaned_tickets([issue_with_project])
@@ -161,7 +161,7 @@ class TestOrphanedTicketDetector:
         assert "no_epic" in orphan_types
         assert "no_project" not in orphan_types
 
-    def test_organized_task_not_detected(self, properly_organized_task):
+    def test_organized_task_not_detected(self, properly_organized_task) -> None:
         """Test that properly organized task is not flagged."""
         detector = OrphanedTicketDetector()
         results = detector.find_orphaned_tickets([properly_organized_task])
@@ -169,7 +169,7 @@ class TestOrphanedTicketDetector:
         # Should not be detected as orphaned
         assert len(results) == 0
 
-    def test_suggested_actions(self, sample_tickets):
+    def test_suggested_actions(self, sample_tickets) -> None:
         """Test that suggested actions are appropriate."""
         detector = OrphanedTicketDetector()
         results = detector.find_orphaned_tickets(sample_tickets)
@@ -189,7 +189,7 @@ class TestOrphanedTicketDetector:
             elif result.orphan_type == "no_parent":
                 assert result.suggested_action == "review"
 
-    def test_ticket_type_detection(self, sample_tickets):
+    def test_ticket_type_detection(self, sample_tickets) -> None:
         """Test that ticket types are correctly detected."""
         detector = OrphanedTicketDetector()
         results = detector.find_orphaned_tickets(sample_tickets)
@@ -197,7 +197,7 @@ class TestOrphanedTicketDetector:
         for result in results:
             assert result.ticket_type in ["task", "issue", "epic"]
 
-    def test_reason_is_descriptive(self, orphaned_issue):
+    def test_reason_is_descriptive(self, orphaned_issue) -> None:
         """Test that reason is human-readable."""
         detector = OrphanedTicketDetector()
         results = detector.find_orphaned_tickets([orphaned_issue])
@@ -210,7 +210,7 @@ class TestOrphanedTicketDetector:
                 for word in ["parent", "epic", "project", "assigned"]
             )
 
-    def test_linear_metadata_detection(self):
+    def test_linear_metadata_detection(self) -> None:
         """Test detection with Linear-style metadata."""
         ticket = Task(
             id="LINEAR-1",
@@ -232,7 +232,7 @@ class TestOrphanedTicketDetector:
         assert "no_epic" in orphan_types
         assert "no_project" not in orphan_types
 
-    def test_jira_metadata_detection(self):
+    def test_jira_metadata_detection(self) -> None:
         """Test detection with JIRA-style metadata."""
         ticket = Task(
             id="JIRA-1",
@@ -253,7 +253,7 @@ class TestOrphanedTicketDetector:
         # Should not detect as orphaned (has epic and board/project)
         assert len(results) == 0
 
-    def test_github_metadata_detection(self):
+    def test_github_metadata_detection(self) -> None:
         """Test detection with GitHub-style metadata."""
         ticket = Task(
             id="GH-1",
@@ -275,7 +275,7 @@ class TestOrphanedTicketDetector:
         assert "no_epic" not in orphan_types
         assert "no_project" in orphan_types
 
-    def test_asana_metadata_detection(self):
+    def test_asana_metadata_detection(self) -> None:
         """Test detection with Asana-style metadata."""
         ticket = Task(
             id="ASANA-1",
@@ -297,13 +297,13 @@ class TestOrphanedTicketDetector:
         assert "no_epic" in orphan_types
         assert "no_project" not in orphan_types
 
-    def test_empty_tickets_list(self):
+    def test_empty_tickets_list(self) -> None:
         """Test handling of empty tickets list."""
         detector = OrphanedTicketDetector()
         results = detector.find_orphaned_tickets([])
         assert results == []
 
-    def test_epic_not_checked(self):
+    def test_epic_not_checked(self) -> None:
         """Test that epic tickets are not checked for orphans."""
         epic = Task(
             id="EPIC-1",
@@ -320,7 +320,7 @@ class TestOrphanedTicketDetector:
         # Epics should not be checked (they are top-level)
         assert len(results) == 0
 
-    def test_multiple_orphan_types_for_single_ticket(self, orphaned_issue):
+    def test_multiple_orphan_types_for_single_ticket(self, orphaned_issue) -> None:
         """Test that a ticket can have multiple orphan types."""
         detector = OrphanedTicketDetector()
         results = detector.find_orphaned_tickets([orphaned_issue])
@@ -331,7 +331,7 @@ class TestOrphanedTicketDetector:
         orphan_types = {r.orphan_type for r in results}
         assert len(orphan_types) > 1
 
-    def test_ticket_type_from_metadata(self):
+    def test_ticket_type_from_metadata(self) -> None:
         """Test ticket type detection from metadata."""
         # Task with metadata type
         task = Task(
@@ -350,7 +350,7 @@ class TestOrphanedTicketDetector:
         # Should respect explicit ticket_type field over metadata
         assert ticket_type in ["task", "issue"]
 
-    def test_ticket_with_parent_issue_inferred_as_task(self):
+    def test_ticket_with_parent_issue_inferred_as_task(self) -> None:
         """Test that ticket with parent_issue is inferred as task."""
         ticket = Task(
             id="INFERRED-TASK",
@@ -369,7 +369,7 @@ class TestOrphanedTicketDetector:
         # Note: This tests the fallback logic
         assert ticket_type in ["task", "issue"]
 
-    def test_fully_organized_ticket(self):
+    def test_fully_organized_ticket(self) -> None:
         """Test ticket with both epic and project."""
         ticket = Task(
             id="ORGANIZED-1",

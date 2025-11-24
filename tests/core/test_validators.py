@@ -5,7 +5,7 @@ import pytest
 from mcp_ticketer.core.validators import FieldValidator, ValidationError
 
 
-def test_linear_description_limit():
+def test_linear_description_limit() -> None:
     """Test Linear epic description 255-char limit."""
     short_desc = "Short description"
     assert (
@@ -24,7 +24,7 @@ def test_linear_description_limit():
     assert len(truncated) == 255
 
 
-def test_linear_name_limit():
+def test_linear_name_limit() -> None:
     """Test Linear epic name 255-char limit."""
     short_name = "Short name"
     assert (
@@ -42,19 +42,19 @@ def test_linear_name_limit():
     assert len(truncated) == 255
 
 
-def test_validation_with_none():
+def test_validation_with_none() -> None:
     """Test validation handles None values."""
     result = FieldValidator.validate_field("linear", "epic_description", None)
     assert result == ""
 
 
-def test_validation_with_empty_string():
+def test_validation_with_empty_string() -> None:
     """Test validation handles empty strings."""
     result = FieldValidator.validate_field("linear", "epic_description", "")
     assert result == ""
 
 
-def test_linear_issue_description_higher_limit():
+def test_linear_issue_description_higher_limit() -> None:
     """Test Linear issue description has 100k char limit."""
     # Epic description should fail at 300 chars
     long_desc = "x" * 300
@@ -71,7 +71,7 @@ def test_linear_issue_description_higher_limit():
         FieldValidator.validate_field("linear", "issue_description", very_long_desc)
 
 
-def test_unknown_adapter():
+def test_unknown_adapter() -> None:
     """Test validation with unknown adapter (no limits)."""
     # Unknown adapter should not have limits, so no validation error
     long_text = "x" * 1000
@@ -79,7 +79,7 @@ def test_unknown_adapter():
     assert result == long_text
 
 
-def test_unknown_field():
+def test_unknown_field() -> None:
     """Test validation with unknown field (no limits)."""
     # Unknown field should not have limits, so no validation error
     long_text = "x" * 1000
@@ -87,7 +87,7 @@ def test_unknown_field():
     assert result == long_text
 
 
-def test_validation_error_message():
+def test_validation_error_message() -> None:
     """Test validation error message includes useful info."""
     long_desc = "x" * 300
     with pytest.raises(ValidationError) as exc_info:
@@ -101,7 +101,7 @@ def test_validation_error_message():
     assert "truncate=True" in error_msg
 
 
-def test_jira_limits():
+def test_jira_limits() -> None:
     """Test JIRA field limits."""
     # JIRA summary has 255 char limit
     long_summary = "x" * 256
@@ -114,7 +114,7 @@ def test_jira_limits():
         FieldValidator.validate_field("jira", "description", long_description)
 
 
-def test_github_limits():
+def test_github_limits() -> None:
     """Test GitHub field limits."""
     # GitHub title has 256 char limit
     long_title = "x" * 257
@@ -127,7 +127,7 @@ def test_github_limits():
         FieldValidator.validate_field("github", "body", long_body)
 
 
-def test_case_insensitive_adapter_name():
+def test_case_insensitive_adapter_name() -> None:
     """Test adapter name is case-insensitive."""
     long_desc = "x" * 300
 

@@ -7,7 +7,7 @@ import pytest
 
 
 @pytest.fixture(autouse=True, scope="function")
-def reset_update_checker_module():
+def reset_update_checker_module() -> None:
     """Ensure update_checker module is in a clean state before and after each test."""
     # Store original state
     original_module = sys.modules.get("mcp_ticketer.cli.update_checker")
@@ -33,7 +33,7 @@ def reset_update_checker_module():
 class TestVersionFallback:
     """Test fallback version comparison when packaging is not available."""
 
-    def test_fallback_version_comparison_basic(self):
+    def test_fallback_version_comparison_basic(self) -> None:
         """Test basic version comparison with fallback."""
         # Temporarily hide packaging module
         with patch.dict(sys.modules, {"packaging": None, "packaging.version": None}):
@@ -60,7 +60,7 @@ class TestVersionFallback:
             assert v4 > v3
             assert not (v1 > v2)
 
-    def test_fallback_version_equality(self):
+    def test_fallback_version_equality(self) -> None:
         """Test version equality with fallback."""
         with patch.dict(sys.modules, {"packaging": None, "packaging.version": None}):
             # Remove update_checker from cache to force reimport
@@ -78,7 +78,7 @@ class TestVersionFallback:
             assert v1 == v2
             assert not (v1 == v3)
 
-    def test_fallback_version_multi_digit(self):
+    def test_fallback_version_multi_digit(self) -> None:
         """Test version comparison with multi-digit numbers."""
         with patch.dict(sys.modules, {"packaging": None, "packaging.version": None}):
             # Remove update_checker from cache to force reimport
@@ -97,7 +97,7 @@ class TestVersionFallback:
             assert v2 > v1  # 10 > 9, not "10" < "9"
             assert v3 > v2
 
-    def test_fallback_version_pre_release(self):
+    def test_fallback_version_pre_release(self) -> None:
         """Test version comparison with pre-release versions."""
         with patch.dict(sys.modules, {"packaging": None, "packaging.version": None}):
             # Remove update_checker from cache to force reimport
@@ -195,14 +195,14 @@ class TestUpdateChecker:
 class TestInstallationDetection:
     """Test installation method detection."""
 
-    def test_detect_pipx(self):
+    def test_detect_pipx(self) -> None:
         """Test pipx installation detection."""
         from mcp_ticketer.cli.update_checker import detect_installation_method
 
         with patch("sys.prefix", "/home/user/.local/pipx/venvs/mcp-ticketer"):
             assert detect_installation_method() == "pipx"
 
-    def test_detect_uv(self):
+    def test_detect_uv(self) -> None:
         """Test uv installation detection."""
         from mcp_ticketer.cli.update_checker import detect_installation_method
 
@@ -212,14 +212,14 @@ class TestInstallationDetection:
                 or detect_installation_method() == "pip"
             )
 
-    def test_detect_pip_default(self):
+    def test_detect_pip_default(self) -> None:
         """Test default pip detection."""
         from mcp_ticketer.cli.update_checker import detect_installation_method
 
         with patch("sys.prefix", "/usr/local"):
             assert detect_installation_method() == "pip"
 
-    def test_upgrade_commands(self):
+    def test_upgrade_commands(self) -> None:
         """Test upgrade command generation."""
         from mcp_ticketer.cli.update_checker import get_upgrade_command
 

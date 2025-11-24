@@ -31,7 +31,7 @@ class AdapterTester:
     def __init__(self):
         self.test_results = {}
 
-    def test_environment_variables(self):
+    def test_environment_variables(self) -> None:
         """Test that required environment variables are available."""
         print("🔍 Testing environment variables...")
 
@@ -66,7 +66,7 @@ class AdapterTester:
 
         self.test_results["environment"] = {"jira": jira_vars, "github": github_vars}
 
-    def test_configuration_loading(self):
+    def test_configuration_loading(self) -> None:
         """Test configuration loading for both adapters."""
         print("\n🔍 Testing configuration loading...")
 
@@ -235,7 +235,7 @@ class AdapterTester:
             print(f"  ❌ GitHub adapter test failed: {e}")
             self.test_results["github"] = {"success": False, "error": str(e)}
 
-    def test_cli_integration(self):
+    def test_cli_integration(self) -> None:
         """Test CLI integration for both adapters."""
         print("\n🔍 Testing CLI integration...")
 

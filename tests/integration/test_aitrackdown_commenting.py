@@ -32,7 +32,7 @@ class AitrackdownCommentTester:
         self.test_tickets = []
         self.adapter = None
 
-    def setup_adapter(self):
+    def setup_adapter(self) -> None:
         """Set up the aitrackdown adapter."""
         print("🔧 Setting up aitrackdown adapter...")
 

@@ -9,7 +9,7 @@ from unittest import mock
 from mcp_ticketer.cli.main import load_config
 
 
-def test_serve_command_respects_project_config():
+def test_serve_command_respects_project_config() -> None:
     """Test that the serve command uses project-specific config when available."""
 
     # Create a temporary project directory
@@ -80,7 +80,7 @@ def test_serve_command_respects_project_config():
                 global_config_file.unlink()
 
 
-def test_mcp_server_cwd_scenario():
+def test_mcp_server_cwd_scenario() -> None:
     """
     Test the real-world scenario where MCP server is started with a specific cwd.
 

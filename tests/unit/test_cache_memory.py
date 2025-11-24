@@ -17,7 +17,7 @@ from mcp_ticketer.cache.memory import (
 class TestCacheEntry:
     """Test CacheEntry class."""
 
-    def test_create_cache_entry(self):
+    def test_create_cache_entry(self) -> None:
         """Test creating a cache entry."""
         value = {"data": "test"}
         ttl = 60.0
@@ -28,14 +28,14 @@ class TestCacheEntry:
         assert entry.expires_at > time.time()
         assert entry.expires_at <= time.time() + ttl + 1
 
-    def test_cache_entry_with_zero_ttl(self):
+    def test_cache_entry_with_zero_ttl(self) -> None:
         """Test cache entry with zero TTL never expires."""
         entry = CacheEntry("test", 0)
 
         assert entry.expires_at == float("inf")
         assert not entry.is_expired()
 
-    def test_cache_entry_is_not_expired_initially(self):
+    def test_cache_entry_is_not_expired_initially(self) -> None:
         """Test that fresh entry is not expired."""
         entry = CacheEntry("test", 10)
 
@@ -212,7 +212,7 @@ class TestMemoryCache:
         assert await cache.get("dict") == test_dict
         assert await cache.get("list") == test_list
 
-    def test_generate_key_basic(self):
+    def test_generate_key_basic(self) -> None:
         """Test generating cache key from arguments."""
         key1 = MemoryCache.generate_key("arg1", "arg2")
         key2 = MemoryCache.generate_key("arg1", "arg2")
@@ -223,7 +223,7 @@ class TestMemoryCache:
         # Different arguments should generate different key
         assert key1 != key3
 
-    def test_generate_key_with_kwargs(self):
+    def test_generate_key_with_kwargs(self) -> None:
         """Test generating cache key with keyword arguments."""
         key1 = MemoryCache.generate_key(a=1, b=2)
         key2 = MemoryCache.generate_key(b=2, a=1)  # Different order
@@ -234,7 +234,7 @@ class TestMemoryCache:
         # Different kwargs should generate different key
         assert key1 != key3
 
-    def test_generate_key_mixed_args(self):
+    def test_generate_key_mixed_args(self) -> None:
         """Test generating cache key with mixed args and kwargs."""
         key1 = MemoryCache.generate_key("pos1", "pos2", kwarg1="val1")
         key2 = MemoryCache.generate_key("pos1", "pos2", kwarg1="val1")
@@ -243,7 +243,7 @@ class TestMemoryCache:
         assert key1 == key2
         assert key1 != key3
 
-    def test_size_reflects_cache_content(self):
+    def test_size_reflects_cache_content(self) -> None:
         """Test that size reflects actual cache size."""
         cache = MemoryCache()
 

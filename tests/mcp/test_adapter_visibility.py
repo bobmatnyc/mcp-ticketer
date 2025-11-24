@@ -12,7 +12,7 @@ from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
 class TestBaseAdapterProperties:
     """Test adapter_type and adapter_display_name properties."""
 
-    def test_aitrackdown_adapter_type(self, temp_dir):
+    def test_aitrackdown_adapter_type(self, temp_dir) -> None:
         """Test AITrackdown adapter_type property."""
         config = {"project_path": str(temp_dir)}
         adapter = AITrackdownAdapter(config)
@@ -20,7 +20,7 @@ class TestBaseAdapterProperties:
         assert adapter.adapter_type == "aitrackdown"
         assert adapter.adapter_display_name == "Aitrackdown"
 
-    def test_adapter_type_from_class_name(self, temp_dir):
+    def test_adapter_type_from_class_name(self, temp_dir) -> None:
         """Test that adapter_type is correctly extracted from class name."""
         config = {"project_path": str(temp_dir)}
         adapter = AITrackdownAdapter(config)

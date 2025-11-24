@@ -26,7 +26,7 @@ class QueueProcessingDiagnostics:
     def __init__(self):
         self.test_results = {}
 
-    def test_direct_adapter_creation(self):
+    def test_direct_adapter_creation(self) -> None:
         """Test creating Linear adapter directly (should work correctly)."""
         print("🔍 Testing direct Linear adapter creation...")
 
@@ -59,7 +59,7 @@ class QueueProcessingDiagnostics:
         self.test_results["direct_adapter"] = result
         return result
 
-    def test_queue_item_creation(self):
+    def test_queue_item_creation(self) -> None:
         """Test creating a queue item (should work correctly)."""
         print("\n🔍 Testing queue item creation...")
 

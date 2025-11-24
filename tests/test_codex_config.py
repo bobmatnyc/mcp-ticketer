@@ -19,7 +19,7 @@ except ImportError:
     sys.exit(1)
 
 
-def test_codex_config_structure():
+def test_codex_config_structure() -> None:
     """Test Codex configuration TOML structure."""
     # Expected structure per Codex CLI spec
     expected_config = {

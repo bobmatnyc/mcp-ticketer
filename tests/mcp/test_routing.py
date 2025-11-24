@@ -43,7 +43,7 @@ def router(mock_adapter_configs):
 class TestRouterInitialization:
     """Test router initialization and configuration."""
 
-    def test_init_with_valid_config(self, mock_adapter_configs):
+    def test_init_with_valid_config(self, mock_adapter_configs) -> None:
         """Test initialization with valid configuration."""
         router = TicketRouter(
             default_adapter="linear",
@@ -53,7 +53,7 @@ class TestRouterInitialization:
         assert router.adapter_configs == mock_adapter_configs
         assert len(router._adapters) == 0  # No adapters cached yet
 
-    def test_init_with_invalid_default_adapter(self, mock_adapter_configs):
+    def test_init_with_invalid_default_adapter(self, mock_adapter_configs) -> None:
         """Test initialization with invalid default adapter raises error."""
         with pytest.raises(ValueError, match="Default adapter 'invalid' not found"):
             TicketRouter(
@@ -61,7 +61,7 @@ class TestRouterInitialization:
                 adapter_configs=mock_adapter_configs,
             )
 
-    def test_init_with_empty_config(self):
+    def test_init_with_empty_config(self) -> None:
         """Test initialization with empty config raises error."""
         with pytest.raises(ValueError):
             TicketRouter(
@@ -73,7 +73,7 @@ class TestRouterInitialization:
 class TestURLDetection:
     """Test URL-based adapter detection."""
 
-    def test_detect_linear_url(self, router):
+    def test_detect_linear_url(self, router) -> None:
         """Test detection of Linear URLs."""
         urls = [
             "https://linear.app/team/issue/ABC-123",
@@ -83,7 +83,7 @@ class TestURLDetection:
             adapter_name = router._detect_adapter_from_url(url)
             assert adapter_name == "linear"
 
-    def test_detect_github_url(self, router):
+    def test_detect_github_url(self, router) -> None:
         """Test detection of GitHub URLs."""
         urls = [
             "https://github.com/owner/repo/issues/123",
@@ -93,7 +93,7 @@ class TestURLDetection:
             adapter_name = router._detect_adapter_from_url(url)
             assert adapter_name == "github"
 
-    def test_detect_jira_url(self, router):
+    def test_detect_jira_url(self, router) -> None:
         """Test detection of JIRA URLs."""
         urls = [
             "https://company.atlassian.net/browse/PROJ-123",
@@ -103,7 +103,7 @@ class TestURLDetection:
             adapter_name = router._detect_adapter_from_url(url)
             assert adapter_name == "jira"
 
-    def test_detect_asana_url(self, router):
+    def test_detect_asana_url(self, router) -> None:
         """Test detection of Asana URLs."""
         urls = [
             "https://app.asana.com/0/1234567890/9876543210",
@@ -113,7 +113,7 @@ class TestURLDetection:
             adapter_name = router._detect_adapter_from_url(url)
             assert adapter_name == "asana"
 
-    def test_detect_unknown_url(self, router):
+    def test_detect_unknown_url(self, router) -> None:
         """Test detection of unknown URL format raises error."""
         with pytest.raises(RouterError, match="Cannot detect adapter from URL"):
             router._detect_adapter_from_url("https://unknown.com/ticket/123")
@@ -122,14 +122,14 @@ class TestURLDetection:
 class TestIDNormalization:
     """Test ticket ID normalization."""
 
-    def test_normalize_plain_id_uses_default(self, router):
+    def test_normalize_plain_id_uses_default(self, router) -> None:
         """Test plain IDs use default adapter."""
         normalized_id, adapter_name, source = router._normalize_ticket_id("ABC-123")
         assert normalized_id == "ABC-123"
         assert adapter_name == "linear"  # default adapter
         assert source == "default"
 
-    def test_normalize_linear_url(self, router):
+    def test_normalize_linear_url(self, router) -> None:
         """Test Linear URL normalization."""
         url = "https://linear.app/team/issue/ABC-123"
         normalized_id, adapter_name, source = router._normalize_ticket_id(url)
@@ -137,7 +137,7 @@ class TestIDNormalization:
         assert adapter_name == "linear"
         assert source == "url"
 
-    def test_normalize_github_url(self, router):
+    def test_normalize_github_url(self, router) -> None:
         """Test GitHub URL normalization."""
         url = "https://github.com/owner/repo/issues/456"
         normalized_id, adapter_name, source = router._normalize_ticket_id(url)
@@ -145,7 +145,7 @@ class TestIDNormalization:
         assert adapter_name == "github"
         assert source == "url"
 
-    def test_normalize_jira_url(self, router):
+    def test_normalize_jira_url(self, router) -> None:
         """Test JIRA URL normalization."""
         url = "https://company.atlassian.net/browse/PROJ-789"
         normalized_id, adapter_name, source = router._normalize_ticket_id(url)
@@ -153,7 +153,7 @@ class TestIDNormalization:
         assert adapter_name == "jira"
         assert source == "url"
 
-    def test_normalize_asana_url(self, router):
+    def test_normalize_asana_url(self, router) -> None:
         """Test Asana URL normalization."""
         url = "https://app.asana.com/0/1234567890/9876543210"
         normalized_id, adapter_name, source = router._normalize_ticket_id(url)
@@ -161,7 +161,7 @@ class TestIDNormalization:
         assert adapter_name == "asana"
         assert source == "url"
 
-    def test_normalize_invalid_url(self, router):
+    def test_normalize_invalid_url(self, router) -> None:
         """Test invalid URL raises error."""
         with pytest.raises(RouterError, match="Failed to extract ticket ID"):
             router._normalize_ticket_id("https://linear.app/invalid")
@@ -170,7 +170,7 @@ class TestIDNormalization:
 class TestAdapterCaching:
     """Test adapter instance caching."""
 
-    def test_adapter_lazy_loading(self, router):
+    def test_adapter_lazy_loading(self, router) -> None:
         """Test adapters are created on first use."""
         assert len(router._adapters) == 0
 
@@ -179,7 +179,7 @@ class TestAdapterCaching:
         # For unit tests, we'd need to mock AdapterRegistry.get_adapter
         # For now, just verify the caching behavior structure
 
-    def test_get_adapter_with_unconfigured_adapter(self, router):
+    def test_get_adapter_with_unconfigured_adapter(self, router) -> None:
         """Test getting unconfigured adapter raises error."""
         with pytest.raises(RouterError, match="Adapter 'bitbucket' is not configured"):
             router._get_adapter("bitbucket")

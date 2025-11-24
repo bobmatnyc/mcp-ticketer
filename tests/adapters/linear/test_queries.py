@@ -33,7 +33,7 @@ from mcp_ticketer.adapters.linear.queries import (
 class TestGraphQLFragments:
     """Test GraphQL fragment definitions."""
 
-    def test_user_fragment_structure(self):
+    def test_user_fragment_structure(self) -> None:
         """Test USER_FRAGMENT contains required fields."""
         assert "fragment UserFields on User" in USER_FRAGMENT
         assert "id" in USER_FRAGMENT
@@ -43,7 +43,7 @@ class TestGraphQLFragments:
         assert "avatarUrl" in USER_FRAGMENT
         assert "isMe" in USER_FRAGMENT
 
-    def test_workflow_state_fragment_structure(self):
+    def test_workflow_state_fragment_structure(self) -> None:
         """Test WORKFLOW_STATE_FRAGMENT contains required fields."""
         assert (
             "fragment WorkflowStateFields on WorkflowState" in WORKFLOW_STATE_FRAGMENT
@@ -54,7 +54,7 @@ class TestGraphQLFragments:
         assert "position" in WORKFLOW_STATE_FRAGMENT
         assert "color" in WORKFLOW_STATE_FRAGMENT
 
-    def test_team_fragment_structure(self):
+    def test_team_fragment_structure(self) -> None:
         """Test TEAM_FRAGMENT contains required fields."""
         assert "fragment TeamFields on Team" in TEAM_FRAGMENT
         assert "id" in TEAM_FRAGMENT
@@ -62,7 +62,7 @@ class TestGraphQLFragments:
         assert "key" in TEAM_FRAGMENT
         assert "description" in TEAM_FRAGMENT
 
-    def test_cycle_fragment_structure(self):
+    def test_cycle_fragment_structure(self) -> None:
         """Test CYCLE_FRAGMENT contains required fields."""
         assert "fragment CycleFields on Cycle" in CYCLE_FRAGMENT
         assert "id" in CYCLE_FRAGMENT
@@ -73,7 +73,7 @@ class TestGraphQLFragments:
         assert "endsAt" in CYCLE_FRAGMENT
         assert "completedAt" in CYCLE_FRAGMENT
 
-    def test_project_fragment_structure(self):
+    def test_project_fragment_structure(self) -> None:
         """Test PROJECT_FRAGMENT contains required fields."""
         assert "fragment ProjectFields on Project" in PROJECT_FRAGMENT
         assert "id" in PROJECT_FRAGMENT
@@ -86,7 +86,7 @@ class TestGraphQLFragments:
         assert "teams" in PROJECT_FRAGMENT
         assert "...TeamFields" in PROJECT_FRAGMENT
 
-    def test_label_fragment_structure(self):
+    def test_label_fragment_structure(self) -> None:
         """Test LABEL_FRAGMENT contains required fields."""
         assert "fragment LabelFields on IssueLabel" in LABEL_FRAGMENT
         assert "id" in LABEL_FRAGMENT
@@ -94,7 +94,7 @@ class TestGraphQLFragments:
         assert "color" in LABEL_FRAGMENT
         assert "description" in LABEL_FRAGMENT
 
-    def test_attachment_fragment_structure(self):
+    def test_attachment_fragment_structure(self) -> None:
         """Test ATTACHMENT_FRAGMENT contains required fields."""
         assert "fragment AttachmentFields on Attachment" in ATTACHMENT_FRAGMENT
         assert "id" in ATTACHMENT_FRAGMENT
@@ -105,7 +105,7 @@ class TestGraphQLFragments:
         assert "createdAt" in ATTACHMENT_FRAGMENT
         assert "updatedAt" in ATTACHMENT_FRAGMENT
 
-    def test_comment_fragment_structure(self):
+    def test_comment_fragment_structure(self) -> None:
         """Test COMMENT_FRAGMENT contains required fields."""
         assert "fragment CommentFields on Comment" in COMMENT_FRAGMENT
         assert "id" in COMMENT_FRAGMENT
@@ -116,7 +116,7 @@ class TestGraphQLFragments:
         assert "...UserFields" in COMMENT_FRAGMENT
         assert "parent" in COMMENT_FRAGMENT
 
-    def test_issue_compact_fragment_structure(self):
+    def test_issue_compact_fragment_structure(self) -> None:
         """Test ISSUE_COMPACT_FRAGMENT contains required fields."""
         assert "fragment IssueCompactFields on Issue" in ISSUE_COMPACT_FRAGMENT
         assert "id" in ISSUE_COMPACT_FRAGMENT
@@ -135,7 +135,7 @@ class TestGraphQLFragments:
         assert "children" in ISSUE_COMPACT_FRAGMENT
         assert "attachments" in ISSUE_COMPACT_FRAGMENT
 
-    def test_issue_full_fragment_structure(self):
+    def test_issue_full_fragment_structure(self) -> None:
         """Test ISSUE_FULL_FRAGMENT contains required fields."""
         assert "fragment IssueFullFields on Issue" in ISSUE_FULL_FRAGMENT
         assert "...IssueCompactFields" in ISSUE_FULL_FRAGMENT
@@ -143,7 +143,7 @@ class TestGraphQLFragments:
         assert "subscribers" in ISSUE_FULL_FRAGMENT
         assert "relations" in ISSUE_FULL_FRAGMENT
 
-    def test_all_fragments_composition(self):
+    def test_all_fragments_composition(self) -> None:
         """Test ALL_FRAGMENTS contains all individual fragments."""
         assert USER_FRAGMENT in ALL_FRAGMENTS
         assert WORKFLOW_STATE_FRAGMENT in ALL_FRAGMENTS
@@ -156,7 +156,7 @@ class TestGraphQLFragments:
         assert ISSUE_COMPACT_FRAGMENT in ALL_FRAGMENTS
         assert ISSUE_FULL_FRAGMENT in ALL_FRAGMENTS
 
-    def test_issue_list_fragments_composition(self):
+    def test_issue_list_fragments_composition(self) -> None:
         """Test ISSUE_LIST_FRAGMENTS contains appropriate fragments."""
         assert USER_FRAGMENT in ISSUE_LIST_FRAGMENTS
         assert WORKFLOW_STATE_FRAGMENT in ISSUE_LIST_FRAGMENTS
@@ -174,7 +174,7 @@ class TestGraphQLFragments:
 class TestGraphQLQueries:
     """Test GraphQL query definitions."""
 
-    def test_workflow_states_query_structure(self):
+    def test_workflow_states_query_structure(self) -> None:
         """Test WORKFLOW_STATES_QUERY structure."""
         assert "query WorkflowStates($teamId: String!)" in WORKFLOW_STATES_QUERY
         assert "team(id: $teamId)" in WORKFLOW_STATES_QUERY
@@ -184,7 +184,7 @@ class TestGraphQLQueries:
         assert "name" in WORKFLOW_STATES_QUERY
         assert "type" in WORKFLOW_STATES_QUERY
 
-    def test_list_issues_query_structure(self):
+    def test_list_issues_query_structure(self) -> None:
         """Test LIST_ISSUES_QUERY structure."""
         assert (
             "query ListIssues($filter: IssueFilter, $first: Int!)" in LIST_ISSUES_QUERY
@@ -197,7 +197,7 @@ class TestGraphQLQueries:
         assert "pageInfo" in LIST_ISSUES_QUERY
         assert "hasNextPage" in LIST_ISSUES_QUERY
 
-    def test_search_issues_query_structure(self):
+    def test_search_issues_query_structure(self) -> None:
         """Test SEARCH_ISSUES_QUERY structure."""
         assert (
             "query SearchIssues($filter: IssueFilter, $first: Int!)"
@@ -209,7 +209,7 @@ class TestGraphQLQueries:
         assert "orderBy: updatedAt" in SEARCH_ISSUES_QUERY
         assert "...IssueCompactFields" in SEARCH_ISSUES_QUERY
 
-    def test_get_cycles_query_structure(self):
+    def test_get_cycles_query_structure(self) -> None:
         """Test GET_CYCLES_QUERY structure."""
         assert "query GetCycles($filter: CycleFilter)" in GET_CYCLES_QUERY
         assert "cycles(filter: $filter, orderBy: createdAt)" in GET_CYCLES_QUERY
@@ -219,7 +219,7 @@ class TestGraphQLQueries:
         assert "name" in GET_CYCLES_QUERY
         assert "issues" in GET_CYCLES_QUERY
 
-    def test_search_issue_by_identifier_query_structure(self):
+    def test_search_issue_by_identifier_query_structure(self) -> None:
         """Test SEARCH_ISSUE_BY_IDENTIFIER_QUERY structure."""
         assert (
             "query SearchIssue($identifier: String!)"
@@ -229,7 +229,7 @@ class TestGraphQLQueries:
         assert "id" in SEARCH_ISSUE_BY_IDENTIFIER_QUERY
         assert "identifier" in SEARCH_ISSUE_BY_IDENTIFIER_QUERY
 
-    def test_list_projects_query_structure(self):
+    def test_list_projects_query_structure(self) -> None:
         """Test LIST_PROJECTS_QUERY structure."""
         assert (
             "query ListProjects($filter: ProjectFilter, $first: Int!)"
@@ -241,7 +241,7 @@ class TestGraphQLQueries:
         )
         assert "...ProjectFields" in LIST_PROJECTS_QUERY
 
-    def test_get_current_user_query_structure(self):
+    def test_get_current_user_query_structure(self) -> None:
         """Test GET_CURRENT_USER_QUERY structure."""
         assert "query GetCurrentUser" in GET_CURRENT_USER_QUERY
         assert "viewer" in GET_CURRENT_USER_QUERY
@@ -252,7 +252,7 @@ class TestGraphQLQueries:
 class TestGraphQLMutations:
     """Test GraphQL mutation definitions."""
 
-    def test_create_issue_mutation_structure(self):
+    def test_create_issue_mutation_structure(self) -> None:
         """Test CREATE_ISSUE_MUTATION structure."""
         assert (
             "mutation CreateIssue($input: IssueCreateInput!)" in CREATE_ISSUE_MUTATION
@@ -264,7 +264,7 @@ class TestGraphQLMutations:
         # Should include all fragments
         assert ALL_FRAGMENTS in CREATE_ISSUE_MUTATION
 
-    def test_update_issue_mutation_structure(self):
+    def test_update_issue_mutation_structure(self) -> None:
         """Test UPDATE_ISSUE_MUTATION structure."""
         assert (
             "mutation UpdateIssue($id: String!, $input: IssueUpdateInput!)"
@@ -277,7 +277,7 @@ class TestGraphQLMutations:
         # Should include all fragments
         assert ALL_FRAGMENTS in UPDATE_ISSUE_MUTATION
 
-    def test_create_sub_issue_mutation_structure(self):
+    def test_create_sub_issue_mutation_structure(self) -> None:
         """Test CREATE_SUB_ISSUE_MUTATION structure."""
         assert (
             "mutation CreateSubIssue($input: IssueCreateInput!)"
@@ -290,7 +290,7 @@ class TestGraphQLMutations:
         # Should include all fragments
         assert ALL_FRAGMENTS in CREATE_SUB_ISSUE_MUTATION
 
-    def test_update_issue_branch_mutation_structure(self):
+    def test_update_issue_branch_mutation_structure(self) -> None:
         """Test UPDATE_ISSUE_BRANCH_MUTATION structure."""
         assert (
             "mutation UpdateIssue($id: String!, $input: IssueUpdateInput!)"
@@ -308,7 +308,7 @@ class TestGraphQLMutations:
 class TestQueryValidation:
     """Test query validation and structure."""
 
-    def test_fragments_have_proper_syntax(self):
+    def test_fragments_have_proper_syntax(self) -> None:
         """Test that all fragments have proper GraphQL syntax."""
         fragments = [
             USER_FRAGMENT,
@@ -332,7 +332,7 @@ class TestQueryValidation:
             assert "{" in fragment
             assert "}" in fragment
 
-    def test_queries_have_proper_syntax(self):
+    def test_queries_have_proper_syntax(self) -> None:
         """Test that all queries have proper GraphQL syntax."""
         queries = [
             WORKFLOW_STATES_QUERY,
@@ -351,7 +351,7 @@ class TestQueryValidation:
             assert "{" in query
             assert "}" in query
 
-    def test_mutations_have_proper_syntax(self):
+    def test_mutations_have_proper_syntax(self) -> None:
         """Test that all mutations have proper GraphQL syntax."""
         mutations = [
             CREATE_ISSUE_MUTATION,
@@ -367,7 +367,7 @@ class TestQueryValidation:
             assert "{" in mutation
             assert "}" in mutation
 
-    def test_fragment_references_are_valid(self):
+    def test_fragment_references_are_valid(self) -> None:
         """Test that fragment references in queries are valid."""
         # ISSUE_FULL_FRAGMENT should reference ISSUE_COMPACT_FRAGMENT
         assert "...IssueCompactFields" in ISSUE_FULL_FRAGMENT

@@ -179,7 +179,7 @@ class ErrorHandlingTestSuite:
         print("\n📊 Testing extreme input values...")
 
         # Test very long title
-        def test_long_title():
+        def test_long_title() -> None:
             very_long_title = "A" * 10000
             task = Task(title=very_long_title, priority=Priority.LOW)
             # Should not raise exception during creation
@@ -188,7 +188,7 @@ class ErrorHandlingTestSuite:
         self.run_test("Very long title", test_long_title)
 
         # Test empty string values
-        def test_empty_values():
+        def test_empty_values() -> None:
             Task(title="", description="")
             # Title should fail validation due to min_length=1
             pass  # This will be caught by expected exception

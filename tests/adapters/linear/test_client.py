@@ -16,7 +16,7 @@ from mcp_ticketer.core.exceptions import (
 class TestLinearGraphQLClient:
     """Test Linear GraphQL client functionality."""
 
-    def test_init(self):
+    def test_init(self) -> None:
         """Test client initialization."""
         client = LinearGraphQLClient("lin_api_test_key_12345")
 
@@ -24,7 +24,7 @@ class TestLinearGraphQLClient:
         assert client.timeout == 30
         assert client._base_url == "https://api.linear.app/graphql"
 
-    def test_init_with_custom_timeout(self):
+    def test_init_with_custom_timeout(self) -> None:
         """Test client initialization with custom timeout."""
         client = LinearGraphQLClient("lin_api_test_key_12345", timeout=60)
 
@@ -32,7 +32,7 @@ class TestLinearGraphQLClient:
 
     @patch("mcp_ticketer.adapters.linear.client.Client")
     @patch("mcp_ticketer.adapters.linear.client.HTTPXAsyncTransport")
-    def test_create_client_success(self, mock_transport, mock_client):
+    def test_create_client_success(self, mock_transport, mock_client) -> None:
         """Test successful client creation."""
         client = LinearGraphQLClient("lin_api_test_key_12345")
 
@@ -49,7 +49,7 @@ class TestLinearGraphQLClient:
         mock_client.assert_called_once()
         assert result == mock_client.return_value
 
-    def test_create_client_no_api_key(self):
+    def test_create_client_no_api_key(self) -> None:
         """Test client creation without API key."""
         client = LinearGraphQLClient("")
 
@@ -60,7 +60,7 @@ class TestLinearGraphQLClient:
         assert exc_info.value.adapter_name == "linear"
 
     @patch("mcp_ticketer.adapters.linear.client.Client", None)
-    def test_create_client_missing_gql(self):
+    def test_create_client_missing_gql(self) -> None:
         """Test client creation when gql library is missing."""
         client = LinearGraphQLClient("lin_api_test_key_12345")
 

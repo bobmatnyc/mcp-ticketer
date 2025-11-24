@@ -84,14 +84,14 @@ def sample_tickets(
 class TestStaleTicketDetector:
     """Test cases for StaleTicketDetector."""
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         """Test detector initialization with default parameters."""
         detector = StaleTicketDetector()
         assert detector.age_threshold == 90
         assert detector.activity_threshold == 30
         assert len(detector.check_states) == 3
 
-    def test_custom_initialization(self):
+    def test_custom_initialization(self) -> None:
         """Test detector initialization with custom parameters."""
         detector = StaleTicketDetector(
             age_threshold_days=60,
@@ -102,7 +102,7 @@ class TestStaleTicketDetector:
         assert detector.activity_threshold == 20
         assert detector.check_states == [TicketState.OPEN]
 
-    def test_find_stale_tickets(self, sample_tickets):
+    def test_find_stale_tickets(self, sample_tickets) -> None:
         """Test finding stale tickets."""
         detector = StaleTicketDetector(
             age_threshold_days=90,
@@ -121,7 +121,7 @@ class TestStaleTicketDetector:
             assert result.age_days > 90
             assert result.days_since_update > 30
 
-    def test_stale_ticket_detected(self, old_stale_ticket):
+    def test_stale_ticket_detected(self, old_stale_ticket) -> None:
         """Test that genuinely stale ticket is detected."""
         detector = StaleTicketDetector(
             age_threshold_days=90,
@@ -133,7 +133,7 @@ class TestStaleTicketDetector:
         assert results[0].ticket_id == "STALE-1"
         assert results[0].staleness_score > 0.5
 
-    def test_active_ticket_not_detected(self, recent_active_ticket):
+    def test_active_ticket_not_detected(self, recent_active_ticket) -> None:
         """Test that active ticket is not flagged as stale."""
         detector = StaleTicketDetector(
             age_threshold_days=90,
@@ -144,7 +144,7 @@ class TestStaleTicketDetector:
         # Active ticket should not be detected (not old enough)
         assert len(results) == 0
 
-    def test_blocked_ticket_high_staleness(self, blocked_old_ticket):
+    def test_blocked_ticket_high_staleness(self, blocked_old_ticket) -> None:
         """Test that blocked tickets get higher staleness scores."""
         detector = StaleTicketDetector(
             age_threshold_days=90,
@@ -156,7 +156,7 @@ class TestStaleTicketDetector:
         # Blocked state should increase staleness score
         assert results[0].staleness_score > 0.5
 
-    def test_waiting_ticket_detection(self, waiting_ticket):
+    def test_waiting_ticket_detection(self, waiting_ticket) -> None:
         """Test that waiting tickets are detected as stale."""
         detector = StaleTicketDetector(
             age_threshold_days=90,
@@ -168,7 +168,7 @@ class TestStaleTicketDetector:
         assert results[0].ticket_id == "WAITING-1"
         assert "waiting state" in results[0].reason
 
-    def test_priority_affects_staleness(self):
+    def test_priority_affects_staleness(self) -> None:
         """Test that priority affects staleness score."""
         now = datetime.now()
 
@@ -201,7 +201,7 @@ class TestStaleTicketDetector:
         # Low priority should have higher staleness score
         assert low_results[0].staleness_score > high_results[0].staleness_score
 
-    def test_suggested_actions(self, sample_tickets):
+    def test_suggested_actions(self, sample_tickets) -> None:
         """Test that suggested actions are appropriate."""
         detector = StaleTicketDetector(
             age_threshold_days=60,
@@ -215,7 +215,7 @@ class TestStaleTicketDetector:
             if result.staleness_score > 0.8:
                 assert result.suggested_action == "close"
 
-    def test_reason_contains_age_info(self, old_stale_ticket):
+    def test_reason_contains_age_info(self, old_stale_ticket) -> None:
         """Test that reason contains age information."""
         detector = StaleTicketDetector()
         results = detector.find_stale_tickets([old_stale_ticket])
@@ -227,7 +227,7 @@ class TestStaleTicketDetector:
             word in results[0].reason.lower() for word in ["old", "inactive", "updates"]
         )
 
-    def test_limit_parameter(self, sample_tickets):
+    def test_limit_parameter(self, sample_tickets) -> None:
         """Test that limit parameter is respected."""
         # Create more stale tickets
         now = datetime.now()
@@ -251,7 +251,7 @@ class TestStaleTicketDetector:
 
         assert len(results) <= 5
 
-    def test_sorting_by_staleness_score(self, sample_tickets):
+    def test_sorting_by_staleness_score(self, sample_tickets) -> None:
         """Test that results are sorted by staleness score."""
         detector = StaleTicketDetector(
             age_threshold_days=60,
@@ -264,7 +264,7 @@ class TestStaleTicketDetector:
             scores = [r.staleness_score for r in results]
             assert scores == sorted(scores, reverse=True)
 
-    def test_state_filter(self, sample_tickets):
+    def test_state_filter(self, sample_tickets) -> None:
         """Test that state filter works correctly."""
         # Only check OPEN tickets
         detector = StaleTicketDetector(
@@ -278,13 +278,13 @@ class TestStaleTicketDetector:
         for result in results:
             assert result.ticket_state == "open"
 
-    def test_empty_tickets_list(self):
+    def test_empty_tickets_list(self) -> None:
         """Test handling of empty tickets list."""
         detector = StaleTicketDetector()
         results = detector.find_stale_tickets([])
         assert results == []
 
-    def test_ticket_without_timestamps(self):
+    def test_ticket_without_timestamps(self) -> None:
         """Test handling of tickets without timestamps."""
         ticket = Task(
             id="NO-TIME",
@@ -301,7 +301,7 @@ class TestStaleTicketDetector:
         # Should handle gracefully (treat as 0 days)
         assert len(results) == 0
 
-    def test_days_since_calculation(self):
+    def test_days_since_calculation(self) -> None:
         """Test the days_since calculation method."""
         detector = StaleTicketDetector()
         now = datetime.now()
@@ -315,7 +315,7 @@ class TestStaleTicketDetector:
         days = detector._days_since(None, now)
         assert days == 0
 
-    def test_critical_priority_ticket(self):
+    def test_critical_priority_ticket(self) -> None:
         """Test that critical priority tickets have lower staleness scores."""
         now = datetime.now()
 
@@ -338,7 +338,7 @@ class TestStaleTicketDetector:
             # Critical tickets should have lower staleness scores
             assert results[0].staleness_score < 0.7
 
-    def test_done_tickets_not_checked(self):
+    def test_done_tickets_not_checked(self) -> None:
         """Test that DONE tickets are not flagged as stale."""
         now = datetime.now()
 

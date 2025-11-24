@@ -13,7 +13,7 @@ class TestLinearIssueIDResolution:
     """Test Linear adapter issue ID resolution from identifiers to UUIDs."""
 
     @pytest.fixture
-    def adapter(self):
+    def adapter(self) -> None:
         """Create a LinearAdapter instance for testing."""
         config = {
             "api_key": "lin_api_test123",
@@ -150,7 +150,7 @@ class TestLinearIssueResolutionInCreateTask:
     """Test integration of issue resolution in the _create_task method."""
 
     @pytest.fixture
-    def adapter(self):
+    def adapter(self) -> None:
         """Create a LinearAdapter instance for testing."""
         config = {
             "api_key": "lin_api_test123",

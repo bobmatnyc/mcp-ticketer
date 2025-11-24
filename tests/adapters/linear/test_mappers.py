@@ -19,7 +19,7 @@ from mcp_ticketer.core.models import Priority, Task, TicketState
 class TestLinearIssueMapping:
     """Test Linear issue to Task mapping."""
 
-    def test_map_linear_issue_to_task_basic(self):
+    def test_map_linear_issue_to_task_basic(self) -> None:
         """Test basic Linear issue to Task mapping."""
         issue_data = {
             "identifier": "TEST-123",
@@ -41,7 +41,7 @@ class TestLinearIssueMapping:
         assert task.created_at == datetime(2023, 1, 1, 0, 0, 0, tzinfo=UTC)
         assert task.updated_at == datetime(2023, 1, 2, 0, 0, 0, tzinfo=UTC)
 
-    def test_map_linear_issue_to_task_with_assignee(self):
+    def test_map_linear_issue_to_task_with_assignee(self) -> None:
         """Test Linear issue mapping with assignee."""
         issue_data = {
             "identifier": "TEST-123",
@@ -58,7 +58,7 @@ class TestLinearIssueMapping:
         # Note: Task model doesn't have a 'creator' field
         # Creator info is stored in metadata if needed
 
-    def test_map_linear_issue_to_task_with_labels(self):
+    def test_map_linear_issue_to_task_with_labels(self) -> None:
         """Test Linear issue mapping with labels."""
         issue_data = {
             "identifier": "TEST-123",
@@ -74,7 +74,7 @@ class TestLinearIssueMapping:
         assert task.priority == Priority.CRITICAL
         assert task.state == TicketState.DONE
 
-    def test_map_linear_issue_to_task_with_hierarchy(self):
+    def test_map_linear_issue_to_task_with_hierarchy(self) -> None:
         """Test Linear issue mapping with parent/child relationships."""
         issue_data = {
             "identifier": "TEST-123",
@@ -90,7 +90,7 @@ class TestLinearIssueMapping:
         assert task.parent_epic == "project-456"
         assert task.parent_issue == "TEST-100"
 
-    def test_map_linear_issue_to_task_with_children(self):
+    def test_map_linear_issue_to_task_with_children(self) -> None:
         """Test Linear issue mapping with child tasks (CRITICAL for parent state constraints)."""
         issue_data = {
             "identifier": "TEST-123",
@@ -112,7 +112,7 @@ class TestLinearIssueMapping:
         assert task.children == ["TEST-124", "TEST-125", "TEST-126"]
         assert len(task.children) == 3
 
-    def test_map_linear_issue_to_task_without_children(self):
+    def test_map_linear_issue_to_task_without_children(self) -> None:
         """Test Linear issue mapping without children."""
         issue_data = {
             "identifier": "TEST-123",
@@ -126,7 +126,7 @@ class TestLinearIssueMapping:
         # Issues without children should have empty list
         assert task.children == []
 
-    def test_map_linear_issue_to_task_with_metadata(self):
+    def test_map_linear_issue_to_task_with_metadata(self) -> None:
         """Test Linear issue mapping with metadata."""
         issue_data = {
             "identifier": "TEST-123",
@@ -155,7 +155,7 @@ class TestLinearIssueMapping:
 class TestLinearProjectMapping:
     """Test Linear project to Epic mapping."""
 
-    def test_map_linear_project_to_epic_basic(self):
+    def test_map_linear_project_to_epic_basic(self) -> None:
         """Test basic Linear project to Epic mapping."""
         project_data = {
             "id": "project-123",
@@ -176,7 +176,7 @@ class TestLinearProjectMapping:
         assert epic.created_at == datetime(2023, 1, 1, 0, 0, 0, tzinfo=UTC)
         assert epic.updated_at == datetime(2023, 1, 2, 0, 0, 0, tzinfo=UTC)
 
-    def test_map_linear_project_to_epic_states(self):
+    def test_map_linear_project_to_epic_states(self) -> None:
         """Test Linear project state mapping."""
         # Test completed state
         project_data = {
@@ -197,7 +197,7 @@ class TestLinearProjectMapping:
         epic = map_linear_project_to_epic(project_data)
         assert epic.state == TicketState.OPEN
 
-    def test_map_linear_project_to_epic_with_metadata(self):
+    def test_map_linear_project_to_epic_with_metadata(self) -> None:
         """Test Linear project mapping with metadata."""
         project_data = {
             "id": "project-123",
@@ -225,7 +225,7 @@ class TestLinearProjectMapping:
 class TestLinearCommentMapping:
     """Test Linear comment to Comment mapping."""
 
-    def test_map_linear_comment_to_comment_basic(self):
+    def test_map_linear_comment_to_comment_basic(self) -> None:
         """Test basic Linear comment to Comment mapping."""
         comment_data = {
             "id": "comment-123",
@@ -246,7 +246,7 @@ class TestLinearCommentMapping:
         # It's stored in metadata if available
         assert "updated_at" in comment.metadata
 
-    def test_map_linear_comment_to_comment_no_user(self):
+    def test_map_linear_comment_to_comment_no_user(self) -> None:
         """Test Linear comment mapping without user."""
         comment_data = {
             "id": "comment-123",
@@ -263,7 +263,7 @@ class TestLinearCommentMapping:
 class TestLinearInputBuilders:
     """Test Linear input builders."""
 
-    def test_build_linear_issue_input_basic(self):
+    def test_build_linear_issue_input_basic(self) -> None:
         """Test basic Linear issue input building."""
         task = Task(
             title="Test Task", description="Test description", priority=Priority.HIGH
@@ -276,7 +276,7 @@ class TestLinearInputBuilders:
         assert issue_input["teamId"] == "team-123"
         assert issue_input["priority"] == 2  # High priority
 
-    def test_build_linear_issue_input_with_assignee(self):
+    def test_build_linear_issue_input_with_assignee(self) -> None:
         """Test Linear issue input with assignee."""
         task = Task(title="Test Task", assignee="user-456")
 
@@ -284,7 +284,7 @@ class TestLinearInputBuilders:
 
         assert issue_input["assigneeId"] == "user-456"
 
-    def test_build_linear_issue_input_with_hierarchy(self):
+    def test_build_linear_issue_input_with_hierarchy(self) -> None:
         """Test Linear issue input with hierarchy."""
         task = Task(
             title="Test Task", parent_issue="TEST-100", parent_epic="project-456"
@@ -295,7 +295,7 @@ class TestLinearInputBuilders:
         assert issue_input["parentId"] == "TEST-100"
         assert issue_input["projectId"] == "project-456"
 
-    def test_build_linear_issue_input_with_metadata(self):
+    def test_build_linear_issue_input_with_metadata(self) -> None:
         """Test Linear issue input with metadata."""
         task = Task(
             title="Test Task",
@@ -314,7 +314,7 @@ class TestLinearInputBuilders:
         assert issue_input["cycleId"] == "cycle-789"
         assert issue_input["estimate"] == 5
 
-    def test_build_linear_issue_update_input(self):
+    def test_build_linear_issue_update_input(self) -> None:
         """Test Linear issue update input building."""
         updates = {
             "title": "Updated Title",
@@ -330,7 +330,7 @@ class TestLinearInputBuilders:
         assert update_input["priority"] == 1  # Critical priority
         assert update_input["assigneeId"] == "user-789"
 
-    def test_build_linear_issue_update_input_with_metadata(self):
+    def test_build_linear_issue_update_input_with_metadata(self) -> None:
         """Test Linear issue update input with metadata."""
         updates = {
             "metadata": {
@@ -355,7 +355,7 @@ class TestLinearInputBuilders:
 class TestUtilityFunctions:
     """Test utility functions."""
 
-    def test_extract_child_issue_ids(self):
+    def test_extract_child_issue_ids(self) -> None:
         """Test extracting child issue IDs."""
         issue_data = {
             "children": {
@@ -371,7 +371,7 @@ class TestUtilityFunctions:
 
         assert child_ids == ["TEST-124", "TEST-125", "TEST-126"]
 
-    def test_extract_child_issue_ids_empty(self):
+    def test_extract_child_issue_ids_empty(self) -> None:
         """Test extracting child issue IDs when none exist."""
         issue_data = {"children": {"nodes": []}}
 
@@ -379,7 +379,7 @@ class TestUtilityFunctions:
 
         assert child_ids == []
 
-    def test_extract_child_issue_ids_no_children(self):
+    def test_extract_child_issue_ids_no_children(self) -> None:
         """Test extracting child issue IDs when children field is missing."""
         issue_data = {}
 

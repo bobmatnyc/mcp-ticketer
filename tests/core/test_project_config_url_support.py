@@ -6,12 +6,12 @@ from mcp_ticketer.core.project_config import TicketerConfig
 class TestTicketerConfigURLSupport:
     """Test TicketerConfig URL parsing and normalization."""
 
-    def test_plain_id_unchanged(self):
+    def test_plain_id_unchanged(self) -> None:
         """Test plain IDs remain unchanged."""
         config = TicketerConfig(default_adapter="linear", default_project="PROJ-123")
         assert config.default_project == "PROJ-123"
 
-    def test_linear_project_url_normalization(self):
+    def test_linear_project_url_normalization(self) -> None:
         """Test Linear project URL gets normalized to ID."""
         config = TicketerConfig(
             default_adapter="linear",
@@ -19,7 +19,7 @@ class TestTicketerConfigURLSupport:
         )
         assert config.default_project == "crm-system-f59a41"
 
-    def test_linear_issue_url_normalization(self):
+    def test_linear_issue_url_normalization(self) -> None:
         """Test Linear issue URL gets normalized to ID."""
         config = TicketerConfig(
             default_adapter="linear",
@@ -27,7 +27,7 @@ class TestTicketerConfigURLSupport:
         )
         assert config.default_project == "BTA-123"
 
-    def test_jira_url_normalization(self):
+    def test_jira_url_normalization(self) -> None:
         """Test JIRA URL gets normalized to project key."""
         config = TicketerConfig(
             default_adapter="jira",
@@ -35,7 +35,7 @@ class TestTicketerConfigURLSupport:
         )
         assert config.default_project == "PROJ-456"
 
-    def test_github_url_normalization(self):
+    def test_github_url_normalization(self) -> None:
         """Test GitHub URL gets normalized to project number."""
         config = TicketerConfig(
             default_adapter="github",
@@ -43,7 +43,7 @@ class TestTicketerConfigURLSupport:
         )
         assert config.default_project == "1"
 
-    def test_default_epic_normalization(self):
+    def test_default_epic_normalization(self) -> None:
         """Test default_epic field also gets normalized."""
         config = TicketerConfig(
             default_adapter="linear",
@@ -51,7 +51,7 @@ class TestTicketerConfigURLSupport:
         )
         assert config.default_epic == "epic-abc123"
 
-    def test_from_dict_normalizes_urls(self):
+    def test_from_dict_normalizes_urls(self) -> None:
         """Test URLs are normalized when loading from dict."""
         config_data = {
             "default_adapter": "linear",
@@ -62,7 +62,7 @@ class TestTicketerConfigURLSupport:
         config = TicketerConfig.from_dict(config_data)
         assert config.default_project == "test-project-xyz789"
 
-    def test_to_dict_stores_normalized_id(self):
+    def test_to_dict_stores_normalized_id(self) -> None:
         """Test normalized IDs are stored in dict representation."""
         config = TicketerConfig(
             default_adapter="jira",
@@ -71,7 +71,7 @@ class TestTicketerConfigURLSupport:
         config_dict = config.to_dict()
         assert config_dict["default_project"] == "ABC-999"
 
-    def test_round_trip_serialization(self):
+    def test_round_trip_serialization(self) -> None:
         """Test config can be serialized and deserialized with URLs."""
         original_config = TicketerConfig(
             default_adapter="linear",
@@ -86,23 +86,23 @@ class TestTicketerConfigURLSupport:
         assert restored_config.default_project == "TEST-100"
         assert restored_config.default_adapter == "linear"
 
-    def test_numeric_id_unchanged(self):
+    def test_numeric_id_unchanged(self) -> None:
         """Test numeric IDs (like GitHub project numbers) remain unchanged."""
         config = TicketerConfig(default_adapter="github", default_project="123")
         assert config.default_project == "123"
 
-    def test_none_default_project(self):
+    def test_none_default_project(self) -> None:
         """Test None value for default_project doesn't cause errors."""
         config = TicketerConfig(default_adapter="linear", default_project=None)
         assert config.default_project is None
 
-    def test_empty_string_default_project(self):
+    def test_empty_string_default_project(self) -> None:
         """Test empty string for default_project doesn't cause errors."""
         config = TicketerConfig(default_adapter="linear", default_project="")
         # Empty string should be preserved (not normalized to None)
         assert config.default_project == ""
 
-    def test_invalid_url_falls_back_to_original(self):
+    def test_invalid_url_falls_back_to_original(self) -> None:
         """Test invalid URLs fall back to original value with warning."""
         # This URL doesn't match any known pattern
         invalid_url = "https://unknown.com/project/123"
@@ -110,7 +110,7 @@ class TestTicketerConfigURLSupport:
         # Should keep original value when normalization fails
         assert config.default_project == invalid_url
 
-    def test_auto_detect_adapter_from_url(self):
+    def test_auto_detect_adapter_from_url(self) -> None:
         """Test adapter auto-detection from URL when using default adapter."""
         # Even with aitrackdown as default, should detect Linear URL
         config = TicketerConfig(
@@ -124,7 +124,7 @@ class TestTicketerConfigURLSupport:
 class TestBackwardCompatibility:
     """Test backward compatibility with existing configurations."""
 
-    def test_existing_plain_ids_work(self):
+    def test_existing_plain_ids_work(self) -> None:
         """Test existing configs with plain IDs continue to work."""
         test_cases = [
             ("linear", "BTA-123"),
@@ -137,19 +137,19 @@ class TestBackwardCompatibility:
             config = TicketerConfig(default_adapter=adapter, default_project=project_id)
             assert config.default_project == project_id
 
-    def test_config_without_default_project(self):
+    def test_config_without_default_project(self) -> None:
         """Test configs without default_project field work."""
         config = TicketerConfig(default_adapter="linear")
         assert config.default_project is None
 
-    def test_minimal_config(self):
+    def test_minimal_config(self) -> None:
         """Test minimal config with only required fields."""
         config = TicketerConfig()
         assert config.default_adapter == "aitrackdown"
         assert config.default_project is None
         assert config.default_epic is None
 
-    def test_load_existing_config_format(self):
+    def test_load_existing_config_format(self) -> None:
         """Test loading config in existing format (no URLs)."""
         config_data = {
             "default_adapter": "jira",
@@ -173,7 +173,7 @@ class TestBackwardCompatibility:
 class TestURLExamples:
     """Test real-world URL examples."""
 
-    def test_linear_workspace_url_variations(self):
+    def test_linear_workspace_url_variations(self) -> None:
         """Test various Linear workspace URL formats."""
         test_cases = [
             # Project URLs
@@ -191,7 +191,7 @@ class TestURLExamples:
             config = TicketerConfig(default_adapter="linear", default_project=url)
             assert config.default_project == expected_id, f"Failed for URL: {url}"
 
-    def test_jira_url_variations(self):
+    def test_jira_url_variations(self) -> None:
         """Test various JIRA URL formats."""
         test_cases = [
             # Cloud JIRA
@@ -207,7 +207,7 @@ class TestURLExamples:
             config = TicketerConfig(default_adapter="jira", default_project=url)
             assert config.default_project == expected_id, f"Failed for URL: {url}"
 
-    def test_github_url_variations(self):
+    def test_github_url_variations(self) -> None:
         """Test various GitHub URL formats."""
         test_cases = [
             # Projects

@@ -13,7 +13,7 @@ class TestLinearProjectIDResolution:
     """Test Linear adapter project ID resolution from various formats."""
 
     @pytest.fixture
-    def adapter(self):
+    def adapter(self) -> None:
         """Create a LinearAdapter instance for testing."""
         config = {
             "api_key": "lin_api_test123",
@@ -522,7 +522,7 @@ class TestLinearProjectResolutionInCreateTask:
     """Test integration of project resolution in the _create_task method."""
 
     @pytest.fixture
-    def adapter(self):
+    def adapter(self) -> None:
         """Create a LinearAdapter instance for testing."""
         config = {
             "api_key": "lin_api_test123",

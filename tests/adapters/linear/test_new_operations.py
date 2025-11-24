@@ -8,7 +8,7 @@ from mcp_ticketer.adapters.linear.adapter import LinearAdapter
 
 
 @pytest.fixture
-def mock_adapter():
+def mock_adapter() -> None:
     """Create a LinearAdapter instance with mocked client."""
     config = {
         "api_key": "lin_api_test_key_12345",

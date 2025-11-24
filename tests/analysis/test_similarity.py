@@ -68,14 +68,14 @@ def sample_tickets():
 class TestTicketSimilarityAnalyzer:
     """Test cases for TicketSimilarityAnalyzer."""
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         """Test analyzer initialization with default parameters."""
         analyzer = TicketSimilarityAnalyzer()
         assert analyzer.threshold == 0.75
         assert analyzer.title_weight == 0.7
         assert analyzer.description_weight == 0.3
 
-    def test_custom_initialization(self):
+    def test_custom_initialization(self) -> None:
         """Test analyzer initialization with custom parameters."""
         analyzer = TicketSimilarityAnalyzer(
             threshold=0.8,
@@ -86,7 +86,7 @@ class TestTicketSimilarityAnalyzer:
         assert analyzer.title_weight == 0.6
         assert analyzer.description_weight == 0.4
 
-    def test_find_similar_tickets_all_pairs(self, sample_tickets):
+    def test_find_similar_tickets_all_pairs(self, sample_tickets) -> None:
         """Test finding all similar ticket pairs."""
         # Use lower threshold to ensure we find some pairs
         analyzer = TicketSimilarityAnalyzer(threshold=0.2)
@@ -107,7 +107,7 @@ class TestTicketSimilarityAnalyzer:
         # Check that the method runs without error
         assert isinstance(results, list)
 
-    def test_find_similar_tickets_target(self, sample_tickets):
+    def test_find_similar_tickets_target(self, sample_tickets) -> None:
         """Test finding tickets similar to a specific target."""
         analyzer = TicketSimilarityAnalyzer(threshold=0.3)  # Lower threshold
         target = sample_tickets[0]  # TICKET-1
@@ -121,7 +121,7 @@ class TestTicketSimilarityAnalyzer:
         for result in results:
             assert result.ticket1_id == target.id or result.ticket2_id == target.id
 
-    def test_high_similarity_detection(self, sample_tickets):
+    def test_high_similarity_detection(self, sample_tickets) -> None:
         """Test detection of highly similar tickets."""
         analyzer = TicketSimilarityAnalyzer(threshold=0.2)
 
@@ -147,7 +147,7 @@ class TestTicketSimilarityAnalyzer:
             # Should suggest appropriate action
             assert ticket2_result.suggested_action in ["merge", "link", "ignore"]
 
-    def test_suggested_actions(self, sample_tickets):
+    def test_suggested_actions(self, sample_tickets) -> None:
         """Test that suggested actions are appropriate for similarity scores."""
         analyzer = TicketSimilarityAnalyzer(threshold=0.4)
         results = analyzer.find_similar_tickets(sample_tickets)
@@ -160,7 +160,7 @@ class TestTicketSimilarityAnalyzer:
             else:
                 assert result.suggested_action == "ignore"
 
-    def test_similarity_reasons(self, sample_tickets):
+    def test_similarity_reasons(self, sample_tickets) -> None:
         """Test that similarity reasons are populated."""
         analyzer = TicketSimilarityAnalyzer(threshold=0.5)
         results = analyzer.find_similar_tickets(sample_tickets)
@@ -171,7 +171,7 @@ class TestTicketSimilarityAnalyzer:
             if result.similarity_score > 0.6:
                 assert len(result.similarity_reasons) > 0
 
-    def test_tag_overlap_detection(self, sample_tickets):
+    def test_tag_overlap_detection(self, sample_tickets) -> None:
         """Test that tag overlap is detected as a similarity reason."""
         analyzer = TicketSimilarityAnalyzer(threshold=0.5)
 
@@ -194,25 +194,25 @@ class TestTicketSimilarityAnalyzer:
             # Should detect tag overlap or similar titles
             assert "tag_overlap" in reasons_str or "similar_titles" in reasons_str
 
-    def test_empty_tickets_list(self):
+    def test_empty_tickets_list(self) -> None:
         """Test handling of empty tickets list."""
         analyzer = TicketSimilarityAnalyzer()
         results = analyzer.find_similar_tickets([])
         assert results == []
 
-    def test_single_ticket(self, sample_tickets):
+    def test_single_ticket(self, sample_tickets) -> None:
         """Test handling of single ticket."""
         analyzer = TicketSimilarityAnalyzer()
         results = analyzer.find_similar_tickets([sample_tickets[0]])
         assert results == []
 
-    def test_limit_parameter(self, sample_tickets):
+    def test_limit_parameter(self, sample_tickets) -> None:
         """Test that limit parameter is respected."""
         analyzer = TicketSimilarityAnalyzer(threshold=0.3)
         results = analyzer.find_similar_tickets(sample_tickets, limit=2)
         assert len(results) <= 2
 
-    def test_tickets_with_no_description(self):
+    def test_tickets_with_no_description(self) -> None:
         """Test handling of tickets without descriptions."""
         tickets = [
             Task(
@@ -239,7 +239,7 @@ class TestTicketSimilarityAnalyzer:
         assert len(results) >= 0
         assert isinstance(results, list)
 
-    def test_confidence_score(self, sample_tickets):
+    def test_confidence_score(self, sample_tickets) -> None:
         """Test that confidence score matches similarity score."""
         analyzer = TicketSimilarityAnalyzer(threshold=0.5)
         results = analyzer.find_similar_tickets(sample_tickets)
@@ -247,7 +247,7 @@ class TestTicketSimilarityAnalyzer:
         for result in results:
             assert result.confidence == result.similarity_score
 
-    def test_same_state_detection(self, sample_tickets):
+    def test_same_state_detection(self, sample_tickets) -> None:
         """Test that same state is detected in reasons."""
         analyzer = TicketSimilarityAnalyzer(threshold=0.5)
         results = analyzer.find_similar_tickets(sample_tickets)
@@ -256,7 +256,7 @@ class TestTicketSimilarityAnalyzer:
         for result in results:
             assert "same_state" in result.similarity_reasons
 
-    def test_different_priorities_not_affecting_similarity(self, sample_tickets):
+    def test_different_priorities_not_affecting_similarity(self, sample_tickets) -> None:
         """Test that different priorities don't prevent similarity detection."""
         # Modify tickets to have different priorities but similar content
         tickets = [

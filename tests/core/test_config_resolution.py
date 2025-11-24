@@ -9,7 +9,7 @@ from unittest import mock
 from mcp_ticketer.cli.main import load_config
 
 
-def test_project_specific_config_takes_precedence():
+def test_project_specific_config_takes_precedence() -> None:
     """Test that project-specific config is loaded when it exists."""
     # Create a temporary directory structure
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -76,7 +76,7 @@ def test_project_specific_config_takes_precedence():
                 global_config_file.unlink()
 
 
-def test_global_config_fallback():
+def test_global_config_fallback() -> None:
     """Test that default config is used when project-specific doesn't exist.
 
     NOTE: Global config loading has been removed for security reasons.
@@ -104,7 +104,7 @@ def test_global_config_fallback():
             print("✓ Test passed: Default config used when project config missing")
 
 
-def test_default_fallback():
+def test_default_fallback() -> None:
     """Test that default config is used when neither project nor global exists."""
     # Create a temporary directory without any config
     with tempfile.TemporaryDirectory() as tmpdir:

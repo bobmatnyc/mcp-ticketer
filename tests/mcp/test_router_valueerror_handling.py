@@ -32,7 +32,7 @@ def mock_linear_adapter():
 
 
 @pytest.fixture
-def router_with_mock_adapter(mock_linear_adapter):
+def router_with_mock_adapter(mock_linear_adapter) -> None:
     """Create router with mocked adapter."""
     router = TicketRouter(
         default_adapter="linear",

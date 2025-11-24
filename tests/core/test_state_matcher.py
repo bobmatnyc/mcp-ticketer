@@ -25,7 +25,7 @@ from mcp_ticketer.core.state_matcher import (
 class TestExactMatching:
     """Test exact state value matching."""
 
-    def test_exact_match_all_states(self):
+    def test_exact_match_all_states(self) -> None:
         """Test exact matching for all universal states."""
         matcher = SemanticStateMatcher()
 
@@ -46,7 +46,7 @@ class TestExactMatching:
             assert result.confidence == 1.0
             assert result.match_type == "exact"
 
-    def test_exact_match_case_insensitive(self):
+    def test_exact_match_case_insensitive(self) -> None:
         """Test that exact matching is case insensitive."""
         matcher = SemanticStateMatcher()
 
@@ -64,7 +64,7 @@ class TestExactMatching:
             assert result.confidence == 1.0
             assert result.match_type == "exact"
 
-    def test_exact_match_with_whitespace(self):
+    def test_exact_match_with_whitespace(self) -> None:
         """Test that whitespace is handled correctly."""
         matcher = SemanticStateMatcher()
 
@@ -83,7 +83,7 @@ class TestExactMatching:
 class TestSynonymMatching:
     """Test synonym dictionary matching."""
 
-    def test_open_synonyms(self):
+    def test_open_synonyms(self) -> None:
         """Test all OPEN state synonyms."""
         matcher = SemanticStateMatcher()
 
@@ -105,7 +105,7 @@ class TestSynonymMatching:
             assert result.confidence >= 0.95
             assert result.match_type in ["exact", "synonym"]
 
-    def test_in_progress_synonyms(self):
+    def test_in_progress_synonyms(self) -> None:
         """Test all IN_PROGRESS state synonyms."""
         matcher = SemanticStateMatcher()
 
@@ -127,7 +127,7 @@ class TestSynonymMatching:
             assert result.confidence >= 0.95
             assert result.match_type in ["exact", "synonym"]
 
-    def test_ready_synonyms(self):
+    def test_ready_synonyms(self) -> None:
         """Test all READY state synonyms."""
         matcher = SemanticStateMatcher()
 
@@ -147,7 +147,7 @@ class TestSynonymMatching:
             assert result.confidence >= 0.95
             assert result.match_type in ["exact", "synonym"]
 
-    def test_tested_synonyms(self):
+    def test_tested_synonyms(self) -> None:
         """Test all TESTED state synonyms."""
         matcher = SemanticStateMatcher()
 
@@ -165,7 +165,7 @@ class TestSynonymMatching:
             assert result.confidence >= 0.95
             assert result.match_type in ["exact", "synonym"]
 
-    def test_done_synonyms(self):
+    def test_done_synonyms(self) -> None:
         """Test all DONE state synonyms."""
         matcher = SemanticStateMatcher()
 
@@ -185,7 +185,7 @@ class TestSynonymMatching:
             assert result.confidence >= 0.95
             assert result.match_type in ["exact", "synonym"]
 
-    def test_waiting_synonyms(self):
+    def test_waiting_synonyms(self) -> None:
         """Test all WAITING state synonyms."""
         matcher = SemanticStateMatcher()
 
@@ -204,7 +204,7 @@ class TestSynonymMatching:
             assert result.confidence >= 0.95
             assert result.match_type in ["exact", "synonym"]
 
-    def test_blocked_synonyms(self):
+    def test_blocked_synonyms(self) -> None:
         """Test all BLOCKED state synonyms."""
         matcher = SemanticStateMatcher()
 
@@ -223,7 +223,7 @@ class TestSynonymMatching:
             assert result.confidence >= 0.95
             assert result.match_type in ["exact", "synonym"]
 
-    def test_closed_synonyms(self):
+    def test_closed_synonyms(self) -> None:
         """Test all CLOSED state synonyms."""
         matcher = SemanticStateMatcher()
 
@@ -247,7 +247,7 @@ class TestSynonymMatching:
 class TestFuzzyMatching:
     """Test fuzzy matching with typos and variations."""
 
-    def test_typo_handling(self):
+    def test_typo_handling(self) -> None:
         """Test that typos are handled with fuzzy matching."""
         matcher = SemanticStateMatcher()
 
@@ -268,7 +268,7 @@ class TestFuzzyMatching:
             # Should be fuzzy match for typos
             assert result.match_type in ["fuzzy", "synonym", "exact"]
 
-    def test_partial_match(self):
+    def test_partial_match(self) -> None:
         """Test partial word matching."""
         matcher = SemanticStateMatcher()
 
@@ -283,7 +283,7 @@ class TestFuzzyMatching:
             # Should match with reasonable confidence
             assert result.confidence >= 0.50
 
-    def test_fuzzy_confidence_scoring(self):
+    def test_fuzzy_confidence_scoring(self) -> None:
         """Test that confidence scores decrease with similarity."""
         matcher = SemanticStateMatcher()
 
@@ -303,7 +303,7 @@ class TestFuzzyMatching:
 class TestConfidenceThresholds:
     """Test confidence threshold behavior."""
 
-    def test_high_confidence(self):
+    def test_high_confidence(self) -> None:
         """Test high confidence matches."""
         matcher = SemanticStateMatcher()
 
@@ -311,7 +311,7 @@ class TestConfidenceThresholds:
         assert result.is_high_confidence()
         assert result.confidence >= 0.90
 
-    def test_medium_confidence(self):
+    def test_medium_confidence(self) -> None:
         """Test medium confidence matches."""
         matcher = SemanticStateMatcher()
 
@@ -320,7 +320,7 @@ class TestConfidenceThresholds:
         # Should be medium confidence (fuzzy match)
         assert result.confidence >= 0.70
 
-    def test_low_confidence(self):
+    def test_low_confidence(self) -> None:
         """Test low confidence matches."""
         matcher = SemanticStateMatcher()
 
@@ -332,7 +332,7 @@ class TestConfidenceThresholds:
 class TestSuggestions:
     """Test suggestion generation for ambiguous inputs."""
 
-    def test_suggest_returns_multiple(self):
+    def test_suggest_returns_multiple(self) -> None:
         """Test that suggest_states returns multiple options."""
         matcher = SemanticStateMatcher()
 
@@ -342,7 +342,7 @@ class TestSuggestions:
         states = [s.state for s in suggestions]
         assert TicketState.DONE in states
 
-    def test_suggestions_sorted_by_confidence(self):
+    def test_suggestions_sorted_by_confidence(self) -> None:
         """Test that suggestions are sorted by confidence."""
         matcher = SemanticStateMatcher()
 
@@ -351,7 +351,7 @@ class TestSuggestions:
         confidences = [s.confidence for s in suggestions]
         assert confidences == sorted(confidences, reverse=True)
 
-    def test_top_n_parameter(self):
+    def test_top_n_parameter(self) -> None:
         """Test that top_n parameter limits results."""
         matcher = SemanticStateMatcher()
 
@@ -365,7 +365,7 @@ class TestSuggestions:
 class TestValidationIntegration:
     """Test workflow validation with semantic matching."""
 
-    def test_valid_transition(self):
+    def test_valid_transition(self) -> None:
         """Test validation of valid transition."""
         matcher = SemanticStateMatcher()
 
@@ -377,7 +377,7 @@ class TestValidationIntegration:
         assert result.match_result.state == TicketState.IN_PROGRESS
         assert result.current_state == TicketState.OPEN
 
-    def test_invalid_transition(self):
+    def test_invalid_transition(self) -> None:
         """Test validation of invalid transition."""
         matcher = SemanticStateMatcher()
 
@@ -389,7 +389,7 @@ class TestValidationIntegration:
         assert "Cannot transition" in result.error_message
         assert result.valid_transitions is not None
 
-    def test_terminal_state_no_transitions(self):
+    def test_terminal_state_no_transitions(self) -> None:
         """Test that CLOSED state has no valid transitions."""
         matcher = SemanticStateMatcher()
 
@@ -402,7 +402,7 @@ class TestValidationIntegration:
 class TestEdgeCases:
     """Test edge cases and error handling."""
 
-    def test_empty_input(self):
+    def test_empty_input(self) -> None:
         """Test empty input handling."""
         matcher = SemanticStateMatcher()
 
@@ -411,7 +411,7 @@ class TestEdgeCases:
         assert result.state == TicketState.OPEN
         assert result.match_type == "default"
 
-    def test_whitespace_only(self):
+    def test_whitespace_only(self) -> None:
         """Test whitespace-only input."""
         matcher = SemanticStateMatcher()
 
@@ -419,7 +419,7 @@ class TestEdgeCases:
         assert result.state == TicketState.OPEN
         assert result.match_type in ["default", "fallback"]
 
-    def test_special_characters(self):
+    def test_special_characters(self) -> None:
         """Test input with special characters."""
         matcher = SemanticStateMatcher()
 
@@ -428,7 +428,7 @@ class TestEdgeCases:
         # Should still match IN_PROGRESS
         assert result.state == TicketState.IN_PROGRESS
 
-    def test_numeric_input(self):
+    def test_numeric_input(self) -> None:
         """Test numeric input."""
         matcher = SemanticStateMatcher()
 
@@ -441,14 +441,14 @@ class TestEdgeCases:
 class TestSingletonPattern:
     """Test singleton instance pattern."""
 
-    def test_get_state_matcher_returns_same_instance(self):
+    def test_get_state_matcher_returns_same_instance(self) -> None:
         """Test that get_state_matcher returns singleton."""
         matcher1 = get_state_matcher()
         matcher2 = get_state_matcher()
 
         assert matcher1 is matcher2
 
-    def test_singleton_has_state(self):
+    def test_singleton_has_state(self) -> None:
         """Test that singleton maintains state."""
         matcher = get_state_matcher()
 
@@ -459,7 +459,7 @@ class TestSingletonPattern:
 class TestPerformance:
     """Test performance characteristics."""
 
-    def test_match_performance(self):
+    def test_match_performance(self) -> None:
         """Test that matching is fast."""
         import time
 
@@ -474,7 +474,7 @@ class TestPerformance:
         # (target: <10ms per match)
         assert elapsed < 1.0
 
-    def test_suggestion_performance(self):
+    def test_suggestion_performance(self) -> None:
         """Test that suggestions are fast."""
         import time
 
@@ -492,21 +492,21 @@ class TestPerformance:
 class TestMatchTypes:
     """Test different match type classifications."""
 
-    def test_exact_match_type(self):
+    def test_exact_match_type(self) -> None:
         """Test exact match type identification."""
         matcher = SemanticStateMatcher()
 
         result = matcher.match_state("open")
         assert result.match_type == "exact"
 
-    def test_synonym_match_type(self):
+    def test_synonym_match_type(self) -> None:
         """Test synonym match type identification."""
         matcher = SemanticStateMatcher()
 
         result = matcher.match_state("todo")
         assert result.match_type in ["exact", "synonym"]
 
-    def test_fuzzy_match_type(self):
+    def test_fuzzy_match_type(self) -> None:
         """Test fuzzy match type identification."""
         matcher = SemanticStateMatcher()
 
@@ -517,7 +517,7 @@ class TestMatchTypes:
 class TestRealWorldScenarios:
     """Test real-world usage scenarios."""
 
-    def test_ai_agent_natural_language(self):
+    def test_ai_agent_natural_language(self) -> None:
         """Test natural language inputs from AI agents."""
         matcher = SemanticStateMatcher()
 
@@ -535,7 +535,7 @@ class TestRealWorldScenarios:
             # Note: Some may not match exactly but should be close
             assert result.confidence > 0.5
 
-    def test_user_abbreviations(self):
+    def test_user_abbreviations(self) -> None:
         """Test common user abbreviations."""
         matcher = SemanticStateMatcher()
 
@@ -550,7 +550,7 @@ class TestRealWorldScenarios:
             # May not match exactly, but should be reasonable
             assert result.state is not None
 
-    def test_platform_specific_terms(self):
+    def test_platform_specific_terms(self) -> None:
         """Test platform-specific terminology."""
         matcher = SemanticStateMatcher()
 
@@ -571,7 +571,7 @@ class TestRealWorldScenarios:
 class TestConfidenceHelpers:
     """Test confidence helper methods."""
 
-    def test_is_high_confidence(self):
+    def test_is_high_confidence(self) -> None:
         """Test is_high_confidence helper."""
         matcher = SemanticStateMatcher()
 
@@ -584,7 +584,7 @@ class TestConfidenceHelpers:
         confidence_check = result.is_high_confidence()
         assert isinstance(confidence_check, bool)
 
-    def test_is_medium_confidence(self):
+    def test_is_medium_confidence(self) -> None:
         """Test is_medium_confidence helper."""
         result = StateMatchResult(
             state=TicketState.OPEN,
@@ -597,7 +597,7 @@ class TestConfidenceHelpers:
         assert not result.is_high_confidence()
         assert not result.is_low_confidence()
 
-    def test_is_low_confidence(self):
+    def test_is_low_confidence(self) -> None:
         """Test is_low_confidence helper."""
         result = StateMatchResult(
             state=TicketState.OPEN,
@@ -648,7 +648,7 @@ class TestConfidenceHelpers:
         ("archived", TicketState.CLOSED),
     ],
 )
-def test_comprehensive_synonym_coverage(input_str, expected_state):
+def test_comprehensive_synonym_coverage(input_str, expected_state) -> None:
     """Parameterized test for comprehensive synonym coverage."""
     matcher = SemanticStateMatcher()
     result = matcher.match_state(input_str)

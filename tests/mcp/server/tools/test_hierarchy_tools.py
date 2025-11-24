@@ -37,7 +37,7 @@ class MockAdapter:
 
 
 @pytest.fixture
-def mock_adapter_with_hierarchy():
+def mock_adapter_with_hierarchy() -> None:
     """Create mock adapter with parent-child hierarchy."""
     parent_issue = Task(
         id="parent-123",

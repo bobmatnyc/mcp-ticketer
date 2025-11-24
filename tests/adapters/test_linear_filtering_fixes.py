@@ -22,7 +22,7 @@ class TestLinearStateMapping:
     """Test Bug 1: State mapping fix - OPEN includes both unstarted and backlog."""
 
     @pytest.fixture
-    def adapter(self):
+    def adapter(self) -> None:
         """Create a Linear adapter with mocked client."""
         # Use proper UUID format for team_id
         team_uuid = "12345678-1234-1234-1234-123456789abc"
@@ -297,7 +297,7 @@ class TestLinearProjectFiltering:
     """Test Bug 2: Project filtering fix - search supports project parameter."""
 
     @pytest.fixture
-    def adapter(self):
+    def adapter(self) -> None:
         """Create a Linear adapter with mocked client."""
         # Use proper UUID format for team_id
         team_uuid = "12345678-1234-1234-1234-123456789abc"
@@ -537,7 +537,7 @@ class TestLinearFilteringIntegration:
     """Integration tests combining both filtering fixes."""
 
     @pytest.fixture
-    def adapter(self):
+    def adapter(self) -> None:
         """Create a Linear adapter with mocked client."""
         # Use proper UUID format for team_id
         team_uuid = "12345678-1234-1234-1234-123456789abc"
