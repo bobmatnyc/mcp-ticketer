@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+- **Linear Attachment Retrieval with Authentication**: Complete attachment fetching support for Linear adapter (1M-136)
+  - Implemented `get_attachments()` method with proper Bearer token authentication
+  - Resolves 401 errors when accessing Linear attachment URLs
+  - Supports both issue attachments and project documents
+  - Preserves Linear-specific metadata fields
+  - Added comprehensive test coverage (7 unit tests, 1 integration test template)
+  - Completes attachment support across all adapters (Linear, JIRA, Asana, AiTrackDown)
+  - GitHub adapter not supported (platform limitation, documented)
+
 ## [1.2.3] - 2025-11-24
 
 ### Fixed
