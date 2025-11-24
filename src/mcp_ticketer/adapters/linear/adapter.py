@@ -1807,9 +1807,15 @@ class LinearAdapter(BaseAdapter[Task]):
             issue_filter["title"] = {"containsIgnoreCase": query.query}
 
         # State filter
+        # Bug fix: Handle OPEN state specially to include both unstarted AND backlog
+        # tickets, as both Linear states map to TicketState.OPEN
         if query.state:
-            state_type = get_linear_state_type(query.state)
-            issue_filter["state"] = {"type": {"eq": state_type}}
+            if query.state == TicketState.OPEN:
+                # Include both "unstarted" and "backlog" states for OPEN
+                issue_filter["state"] = {"type": {"in": ["unstarted", "backlog"]}}
+            else:
+                state_type = get_linear_state_type(query.state)
+                issue_filter["state"] = {"type": {"eq": state_type}}
 
         # Priority filter
         if query.priority:
@@ -1821,6 +1827,13 @@ class LinearAdapter(BaseAdapter[Task]):
             user_id = await self._get_user_id(query.assignee)
             if user_id:
                 issue_filter["assignee"] = {"id": {"eq": user_id}}
+
+        # Project filter (Bug fix: Add support for filtering by project/epic)
+        if query.project:
+            # Resolve project ID (supports ID, name, or URL)
+            project_id = await self._resolve_project_id(query.project)
+            if project_id:
+                issue_filter["project"] = {"id": {"eq": project_id}}
 
         # Tags filter (labels in Linear)
         if query.tags:

@@ -424,5 +424,8 @@ class SearchQuery(BaseModel):
     priority: Priority | None = Field(None, description="Filter by priority")
     tags: list[str] | None = Field(None, description="Filter by tags")
     assignee: str | None = Field(None, description="Filter by assignee")
+    project: str | None = Field(
+        None, description="Filter by project/epic ID or name"
+    )
     limit: int = Field(10, gt=0, le=100, description="Maximum results")
     offset: int = Field(0, ge=0, description="Result offset for pagination")
