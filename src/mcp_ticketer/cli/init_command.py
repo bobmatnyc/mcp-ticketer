@@ -279,10 +279,34 @@ async def _validate_configuration_with_retry(
                     adapter_config, default_values = _configure_jira(interactive=True)
                     current_config["adapters"]["jira"] = adapter_config.to_dict()
 
+                    # Merge default values into top-level config
+                    if default_values.get("default_user"):
+                        current_config["default_user"] = default_values["default_user"]
+                    if default_values.get("default_epic"):
+                        current_config["default_epic"] = default_values["default_epic"]
+                    if default_values.get("default_project"):
+                        current_config["default_project"] = default_values[
+                            "default_project"
+                        ]
+                    if default_values.get("default_tags"):
+                        current_config["default_tags"] = default_values["default_tags"]
+
                 elif adapter_type == "github":
                     # Returns tuple: (AdapterConfig, default_values_dict)
                     adapter_config, default_values = _configure_github(interactive=True)
                     current_config["adapters"]["github"] = adapter_config.to_dict()
+
+                    # Merge default values into top-level config
+                    if default_values.get("default_user"):
+                        current_config["default_user"] = default_values["default_user"]
+                    if default_values.get("default_epic"):
+                        current_config["default_epic"] = default_values["default_epic"]
+                    if default_values.get("default_project"):
+                        current_config["default_project"] = default_values[
+                            "default_project"
+                        ]
+                    if default_values.get("default_tags"):
+                        current_config["default_tags"] = default_values["default_tags"]
 
                 elif adapter_type == "aitrackdown":
                     # Returns tuple: (AdapterConfig, default_values_dict)
@@ -566,7 +590,7 @@ def _init_adapter_internal(
 
                 # Use consolidated configure function (interactive if missing params)
                 # Returns tuple: (AdapterConfig, default_values_dict) - following Linear pattern
-                adapter_config, _ = _configure_jira(
+                adapter_config, default_values = _configure_jira(
                     interactive=not has_all_params,
                     server=jira_server,
                     email=jira_email,
@@ -575,6 +599,16 @@ def _init_adapter_internal(
                 )
 
                 config["adapters"]["jira"] = adapter_config.to_dict()
+
+                # Merge default values into top-level config
+                if default_values.get("default_user"):
+                    config["default_user"] = default_values["default_user"]
+                if default_values.get("default_epic"):
+                    config["default_epic"] = default_values["default_epic"]
+                if default_values.get("default_project"):
+                    config["default_project"] = default_values["default_project"]
+                if default_values.get("default_tags"):
+                    config["default_tags"] = default_values["default_tags"]
 
             except ValueError as e:
                 console.print(f"[red]Error:[/red] {e}")
@@ -593,7 +627,7 @@ def _init_adapter_internal(
 
                 # Use consolidated configure function (interactive if missing params)
                 # Returns tuple: (AdapterConfig, default_values_dict) - following Linear pattern
-                adapter_config, _ = _configure_github(
+                adapter_config, default_values = _configure_github(
                     interactive=not has_all_params,
                     owner=github_owner,
                     repo=github_repo,
@@ -601,6 +635,16 @@ def _init_adapter_internal(
                 )
 
                 config["adapters"]["github"] = adapter_config.to_dict()
+
+                # Merge default values into top-level config
+                if default_values.get("default_user"):
+                    config["default_user"] = default_values["default_user"]
+                if default_values.get("default_epic"):
+                    config["default_epic"] = default_values["default_epic"]
+                if default_values.get("default_project"):
+                    config["default_project"] = default_values["default_project"]
+                if default_values.get("default_tags"):
+                    config["default_tags"] = default_values["default_tags"]
 
             except ValueError as e:
                 console.print(f"[red]Error:[/red] {e}")
