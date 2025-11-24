@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.2.3] - 2025-11-24
+
+### Fixed
+- **Epic URL Resolution**: Fixed critical bug where epic URLs were not being properly resolved before adapter calls (1M-171)
+  - Epic operations now correctly extract IDs from URLs using `extract_id_from_url()` utility
+  - Fixes "Epic not found" errors when users provided URLs instead of IDs
+  - Added 12 comprehensive tests for epic URL resolution
+  - All URL formats now supported: Linear, GitHub, JIRA, Asana
+- **Type Safety**: Resolved 591 mypy type errors across the codebase (1M-169)
+  - Phase 1: Fixed 539 type errors by removing unused type ignore comments and adding proper annotations
+  - Phase 2: Fixed 52 remaining type errors in priority source files
+  - Improved code quality and type safety throughout the project
+  - Added return type annotations to all test functions
+
+### Verified
+- **Status Mapping**: Verified Linear adapter correctly maps status values (1M-164)
+  - Confirmed synonym matching implementation working as expected
+  - State transitions validated across all workflow states
+
+## [1.2.2] - 2025-11-24
+
+### Fixed
+- **Status Mapping**: Enhanced Linear adapter to support status value synonyms (1M-164)
+  - Added flexible state matching to handle variations in status values
+  - Improved robustness of state transitions
+
 ## [1.2.1] - 2025-11-24
 
 ### Added
