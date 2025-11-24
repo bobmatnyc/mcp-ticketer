@@ -33,10 +33,11 @@ def map_linear_issue_to_task(issue_data: dict[str, Any]) -> Task:
     linear_priority = issue_data.get("priority", 3)
     priority = get_universal_priority(linear_priority)
 
-    # Map state
+    # Map state with synonym matching (1M-164)
     state_data = issue_data.get("state", {})
     state_type = state_data.get("type", "unstarted")
-    state = get_universal_state(state_type)
+    state_name = state_data.get("name")  # Extract state name for synonym matching
+    state = get_universal_state(state_type, state_name)
 
     # Extract assignee
     assignee = None

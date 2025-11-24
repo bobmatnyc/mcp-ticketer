@@ -128,17 +128,63 @@ def get_linear_state_type(state: TicketState) -> str:
     return LinearStateMapping.TO_LINEAR.get(state, "unstarted")
 
 
-def get_universal_state(linear_state_type: str) -> TicketState:
-    """Convert Linear workflow state type to universal TicketState.
+def get_universal_state(linear_state_type: str, state_name: str | None = None) -> TicketState:
+    """Convert Linear workflow state type to universal TicketState with synonym matching.
+
+    This function implements intelligent state mapping with fallback strategies:
+    1. Try exact match on state type (backlog, unstarted, started, completed, canceled)
+    2. Try synonym matching on state name (ToDo, In Review, Testing, etc.)
+    3. Default to OPEN for unknown states
+
+    Synonym Matching Rules (ticket 1M-164):
+    - "Done", "Closed", "Cancelled", "Completed", "Won't Do" → CLOSED
+    - Everything else → OPEN
 
     Args:
-        linear_state_type: Linear workflow state type string
+        linear_state_type: Linear workflow state type string (from state.type field)
+        state_name: Linear workflow state name (from state.name field, optional)
 
     Returns:
         Universal ticket state enum
 
     """
-    return LinearStateMapping.FROM_LINEAR.get(linear_state_type, TicketState.OPEN)
+    # First try exact type match
+    if linear_state_type in LinearStateMapping.FROM_LINEAR:
+        return LinearStateMapping.FROM_LINEAR[linear_state_type]
+
+    # If no exact match and state_name provided, try synonym matching
+    if state_name:
+        state_name_lower = state_name.lower().strip()
+
+        # Check for "done/closed" synonyms - these become CLOSED
+        closed_synonyms = [
+            "done", "closed", "cancelled", "canceled", "completed",
+            "won't do", "wont do", "rejected", "resolved", "finished"
+        ]
+
+        if any(synonym in state_name_lower for synonym in closed_synonyms):
+            return TicketState.DONE if state_name_lower == "done" else TicketState.CLOSED
+
+        # Check for "in progress" synonyms
+        in_progress_synonyms = [
+            "in progress", "in-progress", "working", "active",
+            "started", "doing", "in development", "in dev"
+        ]
+
+        if any(synonym in state_name_lower for synonym in in_progress_synonyms):
+            return TicketState.IN_PROGRESS
+
+        # Check for "review/testing" synonyms
+        review_synonyms = [
+            "review", "in review", "in-review", "testing",
+            "in test", "in-test", "qa", "ready for review"
+        ]
+
+        if any(synonym in state_name_lower for synonym in review_synonyms):
+            return TicketState.READY
+
+    # Default: everything else is OPEN (including "ToDo", "Backlog", "To Do", etc.)
+    return TicketState.OPEN
 
 
 def build_issue_filter(
