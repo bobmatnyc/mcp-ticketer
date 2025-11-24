@@ -232,6 +232,48 @@ def extract_github_id(url: str) -> tuple[str | None, str | None]:
     return None, f"Could not extract GitHub ID from URL: {url}"
 
 
+def parse_github_repo_url(url: str) -> tuple[str | None, str | None, str | None]:
+    """Parse GitHub repository URL to extract owner and repo name.
+
+    Supported formats:
+    - https://github.com/owner/repo → ("owner", "repo")
+    - https://github.com/owner/repo/ → ("owner", "repo")
+    - https://github.com/owner/repo/issues → ("owner", "repo")
+    - https://github.com/owner/repo/projects/1 → ("owner", "repo")
+    - http://github.com/owner/repo → ("owner", "repo")
+
+    Args:
+        url: GitHub repository URL string
+
+    Returns:
+        Tuple of (owner, repo, error_message). If successful, error_message is None.
+
+    Examples:
+        >>> parse_github_repo_url("https://github.com/owner/repo")
+        ('owner', 'repo', None)
+        >>> parse_github_repo_url("https://github.com/owner/repo/")
+        ('owner', 'repo', None)
+        >>> parse_github_repo_url("https://github.com/owner/repo/issues/123")
+        ('owner', 'repo', None)
+
+    """
+    if not url:
+        return None, None, "Empty URL provided"
+
+    # Pattern: Extract owner and repo from any GitHub URL
+    # https://github.com/{owner}/{repo}[/anything/else]
+    github_pattern = r"https?://github\.com/([\w-]+)/([\w.-]+)(?:/|$)"
+    match = re.search(github_pattern, url, re.IGNORECASE)
+
+    if match:
+        owner = match.group(1)
+        repo = match.group(2)
+        logger.debug(f"Extracted GitHub owner '{owner}' and repo '{repo}' from URL")
+        return owner, repo, None
+
+    return None, None, f"Could not parse GitHub repository URL: {url}"
+
+
 def extract_asana_id(url: str) -> tuple[str | None, str | None]:
     """Extract task or project GID from Asana URL.
 

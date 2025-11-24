@@ -680,9 +680,30 @@ def _configure_github(
         )
 
     # Repository Name (programmatic mode: use provided value or env, interactive: prompt)
+    # Support both plain repo names and full GitHub URLs
     final_repo = repo or os.getenv("GITHUB_REPO") or ""
+
+    # If repo looks like a URL, parse it to extract owner and repo
+    if final_repo and final_repo.startswith("http"):
+        from ..core.url_parser import parse_github_repo_url
+
+        parsed_owner, parsed_repo, error = parse_github_repo_url(final_repo)
+        if parsed_owner and parsed_repo:
+            # Update both owner and repo from URL
+            if not final_owner:
+                final_owner = parsed_owner
+                if interactive:
+                    console.print(f"[dim]Extracted owner '{parsed_owner}' from URL[/dim]")
+            final_repo = parsed_repo
+            if interactive:
+                console.print(f"[dim]Extracted repo '{parsed_repo}' from URL[/dim]")
+        elif interactive:
+            console.print(f"[yellow]Warning: Could not parse GitHub URL. {error}[/yellow]")
+            console.print("[yellow]Please enter repository name (not full URL)[/yellow]")
+            final_repo = ""
+
     if interactive and not final_repo:
-        final_repo = Prompt.ask("Repository Name")
+        final_repo = Prompt.ask("Repository Name (e.g., 'my-repo', not full URL)")
     elif not interactive and not final_repo:
         raise ValueError(
             "GitHub repository name is required (provide repo parameter or set GITHUB_REPO environment variable)"

@@ -11,6 +11,7 @@ from mcp_ticketer.core.url_parser import (
     extract_linear_id,
     is_url,
     normalize_project_id,
+    parse_github_repo_url,
 )
 
 
@@ -213,6 +214,113 @@ class TestGitHubURLParsing:
         extracted_id, error = extract_github_id("")
         assert extracted_id is None
         assert error == "Empty URL provided"
+
+
+class TestGitHubRepoURLParsing:
+    """Test GitHub repository URL parsing (parse_github_repo_url function)."""
+
+    def test_basic_repo_url(self) -> None:
+        """Test basic GitHub repository URL."""
+        url = "https://github.com/owner/repo"
+        owner, repo, error = parse_github_repo_url(url)
+        assert owner == "owner"
+        assert repo == "repo"
+        assert error is None
+
+    def test_repo_url_with_trailing_slash(self) -> None:
+        """Test GitHub repository URL with trailing slash."""
+        url = "https://github.com/owner/repo/"
+        owner, repo, error = parse_github_repo_url(url)
+        assert owner == "owner"
+        assert repo == "repo"
+        assert error is None
+
+    def test_repo_url_with_issues_path(self) -> None:
+        """Test GitHub repository URL with issues path."""
+        url = "https://github.com/owner/repo/issues"
+        owner, repo, error = parse_github_repo_url(url)
+        assert owner == "owner"
+        assert repo == "repo"
+        assert error is None
+
+    def test_repo_url_with_specific_issue(self) -> None:
+        """Test GitHub repository URL with specific issue number."""
+        url = "https://github.com/owner/repo/issues/123"
+        owner, repo, error = parse_github_repo_url(url)
+        assert owner == "owner"
+        assert repo == "repo"
+        assert error is None
+
+    def test_repo_url_with_projects_path(self) -> None:
+        """Test GitHub repository URL with projects path."""
+        url = "https://github.com/owner/repo/projects/1"
+        owner, repo, error = parse_github_repo_url(url)
+        assert owner == "owner"
+        assert repo == "repo"
+        assert error is None
+
+    def test_repo_url_with_pull_request(self) -> None:
+        """Test GitHub repository URL with pull request."""
+        url = "https://github.com/owner/repo/pull/456"
+        owner, repo, error = parse_github_repo_url(url)
+        assert owner == "owner"
+        assert repo == "repo"
+        assert error is None
+
+    def test_repo_url_with_hyphens(self) -> None:
+        """Test GitHub repository URL with hyphens in owner and repo."""
+        url = "https://github.com/my-org/my-repo"
+        owner, repo, error = parse_github_repo_url(url)
+        assert owner == "my-org"
+        assert repo == "my-repo"
+        assert error is None
+
+    def test_repo_url_with_dots_in_repo(self) -> None:
+        """Test GitHub repository URL with dots in repo name."""
+        url = "https://github.com/owner/repo.name"
+        owner, repo, error = parse_github_repo_url(url)
+        assert owner == "owner"
+        assert repo == "repo.name"
+        assert error is None
+
+    def test_repo_url_http(self) -> None:
+        """Test GitHub repository URL with HTTP (not HTTPS)."""
+        url = "http://github.com/owner/repo"
+        owner, repo, error = parse_github_repo_url(url)
+        assert owner == "owner"
+        assert repo == "repo"
+        assert error is None
+
+    def test_repo_url_case_insensitive(self) -> None:
+        """Test GitHub repository URL is case-insensitive."""
+        url = "https://GITHUB.COM/Owner/Repo"
+        owner, repo, error = parse_github_repo_url(url)
+        assert owner == "Owner"
+        assert repo == "Repo"
+        assert error is None
+
+    def test_empty_url(self) -> None:
+        """Test empty URL returns error."""
+        owner, repo, error = parse_github_repo_url("")
+        assert owner is None
+        assert repo is None
+        assert error == "Empty URL provided"
+
+    def test_invalid_url(self) -> None:
+        """Test invalid URL returns error."""
+        url = "https://gitlab.com/owner/repo"
+        owner, repo, error = parse_github_repo_url(url)
+        assert owner is None
+        assert repo is None
+        assert "Could not parse" in error
+
+    def test_real_world_example(self) -> None:
+        """Test real-world example from 1M-176 bug report."""
+        url = "https://github.com/bobmatnyc/ai-power-rankings"
+        owner, repo, error = parse_github_repo_url(url)
+        assert owner == "bobmatnyc"
+        assert repo == "ai-power-rankings"
+        assert error is None
 
 
 class TestAsanaURLParsing:
