@@ -464,7 +464,12 @@ class SemanticStateMatcher:
         # Check if transition is allowed
         if not current_state.can_transition_to(match_result.state):
             valid_transitions_dict = TicketState.valid_transitions()
-            valid_transitions = valid_transitions_dict.get(current_state, [])
+            # The return type annotation is dict[str, list[str]] but actually returns
+            # dict[TicketState, list[TicketState]], so we need to cast properly
+            valid_transitions_raw = valid_transitions_dict.get(current_state, [])
+            valid_transitions: list[TicketState] = [
+                s for s in valid_transitions_raw if isinstance(s, TicketState)
+            ]
 
             return ValidationResult(
                 is_valid=False,

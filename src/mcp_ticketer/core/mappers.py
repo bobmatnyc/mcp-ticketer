@@ -98,13 +98,13 @@ class StateMapper(BaseMapper):
         self._mapping: BiDirectionalDict | None = None
 
     @lru_cache(maxsize=1)
-    def get_mapping(self) -> BiDirectionalDict:
+    def get_mapping(self) -> BiDirectionalDict[TicketState, str]:
         """Get cached bidirectional state mapping."""
         if self._mapping is not None:
             return self._mapping
 
         # Default mappings by adapter type
-        default_mappings = {
+        default_mappings: dict[str, dict[TicketState, str]] = {
             "github": {
                 TicketState.OPEN: "open",
                 TicketState.IN_PROGRESS: "open",  # Uses labels
@@ -147,13 +147,16 @@ class StateMapper(BaseMapper):
             },
         }
 
-        mapping = default_mappings.get(self.adapter_type, {})
+        mapping: dict[TicketState, str] = default_mappings.get(self.adapter_type, {})
 
-        # Apply custom mappings
+        # Apply custom mappings (cast to proper type)
         if self.custom_mappings:
-            mapping.update(self.custom_mappings)
+            # custom_mappings might have str keys, need to convert to TicketState
+            for key, value in self.custom_mappings.items():
+                if isinstance(key, TicketState):
+                    mapping[key] = value
 
-        self._mapping = BiDirectionalDict(mapping)
+        self._mapping = BiDirectionalDict[TicketState, str](mapping)
         return self._mapping
 
     def to_system_state(self, adapter_state: str) -> TicketState:
@@ -168,7 +171,9 @@ class StateMapper(BaseMapper):
         """
         cache_key = f"to_system_{adapter_state}"
         if cache_key in self._cache:
-            return self._cache[cache_key]
+            cached = self._cache[cache_key]
+            if isinstance(cached, TicketState):
+                return cached
 
         mapping = self.get_mapping()
         result = mapping.get_reverse(adapter_state)
@@ -205,7 +210,9 @@ class StateMapper(BaseMapper):
         """
         cache_key = f"from_system_{system_state.value}"
         if cache_key in self._cache:
-            return self._cache[cache_key]
+            cached = self._cache[cache_key]
+            if isinstance(cached, str):
+                return cached
 
         mapping = self.get_mapping()
         result = mapping.get_forward(system_state)
@@ -273,13 +280,13 @@ class PriorityMapper(BaseMapper):
         self._mapping: BiDirectionalDict | None = None
 
     @lru_cache(maxsize=1)
-    def get_mapping(self) -> BiDirectionalDict:
+    def get_mapping(self) -> BiDirectionalDict[Priority, Any]:
         """Get cached bidirectional priority mapping."""
         if self._mapping is not None:
             return self._mapping
 
         # Default mappings by adapter type
-        default_mappings = {
+        default_mappings: dict[str, dict[Priority, Any]] = {
             "github": {
                 Priority.CRITICAL: "P0",
                 Priority.HIGH: "P1",
@@ -306,13 +313,16 @@ class PriorityMapper(BaseMapper):
             },
         }
 
-        mapping = default_mappings.get(self.adapter_type, {})
+        mapping: dict[Priority, Any] = default_mappings.get(self.adapter_type, {})
 
-        # Apply custom mappings
+        # Apply custom mappings (cast to proper type)
         if self.custom_mappings:
-            mapping.update(self.custom_mappings)
+            # custom_mappings might have str keys, need to convert to Priority
+            for key, value in self.custom_mappings.items():
+                if isinstance(key, Priority):
+                    mapping[key] = value
 
-        self._mapping = BiDirectionalDict(mapping)
+        self._mapping = BiDirectionalDict[Priority, Any](mapping)
         return self._mapping
 
     def to_system_priority(self, adapter_priority: Any) -> Priority:
@@ -327,7 +337,9 @@ class PriorityMapper(BaseMapper):
         """
         cache_key = f"to_system_{adapter_priority}"
         if cache_key in self._cache:
-            return self._cache[cache_key]
+            cached = self._cache[cache_key]
+            if isinstance(cached, Priority):
+                return cached
 
         mapping = self.get_mapping()
         result = mapping.get_reverse(adapter_priority)
@@ -524,10 +536,10 @@ class MapperRegistry:
     @classmethod
     def clear_cache(cls) -> None:
         """Clear all mapper caches."""
-        for mapper in cls._state_mappers.values():
-            mapper.clear_cache()
-        for mapper in cls._priority_mappers.values():
-            mapper.clear_cache()
+        for state_mapper in cls._state_mappers.values():
+            state_mapper.clear_cache()
+        for priority_mapper in cls._priority_mappers.values():
+            priority_mapper.clear_cache()
 
     @classmethod
     def reset(cls) -> None:

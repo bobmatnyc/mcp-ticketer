@@ -422,7 +422,16 @@ async def label_suggest_merge(
         # Find all tickets with source label
         try:
             tickets = await adapter.search(
-                SearchQuery(query=f"label:{source_label}", limit=1000)
+                SearchQuery(
+                    query=f"label:{source_label}",
+                    limit=1000,
+                    state=None,
+                    priority=None,
+                    tags=None,
+                    assignee=None,
+                    project=None,
+                    offset=0,
+                )
             )
         except Exception:
             # Fallback: list all tickets and filter manually
@@ -542,7 +551,16 @@ async def label_merge(
         # Find all tickets with source label
         try:
             tickets = await adapter.search(
-                SearchQuery(query=f"label:{source_label}", limit=1000)
+                SearchQuery(
+                    query=f"label:{source_label}",
+                    limit=1000,
+                    state=None,
+                    priority=None,
+                    tags=None,
+                    assignee=None,
+                    project=None,
+                    offset=0,
+                )
             )
         except Exception:
             # Fallback: list all tickets and filter manually
@@ -683,7 +701,7 @@ async def label_rename(
 
     """
     # Delegate to label_merge (rename is just a semantic alias)
-    result = await label_merge(
+    result: dict[str, Any] = await label_merge(
         source_label=old_name,
         target_label=new_name,
         update_tickets=update_tickets,
@@ -783,10 +801,10 @@ async def label_cleanup_report(
         tickets = await adapter.list(limit=1000)
 
         # Initialize report sections
-        spelling_issues = []
-        duplicate_groups = []
-        unused_labels = []
-        recommendations = []
+        spelling_issues: list[dict[str, Any]] = []
+        duplicate_groups: list[dict[str, Any]] = []
+        unused_labels: list[dict[str, Any]] = []
+        recommendations: list[dict[str, Any]] = []
 
         # 1. Spelling Issues Analysis
         if include_spelling:
@@ -856,7 +874,7 @@ async def label_cleanup_report(
 
         # 3. Unused Labels Analysis
         if include_unused:
-            label_usage = dict.fromkeys(label_names, 0)
+            label_usage: dict[str, int] = {name: 0 for name in label_names}
             for ticket in tickets:
                 for tag in ticket.tags or []:
                     if tag in label_usage:
@@ -875,16 +893,16 @@ async def label_cleanup_report(
                         "category": "unused",
                         "action": f"Review {len(unused_labels)} unused labels for deletion",
                         "affected_tickets": 0,
-                        "labels": [lbl["name"] for lbl in unused_labels[:10]],
+                        "labels": [str(lbl["name"]) for lbl in unused_labels[:10]],
                     }
                 )
 
         # Sort recommendations by priority
-        priority_order = {"high": 0, "medium": 1, "low": 2}
-        recommendations.sort(key=lambda x: priority_order.get(x["priority"], 3))
+        priority_order: dict[str, int] = {"high": 0, "medium": 1, "low": 2}
+        recommendations.sort(key=lambda x: priority_order.get(str(x["priority"]), 3))
 
         # Build summary
-        summary = {
+        summary: dict[str, Any] = {
             "total_labels": len(label_names),
             "spelling_issues": len(spelling_issues),
             "duplicate_groups": len(duplicate_groups),
@@ -894,7 +912,8 @@ async def label_cleanup_report(
 
         # Calculate potential consolidation
         consolidation_potential = sum(
-            len(variants) for variants in (grp["variants"] for grp in duplicate_groups)
+            len(list(grp["variants"])) if isinstance(grp["variants"], (list, tuple)) else 0
+            for grp in duplicate_groups
         ) + len(spelling_issues)
 
         if consolidation_potential > 0:
