@@ -1,7 +1,8 @@
 """Unit tests for Linear adapter get_attachments() method."""
 
-import pytest
 from unittest.mock import AsyncMock, Mock
+
+import pytest
 
 from mcp_ticketer.adapters.linear.adapter import LinearAdapter
 from mcp_ticketer.core.models import Attachment

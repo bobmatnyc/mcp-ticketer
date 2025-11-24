@@ -7,6 +7,7 @@ Note: This test is skipped by default. Set LINEAR_RUN_INTEGRATION_TESTS=1 to ena
 """
 
 import os
+
 import pytest
 
 from mcp_ticketer.adapters.linear.adapter import LinearAdapter

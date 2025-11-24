@@ -4,10 +4,11 @@ This module tests the auto-transition feature in ticket_assign() that automatica
 moves tickets to IN_PROGRESS when assigned from OPEN, WAITING, or BLOCKED states.
 """
 
-import pytest
 from unittest.mock import AsyncMock, Mock, patch
 
-from mcp_ticketer.core.models import Task, TicketState, Priority
+import pytest
+
+from mcp_ticketer.core.models import Priority, Task, TicketState
 from mcp_ticketer.mcp.server.tools.ticket_tools import ticket_assign
 
 

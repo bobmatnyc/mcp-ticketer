@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Unit tests for LinearAdapter._resolve_project_id() URL parsing fix (1M-171)."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from mcp_ticketer.adapters.linear.adapter import LinearAdapter
 from mcp_ticketer.core.url_parser import URLParserError

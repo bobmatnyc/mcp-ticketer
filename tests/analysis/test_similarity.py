@@ -256,7 +256,9 @@ class TestTicketSimilarityAnalyzer:
         for result in results:
             assert "same_state" in result.similarity_reasons
 
-    def test_different_priorities_not_affecting_similarity(self, sample_tickets) -> None:
+    def test_different_priorities_not_affecting_similarity(
+        self, sample_tickets
+    ) -> None:
         """Test that different priorities don't prevent similarity detection."""
         # Modify tickets to have different priorities but similar content
         tickets = [

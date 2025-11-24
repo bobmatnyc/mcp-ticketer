@@ -118,9 +118,7 @@ async def ticket_link_pr(
 
         # Check if adapter has specialized PR linking
         if hasattr(adapter, "link_pull_request"):
-            result = await adapter.link_pull_request(
-                ticket_id=ticket_id, pr_url=pr_url
-            )
+            result = await adapter.link_pull_request(ticket_id=ticket_id, pr_url=pr_url)
             return {
                 "status": "completed",
                 "ticket_id": ticket_id,

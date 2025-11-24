@@ -392,11 +392,8 @@ def map_linear_attachment_to_attachment(
             attachment_data["createdAt"].replace("Z", "+00:00")
         )
 
-    updated_at = None
     if attachment_data.get("updatedAt"):
-        updated_at = datetime.fromisoformat(
-            attachment_data["updatedAt"].replace("Z", "+00:00")
-        )
+        datetime.fromisoformat(attachment_data["updatedAt"].replace("Z", "+00:00"))
 
     # Build metadata with Linear-specific fields
     metadata = {

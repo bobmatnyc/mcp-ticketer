@@ -874,7 +874,7 @@ async def label_cleanup_report(
 
         # 3. Unused Labels Analysis
         if include_unused:
-            label_usage: dict[str, int] = {name: 0 for name in label_names}
+            label_usage: dict[str, int] = dict.fromkeys(label_names, 0)
             for ticket in tickets:
                 for tag in ticket.tags or []:
                     if tag in label_usage:
@@ -912,7 +912,11 @@ async def label_cleanup_report(
 
         # Calculate potential consolidation
         consolidation_potential = sum(
-            len(list(grp["variants"])) if isinstance(grp["variants"], (list, tuple)) else 0
+            (
+                len(list(grp["variants"]))
+                if isinstance(grp["variants"], (list, tuple))
+                else 0
+            )
             for grp in duplicate_groups
         ) + len(spelling_issues)
 
