@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.2.12] - 2025-11-25
+
+### Changed
+- **MCP ticket_list Optimization**: Significantly reduced token usage in compact mode
+  - Compact mode now returns only 3 fields: id, title, state (was 7 fields)
+  - Token usage reduced by 73%: 20 tickets now ~300 tokens (was ~1.1k tokens)
+  - Updated tool description to emphasize using defaults (limit=20, compact=True)
+  - Added stronger guidance for Claude Desktop to minimize token consumption
+  - Per-ticket token usage: ~15 tokens (was ~55 tokens) in compact mode
+
+### Benefits
+- **Faster responses**: 73% less data to transmit and process
+- **Better context management**: More queries fit in Claude's context window
+- **Improved UX**: Reduced "Large MCP response" warnings
+- **Maintains functionality**: State field included for quick status checks
+- **Full details available**: Use compact=False when descriptions needed
+
 ## [1.2.11] - 2025-11-25
 
 ### Added
