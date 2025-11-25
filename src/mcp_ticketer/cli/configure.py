@@ -718,9 +718,7 @@ def _configure_github(
             if parsed_owner and parsed_repo:
                 final_owner = parsed_owner
                 final_repo = parsed_repo
-                console.print(
-                    f"[dim]✓ Repository: {final_owner}/{final_repo}[/dim]"
-                )
+                console.print(f"[dim]✓ Repository: {final_owner}/{final_repo}[/dim]")
                 break
             else:
                 console.print(f"[red]Error: {error}[/red]")

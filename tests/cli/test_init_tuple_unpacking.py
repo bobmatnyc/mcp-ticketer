@@ -153,15 +153,23 @@ class TestAdapterTupleUnpacking:
         # We test this by reading the actual code implementation
 
         # Read the actual implementation to verify it has the fix
-        init_file = Path(__file__).parent.parent.parent / "src/mcp_ticketer/cli/init_command.py"
+        init_file = (
+            Path(__file__).parent.parent.parent / "src/mcp_ticketer/cli/init_command.py"
+        )
         with open(init_file) as f:
             content = f.read()
 
         # Verify GitHub interactive section has default_values unpacking
-        assert 'adapter_config, default_values = _configure_github(interactive=True)' in content
+        assert (
+            "adapter_config, default_values = _configure_github(interactive=True)"
+            in content
+        )
 
         # Verify GitHub interactive section merges default_values
-        assert 'if default_values.get("default_user"):' in content or "# Merge default values into top-level config" in content
+        assert (
+            'if default_values.get("default_user"):' in content
+            or "# Merge default values into top-level config" in content
+        )
 
         # This confirms the fix is in place at lines 294-309
 
@@ -230,7 +238,9 @@ class TestAdapterTupleUnpacking:
             assert config.get("default_project") == "INT"
             assert config.get("default_tags") == ["interactive", "test"]
 
-    def test_github_backward_compatibility_with_owner_repo(self, tmp_path: Path) -> None:
+    def test_github_backward_compatibility_with_owner_repo(
+        self, tmp_path: Path
+    ) -> None:
         """Test backward compatibility with deprecated github_owner/github_repo parameters."""
         # Setup test environment
         config_dir = tmp_path / ".mcp-ticketer"

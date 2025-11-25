@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from mcp_ticketer.adapters.linear.adapter import LinearAdapter
-from mcp_ticketer.core.url_parser import URLParserError
 
 
 @pytest.fixture

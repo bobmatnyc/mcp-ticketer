@@ -626,9 +626,12 @@ def _init_adapter_internal(
                 # Determine if we need interactive prompts
                 # Prioritize github_url, fallback to owner/repo
                 has_all_params = bool(
-                    (github_url or os.getenv("GITHUB_REPO_URL") or
-                     (github_owner or os.getenv("GITHUB_OWNER")) and
-                     (github_repo or os.getenv("GITHUB_REPO")))
+                    (
+                        github_url
+                        or os.getenv("GITHUB_REPO_URL")
+                        or (github_owner or os.getenv("GITHUB_OWNER"))
+                        and (github_repo or os.getenv("GITHUB_REPO"))
+                    )
                     and (github_token or os.getenv("GITHUB_TOKEN"))
                 )
 
@@ -750,12 +753,8 @@ def init(
         None, "--github-token", help="GitHub Personal Access Token"
     ),
     # Deprecated parameters for backward compatibility (hidden from help)
-    github_owner: str | None = typer.Option(
-        None, "--github-owner", hidden=True
-    ),
-    github_repo: str | None = typer.Option(
-        None, "--github-repo", hidden=True
-    ),
+    github_owner: str | None = typer.Option(None, "--github-owner", hidden=True),
+    github_repo: str | None = typer.Option(None, "--github-repo", hidden=True),
 ) -> None:
     """Initialize adapter configuration only (without platform installation).
 

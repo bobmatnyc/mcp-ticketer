@@ -371,7 +371,7 @@ class TestLinearAdapterDelegation:
         instead of always returning True.
         """
         # Read LinearAdapter source code
-        with open("src/mcp_ticketer/adapters/linear/adapter.py", "r") as f:
+        with open("src/mcp_ticketer/adapters/linear/adapter.py") as f:
             content = f.read()
 
         # Verify the implementation calls super()
@@ -401,7 +401,7 @@ class TestLinearAdapterDelegation:
     async def test_base_adapter_has_parent_child_logic(self) -> None:
         """Verify BaseAdapter.validate_transition contains parent/child constraint logic."""
         # Read BaseAdapter source code
-        with open("src/mcp_ticketer/core/adapter.py", "r") as f:
+        with open("src/mcp_ticketer/core/adapter.py") as f:
             content = f.read()
 
         # Verify the implementation has parent/child constraint logic

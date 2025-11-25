@@ -51,7 +51,13 @@ class TestTicketSummary:
             summary = result["summary"]
 
             # Should include only 5 essential fields
-            assert set(summary.keys()) == {"id", "title", "state", "priority", "assignee"}
+            assert set(summary.keys()) == {
+                "id",
+                "title",
+                "state",
+                "priority",
+                "assignee",
+            }
             assert summary["id"] == "TICKET-123"
             assert summary["title"] == "Fix authentication bug"
             assert summary["state"] == "in_progress"
@@ -167,7 +173,10 @@ class TestTicketSummary:
 
             assert result["status"] == "error"
             # Error comes from ticket_read, which is called internally
-            assert "Failed to read ticket" in result["error"] or "Database connection failed" in result["error"]
+            assert (
+                "Failed to read ticket" in result["error"]
+                or "Database connection failed" in result["error"]
+            )
 
     async def test_ticket_summary_ticket_not_found(self) -> None:
         """Test that ticket_summary handles ticket not found."""

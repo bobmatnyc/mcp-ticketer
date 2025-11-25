@@ -10,7 +10,7 @@ Reference tickets:
 - Project filtering: Enables filtering issues by project ID, name, or URL
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 

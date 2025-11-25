@@ -20,7 +20,7 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 
 from mcp_ticketer.adapters.asana import AsanaAdapter
-from mcp_ticketer.core.models import Attachment, Task
+from mcp_ticketer.core.models import Attachment
 
 
 class TestAsanaAttachments:

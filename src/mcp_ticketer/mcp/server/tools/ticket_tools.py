@@ -938,10 +938,14 @@ async def ticket_latest(ticket_id: str, limit: int = 5) -> dict[str, Any]:
                 for comment in comments[:limit]:
                     activity_item = {
                         "type": "comment",
-                        "timestamp": comment.created_at
-                        if hasattr(comment, "created_at")
-                        else None,
-                        "author": comment.author if hasattr(comment, "author") else None,
+                        "timestamp": (
+                            comment.created_at
+                            if hasattr(comment, "created_at")
+                            else None
+                        ),
+                        "author": (
+                            comment.author if hasattr(comment, "author") else None
+                        ),
                         "content": comment.content[:200]
                         + ("..." if len(comment.content) > 200 else ""),
                     }
@@ -954,9 +958,9 @@ async def ticket_latest(ticket_id: str, limit: int = 5) -> dict[str, Any]:
             recent_activity.append(
                 {
                     "type": "last_update",
-                    "timestamp": ticket.updated_at
-                    if hasattr(ticket, "updated_at")
-                    else None,
+                    "timestamp": (
+                        ticket.updated_at if hasattr(ticket, "updated_at") else None
+                    ),
                     "state": ticket.state,
                     "priority": ticket.priority,
                     "assignee": ticket.assignee,
