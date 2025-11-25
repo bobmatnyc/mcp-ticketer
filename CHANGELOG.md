@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.2.11] - 2025-11-25
+
+### Added
+- **GitHub URL-Based Configuration**: Simplified GitHub adapter setup with repository URL support
+  - New `--github-url` CLI parameter accepts full repository URLs (e.g., `https://github.com/owner/repo`)
+  - New `GITHUB_REPO_URL` environment variable for URL-based configuration
+  - Auto-extracts owner and repo from URL using existing url_parser utility
+  - Interactive setup now prompts for single URL instead of separate owner/repo fields
+  - More intuitive: copy-paste URL from browser
+  - Fewer configuration steps: 1 input instead of 2
+  - Less error-prone with single source of truth
+
+### Changed
+- **GitHub Configuration Flow**: Refactored to prioritize URL-based input
+  - `_configure_github()` now accepts `repo_url` as primary parameter
+  - `init` command updated with `--github-url` parameter
+  - Interactive prompts simplified to single URL input
+  - All user-facing documentation updated with URL examples
+
+### Deprecated
+- **GitHub CLI Parameters**: Old parameters still work but hidden from help
+  - `--github-owner` and `--github-repo` maintained for backward compatibility
+  - `GITHUB_OWNER` and `GITHUB_REPO` environment variables still supported
+  - Existing configurations continue to function without changes
+
+### Documentation
+- Updated Quick Start Guide with URL-based examples
+- Enhanced Configuration Guide with migration notes and benefits section
+- Updated AI Client Integration guide with new parameters
+- Added comprehensive change summary in `docs/github_url_refactor_changes.md`
+
 ## [1.2.10] - 2025-11-24
 
 ### Fixed
