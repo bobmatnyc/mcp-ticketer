@@ -321,8 +321,7 @@ def setup(
             jira_server=None,
             jira_email=None,
             jira_project=None,
-            github_owner=None,
-            github_repo=None,
+            github_url=None,
             github_token=None,
         )
 

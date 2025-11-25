@@ -60,11 +60,10 @@ class TestAdapterTupleUnpacking:
                 return_value=[],  # Empty list = no validation issues
             ),
         ):
-            # Run init for GitHub adapter
+            # Run init for GitHub adapter (using new github_url parameter)
             result = _init_adapter_internal(
                 adapter="github",
-                github_owner="test_owner",
-                github_repo="test_repo",
+                github_url="https://github.com/test_owner/test_repo",
                 github_token="test_token",
             )
 
@@ -230,6 +229,68 @@ class TestAdapterTupleUnpacking:
             assert config.get("default_user") == "interactive_jira@example.com"
             assert config.get("default_project") == "INT"
             assert config.get("default_tags") == ["interactive", "test"]
+
+    def test_github_backward_compatibility_with_owner_repo(self, tmp_path: Path) -> None:
+        """Test backward compatibility with deprecated github_owner/github_repo parameters."""
+        # Setup test environment
+        config_dir = tmp_path / ".mcp-ticketer"
+        config_dir.mkdir()
+        config_file = config_dir / "config.json"
+
+        # Mock the _configure_github function to return test data
+        mock_adapter_config = Mock()
+        mock_adapter_config.to_dict.return_value = {
+            "token": "test_token",
+            "owner": "test_owner",
+            "repo": "test_repo",
+        }
+
+        # Test default values that should be merged
+        mock_default_values = {
+            "default_user": "test_user@example.com",
+            "default_epic": "EPIC-456",
+            "default_project": "legacy-project",
+            "default_tags": ["legacy", "backward-compat"],
+        }
+
+        with (
+            patch("mcp_ticketer.cli.init_command.Path.cwd", return_value=tmp_path),
+            patch(
+                "mcp_ticketer.cli.init_command._configure_github",
+                return_value=(mock_adapter_config, mock_default_values),
+            ),
+            patch("rich.console.Console.print"),
+            patch(
+                "mcp_ticketer.cli.init_command._validate_adapter_credentials",
+                return_value=[],  # Empty list = no validation issues
+            ),
+        ):
+            # Run init for GitHub adapter using old parameters
+            result = _init_adapter_internal(
+                adapter="github",
+                github_token="test_token",
+                # Pass deprecated parameters via kwargs
+                github_owner="test_owner",
+                github_repo="test_repo",
+            )
+
+            # Assert init succeeded
+            assert result is True
+
+            # Read the generated config
+            with open(config_file) as f:
+                config = json.load(f)
+
+            # Verify adapter config exists
+            assert "adapters" in config
+            assert "github" in config["adapters"]
+            assert config["adapters"]["github"]["token"] == "test_token"
+
+            # CRITICAL: Verify default_values were merged into top-level config
+            assert config.get("default_user") == "test_user@example.com"
+            assert config.get("default_epic") == "EPIC-456"
+            assert config.get("default_project") == "legacy-project"
+            assert config.get("default_tags") == ["legacy", "backward-compat"]
 
     def test_linear_setup_still_works_correctly(self, tmp_path: Path) -> None:
         """Verify Linear adapter (the reference implementation) still works."""

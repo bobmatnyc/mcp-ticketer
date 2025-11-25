@@ -159,9 +159,13 @@ make init-jira
 ```bash
 # Set environment variables
 export GITHUB_TOKEN="ghp_your_token_here"
-export GITHUB_REPO="owner/repository"
+export GITHUB_REPO_URL="https://github.com/owner/repository"
 
-# Initialize GitHub adapter
+# Initialize GitHub adapter (preferred - uses repository URL)
+mcp-ticketer init --adapter github --github-url $GITHUB_REPO_URL
+
+# Legacy format still works
+export GITHUB_REPO="owner/repository"
 mcp-ticketer init --adapter github --repo $GITHUB_REPO
 
 # Or using Make
@@ -1108,8 +1112,11 @@ export JIRA_SERVER=https://company.atlassian.net
 export JIRA_EMAIL=user@example.com
 export JIRA_API_TOKEN=your_token
 
-# GitHub
+# GitHub (preferred - URL format)
 export GITHUB_TOKEN=ghp_xxx
+export GITHUB_REPO_URL=https://github.com/owner/repo
+
+# GitHub (legacy format - still supported)
 export GITHUB_REPO=owner/repo
 
 # Debug

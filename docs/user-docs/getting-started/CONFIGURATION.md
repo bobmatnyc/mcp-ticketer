@@ -508,12 +508,49 @@ mcp-ticketer init --adapter linear --team-url https://linear.app/your-org/team/E
 
 ### GitHub Configuration
 
+**Quick Setup (Preferred - URL-Based)**
+
+The easiest way to configure GitHub is to use your repository URL directly:
+
+```bash
+# Initialize with repository URL (preferred)
+mcp-ticketer init --adapter github \
+  --github-url https://github.com/myorg/myrepo \
+  --github-token ghp_xxxxxxxxxxxxx
+
+# Or use environment variables
+export GITHUB_REPO_URL="https://github.com/myorg/myrepo"
+export GITHUB_TOKEN="ghp_xxxxxxxxxxxxx"
+mcp-ticketer init --adapter github
+```
+
+**Interactive Mode**
+
+During setup, you'll be prompted:
+```
+GitHub Repository URL (e.g., https://github.com/owner/repo): https://github.com/myorg/myrepo
+✓ Repository: myorg/myrepo
+GitHub Token: ghp_xxxxxxxxxxxxx
+```
+
+**Legacy Format (Still Supported)**
+
+For backward compatibility, separate owner/repo parameters still work:
+```bash
+# Legacy format with separate parameters
+mcp-ticketer init --adapter github \
+  --github-owner myorg \
+  --github-repo myrepo \
+  --github-token ghp_xxxxxxxxxxxxx
+```
+
+**Configuration File Example**
+
 ```json
 {
   "adapter": "github",
   "config": {
-    "owner": "myorganization",
-    "repo": "myrepository",
+    "repo_url": "https://github.com/myorganization/myrepository",
     "token": "ghp_1234567890abcdef",
     "base_url": "https://api.github.com",
     "include_pull_requests": false,
@@ -562,14 +599,30 @@ mcp-ticketer init --adapter linear --team-url https://linear.app/your-org/team/E
 }
 ```
 
-**Environment Variables:**
+**Environment Variables**
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `GITHUB_TOKEN` | Personal access token | ✅ |
-| `GITHUB_OWNER` | Repository owner | ✅ |
-| `GITHUB_REPO` | Repository name | ✅ |
-| `GITHUB_BASE_URL` | API base URL | ❌ |
+| Variable | Description | Required | Example |
+|----------|-------------|----------|---------|
+| `GITHUB_TOKEN` | Personal access token | ✅ | `ghp_xxxxxxxxxxxxx` |
+| `GITHUB_REPO_URL` | Repository URL (preferred) | ✅ (one of URL or owner/repo) | `https://github.com/owner/repo` |
+| `GITHUB_OWNER` | Repository owner (legacy) | ⚠️ (backward compatibility) | `myorg` |
+| `GITHUB_REPO` | Repository name (legacy) | ⚠️ (backward compatibility) | `myrepo` |
+| `GITHUB_BASE_URL` | API base URL | ❌ | `https://api.github.com` |
+
+**Migration Notes**
+
+- ✅ New configurations should use `GITHUB_REPO_URL`
+- ✅ Existing configurations with `owner`/`repo` continue to work
+- ✅ The system automatically parses URLs to extract owner and repo
+- ✅ URL format is simpler and less error-prone
+- ✅ No action required for existing users
+
+**Benefits of URL-Based Configuration**
+
+1. **Simpler**: Copy-paste repository URL from browser
+2. **Less error-prone**: Single parameter instead of two
+3. **More intuitive**: Matches GitHub's URL structure
+4. **Consistent**: Similar to Linear's team URL approach
 
 ## Ticket Scoping Configuration
 

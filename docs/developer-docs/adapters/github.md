@@ -25,12 +25,26 @@ The GitHub adapter provides comprehensive integration with GitHub Issues, suppor
 ### Environment Variables
 ```bash
 export GITHUB_TOKEN="ghp_your_personal_access_token"
+
+# Option 1: Using repository URL (Recommended)
+export GITHUB_REPO_URL="https://github.com/owner/repo"
+
+# Option 2: Using separate owner/repo (Fallback)
 export GITHUB_OWNER="repository_owner"
 export GITHUB_REPO="repository_name"
 ```
 
 ### CLI Configuration
 ```bash
+# Option 1: Interactive wizard (recommended)
+mcp-ticket init --adapter github
+
+# Option 2: Non-interactive with URL
+mcp-ticket init --adapter github \
+  --repo-url "https://github.com/your-org/your-repo" \
+  --github-token "ghp_your_token"
+
+# Option 3: Non-interactive with separate owner/repo (backward compatible)
 mcp-ticket init --adapter github \
   --github-owner "your-org" \
   --github-repo "your-repo" \

@@ -12,6 +12,7 @@ import asyncio
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 import typer
 from rich.console import Console
@@ -420,9 +421,9 @@ def _init_adapter_internal(
     jira_server: str | None = None,
     jira_email: str | None = None,
     jira_project: str | None = None,
-    github_owner: str | None = None,
-    github_repo: str | None = None,
+    github_url: str | None = None,
     github_token: str | None = None,
+    **kwargs: Any,
 ) -> bool:
     """Internal function to initialize adapter configuration.
 
@@ -440,9 +441,9 @@ def _init_adapter_internal(
         jira_server: JIRA server URL
         jira_email: JIRA user email for authentication
         jira_project: Default JIRA project key
-        github_owner: GitHub repository owner
-        github_repo: GitHub repository name
+        github_url: GitHub repository URL (e.g., https://github.com/owner/repo)
         github_token: GitHub Personal Access Token
+        **kwargs: Additional parameters (includes deprecated github_owner, github_repo for backward compatibility)
 
     Returns:
     -------
@@ -618,10 +619,16 @@ def _init_adapter_internal(
         # If not auto-discovered, build from CLI params or use consolidated function
         if adapter_type not in config["adapters"]:
             try:
+                # Extract deprecated parameters for backward compatibility
+                github_owner = kwargs.get("github_owner")
+                github_repo = kwargs.get("github_repo")
+
                 # Determine if we need interactive prompts
+                # Prioritize github_url, fallback to owner/repo
                 has_all_params = bool(
-                    (github_owner or os.getenv("GITHUB_OWNER"))
-                    and (github_repo or os.getenv("GITHUB_REPO"))
+                    (github_url or os.getenv("GITHUB_REPO_URL") or
+                     (github_owner or os.getenv("GITHUB_OWNER")) and
+                     (github_repo or os.getenv("GITHUB_REPO")))
                     and (github_token or os.getenv("GITHUB_TOKEN"))
                 )
 
@@ -629,6 +636,7 @@ def _init_adapter_internal(
                 # Returns tuple: (AdapterConfig, default_values_dict) - following Linear pattern
                 adapter_config, default_values = _configure_github(
                     interactive=not has_all_params,
+                    repo_url=github_url,
                     owner=github_owner,
                     repo=github_repo,
                     token=github_token,
@@ -733,14 +741,20 @@ def init(
     jira_project: str | None = typer.Option(
         None, "--jira-project", help="Default JIRA project key"
     ),
-    github_owner: str | None = typer.Option(
-        None, "--github-owner", help="GitHub repository owner"
-    ),
-    github_repo: str | None = typer.Option(
-        None, "--github-repo", help="GitHub repository name"
+    github_url: str | None = typer.Option(
+        None,
+        "--github-url",
+        help="GitHub repository URL (e.g., https://github.com/owner/repo)",
     ),
     github_token: str | None = typer.Option(
         None, "--github-token", help="GitHub Personal Access Token"
+    ),
+    # Deprecated parameters for backward compatibility (hidden from help)
+    github_owner: str | None = typer.Option(
+        None, "--github-owner", hidden=True
+    ),
+    github_repo: str | None = typer.Option(
+        None, "--github-repo", hidden=True
     ),
 ) -> None:
     """Initialize adapter configuration only (without platform installation).
@@ -856,9 +870,11 @@ def init(
         jira_server=jira_server,
         jira_email=jira_email,
         jira_project=jira_project,
+        github_url=github_url,
+        github_token=github_token,
+        # Pass deprecated parameters via kwargs for backward compatibility
         github_owner=github_owner,
         github_repo=github_repo,
-        github_token=github_token,
     )
 
     if not success:

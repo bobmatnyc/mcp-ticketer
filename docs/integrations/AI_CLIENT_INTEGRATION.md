@@ -365,7 +365,7 @@ mcp-ticketer init --adapter aitrackdown
 # Or initialize with external service
 mcp-ticketer init --adapter linear --team-id YOUR_TEAM_ID
 mcp-ticketer init --adapter jira --jira-server https://company.atlassian.net
-mcp-ticketer init --adapter github --repo owner/repo
+mcp-ticketer init --adapter github --github-url https://github.com/owner/repo
 ```
 
 #### Step 3: Configure MCP Integration
@@ -519,7 +519,8 @@ mcp-ticketer install claude-code --dry-run
       "args": ["-m", "mcp_ticketer.mcp.server", "/project/path"],
       "env": {
         "MCP_TICKETER_ADAPTER": "github",
-        "GITHUB_REPO": "owner/repo",
+        "GITHUB_REPO_URL": "https://github.com/owner/repo",
+        "GITHUB_TOKEN": "ghp_xxxxxxxxxxxxx",
         "PYTHONPATH": "/project/path"
       }
     }

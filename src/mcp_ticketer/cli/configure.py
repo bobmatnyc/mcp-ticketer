@@ -622,6 +622,7 @@ def _configure_jira(
 def _configure_github(
     interactive: bool = True,
     token: str | None = None,
+    repo_url: str | None = None,
     owner: str | None = None,
     repo: str | None = None,
     **kwargs: Any,
@@ -634,8 +635,9 @@ def _configure_github(
     ----
         interactive: If True, prompt user for missing values (default: True)
         token: Pre-provided GitHub Personal Access Token (optional)
-        owner: Pre-provided repository owner (optional)
-        repo: Pre-provided repository name (optional)
+        repo_url: Pre-provided GitHub repository URL (optional, preferred)
+        owner: Pre-provided repository owner (optional, fallback)
+        repo: Pre-provided repository name (optional, fallback)
         **kwargs: Additional configuration parameters
 
     Returns:
@@ -670,50 +672,83 @@ def _configure_github(
             "GitHub token is required (provide token parameter or set GITHUB_TOKEN environment variable)"
         )
 
-    # Repository Owner (programmatic mode: use provided value or env, interactive: prompt)
-    final_owner = owner or os.getenv("GITHUB_OWNER") or ""
-    if interactive and not final_owner:
-        final_owner = Prompt.ask("Repository Owner (username or org)")
-    elif not interactive and not final_owner:
-        raise ValueError(
-            "GitHub repository owner is required (provide owner parameter or set GITHUB_OWNER environment variable)"
-        )
+    # Repository URL/Owner/Repo - Prioritize repo_url, fallback to owner/repo
+    # Programmatic mode: use repo_url or GITHUB_REPO_URL env, fallback to owner/repo
+    final_owner = ""
+    final_repo = ""
 
-    # Repository Name (programmatic mode: use provided value or env, interactive: prompt)
-    # Support both plain repo names and full GitHub URLs
-    final_repo = repo or os.getenv("GITHUB_REPO") or ""
+    # Step 1: Try to get URL from parameter or environment
+    url_input = repo_url or os.getenv("GITHUB_REPO_URL") or ""
 
-    # If repo looks like a URL, parse it to extract owner and repo
-    if final_repo and final_repo.startswith("http"):
+    # Step 2: Parse URL if provided
+    if url_input:
         from ..core.url_parser import parse_github_repo_url
 
-        parsed_owner, parsed_repo, error = parse_github_repo_url(final_repo)
+        parsed_owner, parsed_repo, error = parse_github_repo_url(url_input)
         if parsed_owner and parsed_repo:
-            # Update both owner and repo from URL
-            if not final_owner:
-                final_owner = parsed_owner
-                if interactive:
-                    console.print(
-                        f"[dim]Extracted owner '{parsed_owner}' from URL[/dim]"
-                    )
+            final_owner = parsed_owner
             final_repo = parsed_repo
             if interactive:
-                console.print(f"[dim]Extracted repo '{parsed_repo}' from URL[/dim]")
-        elif interactive:
-            console.print(
-                f"[yellow]Warning: Could not parse GitHub URL. {error}[/yellow]"
-            )
-            console.print(
-                "[yellow]Please enter repository name (not full URL)[/yellow]"
-            )
-            final_repo = ""
+                console.print(
+                    f"[dim]✓ Extracted repository: {final_owner}/{final_repo}[/dim]"
+                )
+        else:
+            # URL parsing failed
+            if interactive:
+                console.print(f"[yellow]Warning: {error}[/yellow]")
+            else:
+                raise ValueError(f"Failed to parse GitHub repository URL: {error}")
 
-    if interactive and not final_repo:
-        final_repo = Prompt.ask("Repository Name (e.g., 'my-repo', not full URL)")
-    elif not interactive and not final_repo:
-        raise ValueError(
-            "GitHub repository name is required (provide repo parameter or set GITHUB_REPO environment variable)"
+    # Step 3: Interactive mode - prompt for URL if not provided
+    if interactive and not final_owner and not final_repo:
+        console.print(
+            "[dim]Enter your GitHub repository URL (e.g., https://github.com/owner/repo)[/dim]"
         )
+
+        # Keep prompting until we get a valid URL
+        while not final_owner or not final_repo:
+            from ..core.url_parser import parse_github_repo_url
+
+            url_prompt = Prompt.ask(
+                "GitHub Repository URL",
+                default="https://github.com/",
+            )
+
+            parsed_owner, parsed_repo, error = parse_github_repo_url(url_prompt)
+            if parsed_owner and parsed_repo:
+                final_owner = parsed_owner
+                final_repo = parsed_repo
+                console.print(
+                    f"[dim]✓ Repository: {final_owner}/{final_repo}[/dim]"
+                )
+                break
+            else:
+                console.print(f"[red]Error: {error}[/red]")
+                console.print(
+                    "[yellow]Please enter a valid GitHub repository URL[/yellow]"
+                )
+
+    # Step 4: Non-interactive fallback - use individual owner/repo parameters
+    if not final_owner or not final_repo:
+        fallback_owner = owner or os.getenv("GITHUB_OWNER") or ""
+        fallback_repo = repo or os.getenv("GITHUB_REPO") or ""
+
+        # In non-interactive mode, both must be provided if URL wasn't
+        if not interactive:
+            if not fallback_owner or not fallback_repo:
+                raise ValueError(
+                    "GitHub repository is required. Provide either:\n"
+                    "  - repo_url parameter or GITHUB_REPO_URL environment variable, OR\n"
+                    "  - Both owner and repo parameters (or GITHUB_OWNER/GITHUB_REPO environment variables)"
+                )
+            final_owner = fallback_owner
+            final_repo = fallback_repo
+        else:
+            # Interactive mode with fallback values
+            if fallback_owner:
+                final_owner = fallback_owner
+            if fallback_repo:
+                final_repo = fallback_repo
 
     config_dict = {
         "adapter": AdapterType.GITHUB.value,
