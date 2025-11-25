@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.2.10] - 2025-11-24
+
+### Fixed
+- **Linear epic_issues**: Fixed bug where epic_issues returned empty list for Linear projects
+  - Root cause: _get_project_issues() was passing short IDs (e.g., "13ddc89e7271") directly to GraphQL query
+  - Linear API requires full UUIDs for project filtering, not short IDs
+  - Fix: Added project ID resolution step before building GraphQL filter
+  - Impact: epic_issues now correctly returns all issues in a Linear project regardless of ID format
+  - Supports short IDs, slug-IDs, full UUIDs, and full URLs
+  - Added comprehensive unit tests (9 tests) covering all ID formats
+  - Added integration tests (8 tests) for complete epic_issues flow
+  - All 17 tests passing
+
 ## [1.2.9] - 2025-11-24
 
 ### Fixed
