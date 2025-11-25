@@ -359,7 +359,7 @@ class TestWarningSystem:
             return_value=mock_adapter,
         ):
             with caplog.at_level(logging.WARNING):
-                result = await ticket_list(limit=100)  # No filters
+                await ticket_list(limit=100)  # No filters
 
                 # Check warning was logged
                 assert any(
@@ -386,7 +386,7 @@ class TestWarningSystem:
             return_value=mock_adapter,
         ):
             with caplog.at_level(logging.WARNING):
-                result = await ticket_list(limit=100, state="open")
+                await ticket_list(limit=100, state="open")
 
                 # No warning should be logged
                 assert not any(
@@ -408,7 +408,7 @@ class TestWarningSystem:
             return_value=mock_adapter,
         ):
             with caplog.at_level(logging.WARNING):
-                result = await ticket_list(limit=50)
+                await ticket_list(limit=50)
 
                 # No warning should be logged
                 assert not any(
@@ -430,7 +430,7 @@ class TestWarningSystem:
             return_value=mock_adapter,
         ):
             with caplog.at_level(logging.WARNING):
-                result = await ticket_search()  # No query, no filters
+                await ticket_search()  # No query, no filters
 
                 # Check warning was logged
                 assert any(
@@ -456,7 +456,7 @@ class TestWarningSystem:
             return_value=mock_adapter,
         ):
             with caplog.at_level(logging.WARNING):
-                result = await ticket_search(query="test")
+                await ticket_search(query="test")
 
                 # No warning should be logged
                 assert not any(
@@ -477,7 +477,7 @@ class TestWarningSystem:
             return_value=mock_adapter,
         ):
             with caplog.at_level(logging.WARNING):
-                result = await ticket_search(state="open")
+                await ticket_search(state="open")
 
                 # No warning should be logged
                 assert not any(

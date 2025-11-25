@@ -543,7 +543,7 @@ class TestAsanaAttachments:
             ("test.json", "application/json"),
         ]
 
-        for filename, expected_mime in test_files:
+        for filename, _expected_mime in test_files:
             test_file = tmp_path / filename
             test_file.write_text("test content")
 
