@@ -107,3 +107,21 @@ verify-dist: ## Verify distribution packages
 	@echo "Checking package integrity..."
 	@twine check dist/*
 	@echo "✅ Distribution packages verified"
+
+##@ Homebrew Tap Management
+
+.PHONY: update-homebrew-tap
+update-homebrew-tap: ## Update Homebrew tap formula (requires VERSION)
+	@if [ -z "$(VERSION)" ]; then \
+		echo "Error: VERSION not specified"; \
+		echo "Usage: make update-homebrew-tap VERSION=1.2.10"; \
+		exit 1; \
+	fi
+	@echo "Updating Homebrew tap for version $(VERSION)..."
+	@bash scripts/update_homebrew_tap.sh $(VERSION)
+
+.PHONY: homebrew-tap-auto
+homebrew-tap-auto: ## Auto-update Homebrew tap with current version
+	@echo "Auto-updating Homebrew tap with current version..."
+	@CURRENT_VERSION=$$($(PYTHON) scripts/manage_version.py get-version) && \
+		bash scripts/update_homebrew_tap.sh $$CURRENT_VERSION
