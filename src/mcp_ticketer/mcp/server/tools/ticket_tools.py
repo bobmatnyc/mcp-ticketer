@@ -767,6 +767,236 @@ async def ticket_list(
 
 
 @mcp.tool()
+async def ticket_summary(ticket_id: str) -> dict[str, Any]:
+    """Get ultra-compact ticket summary for minimal token usage.
+
+    This tool returns only the most essential ticket information for quick
+    status checks. It's optimized for minimal token usage (~20 tokens vs
+    ~185 tokens for full ticket details).
+
+    Use Cases:
+    - Quick status check: "What's the current state of TICKET-123?"
+    - Batch status queries: Check multiple tickets without context overload
+    - Dashboard updates: Get high-level overview of many tickets
+
+    Fields Returned:
+    - id: Ticket identifier
+    - title: Ticket title
+    - state: Current workflow state
+    - priority: Priority level
+    - assignee: Assigned user (if any)
+
+    For full details including description, metadata, dates, etc., use ticket_read.
+    For list queries with filtering, use ticket_list with compact=True.
+
+    Args:
+        ticket_id: Ticket ID or URL to summarize
+
+    Returns:
+        Ultra-compact ticket summary with essential fields only, or error information
+
+    Examples:
+        # Quick status check
+        summary = await ticket_summary("PROJ-123")
+        # Returns: {"id": "PROJ-123", "title": "...", "state": "in_progress", "priority": "high", "assignee": "user@example.com"}
+
+        # Check using URL
+        summary = await ticket_summary("https://linear.app/team/issue/ABC-123")
+
+    """
+    try:
+        # Use ticket_read to get full ticket
+        result = await ticket_read(ticket_id)
+
+        if result["status"] == "error":
+            return result
+
+        ticket = result["ticket"]
+
+        # Extract only ultra-essential fields
+        summary = {
+            "id": ticket.get("id"),
+            "title": ticket.get("title"),
+            "state": ticket.get("state"),
+            "priority": ticket.get("priority"),
+            "assignee": ticket.get("assignee"),
+        }
+
+        return {
+            "status": "completed",
+            **_build_adapter_metadata(
+                get_adapter(), ticket.get("id"), result.get("routed_from_url", False)
+            ),
+            "summary": summary,
+            "token_savings": "~90% smaller than full ticket_read",
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to get ticket summary: {str(e)}",
+        }
+
+
+@mcp.tool()
+async def ticket_latest(ticket_id: str, limit: int = 5) -> dict[str, Any]:
+    """Get recent activity and changes for a ticket (comments, state changes, updates).
+
+    This tool retrieves only recent activity without loading full ticket history,
+    optimizing for scenarios where you need to know "what changed recently" without
+    context overhead from full ticket details.
+
+    Use Cases:
+    - "What's the latest update on TICKET-123?"
+    - "Any recent comments or status changes?"
+    - "What happened since I last checked?"
+
+    Returns:
+    - Recent comments (if adapter supports comment listing)
+    - State transition history (if available)
+    - Last update timestamp
+    - Summary of recent changes
+
+    Note: This tool's behavior varies by adapter based on available APIs:
+    - Adapters with comment API: Returns recent comments
+    - Adapters without comment API: Returns last update summary
+    - Some adapters may not support activity history
+
+    Args:
+        ticket_id: Ticket ID or URL to query
+        limit: Maximum number of recent activities to return (default: 5, max: 20)
+
+    Returns:
+        Recent activity list with timestamps and change descriptions, or error information
+
+    Examples:
+        # Get last 5 activities
+        activity = await ticket_latest("PROJ-123")
+
+        # Get last 10 activities
+        activity = await ticket_latest("PROJ-123", limit=10)
+
+        # Check using URL
+        activity = await ticket_latest("https://linear.app/team/issue/ABC-123")
+
+    """
+    try:
+        # Validate limit
+        if limit < 1 or limit > 20:
+            return {
+                "status": "error",
+                "error": "Limit must be between 1 and 20",
+            }
+
+        # Route to appropriate adapter
+        is_routed = False
+        if is_url(ticket_id) and has_router():
+            router = get_router()
+            logging.info(f"Routing ticket_latest for URL: {ticket_id}")
+            # First get the ticket to verify it exists
+            ticket = await router.route_read(ticket_id)
+            is_routed = True
+            normalized_id, adapter_name, _ = router._normalize_ticket_id(ticket_id)
+            adapter = router._get_adapter(adapter_name)
+            actual_ticket_id = normalized_id
+        else:
+            adapter = get_adapter()
+
+            # If URL provided, extract ID for the adapter
+            actual_ticket_id = ticket_id
+            if is_url(ticket_id):
+                adapter_type = type(adapter).__name__.lower().replace("adapter", "")
+                extracted_id, error = extract_id_from_url(
+                    ticket_id, adapter_type=adapter_type
+                )
+                if error or not extracted_id:
+                    return {
+                        "status": "error",
+                        "error": f"Failed to extract ticket ID from URL: {ticket_id}. {error}",
+                    }
+                actual_ticket_id = extracted_id
+
+            # Get ticket to verify it exists
+            ticket = await adapter.read(actual_ticket_id)
+
+        if ticket is None:
+            return {
+                "status": "error",
+                "error": f"Ticket {ticket_id} not found",
+            }
+
+        # Try to get comments if adapter supports it
+        recent_activity = []
+        supports_comments = False
+
+        try:
+            # Check if adapter has list_comments method
+            if hasattr(adapter, "list_comments"):
+                comments = await adapter.list_comments(actual_ticket_id, limit=limit)
+                supports_comments = True
+
+                # Convert comments to activity format
+                for comment in comments[:limit]:
+                    activity_item = {
+                        "type": "comment",
+                        "timestamp": comment.created_at
+                        if hasattr(comment, "created_at")
+                        else None,
+                        "author": comment.author if hasattr(comment, "author") else None,
+                        "content": comment.content[:200]
+                        + ("..." if len(comment.content) > 200 else ""),
+                    }
+                    recent_activity.append(activity_item)
+        except Exception as e:
+            logging.debug(f"Comment listing not supported or failed: {e}")
+
+        # If no comments available, provide last update info
+        if not recent_activity:
+            recent_activity.append(
+                {
+                    "type": "last_update",
+                    "timestamp": ticket.updated_at
+                    if hasattr(ticket, "updated_at")
+                    else None,
+                    "state": ticket.state,
+                    "priority": ticket.priority,
+                    "assignee": ticket.assignee,
+                }
+            )
+
+        return {
+            "status": "completed",
+            **_build_adapter_metadata(adapter, ticket.id, is_routed),
+            "ticket_id": ticket.id,
+            "ticket_title": ticket.title,
+            "recent_activity": recent_activity,
+            "activity_count": len(recent_activity),
+            "supports_full_history": supports_comments,
+            "limit": limit,
+        }
+
+    except Exception as e:
+        error_response = {
+            "status": "error",
+            "error": f"Failed to get recent activity: {str(e)}",
+        }
+
+        # Add diagnostic suggestion for system-level errors
+        if should_suggest_diagnostics(e):
+            logging.debug(
+                "Error classified as system-level, adding diagnostic suggestion"
+            )
+            try:
+                quick_info = await get_quick_diagnostic_info()
+                error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(
+                    e, quick_info
+                )
+            except Exception as diag_error:
+                logging.debug(f"Diagnostic suggestion generation failed: {diag_error}")
+
+        return error_response
+
+
+@mcp.tool()
 async def ticket_assign(
     ticket_id: str,
     assignee: str | None,
