@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.2.8] - 2025-11-24
+
+### Added
+- **Token-Efficient Ticket Queries**: New MCP tools to prevent context overload
+  - `ticket_summary()` - Ultra-compact 5-field response (~20 tokens, 90% reduction vs ticket_read)
+  - `ticket_latest()` - Recent activity only with comment truncation (200 chars max)
+  - Both support URL routing and graceful degradation
+  - 16 comprehensive tests with 100% pass rate
+  - Optimizes AI agent token usage when querying ticket systems via MCP
+
+### Fixed
+- **Development Environment**: Fixed recurring pytest error preventing test execution
+  - Added activation helper scripts (activate-dev-env.sh, .venv-activate-reminder)
+  - Documented proper venv usage to resolve pytest plugin issues
+  - Created comprehensive development environment guide
+
+### Documentation
+- **Comprehensive Reorganization**: 92% reduction in top-level documentation clutter
+  - Reduced top-level docs/ from 26 files to 2 files
+  - Archived 27 completed implementation/research reports by date
+  - Moved 12 active documents to proper locations
+  - Fixed 3 broken links and added cross-references
+  - All content preserved in dated archives (89 files total)
+- **MCP Integration Guide**: Added documentation for token-efficient query functions
+  - Parameter descriptions and token comparison tables
+  - Example requests/responses for ticket_summary and ticket_latest
+  - Use cases and graceful degradation patterns
+
 ## [1.2.5] - 2025-11-24
 
 ### Fixed
