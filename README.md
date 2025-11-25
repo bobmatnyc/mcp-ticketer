@@ -519,9 +519,8 @@ graph LR
 git clone https://github.com/mcp-ticketer/mcp-ticketer.git
 cd mcp-ticketer
 
-# Create virtual environment
-python -m venv venv
-source .venv/bin/activate  # On Windows: venv\Scripts\activate
+# Activate existing virtual environment
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install in development mode with all dependencies
 pip install -e ".[dev,test,docs]"
@@ -529,6 +528,10 @@ pip install -e ".[dev,test,docs]"
 # Install pre-commit hooks
 pre-commit install
 ```
+
+**Note**: The project includes a pre-configured `.venv` with all dependencies. Just activate it to get started.
+
+**Troubleshooting pytest issues?** See [Development Environment Guide](docs/DEVELOPMENT_ENVIRONMENT.md) for detailed setup instructions and common issue resolution.
 
 ### Modular Build System
 

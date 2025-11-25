@@ -32,7 +32,7 @@ Platform-specific setup and integration
 - Platform setup guides (Linear, JIRA, Claude Desktop, etc.)
 - Pull request integration
 
-### 🔧 [Troubleshooting Guide](TROUBLESHOOTING.md)
+### 🔧 [Troubleshooting Guide](user-docs/troubleshooting/TROUBLESHOOTING.md)
 Common issues and solutions
 - General troubleshooting steps
 - Adapter-specific issues (Linear, GitHub, JIRA)
@@ -67,7 +67,7 @@ Documentation about documentation, migrations, and configuration
 3. [Bulletproof Ticket Creation](user-docs/guides/BULLETPROOF_TICKET_CREATION.md)
 
 ### I want to contribute
-1. [Development Guide](DEVELOPMENT.md) - Build system, testing, and workflows
+1. [Development Guide](developer-docs/DEVELOPMENT.md) - Build system, testing, and workflows
 2. [Developer Guide](developer-docs/getting-started/DEVELOPER_GUIDE.md)
 3. [Contributing Guide](developer-docs/getting-started/CONTRIBUTING.md)
 4. [Code Structure](developer-docs/getting-started/CODE_STRUCTURE.md)
@@ -89,7 +89,7 @@ Documentation about documentation, migrations, and configuration
 
 ## Getting Help
 
-- **Having Issues?**: Check the [Troubleshooting Guide](TROUBLESHOOTING.md) first
+- **Having Issues?**: Check the [Troubleshooting Guide](user-docs/troubleshooting/TROUBLESHOOTING.md) first
 - **Missing Information**: Open an issue describing what's missing
 - **Unclear Instructions**: Submit a pull request with improvements
 - **Broken Examples**: Report with steps to reproduce

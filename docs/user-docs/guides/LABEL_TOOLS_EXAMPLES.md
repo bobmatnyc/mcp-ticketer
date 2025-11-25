@@ -2,6 +2,8 @@
 
 This document provides practical examples of using the label management MCP tools.
 
+> 📖 **See Also**: [Label Management Guide](LABEL_MANAGEMENT.md) - Comprehensive guide with workflows and best practices
+
 ## Overview
 
 The label management tools provide intelligent label normalization, deduplication, merging, and cleanup capabilities for ticket systems.

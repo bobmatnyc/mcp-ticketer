@@ -2,6 +2,8 @@
 
 Comprehensive guide to label management features in MCP Ticketer.
 
+> 💡 **See Also**: [Label Tools Examples](LABEL_TOOLS_EXAMPLES.md) - Practical JSON request/response examples for all label tools
+
 ## Table of Contents
 
 - [Overview](#overview)

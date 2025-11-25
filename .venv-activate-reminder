@@ -1,0 +1,26 @@
+#!/bin/bash
+# Quick reminder for activating the virtual environment
+
+cat <<'EOF'
+╔══════════════════════════════════════════════════════════════╗
+║            MCP-TICKETER DEVELOPMENT ENVIRONMENT              ║
+╚══════════════════════════════════════════════════════════════╝
+
+🚨 IMPORTANT: Always activate the virtual environment first!
+
+    source .venv/bin/activate
+
+Then verify:
+    which pytest    # Should show: .venv/bin/pytest
+    pytest --version
+
+Common commands:
+    make test-parallel   # Run tests (3-4x faster)
+    make quality         # Code quality checks
+    make help           # Show all commands
+
+📖 Documentation:
+    docs/DEVELOPMENT_ENVIRONMENT.md    # Full setup guide
+    docs/PYTEST_FIX_SUMMARY.md        # Pytest issue resolution
+
+EOF
