@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.2.9] - 2025-11-24
+
+### Fixed
+- **Package Distribution**: Patch release to ensure clean PyPI package publication
+  - No functional changes from v1.2.8
+  - Verified distribution files with twine check
+  - Clean build and upload process
+
 ## [1.2.8] - 2025-11-24
 
 ### Added
