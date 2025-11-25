@@ -607,32 +607,24 @@ async def ticket_delete(ticket_id: str) -> dict[str, Any]:
 def _compact_ticket(ticket_dict: dict[str, Any]) -> dict[str, Any]:
     """Extract compact representation of ticket for reduced token usage.
 
-    This helper function reduces ticket data from ~185 tokens to ~55 tokens by
-    including only essential fields. Use for listing operations where full
+    This helper function reduces ticket data from ~185 tokens to ~15 tokens by
+    including only the most essential fields. Use for listing operations where full
     details are not needed.
 
     Args:
         ticket_dict: Full ticket dictionary from model_dump()
 
     Returns:
-        Compact ticket dictionary with only essential fields:
+        Compact ticket dictionary with minimal fields:
         - id: Ticket identifier
         - title: Ticket title
-        - state: Current state
-        - priority: Priority level
-        - assignee: Assigned user (if any)
-        - tags: List of tags/labels
-        - parent_epic: Parent epic/project ID (if any)
+        - state: Current state (for quick status check)
 
     """
     return {
         "id": ticket_dict.get("id"),
         "title": ticket_dict.get("title"),
         "state": ticket_dict.get("state"),
-        "priority": ticket_dict.get("priority"),
-        "assignee": ticket_dict.get("assignee"),
-        "tags": ticket_dict.get("tags", []),
-        "parent_epic": ticket_dict.get("parent_epic"),
     }
 
 
@@ -647,36 +639,42 @@ async def ticket_list(
 ) -> dict[str, Any]:
     """List tickets with pagination and optional filters.
 
+    IMPORTANT - Use defaults to minimize token usage:
+        - Always use compact=True (titles only) unless full details explicitly needed
+        - Keep limit=20 or lower for routine queries
+        - Only increase limit or use compact=False when specifically requested
+
     Token Usage Optimization:
-        Default settings (limit=20, compact=True) return ~1.1k tokens per response.
-        For detailed information, use compact=False (returns ~185 tokens per ticket).
+        Default settings (limit=20, compact=True) return ~300 tokens per response.
+        Compact mode returns only id, title, and state (~15 tokens per ticket).
+        Non-compact mode (compact=False) returns full details (~185 tokens per ticket).
 
         Token usage examples:
-        - 20 tickets, compact=True: ~1.1k tokens (~0.55% of context)
+        - 20 tickets, compact=True: ~300 tokens (~0.15% of context) ← RECOMMENDED DEFAULT
         - 20 tickets, compact=False: ~3.7k tokens (~1.85% of context)
-        - 50 tickets, compact=True: ~2.75k tokens (~1.4% of context)
-        - 50 tickets, compact=False: ~9.25k tokens (~4.6% of context)
+        - 50 tickets, compact=True: ~750 tokens (~0.38% of context)
+        - 50 tickets, compact=False: ~9.25k tokens (~4.6% of context) ← AVOID unless necessary
 
     Args:
-        limit: Maximum number of tickets to return (default: 20, max: 100)
+        limit: Maximum number of tickets to return (default: 20, recommended: 20 or less, max: 100)
         offset: Number of tickets to skip for pagination (default: 0)
         state: Filter by state - must be one of: open, in_progress, ready, tested, done, closed, waiting, blocked
         priority: Filter by priority - must be one of: low, medium, high, critical
         assignee: Filter by assigned user ID or email
-        compact: Return minimal fields for reduced token usage (default: True)
-                Set to False for full ticket details with description, metadata, etc.
+        compact: Return minimal fields (titles only) for reduced token usage (default: True, strongly recommended)
+                Set to False ONLY when full ticket details with description explicitly requested
 
     Returns:
         List of tickets matching criteria, or error information
 
     Examples:
-        # Default: 20 compact tickets (~1.1k tokens)
+        # Default: 20 compact tickets with id, title, state (~300 tokens)
         tickets = await ticket_list()
 
-        # Get full details for fewer tickets
+        # Get full details for fewer tickets when description/metadata needed
         tickets = await ticket_list(limit=10, compact=False)
 
-        # Large query with compact mode
+        # More tickets with compact mode (still efficient)
         tickets = await ticket_list(limit=50, compact=True)
 
     """
