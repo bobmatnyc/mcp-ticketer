@@ -204,6 +204,42 @@ List tickets with optional filtering.
 - `state` (string, optional): Filter by state
 - `priority` (string, optional): Filter by priority
 - `assignee` (string, optional): Filter by assignee
+- `compact` (boolean, optional): Return compact format (~55 tokens vs ~185 tokens, default: true)
+
+**Token Optimization**: By default returns compact format with only 7 essential fields (id, title, state, priority, assignee, tags, parent_epic), reducing token usage by ~70%.
+
+#### `ticket_summary`
+Get ultra-compact ticket summary for minimal token usage.
+
+**Parameters**:
+- `ticket_id` (string, required): Ticket ID or URL
+
+**Returns**: Only 5 essential fields (id, title, state, priority, assignee)
+
+**Token Optimization**: Returns ~20 tokens vs ~185 tokens for full ticket_read (90% reduction). Perfect for quick status checks without context overload.
+
+**Example Use Cases**:
+- Quick status checks across multiple tickets
+- Lightweight polling for ticket state changes
+- Building ticket dashboards with minimal context consumption
+
+#### `ticket_latest`
+Get recent activity and changes for a ticket without full history.
+
+**Parameters**:
+- `ticket_id` (string, required): Ticket ID or URL
+- `limit` (integer, optional): Maximum activities to return (default: 5, max: 20)
+
+**Returns**: Recent activity array with comments, state changes, and updates. Comments are truncated to 200 characters to save tokens.
+
+**Token Optimization**: Loads only recent activity without full ticket history. Comments are automatically truncated to prevent context overload.
+
+**Example Use Cases**:
+- Checking what changed recently on a ticket
+- Following conversation without loading full comment history
+- Monitoring ticket progress with minimal token usage
+
+**Graceful Degradation**: Falls back to last_update info if adapter doesn't support comment listing.
 
 #### `ticket_update`
 Update an existing ticket's properties.
@@ -482,6 +518,94 @@ Standard JSON-RPC error codes used:
   "id": 5
 }
 ```
+
+### Get Ultra-Compact Ticket Summary
+
+**Request**:
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "ticket_summary",
+  "params": {
+    "ticket_id": "AUTH-001"
+  },
+  "id": 6
+}
+```
+
+**Response**:
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "status": "completed",
+    "adapter": "linear",
+    "adapter_name": "Linear",
+    "summary": {
+      "id": "AUTH-001",
+      "title": "Implement user authentication",
+      "state": "in_progress",
+      "priority": "high",
+      "assignee": "john.doe"
+    },
+    "token_savings": "~90% smaller than full ticket_read"
+  },
+  "id": 6
+}
+```
+
+**Token Comparison**:
+- Full ticket_read: ~185 tokens
+- ticket_summary: ~20 tokens (90% reduction)
+
+### Get Recent Ticket Activity
+
+**Request**:
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "ticket_latest",
+  "params": {
+    "ticket_id": "AUTH-001",
+    "limit": 3
+  },
+  "id": 7
+}
+```
+
+**Response**:
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "status": "completed",
+    "adapter": "linear",
+    "adapter_name": "Linear",
+    "ticket_id": "AUTH-001",
+    "ticket_title": "Implement user authentication",
+    "recent_activity": [
+      {
+        "type": "comment",
+        "timestamp": "2024-01-15T16:00:00Z",
+        "author": "john.doe",
+        "content": "Started implementation of JWT token validation..."
+      },
+      {
+        "type": "comment",
+        "timestamp": "2024-01-15T14:30:00Z",
+        "author": "jane.smith",
+        "content": "Please use bcrypt for password hashing and implement refresh tokens..."
+      }
+    ],
+    "activity_count": 2,
+    "supports_full_history": true,
+    "limit": 3
+  },
+  "id": 7
+}
+```
+
+**Note**: Long comments are automatically truncated to 200 characters to prevent context overload.
 
 ## Security Considerations
 
