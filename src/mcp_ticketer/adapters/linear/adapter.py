@@ -2997,9 +2997,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         except Exception as e:
             logger.error(f"Failed to get project update {update_id}: {e}")
-            raise ValueError(
-                f"Failed to get project update '{update_id}': {e}"
-            ) from e
+            raise ValueError(f"Failed to get project update '{update_id}': {e}") from e
 
     async def close(self) -> None:
         """Close the adapter and clean up resources."""

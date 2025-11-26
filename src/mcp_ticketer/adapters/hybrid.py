@@ -492,7 +492,9 @@ class HybridAdapter(BaseAdapter):
         results = []
         for adapter_name, adapter in self.adapters.items():
             if universal_id is None:
-                logger.warning(f"No universal ID available for ticket: {comment.ticket_id}")
+                logger.warning(
+                    f"No universal ID available for ticket: {comment.ticket_id}"
+                )
                 continue
             adapter_ticket_id = self._get_adapter_ticket_id(universal_id, adapter_name)
             if not adapter_ticket_id:
