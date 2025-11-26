@@ -6,7 +6,7 @@ import os
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -53,7 +53,7 @@ class GitHubConfig(BaseAdapterConfig):
             v = os.getenv("GITHUB_TOKEN")
         if not v:
             raise ValueError("GitHub token is required")
-        return v
+        return cast(str, v)
 
     @field_validator("owner", mode="before")
     @classmethod
@@ -63,7 +63,7 @@ class GitHubConfig(BaseAdapterConfig):
             v = os.getenv("GITHUB_OWNER")
         if not v:
             raise ValueError("GitHub owner is required")
-        return v
+        return cast(str, v)
 
     @field_validator("repo", mode="before")
     @classmethod
@@ -73,7 +73,7 @@ class GitHubConfig(BaseAdapterConfig):
             v = os.getenv("GITHUB_REPO")
         if not v:
             raise ValueError("GitHub repo is required")
-        return v
+        return cast(str, v)
 
 
 class JiraConfig(BaseAdapterConfig):
@@ -95,7 +95,7 @@ class JiraConfig(BaseAdapterConfig):
             v = os.getenv("JIRA_SERVER")
         if not v:
             raise ValueError("JIRA server URL is required")
-        return v.rstrip("/")
+        return cast(str, v).rstrip("/")
 
     @field_validator("email", mode="before")
     @classmethod
@@ -105,7 +105,7 @@ class JiraConfig(BaseAdapterConfig):
             v = os.getenv("JIRA_EMAIL")
         if not v:
             raise ValueError("JIRA email is required")
-        return v
+        return cast(str, v)
 
     @field_validator("api_token", mode="before")
     @classmethod
@@ -115,7 +115,7 @@ class JiraConfig(BaseAdapterConfig):
             v = os.getenv("JIRA_API_TOKEN")
         if not v:
             raise ValueError("JIRA API token is required")
-        return v
+        return cast(str, v)
 
 
 class LinearConfig(BaseAdapterConfig):
@@ -143,7 +143,7 @@ class LinearConfig(BaseAdapterConfig):
             v = os.getenv("LINEAR_API_KEY")
         if not v:
             raise ValueError("Linear API key is required")
-        return v
+        return cast(str, v)
 
 
 class AITrackdownConfig(BaseAdapterConfig):
@@ -343,16 +343,16 @@ class ConfigurationManager:
         try:
             with open(config_path, encoding="utf-8") as file:
                 if config_path.suffix.lower() in [".yaml", ".yml"]:
-                    return yaml.safe_load(file) or {}
+                    return cast(dict[str, Any], yaml.safe_load(file) or {})
                 elif config_path.suffix.lower() == ".json":
-                    return json.load(file)
+                    return cast(dict[str, Any], json.load(file))
                 else:
                     # Try YAML first, then JSON
                     content = file.read()
                     try:
-                        return yaml.safe_load(content) or {}
+                        return cast(dict[str, Any], yaml.safe_load(content) or {})
                     except yaml.YAMLError:
-                        return json.loads(content)
+                        return cast(dict[str, Any], json.loads(content))
         except Exception as e:
             logger.error(f"Error loading config file {config_path}: {e}")
             return {}
