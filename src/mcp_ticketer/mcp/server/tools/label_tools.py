@@ -914,7 +914,7 @@ async def label_cleanup_report(
         consolidation_potential = sum(
             (
                 len(list(grp["variants"]))
-                if isinstance(grp["variants"], (list, tuple))
+                if isinstance(grp["variants"], list | tuple)
                 else 0
             )
             for grp in duplicate_groups
