@@ -23,14 +23,14 @@ logger = logging.getLogger(__name__)
 
 # Import ai-trackdown-pytools when available
 try:
-    from ai_trackdown_pytools import AITrackdown
-    from ai_trackdown_pytools import Ticket as AITicket
+    from ai_trackdown_pytools import AITrackdown  # type: ignore[attr-defined]
+    from ai_trackdown_pytools import Ticket as AITicket  # type: ignore[attr-defined]
 
     HAS_AITRACKDOWN = True
 except ImportError:
     HAS_AITRACKDOWN = False
-    AITrackdown = None
-    AITicket = None
+    AITrackdown = None  # type: ignore[assignment]
+    AITicket = None  # type: ignore[assignment]
 
 
 class AITrackdownAdapter(BaseAdapter[Task]):
@@ -130,6 +130,8 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             parent_issue=ai_ticket.get("parent_issue"),
             parent_epic=ai_ticket.get("parent_epic"),
             assignee=ai_ticket.get("assignee"),
+            estimated_hours=ai_ticket.get("estimated_hours"),
+            actual_hours=ai_ticket.get("actual_hours"),
             created_at=(
                 datetime.fromisoformat(ai_ticket["created_at"])
                 if "created_at" in ai_ticket
@@ -182,13 +184,15 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Convert universal Task to AI-Trackdown ticket."""
         # Handle enum values that may be stored as strings due to use_enum_values=True
         # Note: task.state is always a string due to ConfigDict(use_enum_values=True)
-        state_value = task.state
+        state_value: str
         if isinstance(task.state, TicketState):
             state_value = self._get_state_mapping()[task.state]
         elif isinstance(task.state, str):
             # Already a string - keep as-is (don't convert to kebab-case)
             # The state is already in snake_case format from the enum value
             state_value = task.state
+        else:
+            state_value = str(task.state)
 
         return {
             "id": task.id,
@@ -210,13 +214,15 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """Convert universal Epic to AI-Trackdown ticket."""
         # Handle enum values that may be stored as strings due to use_enum_values=True
         # Note: epic.state is always a string due to ConfigDict(use_enum_values=True)
-        state_value = epic.state
+        state_value: str
         if isinstance(epic.state, TicketState):
             state_value = self._get_state_mapping()[epic.state]
         elif isinstance(epic.state, str):
             # Already a string - keep as-is (don't convert to kebab-case)
             # The state is already in snake_case format from the enum value
             state_value = epic.state
+        else:
+            state_value = str(epic.state)
 
         return {
             "id": epic.id,
