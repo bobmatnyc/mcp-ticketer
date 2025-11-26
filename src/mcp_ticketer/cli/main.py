@@ -25,6 +25,7 @@ from .mcp_server_commands import mcp_app
 from .migrate_config import migrate_config_command
 from .platform_commands import app as platform_app
 from .platform_installer import install, remove, uninstall
+from .project_update_commands import app as project_update_app
 from .queue_commands import app as queue_app
 from .setup_command import setup
 from .ticket_commands import app as ticket_app
@@ -518,6 +519,9 @@ app.add_typer(discover_app, name="discover")
 
 # Add instructions command to main app
 app.add_typer(instruction_app, name="instructions")
+
+# Add project-update command group to main app
+app.add_typer(project_update_app, name="project-update")
 
 # Add setup and init commands to main app
 app.command()(setup)
