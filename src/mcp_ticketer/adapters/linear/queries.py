@@ -351,7 +351,8 @@ SEARCH_ISSUE_BY_IDENTIFIER_QUERY = """
 """
 
 LIST_PROJECTS_QUERY = (
-    PROJECT_FRAGMENT
+    TEAM_FRAGMENT  # Required by PROJECT_FRAGMENT which uses ...TeamFields
+    + PROJECT_FRAGMENT
     + """
     query ListProjects($filter: ProjectFilter, $first: Int!) {
         projects(filter: $filter, first: $first, orderBy: updatedAt) {

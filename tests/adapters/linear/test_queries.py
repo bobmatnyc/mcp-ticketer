@@ -241,6 +241,19 @@ class TestGraphQLQueries:
         )
         assert "...ProjectFields" in LIST_PROJECTS_QUERY
 
+    def test_list_projects_query_has_required_fragments(self) -> None:
+        """Test LIST_PROJECTS_QUERY includes all fragment dependencies."""
+        # Should include ProjectFields fragment usage
+        assert "...ProjectFields" in LIST_PROJECTS_QUERY
+        # Should include TeamFields fragment definition (required by PROJECT_FRAGMENT)
+        assert "fragment TeamFields" in LIST_PROJECTS_QUERY
+        # Verify the fragment is defined before it's used
+        team_def_pos = LIST_PROJECTS_QUERY.find("fragment TeamFields")
+        team_use_pos = LIST_PROJECTS_QUERY.find("...TeamFields")
+        assert team_def_pos < team_use_pos, "Fragment must be defined before use"
+        assert team_def_pos > -1, "TeamFields fragment must be present"
+        assert team_use_pos > -1, "TeamFields usage must be present"
+
     def test_get_current_user_query_structure(self) -> None:
         """Test GET_CURRENT_USER_QUERY structure."""
         assert "query GetCurrentUser" in GET_CURRENT_USER_QUERY
