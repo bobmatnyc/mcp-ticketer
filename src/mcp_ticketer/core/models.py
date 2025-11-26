@@ -416,6 +416,109 @@ class Attachment(BaseModel):
         return f"Attachment({self.filename}{size_str})"
 
 
+class ProjectUpdateHealth(str, Enum):
+    """Project health status indicator for status updates.
+
+    Represents the health/status of a project at the time of an update.
+    These states map to different platform-specific health indicators:
+
+    Platform Mappings:
+    - Linear: on_track, at_risk, off_track (1:1 mapping)
+    - GitHub V2: Uses ProjectV2StatusOptionConfiguration
+      - complete: Project is finished
+      - inactive: Project is not actively being worked on
+    - Asana: On Track, At Risk, Off Track (1:1 mapping)
+    - JIRA: Not directly supported (workaround via status comments)
+
+    Attributes:
+        ON_TRACK: Project is progressing as planned
+        AT_RISK: Project has some issues but recoverable
+        OFF_TRACK: Project is significantly behind or blocked
+        COMPLETE: Project is finished (GitHub-specific)
+        INACTIVE: Project is not actively being worked on (GitHub-specific)
+
+    Note:
+        Related to ticket 1M-238: Add project updates support with flexible
+        project identification.
+
+    """
+
+    ON_TRACK = "on_track"  # Linear, Asana
+    AT_RISK = "at_risk"  # Linear, Asana
+    OFF_TRACK = "off_track"  # Linear, Asana
+    COMPLETE = "complete"  # GitHub only
+    INACTIVE = "inactive"  # GitHub only
+
+
+class ProjectUpdate(BaseModel):
+    """Represents a project status update across different platforms.
+
+    ProjectUpdate provides a unified interface for creating and retrieving
+    project status updates with health indicators, supporting Linear, GitHub V2,
+    Asana, and JIRA (via workaround).
+
+    Platform Mappings:
+    - Linear: ProjectUpdate entity with health, diff_markdown, staleness
+    - GitHub V2: ProjectV2StatusUpdate with status options
+    - Asana: Project Status Updates with color-coded health
+    - JIRA: Comments with custom formatting (workaround)
+
+    The model includes platform-specific optional fields to support features
+    like Linear's auto-generated diffs and staleness indicators.
+
+    Attributes:
+        id: Unique identifier for the update
+        project_id: ID of the project this update belongs to
+        project_name: Optional human-readable project name
+        body: Markdown-formatted update content (required)
+        health: Optional health status indicator
+        created_at: Timestamp when update was created
+        updated_at: Timestamp when update was last modified
+        author_id: Optional ID of the user who created the update
+        author_name: Optional human-readable author name
+        url: Optional direct URL to the update
+        diff_markdown: Linear-specific auto-generated diff of project changes
+        is_stale: Linear-specific indicator if update is outdated
+
+    Example:
+        >>> update = ProjectUpdate(
+        ...     project_id="PROJ-123",
+        ...     body="Sprint completed with 15/20 stories done",
+        ...     health=ProjectUpdateHealth.AT_RISK,
+        ...     created_at=datetime.now()
+        ... )
+        >>> print(update.model_dump_json())
+
+    Note:
+        Related to ticket 1M-238: Add project updates support with flexible
+        project identification.
+
+    """
+
+    model_config = ConfigDict(use_enum_values=True)
+
+    id: str = Field(..., description="Unique update identifier")
+    project_id: str = Field(..., description="Parent project identifier")
+    project_name: str | None = Field(None, description="Human-readable project name")
+    body: str = Field(..., min_length=1, description="Markdown update content")
+    health: ProjectUpdateHealth | None = Field(
+        None, description="Project health status"
+    )
+    created_at: datetime = Field(..., description="Creation timestamp")
+    updated_at: datetime | None = Field(None, description="Last update timestamp")
+    author_id: str | None = Field(None, description="Update author identifier")
+    author_name: str | None = Field(None, description="Update author name")
+    url: str | None = Field(None, description="Direct URL to update")
+
+    # Platform-specific fields
+    diff_markdown: str | None = Field(
+        None, description="Linear: Auto-generated diff of project changes"
+    )
+    is_stale: bool | None = Field(
+        None, description="Linear: Indicator if update is outdated"
+    )
+
+
 class SearchQuery(BaseModel):
     """Search query parameters."""
 

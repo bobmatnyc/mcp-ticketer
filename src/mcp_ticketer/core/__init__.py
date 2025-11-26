@@ -8,7 +8,17 @@ from .instructions import (
     TicketInstructionsManager,
     get_instructions,
 )
-from .models import Attachment, Comment, Epic, Priority, Task, TicketState, TicketType
+from .models import (
+    Attachment,
+    Comment,
+    Epic,
+    Priority,
+    ProjectUpdate,
+    ProjectUpdateHealth,
+    Task,
+    TicketState,
+    TicketType,
+)
 from .registry import AdapterRegistry
 from .state_matcher import (
     SemanticStateMatcher,
@@ -22,6 +32,8 @@ __all__ = [
     "Task",
     "Comment",
     "Attachment",
+    "ProjectUpdate",
+    "ProjectUpdateHealth",
     "TicketState",
     "Priority",
     "TicketType",
