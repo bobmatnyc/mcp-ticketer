@@ -16,6 +16,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Located in `ops/scripts/linear/` with comprehensive README
   - Test suite: 8 commands, 100% pass rate
 
+### Fixed
+- **Linear epic_list GraphQL Error** (1M-216): Fixed "Unknown fragment TeamFields" validation error
+  - Added missing TEAM_FRAGMENT to LIST_PROJECTS_QUERY
+  - Resolves GraphQL validation failures when listing projects/epics
+  - Added fragment dependency validation test (28 tests passing)
+
+### Changed
+- **Code Modernization**: Updated isinstance syntax to Python 3.10+ union operator
+  - Changed `isinstance(x, (list, tuple))` to `isinstance(x, list | tuple)`
+  - Fixes Ruff UP038 linting error
+  - No functional changes, syntax improvement only
+
 ## [1.2.12] - 2025-11-25
 
 ### Changed
