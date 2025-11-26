@@ -73,6 +73,9 @@ class HybridAdapter(BaseAdapter):
 
     def _get_state_mapping(self) -> dict[TicketState, str]:
         """Get state mapping from primary adapter."""
+        # Type narrowing: primary_adapter_name is validated in __init__
+        if self.primary_adapter_name is None:
+            raise ValueError("Primary adapter name is not set")
         primary = self.adapters[self.primary_adapter_name]
         return primary._get_state_mapping()
 
@@ -163,8 +166,11 @@ class HybridAdapter(BaseAdapter):
             Created ticket with universal ID
 
         """
+        if self.primary_adapter_name is None:
+            raise ValueError("Primary adapter name is not set")
+
         universal_id = self._generate_universal_id()
-        results = []
+        results: list[tuple[str, Task | Epic]] = []
 
         # Create in primary adapter first
         primary = self.adapters[self.primary_adapter_name]
@@ -236,6 +242,9 @@ class HybridAdapter(BaseAdapter):
             Ticket if found, None otherwise
 
         """
+        if self.primary_adapter_name is None:
+            raise ValueError("Primary adapter name is not set")
+
         # Check if this is a universal ID
         if ticket_id.startswith("hybrid-"):
             # Get primary adapter ticket ID
@@ -266,7 +275,10 @@ class HybridAdapter(BaseAdapter):
             Updated ticket from primary adapter
 
         """
-        universal_id = ticket_id
+        if self.primary_adapter_name is None:
+            raise ValueError("Primary adapter name is not set")
+
+        universal_id: str | None = ticket_id
         if not ticket_id.startswith("hybrid-"):
             # Try to find universal ID by searching mapping
             universal_id = self._find_universal_id(ticket_id)
@@ -279,6 +291,9 @@ class HybridAdapter(BaseAdapter):
         # Update in all adapters
         results = []
         for adapter_name, adapter in self.adapters.items():
+            if universal_id is None:
+                logger.warning(f"No universal ID available for ticket: {ticket_id}")
+                continue
             adapter_ticket_id = self._get_adapter_ticket_id(universal_id, adapter_name)
             if not adapter_ticket_id:
                 logger.warning(f"No ticket ID for adapter {adapter_name}")
@@ -325,7 +340,10 @@ class HybridAdapter(BaseAdapter):
             True if deleted from at least one adapter
 
         """
-        universal_id = ticket_id
+        if self.primary_adapter_name is None:
+            raise ValueError("Primary adapter name is not set")
+
+        universal_id: str | None = ticket_id
         if not ticket_id.startswith("hybrid-"):
             universal_id = self._find_universal_id(ticket_id)
             if not universal_id:
@@ -336,6 +354,9 @@ class HybridAdapter(BaseAdapter):
         # Delete from all adapters
         success_count = 0
         for adapter_name, adapter in self.adapters.items():
+            if universal_id is None:
+                logger.warning(f"No universal ID available for ticket: {ticket_id}")
+                continue
             adapter_ticket_id = self._get_adapter_ticket_id(universal_id, adapter_name)
             if not adapter_ticket_id:
                 continue
@@ -372,6 +393,8 @@ class HybridAdapter(BaseAdapter):
             List of tickets from primary adapter
 
         """
+        if self.primary_adapter_name is None:
+            raise ValueError("Primary adapter name is not set")
         primary = self.adapters[self.primary_adapter_name]
         return await primary.list(limit, offset, filters)
 
@@ -385,6 +408,8 @@ class HybridAdapter(BaseAdapter):
             List of tickets matching search criteria
 
         """
+        if self.primary_adapter_name is None:
+            raise ValueError("Primary adapter name is not set")
         primary = self.adapters[self.primary_adapter_name]
         return await primary.search(query)
 
@@ -401,7 +426,10 @@ class HybridAdapter(BaseAdapter):
             Updated ticket from primary adapter
 
         """
-        universal_id = ticket_id
+        if self.primary_adapter_name is None:
+            raise ValueError("Primary adapter name is not set")
+
+        universal_id: str | None = ticket_id
         if not ticket_id.startswith("hybrid-"):
             universal_id = self._find_universal_id(ticket_id)
             if not universal_id:
@@ -412,6 +440,9 @@ class HybridAdapter(BaseAdapter):
         # Transition in all adapters
         results = []
         for adapter_name, adapter in self.adapters.items():
+            if universal_id is None:
+                logger.warning(f"No universal ID available for ticket: {ticket_id}")
+                continue
             adapter_ticket_id = self._get_adapter_ticket_id(universal_id, adapter_name)
             if not adapter_ticket_id:
                 continue
@@ -446,7 +477,10 @@ class HybridAdapter(BaseAdapter):
             Created comment from primary adapter
 
         """
-        universal_id = comment.ticket_id
+        if self.primary_adapter_name is None:
+            raise ValueError("Primary adapter name is not set")
+
+        universal_id: str | None = comment.ticket_id
         if not comment.ticket_id.startswith("hybrid-"):
             universal_id = self._find_universal_id(comment.ticket_id)
             if not universal_id:
@@ -457,6 +491,9 @@ class HybridAdapter(BaseAdapter):
         # Add comment to all adapters
         results = []
         for adapter_name, adapter in self.adapters.items():
+            if universal_id is None:
+                logger.warning(f"No universal ID available for ticket: {comment.ticket_id}")
+                continue
             adapter_ticket_id = self._get_adapter_ticket_id(universal_id, adapter_name)
             if not adapter_ticket_id:
                 continue
@@ -501,6 +538,9 @@ class HybridAdapter(BaseAdapter):
             List of comments from primary adapter
 
         """
+        if self.primary_adapter_name is None:
+            raise ValueError("Primary adapter name is not set")
+
         if ticket_id.startswith("hybrid-"):
             # Get primary adapter ticket ID
             primary_id = self._get_adapter_ticket_id(
