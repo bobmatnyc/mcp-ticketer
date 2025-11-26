@@ -247,6 +247,47 @@ mcp-ticketer analyze cleanup --format markdown
 
 For complete documentation, see the [PM Monitoring Tools Guide](docs/PM_MONITORING_TOOLS.md).
 
+### 7. Linear Practical Workflow CLI
+
+Streamline your daily Linear workflow with command-line shortcuts for common operations:
+
+```bash
+# Quick ticket creation with auto-tagging
+./ops/scripts/linear/practical-workflow.sh create-bug "Login fails" "Error 500" --priority high
+./ops/scripts/linear/practical-workflow.sh create-feature "Dark mode" "Add theme toggle"
+./ops/scripts/linear/practical-workflow.sh create-task "Update docs" "Refresh API docs"
+
+# Workflow shortcuts
+./ops/scripts/linear/practical-workflow.sh start-work BTA-123
+./ops/scripts/linear/practical-workflow.sh ready-review BTA-123
+./ops/scripts/linear/practical-workflow.sh deployed BTA-123
+
+# Comments
+./ops/scripts/linear/practical-workflow.sh add-comment BTA-123 "Working on this now"
+./ops/scripts/linear/practical-workflow.sh list-comments BTA-123
+```
+
+**Key features:**
+- **Auto-Tagging**: Automatically applies `bug`, `feature`, or `task` labels
+- **Quick Commands**: Common workflow actions as single commands
+- **Comment Tracking**: Add and list comments directly from CLI
+- **Environment Validation**: Built-in configuration checks
+
+**Setup:**
+```bash
+# Copy configuration template
+cp ops/scripts/linear/.env.example .env
+
+# Edit with your Linear API key and team key
+# LINEAR_API_KEY=lin_api_...
+# LINEAR_TEAM_KEY=BTA
+
+# Test configuration
+./ops/scripts/linear/practical-workflow.sh --help
+```
+
+For complete documentation, see [Linear Workflow CLI Guide](ops/scripts/linear/README.md).
+
 ## 🤖 MCP Server Integration
 
 MCP Ticketer provides seamless integration with AI clients through automatic configuration and platform detection:

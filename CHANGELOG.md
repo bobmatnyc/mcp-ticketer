@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+- **Linear Practical Workflow CLI** (1M-217): Command-line shortcuts for common Linear operations
+  - Quick ticket creation: `create-bug`, `create-feature`, `create-task` with auto-tagging
+  - Workflow shortcuts: `start-work`, `ready-review`, `deployed` with automated comments
+  - Comment management: `add-comment`, `list-comments` for inline collaboration
+  - Environment validation and configuration via `.env` file
+  - Rich terminal formatting with Typer and Rich libraries
+  - Located in `ops/scripts/linear/` with comprehensive README
+  - Test suite: 8 commands, 100% pass rate
+
 ## [1.2.12] - 2025-11-25
 
 ### Changed

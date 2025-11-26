@@ -375,6 +375,40 @@ query = SearchQuery(
 results = await adapter.search(query)
 ```
 
+## Linear Practical Workflow CLI
+
+For daily Linear operations, you can use the dedicated workflow CLI script that provides quick shortcuts for common tasks:
+
+### Quick Start
+
+```bash
+# Setup (one-time)
+cp ops/scripts/linear/.env.example .env
+# Edit .env with your LINEAR_API_KEY and LINEAR_TEAM_KEY
+
+# Create tickets with auto-tagging
+./ops/scripts/linear/practical-workflow.sh create-bug "Login fails" "Error 500" --priority high
+./ops/scripts/linear/practical-workflow.sh create-feature "Dark mode" "Add theme toggle"
+./ops/scripts/linear/practical-workflow.sh create-task "Update docs" "Refresh API docs"
+
+# Workflow shortcuts
+./ops/scripts/linear/practical-workflow.sh start-work BTA-123
+./ops/scripts/linear/practical-workflow.sh ready-review BTA-123
+./ops/scripts/linear/practical-workflow.sh deployed BTA-123
+
+# Comments
+./ops/scripts/linear/practical-workflow.sh add-comment BTA-123 "Working on this now"
+./ops/scripts/linear/practical-workflow.sh list-comments BTA-123
+```
+
+**Benefits:**
+- **Auto-tagging**: Automatically applies `bug`, `feature`, or `task` labels
+- **Quick commands**: Common workflow actions as single commands
+- **Comment tracking**: Add and list comments directly from CLI
+- **Environment validation**: Built-in configuration checks
+
+For complete documentation, see [Linear Workflow CLI Guide](../../../ops/scripts/linear/README.md).
+
 ## Contributing
 
 To contribute to the Linear adapter:
