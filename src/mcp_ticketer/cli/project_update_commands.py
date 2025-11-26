@@ -51,6 +51,7 @@ def _format_relative_time(dt: datetime) -> str:
     """
     try:
         from humanize import naturaltime
+
         return naturaltime(dt)
     except ImportError:
         # Fallback to ISO format if humanize not available
@@ -93,9 +94,11 @@ async def _create_update_async(
         )
 
         # Display success message with update details
-        console.print(f"\n[green]✓[/green] Project update created successfully!")
+        console.print("\n[green]✓[/green] Project update created successfully!")
         console.print(f"  Update ID: [cyan]{update.id}[/cyan]")
-        console.print(f"  Project: [bold]{update.project_name or update.project_id}[/bold]")
+        console.print(
+            f"  Project: [bold]{update.project_name or update.project_id}[/bold]"
+        )
         console.print(f"  Health: {_format_health_indicator(update.health)}")
         console.print(f"  Created: {update.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
 
@@ -140,7 +143,9 @@ async def _list_updates_async(
         )
 
         if not updates:
-            console.print(f"\n[yellow]No updates found for project '{project_id}'[/yellow]")
+            console.print(
+                f"\n[yellow]No updates found for project '{project_id}'[/yellow]"
+            )
             return
 
         # Create Rich table
@@ -153,7 +158,11 @@ async def _list_updates_async(
 
         for update in updates:
             # Format date
-            date_str = _format_relative_time(update.created_at) if update.created_at else "Unknown"
+            date_str = (
+                _format_relative_time(update.created_at)
+                if update.created_at
+                else "Unknown"
+            )
 
             # Format health
             health_str = _format_health_indicator(update.health)
@@ -228,14 +237,16 @@ async def _get_update_async(update_id: str) -> None:
             content_lines.append(update.diff_markdown)
 
         if update.is_stale is not None:
-            stale_indicator = "[red]⚠ Stale[/red]" if update.is_stale else "[green]✓ Current[/green]"
+            stale_indicator = (
+                "[red]⚠ Stale[/red]" if update.is_stale else "[green]✓ Current[/green]"
+            )
             content_lines.append("")
             content_lines.append(f"[bold]Freshness:[/bold] {stale_indicator}")
 
         # Display as Rich panel
         panel = Panel(
             "\n".join(content_lines),
-            title=f"[bold]Project Update Details[/bold]",
+            title="[bold]Project Update Details[/bold]",
             border_style="cyan",
             expand=False,
         )
