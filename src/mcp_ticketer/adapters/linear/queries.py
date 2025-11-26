@@ -478,3 +478,79 @@ GET_CUSTOM_VIEW_QUERY = (
     }
 """
 )
+
+# Project Update queries and mutations (1M-238)
+
+PROJECT_UPDATE_FRAGMENT = """
+    fragment ProjectUpdateFields on ProjectUpdate {
+        id
+        body
+        health
+        createdAt
+        updatedAt
+        diffMarkdown
+        url
+        user {
+            id
+            name
+            email
+        }
+        project {
+            id
+            name
+            slugId
+        }
+    }
+"""
+
+CREATE_PROJECT_UPDATE_MUTATION = (
+    PROJECT_UPDATE_FRAGMENT
+    + """
+    mutation ProjectUpdateCreate(
+        $projectId: String!
+        $body: String!
+        $health: ProjectUpdateHealthType
+    ) {
+        projectUpdateCreate(
+            input: {
+                projectId: $projectId
+                body: $body
+                health: $health
+            }
+        ) {
+            success
+            projectUpdate {
+                ...ProjectUpdateFields
+            }
+        }
+    }
+"""
+)
+
+LIST_PROJECT_UPDATES_QUERY = (
+    PROJECT_UPDATE_FRAGMENT
+    + """
+    query ProjectUpdates($projectId: String!, $first: Int) {
+        project(id: $projectId) {
+            id
+            name
+            projectUpdates(first: $first) {
+                nodes {
+                    ...ProjectUpdateFields
+                }
+            }
+        }
+    }
+"""
+)
+
+GET_PROJECT_UPDATE_QUERY = (
+    PROJECT_UPDATE_FRAGMENT
+    + """
+    query ProjectUpdate($id: String!) {
+        projectUpdate(id: $id) {
+            ...ProjectUpdateFields
+        }
+    }
+"""
+)

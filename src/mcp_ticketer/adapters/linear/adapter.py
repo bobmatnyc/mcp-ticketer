@@ -6,6 +6,7 @@ import asyncio
 import logging
 import mimetypes
 import os
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -21,7 +22,16 @@ except ImportError:
 import builtins
 
 from ...core.adapter import BaseAdapter
-from ...core.models import Attachment, Comment, Epic, SearchQuery, Task, TicketState
+from ...core.models import (
+    Attachment,
+    Comment,
+    Epic,
+    ProjectUpdate,
+    ProjectUpdateHealth,
+    SearchQuery,
+    Task,
+    TicketState,
+)
 from ...core.registry import AdapterRegistry
 from ...core.url_parser import URLParserError, normalize_project_id
 from .client import LinearGraphQLClient
@@ -37,11 +47,14 @@ from .queries import (
     ALL_FRAGMENTS,
     CREATE_ISSUE_MUTATION,
     CREATE_LABEL_MUTATION,
+    CREATE_PROJECT_UPDATE_MUTATION,
     GET_CUSTOM_VIEW_QUERY,
     GET_ISSUE_STATUS_QUERY,
+    GET_PROJECT_UPDATE_QUERY,
     LIST_CYCLES_QUERY,
     LIST_ISSUE_STATUSES_QUERY,
     LIST_ISSUES_QUERY,
+    LIST_PROJECT_UPDATES_QUERY,
     LIST_PROJECTS_QUERY,
     SEARCH_ISSUES_QUERY,
     UPDATE_ISSUE_MUTATION,
@@ -2722,6 +2735,271 @@ class LinearAdapter(BaseAdapter[Task]):
 
         except Exception as e:
             raise ValueError(f"Failed to list Linear projects: {e}") from e
+
+    def _linear_update_to_model(self, linear_data: dict[str, Any]) -> ProjectUpdate:
+        """Convert Linear GraphQL response to ProjectUpdate model (1M-238).
+
+        Maps Linear's ProjectUpdate entity fields to the universal ProjectUpdate model,
+        handling health value transformations and optional fields.
+
+        Args:
+        ----
+            linear_data: GraphQL response data for a ProjectUpdate entity
+
+        Returns:
+        -------
+            ProjectUpdate instance with mapped fields
+
+        Linear Health Mapping:
+        ---------------------
+            Linear uses camelCase enum values: onTrack, atRisk, offTrack
+            Universal model uses snake_case: ON_TRACK, AT_RISK, OFF_TRACK
+
+        """
+        # Map Linear health values (camelCase) to universal enum (UPPER_SNAKE_CASE)
+        health_mapping = {
+            "onTrack": ProjectUpdateHealth.ON_TRACK,
+            "atRisk": ProjectUpdateHealth.AT_RISK,
+            "offTrack": ProjectUpdateHealth.OFF_TRACK,
+        }
+
+        health_value = linear_data.get("health")
+        health = health_mapping.get(health_value) if health_value else None
+
+        # Extract user info
+        user_data = linear_data.get("user", {})
+        author_id = user_data.get("id") if user_data else None
+        author_name = user_data.get("name") if user_data else None
+
+        # Extract project info
+        project_data = linear_data.get("project", {})
+        project_id = project_data.get("id", "")
+        project_name = project_data.get("name")
+
+        # Parse timestamps
+        created_at = datetime.fromisoformat(
+            linear_data["createdAt"].replace("Z", "+00:00")
+        )
+        updated_at = None
+        if linear_data.get("updatedAt"):
+            updated_at = datetime.fromisoformat(
+                linear_data["updatedAt"].replace("Z", "+00:00")
+            )
+
+        return ProjectUpdate(
+            id=linear_data["id"],
+            project_id=project_id,
+            project_name=project_name,
+            body=linear_data["body"],
+            health=health,
+            created_at=created_at,
+            updated_at=updated_at,
+            author_id=author_id,
+            author_name=author_name,
+            url=linear_data.get("url"),
+            diff_markdown=linear_data.get("diffMarkdown"),
+        )
+
+    async def create_project_update(
+        self,
+        project_id: str,
+        body: str,
+        health: ProjectUpdateHealth | None = None,
+    ) -> ProjectUpdate:
+        """Create a project status update in Linear (1M-238).
+
+        Creates a new status update for a Linear project with optional health indicator.
+        Linear will automatically generate a diff showing changes since the last update.
+
+        Args:
+        ----
+            project_id: Linear project UUID, slugId, or short ID
+            body: Markdown-formatted update content (required)
+            health: Optional health status (ON_TRACK, AT_RISK, OFF_TRACK)
+
+        Returns:
+        -------
+            Created ProjectUpdate with Linear metadata including auto-generated diff
+
+        Raises:
+        ------
+            ValueError: If credentials invalid, project not found, or creation fails
+
+        Example:
+        -------
+            >>> update = await adapter.create_project_update(
+            ...     project_id="PROJ-123",
+            ...     body="Sprint 23 completed. 15/20 stories done.",
+            ...     health=ProjectUpdateHealth.AT_RISK
+            ... )
+
+        """
+        logger = logging.getLogger(__name__)
+
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        await self.initialize()
+
+        # Resolve project identifier to UUID if needed
+        project_uuid = await self._resolve_project_id(project_id)
+        if not project_uuid:
+            raise ValueError(f"Project '{project_id}' not found")
+
+        # Build mutation variables
+        variables: dict[str, Any] = {
+            "projectId": project_uuid,
+            "body": body,
+        }
+
+        # Map health enum to Linear's camelCase format
+        if health:
+            health_mapping = {
+                ProjectUpdateHealth.ON_TRACK: "onTrack",
+                ProjectUpdateHealth.AT_RISK: "atRisk",
+                ProjectUpdateHealth.OFF_TRACK: "offTrack",
+            }
+            variables["health"] = health_mapping.get(health)
+
+        try:
+            result = await self.client.execute_mutation(
+                CREATE_PROJECT_UPDATE_MUTATION, variables
+            )
+
+            if not result["projectUpdateCreate"]["success"]:
+                raise ValueError(f"Failed to create project update for '{project_id}'")
+
+            update_data = result["projectUpdateCreate"]["projectUpdate"]
+            logger.info(
+                f"Created project update for project '{project_id}' (UUID: {project_uuid})"
+            )
+
+            return self._linear_update_to_model(update_data)
+
+        except Exception as e:
+            raise ValueError(
+                f"Failed to create project update for '{project_id}': {e}"
+            ) from e
+
+    async def list_project_updates(
+        self,
+        project_id: str,
+        limit: int = 10,
+    ) -> list[ProjectUpdate]:
+        """List project updates for a project (1M-238).
+
+        Retrieves recent status updates for a Linear project, ordered by creation date.
+
+        Args:
+        ----
+            project_id: Linear project UUID, slugId, or short ID
+            limit: Maximum number of updates to return (default: 10, max: 250)
+
+        Returns:
+        -------
+            List of ProjectUpdate objects ordered by creation date (newest first)
+
+        Raises:
+        ------
+            ValueError: If credentials invalid or query fails
+
+        Example:
+        -------
+            >>> updates = await adapter.list_project_updates("PROJ-123", limit=5)
+            >>> for update in updates:
+            ...     print(f"{update.created_at}: {update.health} - {update.body[:50]}")
+
+        """
+        logger = logging.getLogger(__name__)
+
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        await self.initialize()
+
+        # Resolve project identifier to UUID if needed
+        project_uuid = await self._resolve_project_id(project_id)
+        if not project_uuid:
+            raise ValueError(f"Project '{project_id}' not found")
+
+        try:
+            result = await self.client.execute_query(
+                LIST_PROJECT_UPDATES_QUERY,
+                {"projectId": project_uuid, "first": min(limit, 250)},
+            )
+
+            project_data = result.get("project")
+            if not project_data:
+                raise ValueError(f"Project '{project_id}' not found")
+
+            updates_data = project_data.get("projectUpdates", {}).get("nodes", [])
+
+            # Map Linear updates to ProjectUpdate models
+            return [self._linear_update_to_model(update) for update in updates_data]
+
+        except Exception as e:
+            logger.warning(f"Failed to list project updates for {project_id}: {e}")
+            raise ValueError(
+                f"Failed to list project updates for '{project_id}': {e}"
+            ) from e
+
+    async def get_project_update(
+        self,
+        update_id: str,
+    ) -> ProjectUpdate:
+        """Get a specific project update by ID (1M-238).
+
+        Retrieves detailed information about a single project status update.
+
+        Args:
+        ----
+            update_id: Linear ProjectUpdate UUID
+
+        Returns:
+        -------
+            ProjectUpdate object with full details
+
+        Raises:
+        ------
+            ValueError: If credentials invalid, update not found, or query fails
+
+        Example:
+        -------
+            >>> update = await adapter.get_project_update("update-uuid-here")
+            >>> print(f"Update: {update.body}")
+            >>> print(f"Health: {update.health}")
+            >>> print(f"Diff: {update.diff_markdown}")
+
+        """
+        logger = logging.getLogger(__name__)
+
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        await self.initialize()
+
+        try:
+            result = await self.client.execute_query(
+                GET_PROJECT_UPDATE_QUERY, {"id": update_id}
+            )
+
+            update_data = result.get("projectUpdate")
+            if not update_data:
+                raise ValueError(f"Project update '{update_id}' not found")
+
+            return self._linear_update_to_model(update_data)
+
+        except Exception as e:
+            logger.error(f"Failed to get project update {update_id}: {e}")
+            raise ValueError(
+                f"Failed to get project update '{update_id}': {e}"
+            ) from e
 
     async def close(self) -> None:
         """Close the adapter and clean up resources."""
