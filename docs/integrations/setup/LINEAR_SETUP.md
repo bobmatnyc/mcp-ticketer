@@ -409,6 +409,191 @@ cp ops/scripts/linear/.env.example .env
 
 For complete documentation, see [Linear Workflow CLI Guide](../../../ops/scripts/linear/README.md).
 
+## Project Status Updates
+
+Track project progress with status updates and health indicators. Project updates help teams communicate progress, identify blockers, and maintain alignment on project goals.
+
+### What are Project Updates?
+
+Project updates are periodic status communications that include:
+- **Progress summary**: What was accomplished
+- **Health indicator**: Current project health status
+- **Blockers**: Issues or dependencies affecting progress
+- **Next steps**: Planned work items
+
+### When to Use Project Updates
+
+Use project updates for:
+- **Weekly updates**: Regular progress check-ins for active projects
+- **Milestone completion**: Celebrating significant achievements
+- **Blockers**: Communicating issues that need attention
+- **Status changes**: Transitioning between health states (e.g., on_track → at_risk)
+- **Team communication**: Keeping stakeholders informed
+
+### CLI Usage Examples
+
+#### Create Project Update
+
+```bash
+# Create update with health indicator
+mcp-ticketer project-update create "mcp-ticketer-eac28953c267" \
+  "Completed MCP tools implementation. CLI commands in progress." \
+  --health on_track
+
+# Create update using full URL
+mcp-ticketer project-update create \
+  "https://linear.app/1m-hyperdev/project/mcp-ticketer-eac28953c267/updates" \
+  "Sprint review completed successfully. All acceptance criteria met." \
+  --health on_track
+
+# Create update using UUID
+mcp-ticketer project-update create "550e8400-e29b-41d4-a716-446655440000" \
+  "Deployment delayed due to infrastructure issues." \
+  --health at_risk
+
+# Create update using short ID
+mcp-ticketer project-update create "eac28953c267" \
+  "Project completed ahead of schedule!" \
+  --health complete
+```
+
+#### List Project Updates
+
+```bash
+# List recent updates (default: 10)
+mcp-ticketer project-update list "mcp-ticketer-eac28953c267"
+
+# List more updates with custom limit
+mcp-ticketer project-update list "mcp-ticketer-eac28953c267" --limit 20
+
+# List updates using full URL
+mcp-ticketer project-update list \
+  "https://linear.app/1m-hyperdev/project/mcp-ticketer-eac28953c267"
+```
+
+#### Get Specific Update
+
+```bash
+# Get detailed information about a specific update
+mcp-ticketer project-update get "update-uuid-here"
+```
+
+### Health Indicators
+
+Project updates include a health indicator to quickly communicate project status:
+
+| Status | Meaning | CLI Display | When to Use |
+|--------|---------|-------------|-------------|
+| `on_track` | Project progressing as planned | ✓ On Track (green) | Normal progress, no blockers |
+| `at_risk` | Potential issues identified | ⚠ At Risk (yellow) | Minor delays or emerging issues |
+| `off_track` | Significant blockers or delays | ✗ Off Track (red) | Major blockers, needs attention |
+| `complete` | Project finished | ✓ Complete (blue) | Milestone or project completed |
+| `inactive` | Project paused or cancelled | ○ Inactive (dim) | Work suspended or archived |
+
+### Project Identification
+
+MCP Ticketer supports multiple formats for project identification:
+
+- **UUID**: `550e8400-e29b-41d4-a716-446655440000` - Full project identifier
+- **Slug ID**: `mcp-ticketer-eac28953c267` - Human-readable project slug
+- **Short ID**: `eac28953c267` - Just the unique portion
+- **Full URL**: `https://linear.app/1m-hyperdev/project/mcp-ticketer-eac28953c267`
+- **URL with suffix**: `https://linear.app/1m-hyperdev/project/mcp-ticketer-eac28953c267/updates`
+
+All formats are automatically detected and resolved to the correct project.
+
+### MCP Tools
+
+For programmatic access, use the following MCP tools:
+
+- **`project_update_create`**: Create a new project status update
+- **`project_update_list`**: List project updates with pagination
+- **`project_update_get`**: Get detailed information about a specific update
+
+These tools are available when using MCP Ticketer with Claude Desktop or other MCP-compatible clients.
+
+### Best Practices
+
+**Use health indicators consistently:**
+- Start with `on_track` for new projects
+- Use `at_risk` early when issues emerge (don't wait until `off_track`)
+- Update health status when conditions change
+- Use `complete` to celebrate milestones
+
+**Keep updates concise but informative:**
+- Focus on key accomplishments and blockers
+- Include specific ticket references when relevant
+- Avoid jargon or overly technical details
+- Use bullet points for clarity
+
+**Update regularly:**
+- Weekly updates for active projects
+- More frequent updates during critical phases
+- Less frequent for maintenance or low-priority projects
+- Always update when health status changes
+
+**Link to specific work:**
+- Reference ticket IDs when mentioning work items
+- Link to pull requests or documentation
+- Provide context for technical decisions
+
+### Programmatic Usage Example
+
+```python
+from mcp_ticketer.core import AdapterRegistry, ProjectUpdateHealth
+
+# Initialize Linear adapter
+config = {
+    "api_key": "lin_api_YOUR_KEY",
+    "team_id": "YOUR-TEAM-ID"
+}
+adapter = AdapterRegistry.get_adapter("linear", config)
+
+# Create project update
+update = await adapter.create_project_update(
+    project_id="mcp-ticketer-eac28953c267",
+    body="Sprint 12 completed successfully. All acceptance criteria met. "
+         "Next sprint: Focus on documentation and testing.",
+    health=ProjectUpdateHealth.ON_TRACK
+)
+
+print(f"Created update: {update.url}")
+print(f"Health: {update.health}")
+
+# List recent updates
+updates = await adapter.list_project_updates(
+    project_id="mcp-ticketer-eac28953c267",
+    limit=10
+)
+
+for update in updates:
+    print(f"{update.created_at}: {update.health} - {update.body[:50]}...")
+
+# Get specific update
+detailed = await adapter.get_project_update(update_id=update.id)
+print(f"Author: {detailed.user.name}")
+print(f"Created: {detailed.created_at}")
+print(f"Health: {detailed.health}")
+print(f"Body: {detailed.body}")
+```
+
+### Cross-Platform Support
+
+Project updates are available across multiple platforms with adapter-specific implementations:
+
+| Platform | Support | Implementation | Notes |
+|----------|---------|----------------|-------|
+| **Linear** | ✅ Native | GraphQL API (`projectUpdate` mutations) | Full feature support |
+| **GitHub V2** | ✅ Native | Project status updates API | Recently added by GitHub |
+| **Asana** | ✅ Native | Immutable project status updates | Cannot be edited after creation |
+| **Jira** | ⚠️ Workaround | Comments on epic/project issue | No native project update support |
+
+**Platform-specific notes:**
+- **Linear**: Supports all health indicators and rich formatting
+- **GitHub**: Health indicators mapped to GitHub's status system
+- **Asana**: Updates are immutable once created (no editing)
+- **Jira**: Updates are posted as comments on the epic/project issue
+
 ## Contributing
 
 To contribute to the Linear adapter:

@@ -7,6 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Project Status Updates** (1M-238): Track project progress with status updates and health indicators
+  - CLI commands: `project-update create`, `project-update list`, `project-update get`
+  - MCP tools: `project_update_create`, `project_update_list`, `project_update_get` for programmatic access
+  - Project identification: Support for UUID, slugId, short ID, and full URLs (including /updates suffix)
+  - Health indicators: 5 states with color-coded CLI output (on_track, at_risk, off_track, complete, inactive)
+  - Cross-platform support: Linear (native GraphQL), GitHub V2 (project updates), Asana (immutable status updates), Jira (workaround via comments)
+  - Rich formatted output with tables, panels, and health status visualization
+  - Located in `mcp_ticketer/adapters/linear_adapter.py` and `mcp_ticketer/cli/project_update_commands.py`
+
 - **Linear Practical Workflow CLI** (1M-217): Command-line shortcuts for common Linear operations
   - Quick ticket creation: `create-bug`, `create-feature`, `create-task` with auto-tagging
   - Workflow shortcuts: `start-work`, `ready-review`, `deployed` with automated comments

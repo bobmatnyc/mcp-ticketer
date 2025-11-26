@@ -288,6 +288,38 @@ cp ops/scripts/linear/.env.example .env
 
 For complete documentation, see [Linear Workflow CLI Guide](ops/scripts/linear/README.md).
 
+### 8. Project Status Updates
+
+Track project progress with status updates across Linear, GitHub V2, and Asana:
+
+```bash
+# Create update with health indicator
+mcp-ticketer project-update create "mcp-ticketer-eac28953c267" \
+  "Completed MCP tools implementation. CLI commands in progress." \
+  --health on_track
+
+# Create update using full URL
+mcp-ticketer project-update create \
+  "https://linear.app/1m-hyperdev/project/mcp-ticketer-eac28953c267/updates" \
+  "Sprint review completed successfully" \
+  --health on_track
+
+# List recent updates
+mcp-ticketer project-update list "mcp-ticketer-eac28953c267" --limit 10
+
+# Get detailed update
+mcp-ticketer project-update get "update-uuid-here"
+```
+
+**Key features:**
+- **Health Indicators**: 5 status levels (on_track, at_risk, off_track, complete, inactive)
+- **Flexible Project ID**: Supports UUID, slug ID, short ID, or full URLs
+- **Rich Formatting**: Color-coded health indicators and formatted tables
+- **MCP Tools**: Programmatic access via `project_update_create`, `project_update_list`, `project_update_get`
+- **Cross-Platform**: Linear (native), GitHub V2, Asana, Jira (workaround)
+
+For complete documentation, see [Linear Setup Guide](docs/integrations/setup/LINEAR_SETUP.md#project-status-updates).
+
 ## 🤖 MCP Server Integration
 
 MCP Ticketer provides seamless integration with AI clients through automatic configuration and platform detection:
