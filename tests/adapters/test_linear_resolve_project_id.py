@@ -209,6 +209,29 @@ class TestResolveProjectIdURLParsing:
         assert result is None
 
     @pytest.mark.asyncio
+    async def test_url_with_updates_suffix(self, linear_adapter, mock_client):
+        """Test URL with /updates suffix (specific case from ticket 1M-238)."""
+        mock_client.execute_query.return_value = {
+            "projects": {
+                "nodes": [
+                    {
+                        "id": "project-uuid-mcp-ticketer",
+                        "name": "mcp-ticketer",
+                        "slugId": "mcp-ticketer-eac28953c267",
+                    }
+                ],
+                "pageInfo": {"hasNextPage": False, "endCursor": None},
+            }
+        }
+
+        # Test the exact URL format from ticket 1M-238
+        url = "https://linear.app/1m-hyperdev/project/mcp-ticketer-eac28953c267/updates"
+        result = await linear_adapter._resolve_project_id(url)
+
+        # Should extract "mcp-ticketer-eac28953c267" and find matching project
+        assert result == "project-uuid-mcp-ticketer"
+
+    @pytest.mark.asyncio
     async def test_url_parser_integration(self, linear_adapter, mock_client):
         """Test that url_parser.normalize_project_id is used correctly."""
         mock_client.execute_query.return_value = {
@@ -228,6 +251,7 @@ class TestResolveProjectIdURLParsing:
         test_cases = [
             "https://linear.app/team/project/integration-test-abc123456789/overview",
             "https://linear.app/team/project/integration-test-abc123456789/issues",
+            "https://linear.app/team/project/integration-test-abc123456789/updates",
             "https://linear.app/team/project/integration-test-abc123456789",
         ]
 
