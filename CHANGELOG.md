@@ -6,18 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.2.14] - 2025-11-28
+
 ### Added
-- **Semantic Priority Matching** (ISS-0002): Natural language priority input support for ticket creation and updates
+- **Semantic Priority Matching** (ISS-0002/1M-313): Natural language priority input support for ticket creation and updates
   - Accepts natural language inputs: "urgent" → CRITICAL, "important" → HIGH, "whenever" → LOW
-  - 20+ synonyms per priority level covering common phrases and platform-specific terms
+  - 84+ synonyms per priority level covering common phrases and platform-specific terms
   - Multi-stage matching pipeline: exact → synonym → fuzzy matching with typo tolerance
   - Confidence-based handling with suggestion system for ambiguous inputs
   - Platform-specific support: GitHub (P0-P3), JIRA (Blocker, Major, Trivial), Severity levels (Sev 0-3)
   - 100% backward compatible - exact values still work perfectly
-  - Performance: <5ms average match time, >95% test coverage, 120+ comprehensive tests
-  - Implementation: `src/mcp_ticketer/core/priority_matcher.py`
+  - Performance: <5ms average match time (target <10ms), >95% test coverage, 37 test functions
+  - Implementation: `src/mcp_ticketer/core/priority_matcher.py` (454 lines)
   - Integration: `ticket_create()` and `ticket_update()` MCP tools
-  - Documentation: `docs/SEMANTIC_PRIORITY_MATCHING.md`
+  - Documentation: `docs/SEMANTIC_PRIORITY_MATCHING.md` (577 lines)
+
+### Fixed
+- **Whitespace-only priority input**: Fixed edge case where whitespace-only strings (e.g., "   ") were treated as fallback instead of default
+  - Now correctly returns MEDIUM priority with "default" match type for whitespace-only input
+  - Added normalization check after `strip()` to catch empty strings post-cleanup
+  - Improves consistency with empty string handling
+
+- **Test suite compatibility**: Fixed `test_get_project_issues.py` to match actual implementation
+  - Removed obsolete `_resolve_project_id` mocking - implementation uses `build_issue_filter` directly
+  - Updated test expectations to verify project ID is passed through to GraphQL filter
+  - All 8 tests now passing with correct assertions
 
 ## [1.2.13] - 2025-11-26
 
