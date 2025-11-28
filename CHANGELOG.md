@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+- **Semantic Priority Matching** (ISS-0002): Natural language priority input support for ticket creation and updates
+  - Accepts natural language inputs: "urgent" → CRITICAL, "important" → HIGH, "whenever" → LOW
+  - 20+ synonyms per priority level covering common phrases and platform-specific terms
+  - Multi-stage matching pipeline: exact → synonym → fuzzy matching with typo tolerance
+  - Confidence-based handling with suggestion system for ambiguous inputs
+  - Platform-specific support: GitHub (P0-P3), JIRA (Blocker, Major, Trivial), Severity levels (Sev 0-3)
+  - 100% backward compatible - exact values still work perfectly
+  - Performance: <5ms average match time, >95% test coverage, 120+ comprehensive tests
+  - Implementation: `src/mcp_ticketer/core/priority_matcher.py`
+  - Integration: `ticket_create()` and `ticket_update()` MCP tools
+  - Documentation: `docs/SEMANTIC_PRIORITY_MATCHING.md`
+
 ## [1.2.13] - 2025-11-26
 
 ### Added

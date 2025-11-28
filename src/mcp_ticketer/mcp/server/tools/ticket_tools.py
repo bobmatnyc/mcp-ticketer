@@ -10,6 +10,7 @@ from typing import Any
 
 from ....core.adapter import BaseAdapter
 from ....core.models import Priority, Task, TicketState
+from ....core.priority_matcher import get_priority_matcher
 from ....core.project_config import ConfigResolver, TicketerConfig
 from ....core.session_state import SessionStateManager
 from ....core.url_parser import extract_id_from_url, is_url
@@ -182,7 +183,8 @@ async def ticket_create(
     Args:
         title: Ticket title (required)
         description: Detailed description of the ticket
-        priority: Priority level - must be one of: low, medium, high, critical
+        priority: Priority level - supports natural language (e.g., "urgent", "asap", "important")
+                 or exact values (low, medium, high, critical)
         tags: List of tags to categorize the ticket (auto-detection adds to these)
         assignee: User ID or email to assign the ticket to
         parent_epic: Parent epic/project ID to assign this ticket to (optional)
@@ -191,18 +193,34 @@ async def ticket_create(
     Returns:
         Created ticket details including ID and metadata, or error information
 
+    Ticket Reference: ISS-0002 - Semantic priority matching
+
     """
     try:
         adapter = get_adapter()
 
-        # Validate and convert priority
-        try:
-            priority_enum = Priority(priority.lower())
-        except ValueError:
+        # Validate and convert priority using semantic matcher (ISS-0002)
+        priority_matcher = get_priority_matcher()
+        match_result = priority_matcher.match_priority(priority)
+
+        # Handle low confidence matches - provide suggestions
+        if match_result.is_low_confidence():
+            suggestions = priority_matcher.suggest_priorities(priority, top_n=3)
             return {
-                "status": "error",
-                "error": f"Invalid priority '{priority}'. Must be one of: low, medium, high, critical",
+                "status": "ambiguous",
+                "message": f"Priority input '{priority}' is ambiguous. Please choose from suggestions or use exact values.",
+                "original_input": priority,
+                "suggestions": [
+                    {
+                        "priority": s.priority.value,
+                        "confidence": round(s.confidence, 2),
+                    }
+                    for s in suggestions
+                ],
+                "exact_values": ["low", "medium", "high", "critical"],
             }
+
+        priority_enum = match_result.priority
 
         # Apply configuration defaults if values not provided
         resolver = ConfigResolver(project_path=Path.cwd())
@@ -439,13 +457,16 @@ async def ticket_update(
         ticket_id: Ticket ID or URL to update
         title: New title for the ticket
         description: New description for the ticket
-        priority: New priority - must be one of: low, medium, high, critical
+        priority: New priority - supports natural language (e.g., "urgent", "asap", "important")
+                 or exact values (low, medium, high, critical)
         state: New state - must be one of: open, in_progress, ready, tested, done, closed, waiting, blocked
         assignee: User ID or email to assign the ticket to
         tags: New list of tags (replaces existing tags)
 
     Returns:
         Updated ticket details, or error information
+
+    Ticket Reference: ISS-0002 - Semantic priority matching
 
     """
     try:
@@ -461,15 +482,29 @@ async def ticket_update(
         if tags is not None:
             updates["tags"] = tags
 
-        # Validate and convert priority if provided
+        # Validate and convert priority if provided (ISS-0002)
         if priority is not None:
-            try:
-                updates["priority"] = Priority(priority.lower())
-            except ValueError:
+            priority_matcher = get_priority_matcher()
+            match_result = priority_matcher.match_priority(priority)
+
+            # Handle low confidence matches - provide suggestions
+            if match_result.is_low_confidence():
+                suggestions = priority_matcher.suggest_priorities(priority, top_n=3)
                 return {
-                    "status": "error",
-                    "error": f"Invalid priority '{priority}'. Must be one of: low, medium, high, critical",
+                    "status": "ambiguous",
+                    "message": f"Priority input '{priority}' is ambiguous. Please choose from suggestions or use exact values.",
+                    "original_input": priority,
+                    "suggestions": [
+                        {
+                            "priority": s.priority.value,
+                            "confidence": round(s.confidence, 2),
+                        }
+                        for s in suggestions
+                    ],
+                    "exact_values": ["low", "medium", "high", "critical"],
                 }
+
+            updates["priority"] = match_result.priority
 
         # Validate and convert state if provided
         if state is not None:
