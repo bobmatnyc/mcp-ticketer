@@ -1,6 +1,5 @@
 """Tests for dependency graph analysis."""
 
-
 from mcp_ticketer.analysis.dependency_graph import DependencyGraph, DependencyNode
 from mcp_ticketer.core.models import Task, TicketState
 

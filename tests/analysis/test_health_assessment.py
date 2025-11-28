@@ -1,6 +1,5 @@
 """Tests for project health assessment."""
 
-
 from mcp_ticketer.analysis.health_assessment import (
     HealthAssessor,
     HealthMetrics,

@@ -1,6 +1,5 @@
 """Tests for project status analysis."""
 
-
 from mcp_ticketer.analysis.project_status import (
     StatusAnalyzer,
 )
