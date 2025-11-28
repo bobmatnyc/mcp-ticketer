@@ -6,6 +6,93 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.2.15] - 2025-11-28
+
+### Added
+- **Automatic Project Updates** (1M-315): Real-time epic/project status updates on ticket transitions
+  - Automatically posts project status summaries when tickets transition states
+  - Triggers on `ticket_transition` calls with epic association
+  - Provides instant visibility into project health without manual updates
+  - Non-blocking design: update failures don't affect ticket transitions
+  - Graceful degradation for unsupported adapters
+  - Configuration via `auto_project_updates` in `.mcp-ticketer/config.json`
+  - Implementation: `src/mcp_ticketer/automation/project_updates.py` (378 lines)
+  - Documentation: `docs/features/AUTO_PROJECT_UPDATES.md`
+
+- **Project Status Analysis** (1M-316): Comprehensive project/epic analysis with actionable insights
+  - New `project_status` MCP tool for project managers and team leads
+  - Status breakdown by state, priority, and assignee
+  - Dependency graph parsing with critical path detection
+  - Health assessment using weighted scoring algorithm (7 metrics)
+  - Next ticket recommendations based on dependencies and readiness
+  - Actionable recommendations for unblocking work
+  - Implementation: `src/mcp_ticketer/analysis/project_status.py` (592 lines)
+  - MCP tool: `src/mcp_ticketer/mcp/server/tools/project_status_tools.py` (160 lines)
+
+- **Dependency Graph Analysis**: Parse ticket descriptions for dependency relationships
+  - Detects "Depends on:", "Blocked by:", "Requires:" patterns
+  - Builds complete dependency graph with cycle detection
+  - Identifies critical path through project
+  - Highlights blocking tickets preventing progress
+  - Implementation: `src/mcp_ticketer/analysis/dependency_graph.py` (255 lines)
+  - Comprehensive test coverage: `tests/analysis/test_dependency_graph.py`
+
+- **Health Assessment System**: Multi-factor project health scoring
+  - 7 weighted health metrics: completion rate, velocity, blockers, staleness, overdue, priority mix, workload balance
+  - Configurable weights via `health_weights` in config
+  - Returns health status: ON_TRACK, AT_RISK, OFF_TRACK with confidence scores
+  - Detailed scoring breakdown for debugging and tuning
+  - Implementation: `src/mcp_ticketer/analysis/health_assessment.py` (302 lines)
+  - Comprehensive test coverage: `tests/analysis/test_health_assessment.py`
+
+- **Enhanced Analysis Module**: Centralized analysis tool discovery
+  - Updated `__init__.py` to export `StatusAnalyzer`, `DependencyGraph`, `HealthAssessor`
+  - Improved module documentation and organization
+  - Clean separation: analysis tools vs. cleanup utilities
+
+### Fixed
+- **Default Epic Priority Bug**: Fixed parent_epic parameter handling in `ticket_create`
+  - Issue: Config default_epic was incorrectly taking priority over explicit parent_epic parameter
+  - Root cause: Cannot distinguish between `parent_epic=None` (opt-out) and "parameter not provided"
+  - Solution: Introduced sentinel value `_UNSET` to detect explicit None vs. parameter omission
+  - New priority order:
+    1. Explicit parent_epic argument (including None for opt-out)
+    2. Config default (default_epic or default_project)
+    3. Session-attached ticket
+    4. User prompt (last resort)
+  - Impact: Tools can now reliably override config defaults with explicit None
+  - Prevents unwanted epic assignment when creating standalone tickets
+  - Modified: `src/mcp_ticketer/mcp/server/tools/ticket_tools.py`
+
+- **Hierarchy Tools State Handling**: Improved workflow state extraction
+  - Added defensive fallback for enum-like state objects
+  - Handles both string states and objects with `.value` attribute
+  - Prevents crashes when state type varies across adapters
+  - Modified: `src/mcp_ticketer/mcp/server/tools/hierarchy_tools.py`
+
+### Changed
+- **Analysis Module Organization**: Better separation of concerns
+  - Cleanup tools: `similarity.py`, `orphaned.py`, `staleness.py`
+  - Project analysis: `project_status.py`, `dependency_graph.py`, `health_assessment.py`
+  - Clear exports via `__init__.py` for both categories
+
+- **Enhanced Logging**: More detailed debug output for epic assignment
+  - Logs which priority level selected parent_epic value
+  - Explicit logging for opt-out vs. config default vs. session ticket
+  - Improved troubleshooting for epic assignment issues
+
+### Documentation
+- Added `docs/features/AUTO_PROJECT_UPDATES.md`: Comprehensive guide to automatic updates
+- Added `docs/development/LOCAL_MCP_SETUP.md`: Local MCP server development setup
+- Added `docs/research/workflow-state-handling-fix-analysis-2025-11-28.md`: State handling deep dive
+
+### Testing
+- Added comprehensive test suites for new features:
+  - `tests/analysis/test_dependency_graph.py`: Dependency parsing and cycle detection
+  - `tests/analysis/test_health_assessment.py`: Health scoring algorithm validation
+  - `tests/analysis/test_project_status.py`: StatusAnalyzer integration tests
+  - `tests/automation/test_auto_project_updates.py`: Automatic update posting
+
 ## [1.2.14] - 2025-11-28
 
 ### Added

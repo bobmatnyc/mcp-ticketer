@@ -16,6 +16,9 @@ from ....core.project_config import ConfigResolver, TicketerConfig
 from ..server_sdk import get_adapter, mcp
 from .ticket_tools import detect_and_apply_labels
 
+# Sentinel value to distinguish between "parameter not provided" and "explicitly None"
+_UNSET = object()
+
 
 def _build_adapter_metadata(
     adapter: BaseAdapter,
@@ -280,7 +283,7 @@ async def epic_issues(epic_id: str) -> dict[str, Any]:
 async def issue_create(
     title: str,
     description: str = "",
-    epic_id: str | None = None,
+    epic_id: str | None = _UNSET,
     assignee: str | None = None,
     priority: str = "medium",
     tags: list[str] | None = None,
@@ -316,24 +319,27 @@ async def issue_create(
                 "error": f"Invalid priority '{priority}'. Must be one of: low, medium, high, critical",
             }
 
+        # Load configuration
+        resolver = ConfigResolver(project_path=Path.cwd())
+        config = resolver.load_project_config() or TicketerConfig()
+
         # Use default_user if no assignee specified
         final_assignee = assignee
-        if final_assignee is None:
-            resolver = ConfigResolver(project_path=Path.cwd())
-            config = resolver.load_project_config() or TicketerConfig()
-            if config.default_user:
-                final_assignee = config.default_user
+        if final_assignee is None and config.default_user:
+            final_assignee = config.default_user
 
-        # Use default_project if no epic_id specified
-        final_epic_id = epic_id
-        if final_epic_id is None:
-            resolver = ConfigResolver(project_path=Path.cwd())
-            config = resolver.load_project_config() or TicketerConfig()
-            # Try default_project first, fall back to default_epic
-            if config.default_project:
-                final_epic_id = config.default_project
-            elif config.default_epic:
-                final_epic_id = config.default_epic
+        # Determine final_epic_id based on priority order:
+        # Priority 1: Explicit epic_id argument (including explicit None for opt-out)
+        # Priority 2: Config default (default_epic or default_project)
+
+        final_epic_id: str | None = None
+
+        if epic_id is not _UNSET:
+            # Priority 1: Explicit value provided (including None for opt-out)
+            final_epic_id = epic_id
+        elif config.default_project or config.default_epic:
+            # Priority 2: Use configured default
+            final_epic_id = config.default_project or config.default_epic
 
         # Auto-detect labels if enabled
         final_tags = tags

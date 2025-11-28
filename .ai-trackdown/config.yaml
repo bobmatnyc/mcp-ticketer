@@ -17,3 +17,4 @@ git:
 plugins: {}
 issues:
   counter: 3
+set-default-epic: eac28953c267

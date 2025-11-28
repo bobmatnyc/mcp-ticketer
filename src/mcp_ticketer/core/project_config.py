@@ -190,6 +190,9 @@ class TicketerConfig:
     default_cycle: str | None = None  # Default sprint/cycle ID for timeline scoping
     assignment_labels: list[str] | None = None  # Labels indicating ticket assignment
 
+    # Automatic project updates configuration (1M-315)
+    auto_project_updates: dict[str, Any] | None = None  # Auto update settings
+
     def __post_init__(self):
         """Normalize default_project if it's a URL."""
         if self.default_project:
@@ -258,6 +261,8 @@ class TicketerConfig:
             result["default_cycle"] = self.default_cycle
         if self.assignment_labels is not None:
             result["assignment_labels"] = self.assignment_labels
+        if self.auto_project_updates is not None:
+            result["auto_project_updates"] = self.auto_project_updates
         return result
 
     @classmethod
@@ -292,6 +297,7 @@ class TicketerConfig:
             default_team=data.get("default_team"),
             default_cycle=data.get("default_cycle"),
             assignment_labels=data.get("assignment_labels"),
+            auto_project_updates=data.get("auto_project_updates"),
         )
 
 

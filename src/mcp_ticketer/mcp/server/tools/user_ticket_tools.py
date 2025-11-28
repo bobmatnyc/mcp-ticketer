@@ -507,7 +507,53 @@ async def ticket_transition(
                 # Log but don't fail the transition
                 comment_added = False
 
-        return {
+        # Auto project update hook (1M-315)
+        # Trigger automatic project update if enabled and ticket has parent epic
+        auto_update_result = None
+        try:
+            from pathlib import Path
+
+            from ....automation.project_updates import AutoProjectUpdateManager
+            from ....core.project_config import ConfigResolver
+
+            # Load config
+            resolver = ConfigResolver(project_path=Path.cwd())
+            config_obj = resolver.load_project_config()
+            config_dict = config_obj.to_dict() if config_obj else {}
+
+            # Check if auto updates enabled
+            auto_updates_mgr = AutoProjectUpdateManager(config_dict, adapter)
+            if auto_updates_mgr.is_enabled():
+                # Check if ticket has parent_epic
+                parent_epic = updated.parent_epic if hasattr(updated, "parent_epic") else None
+
+                if parent_epic:
+                    # Only trigger on configured frequency
+                    update_frequency = auto_updates_mgr.get_update_frequency()
+                    should_trigger = update_frequency == "on_transition"
+
+                    # For "on_completion", only trigger if transitioned to done/closed
+                    if update_frequency == "on_completion":
+                        from ....core.models import TicketState as TSEnum
+                        should_trigger = target_state in (TSEnum.DONE, TSEnum.CLOSED)
+
+                    if should_trigger:
+                        auto_update_result = await auto_updates_mgr.create_transition_update(
+                            ticket_id=ticket_id,
+                            ticket_title=updated.title or "",
+                            old_state=current_state.value,
+                            new_state=target_state.value,
+                            parent_epic=parent_epic,
+                        )
+        except Exception as e:
+            # Log error but don't block the transition
+            import logging
+            logging.getLogger(__name__).warning(
+                f"Auto project update failed (non-blocking): {e}"
+            )
+
+        # Build final response
+        final_response = {
             **response,
             **_build_adapter_metadata(adapter, ticket_id),
             "status": "completed",
@@ -517,6 +563,12 @@ async def ticket_transition(
             "comment_added": comment_added,
             "message": f"Ticket {ticket_id} transitioned from {current_state.value} to {target_state.value}",
         }
+
+        # Include auto update result if applicable
+        if auto_update_result:
+            final_response["auto_project_update"] = auto_update_result
+
+        return final_response
     except Exception as e:
         return {
             "status": "error",

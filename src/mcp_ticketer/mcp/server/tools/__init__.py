@@ -19,6 +19,7 @@ Modules:
     analysis_tools: Ticket analysis and cleanup tools (similar, stale, orphaned)
     label_tools: Label management, normalization, deduplication, and cleanup
     project_update_tools: Project status update management (1M-238)
+    project_status_tools: Project status analysis and work planning (1M-316)
 
 """
 
@@ -34,6 +35,7 @@ from . import (
     instruction_tools,  # noqa: F401
     label_tools,  # noqa: F401
     pr_tools,  # noqa: F401
+    project_status_tools,  # noqa: F401
     project_update_tools,  # noqa: F401
     search_tools,  # noqa: F401
     session_tools,  # noqa: F401
@@ -51,6 +53,7 @@ __all__ = [
     "instruction_tools",
     "label_tools",
     "pr_tools",
+    "project_status_tools",
     "project_update_tools",
     "search_tools",
     "session_tools",
