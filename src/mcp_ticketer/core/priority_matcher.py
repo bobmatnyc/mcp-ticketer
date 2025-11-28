@@ -271,6 +271,15 @@ class SemanticPriorityMatcher:
         # Normalize input
         normalized = user_input.strip().lower()
 
+        # Handle whitespace-only input (after normalization)
+        if not normalized:
+            return PriorityMatchResult(
+                priority=Priority.MEDIUM,
+                confidence=0.5,
+                match_type="default",
+                original_input=user_input,
+            )
+
         # Stage 1: Exact match
         exact_result = self._exact_match(normalized)
         if exact_result:
