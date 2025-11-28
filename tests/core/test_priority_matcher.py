@@ -13,7 +13,6 @@ Tests cover:
 Ticket Reference: ISS-0002 - Add semantic priority matching for natural language inputs
 """
 
-import pytest
 
 from mcp_ticketer.core.models import Priority
 from mcp_ticketer.core.priority_matcher import (
@@ -118,7 +117,9 @@ class TestSynonymMatching:
 
         for synonym in synonyms:
             result = matcher.match_priority(synonym)
-            assert result.priority == Priority.CRITICAL, f"Failed for synonym: {synonym}"
+            assert (
+                result.priority == Priority.CRITICAL
+            ), f"Failed for synonym: {synonym}"
             assert result.confidence >= 0.95
             assert result.match_type in ["exact", "synonym"]
 
@@ -616,7 +617,9 @@ class TestPlatformSpecificTerms:
 
         for input_str, expected_priority in test_cases:
             result = matcher.match_priority(input_str)
-            assert result.priority == expected_priority, f"Failed for input: {input_str}"
+            assert (
+                result.priority == expected_priority
+            ), f"Failed for input: {input_str}"
             assert result.confidence >= 0.95
 
     def test_jira_style_priorities(self) -> None:
@@ -632,7 +635,9 @@ class TestPlatformSpecificTerms:
 
         for input_str, expected_priority in test_cases:
             result = matcher.match_priority(input_str)
-            assert result.priority == expected_priority, f"Failed for input: {input_str}"
+            assert (
+                result.priority == expected_priority
+            ), f"Failed for input: {input_str}"
             assert result.confidence >= 0.95
 
     def test_severity_levels(self) -> None:
@@ -656,7 +661,9 @@ class TestPlatformSpecificTerms:
 
         for input_str, expected_priority in test_cases:
             result = matcher.match_priority(input_str)
-            assert result.priority == expected_priority, f"Failed for input: {input_str}"
+            assert (
+                result.priority == expected_priority
+            ), f"Failed for input: {input_str}"
             assert result.confidence >= 0.95
 
 
