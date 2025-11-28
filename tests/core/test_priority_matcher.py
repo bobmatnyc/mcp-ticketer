@@ -13,7 +13,6 @@ Tests cover:
 Ticket Reference: ISS-0002 - Add semantic priority matching for natural language inputs
 """
 
-
 from mcp_ticketer.core.models import Priority
 from mcp_ticketer.core.priority_matcher import (
     PriorityMatchResult,
