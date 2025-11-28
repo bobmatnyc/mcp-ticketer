@@ -29,7 +29,7 @@ def _get_value(enum_or_str: Any) -> str:
     Returns:
         String value
     """
-    return enum_or_str.value if hasattr(enum_or_str, 'value') else enum_or_str
+    return enum_or_str.value if hasattr(enum_or_str, "value") else enum_or_str
 
 
 class TicketRecommendation(BaseModel):
@@ -189,9 +189,7 @@ class StatusAnalyzer:
         for ticket in tickets:
             if ticket.priority:
                 priority_value = _get_value(ticket.priority)
-                summary[priority_value] = (
-                    summary.get(priority_value, 0) + 1
-                )
+                summary[priority_value] = summary.get(priority_value, 0) + 1
 
         return dict(summary)
 
@@ -207,9 +205,7 @@ class StatusAnalyzer:
             Dictionary mapping assignee -> {state: count}
 
         """
-        distribution: dict[str, dict[str, int]] = defaultdict(
-            lambda: defaultdict(int)
-        )
+        distribution: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
         for ticket in tickets:
             assignee = ticket.assignee or "unassigned"
@@ -272,8 +268,12 @@ class StatusAnalyzer:
                     {
                         "ticket_id": ticket_id,
                         "title": ticket.title or "",
-                        "state": _get_value(ticket.state) if ticket.state else "unknown",
-                        "priority": _get_value(ticket.priority) if ticket.priority else "medium",
+                        "state": (
+                            _get_value(ticket.state) if ticket.state else "unknown"
+                        ),
+                        "priority": (
+                            _get_value(ticket.priority) if ticket.priority else "medium"
+                        ),
                         "blocks_count": blocked_count,
                         "blocks": list(dep_graph.edges.get(ticket_id, set())),
                     }
@@ -306,7 +306,7 @@ class StatusAnalyzer:
             List of top 3 recommended tickets
 
         """
-        from ..core.models import Priority, TicketState
+        from ..core.models import TicketState
 
         # Filter to actionable tickets (not done, not in progress)
         actionable = [
@@ -349,7 +349,9 @@ class StatusAnalyzer:
                     TicketRecommendation(
                         ticket_id=ticket_id,
                         title=ticket.title or "",
-                        priority=_get_value(ticket.priority) if ticket.priority else "medium",
+                        priority=(
+                            _get_value(ticket.priority) if ticket.priority else "medium"
+                        ),
                         reason=reason,
                         blocks=blocks,
                         impact_score=score,
@@ -451,7 +453,9 @@ class StatusAnalyzer:
         # Impact
         blocks_count = len(dep_graph.edges.get(ticket_id, set()))
         if blocks_count > 0:
-            reasons.append(f"Unblocks {blocks_count} ticket{'s' if blocks_count > 1 else ''}")
+            reasons.append(
+                f"Unblocks {blocks_count} ticket{'s' if blocks_count > 1 else ''}"
+            )
 
         # Critical path
         if ticket_id in critical_path_set:
@@ -462,7 +466,9 @@ class StatusAnalyzer:
         if not blocked_by:
             reasons.append("No blockers")
         else:
-            reasons.append(f"Blocked by {len(blocked_by)} ticket{'s' if len(blocked_by) > 1 else ''}")
+            reasons.append(
+                f"Blocked by {len(blocked_by)} ticket{'s' if len(blocked_by) > 1 else ''}"
+            )
 
         return ", ".join(reasons) if reasons else "Available to start"
 
@@ -489,9 +495,7 @@ class StatusAnalyzer:
 
         # Health-based recommendations
         if health_metrics.health_status == ProjectHealth.OFF_TRACK:
-            recommendations.append(
-                "⚠️ Project is OFF TRACK - Immediate action required"
-            )
+            recommendations.append("⚠️ Project is OFF TRACK - Immediate action required")
 
             if health_metrics.blocked_rate > 0.3:
                 recommendations.append(
@@ -545,9 +549,7 @@ class StatusAnalyzer:
 
         # Default positive message
         if not recommendations:
-            recommendations.append(
-                "✅ Project is on track - Continue current momentum"
-            )
+            recommendations.append("✅ Project is on track - Continue current momentum")
 
         return recommendations
 

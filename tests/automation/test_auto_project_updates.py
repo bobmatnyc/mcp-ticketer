@@ -3,9 +3,10 @@
 Tests automatic project update posting that triggers on ticket transitions.
 """
 
-import pytest
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
+
+import pytest
 
 from mcp_ticketer.analysis.project_status import ProjectStatusResult
 from mcp_ticketer.automation.project_updates import AutoProjectUpdateManager
@@ -324,7 +325,6 @@ class TestAutoProjectUpdateManager:
         """Test markdown summary formatting structure."""
         from mcp_ticketer.analysis.health_assessment import HealthMetrics, ProjectHealth
         from mcp_ticketer.analysis.project_status import (
-            ProjectStatusResult,
             TicketRecommendation,
         )
 
@@ -393,7 +393,6 @@ class TestAutoProjectUpdateManager:
     def test_format_markdown_summary_with_blockers(self, config_enabled, mock_adapter):
         """Test markdown summary includes blocker information."""
         from mcp_ticketer.analysis.health_assessment import HealthMetrics, ProjectHealth
-        from mcp_ticketer.analysis.project_status import ProjectStatusResult
 
         analysis = ProjectStatusResult(
             project_id="epic-abc",

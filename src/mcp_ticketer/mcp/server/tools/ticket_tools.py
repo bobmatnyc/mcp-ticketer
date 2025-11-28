@@ -256,7 +256,9 @@ async def ticket_create(
             if session_state.current_ticket:
                 # Priority 3: Use session ticket as parent_epic
                 final_parent_epic = session_state.current_ticket
-                logging.info(f"Using session ticket as parent_epic: {final_parent_epic}")
+                logging.info(
+                    f"Using session ticket as parent_epic: {final_parent_epic}"
+                )
             elif not session_state.ticket_opted_out:
                 # Priority 4: No default, no session, no opt-out - provide guidance
                 return {

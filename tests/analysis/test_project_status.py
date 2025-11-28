@@ -1,11 +1,8 @@
 """Tests for project status analysis."""
 
-import pytest
 
 from mcp_ticketer.analysis.project_status import (
-    ProjectStatusResult,
     StatusAnalyzer,
-    TicketRecommendation,
 )
 from mcp_ticketer.core.models import Priority, Task, TicketState
 
@@ -63,9 +60,15 @@ def test_analyze_simple_project():
 def test_build_state_summary():
     """Test state summary building."""
     tickets = [
-        Task(id="TEST-1", title="Done", state=TicketState.DONE, priority=Priority.MEDIUM),
-        Task(id="TEST-2", title="Done", state=TicketState.DONE, priority=Priority.MEDIUM),
-        Task(id="TEST-3", title="Open", state=TicketState.OPEN, priority=Priority.MEDIUM),
+        Task(
+            id="TEST-1", title="Done", state=TicketState.DONE, priority=Priority.MEDIUM
+        ),
+        Task(
+            id="TEST-2", title="Done", state=TicketState.DONE, priority=Priority.MEDIUM
+        ),
+        Task(
+            id="TEST-3", title="Open", state=TicketState.OPEN, priority=Priority.MEDIUM
+        ),
     ]
 
     analyzer = StatusAnalyzer()
@@ -79,10 +82,20 @@ def test_build_state_summary():
 def test_build_priority_summary():
     """Test priority summary building."""
     tickets = [
-        Task(id="TEST-1", title="Critical", state=TicketState.OPEN, priority=Priority.CRITICAL),
+        Task(
+            id="TEST-1",
+            title="Critical",
+            state=TicketState.OPEN,
+            priority=Priority.CRITICAL,
+        ),
         Task(id="TEST-2", title="High", state=TicketState.OPEN, priority=Priority.HIGH),
         Task(id="TEST-3", title="High", state=TicketState.OPEN, priority=Priority.HIGH),
-        Task(id="TEST-4", title="Medium", state=TicketState.OPEN, priority=Priority.MEDIUM),
+        Task(
+            id="TEST-4",
+            title="Medium",
+            state=TicketState.OPEN,
+            priority=Priority.MEDIUM,
+        ),
     ]
 
     analyzer = StatusAnalyzer()
@@ -309,7 +322,12 @@ def test_recommendation_scoring_blocks():
 def test_generate_recommendations_healthy_project():
     """Test recommendations for healthy project."""
     tickets = [
-        Task(id=f"TEST-{i}", title=f"Task {i}", state=TicketState.DONE, priority=Priority.MEDIUM)
+        Task(
+            id=f"TEST-{i}",
+            title=f"Task {i}",
+            state=TicketState.DONE,
+            priority=Priority.MEDIUM,
+        )
         for i in range(7)
     ] + [
         Task(
@@ -346,7 +364,9 @@ def test_generate_recommendations_off_track():
 
     # Should have warning recommendations
     assert len(result.recommendations) > 0
-    assert any("off track" in r.lower() or "risk" in r.lower() for r in result.recommendations)
+    assert any(
+        "off track" in r.lower() or "risk" in r.lower() for r in result.recommendations
+    )
 
 
 def test_generate_recommendations_critical_tickets():
@@ -410,14 +430,20 @@ def test_generate_recommendations_blockers():
     assert len(result.recommendations) > 0
 
     # Should mention resolving the blocker
-    assert any("unblock" in r.lower() or "1M-100" in r for r in result.recommendations), \
-        f"Blocker not mentioned in recommendations: {result.recommendations}"
+    assert any(
+        "unblock" in r.lower() or "1M-100" in r for r in result.recommendations
+    ), f"Blocker not mentioned in recommendations: {result.recommendations}"
 
 
 def test_generate_recommendations_no_completions():
     """Test recommendations when no tickets are completed."""
     tickets = [
-        Task(id=f"TEST-{i}", title=f"Open {i}", state=TicketState.OPEN, priority=Priority.MEDIUM)
+        Task(
+            id=f"TEST-{i}",
+            title=f"Open {i}",
+            state=TicketState.OPEN,
+            priority=Priority.MEDIUM,
+        )
         for i in range(5)
     ]
 
@@ -425,14 +451,23 @@ def test_generate_recommendations_no_completions():
     result = analyzer.analyze("TEST", "Test", tickets)
 
     # Should suggest delivering first wins
-    assert any("complet" in r.lower() or "deliver" in r.lower() for r in result.recommendations)
+    assert any(
+        "complet" in r.lower() or "deliver" in r.lower() for r in result.recommendations
+    )
 
 
 def test_timeline_estimate():
     """Test timeline estimation."""
     tickets = [
-        Task(id="TEST-1", title="Task", state=TicketState.OPEN, priority=Priority.CRITICAL),
-        Task(id="TEST-2", title="Task", state=TicketState.BLOCKED, priority=Priority.HIGH),
+        Task(
+            id="TEST-1",
+            title="Task",
+            state=TicketState.OPEN,
+            priority=Priority.CRITICAL,
+        ),
+        Task(
+            id="TEST-2", title="Task", state=TicketState.BLOCKED, priority=Priority.HIGH
+        ),
     ]
 
     analyzer = StatusAnalyzer()

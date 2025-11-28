@@ -8,7 +8,7 @@ This module parses ticket descriptions and builds dependency graphs to:
 """
 
 import re
-from collections import defaultdict, deque
+from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
@@ -102,9 +102,7 @@ class DependencyGraph:
                 # (lower priority in recommendations)
                 pass
 
-    def _extract_dependencies(
-        self, text: str, ticket_id: str
-    ) -> list[tuple[str, str]]:
+    def _extract_dependencies(self, text: str, ticket_id: str) -> list[tuple[str, str]]:
         """Extract dependencies from ticket text.
 
         Args:
@@ -157,7 +155,9 @@ class DependencyGraph:
                 depth = 0
             else:
                 # Depth is 1 + max depth of any blocked ticket
-                depth = 1 + max((dfs(blocked) for blocked in blocked_tickets), default=0)
+                depth = 1 + max(
+                    (dfs(blocked) for blocked in blocked_tickets), default=0
+                )
 
             if node_id in self.nodes:
                 self.nodes[node_id].depth = depth

@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from ..core.models import Priority, Task, TicketState
+    from ..core.models import Task
 
 
 class ProjectHealth(str, Enum):
@@ -182,8 +182,11 @@ class HealthAssessor:
         """Count tickets with a specific priority."""
         # Handle both enum and string values
         return sum(
-            1 for t in tickets
-            if t.priority and (t.priority.value if hasattr(t.priority, 'value') else t.priority) == priority
+            1
+            for t in tickets
+            if t.priority
+            and (t.priority.value if hasattr(t.priority, "value") else t.priority)
+            == priority
         )
 
     def _calculate_health_score(
@@ -238,7 +241,9 @@ class HealthAssessor:
         from ..core.models import Priority, TicketState
 
         critical_tickets = [
-            t for t in tickets if t.priority == Priority.CRITICAL or t.priority == Priority.HIGH
+            t
+            for t in tickets
+            if t.priority == Priority.CRITICAL or t.priority == Priority.HIGH
         ]
 
         if not critical_tickets:
@@ -287,10 +292,7 @@ class HealthAssessor:
             return ProjectHealth.OFF_TRACK
 
         # Check for on-track conditions
-        if (
-            completion_rate >= self.HEALTHY_COMPLETION_THRESHOLD
-            and blocked_rate == 0.0
-        ):
+        if completion_rate >= self.HEALTHY_COMPLETION_THRESHOLD and blocked_rate == 0.0:
             return ProjectHealth.ON_TRACK
 
         # Use health score as tie-breaker

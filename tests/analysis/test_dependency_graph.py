@@ -1,9 +1,8 @@
 """Tests for dependency graph analysis."""
 
-import pytest
 
 from mcp_ticketer.analysis.dependency_graph import DependencyGraph, DependencyNode
-from mcp_ticketer.core.models import Priority, Task, TicketState
+from mcp_ticketer.core.models import Task, TicketState
 
 
 def test_dependency_node_creation():
@@ -163,12 +162,20 @@ def test_calculate_depths_simple_chain():
 
     # Create chain: A blocks B blocks C
     ticket_a = Task(
-        id="1M-800", title="A blocks B", description="Blocks 1M-801", state=TicketState.OPEN
+        id="1M-800",
+        title="A blocks B",
+        description="Blocks 1M-801",
+        state=TicketState.OPEN,
     )
     ticket_b = Task(
-        id="1M-801", title="B blocks C", description="Blocks 1M-802", state=TicketState.OPEN
+        id="1M-801",
+        title="B blocks C",
+        description="Blocks 1M-802",
+        state=TicketState.OPEN,
     )
-    ticket_c = Task(id="1M-802", title="C", description="Final task", state=TicketState.OPEN)
+    ticket_c = Task(
+        id="1M-802", title="C", description="Final task", state=TicketState.OPEN
+    )
 
     graph.add_ticket(ticket_a)
     graph.add_ticket(ticket_b)

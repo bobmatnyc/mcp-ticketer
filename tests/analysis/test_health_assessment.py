@@ -1,6 +1,5 @@
 """Tests for project health assessment."""
 
-import pytest
 
 from mcp_ticketer.analysis.health_assessment import (
     HealthAssessor,
@@ -91,7 +90,9 @@ def test_mixed_state_project():
             state=TicketState.IN_PROGRESS,
             priority=Priority.HIGH,
         ),
-        Task(id="TEST-4", title="Open", state=TicketState.OPEN, priority=Priority.MEDIUM),
+        Task(
+            id="TEST-4", title="Open", state=TicketState.OPEN, priority=Priority.MEDIUM
+        ),
         Task(id="TEST-5", title="Open", state=TicketState.OPEN, priority=Priority.LOW),
     ]
 
@@ -120,7 +121,12 @@ def test_critical_priority_count():
             priority=Priority.CRITICAL,
         ),
         Task(id="TEST-3", title="High", state=TicketState.OPEN, priority=Priority.HIGH),
-        Task(id="TEST-4", title="Medium", state=TicketState.OPEN, priority=Priority.MEDIUM),
+        Task(
+            id="TEST-4",
+            title="Medium",
+            state=TicketState.OPEN,
+            priority=Priority.MEDIUM,
+        ),
     ]
 
     assessor = HealthAssessor()
@@ -134,7 +140,12 @@ def test_health_status_on_track():
     """Test determination of ON_TRACK status."""
     # More than 50% done, no blockers
     tickets = [
-        Task(id=f"TEST-{i}", title=f"Done {i}", state=TicketState.DONE, priority=Priority.MEDIUM)
+        Task(
+            id=f"TEST-{i}",
+            title=f"Done {i}",
+            state=TicketState.DONE,
+            priority=Priority.MEDIUM,
+        )
         for i in range(6)
     ] + [
         Task(
@@ -158,17 +169,30 @@ def test_health_status_at_risk():
     """Test determination of AT_RISK status."""
     # Some progress but not enough completion
     tickets = [
-        Task(id="TEST-1", title="Done", state=TicketState.DONE, priority=Priority.MEDIUM),
-        Task(id="TEST-2", title="Done", state=TicketState.DONE, priority=Priority.MEDIUM),
+        Task(
+            id="TEST-1", title="Done", state=TicketState.DONE, priority=Priority.MEDIUM
+        ),
+        Task(
+            id="TEST-2", title="Done", state=TicketState.DONE, priority=Priority.MEDIUM
+        ),
         Task(
             id="TEST-3",
             title="In Progress",
             state=TicketState.IN_PROGRESS,
             priority=Priority.HIGH,
         ),
-        Task(id="TEST-4", title="Open", state=TicketState.OPEN, priority=Priority.MEDIUM),
-        Task(id="TEST-5", title="Open", state=TicketState.OPEN, priority=Priority.MEDIUM),
-        Task(id="TEST-6", title="Blocked", state=TicketState.BLOCKED, priority=Priority.HIGH),
+        Task(
+            id="TEST-4", title="Open", state=TicketState.OPEN, priority=Priority.MEDIUM
+        ),
+        Task(
+            id="TEST-5", title="Open", state=TicketState.OPEN, priority=Priority.MEDIUM
+        ),
+        Task(
+            id="TEST-6",
+            title="Blocked",
+            state=TicketState.BLOCKED,
+            priority=Priority.HIGH,
+        ),
     ]
 
     assessor = HealthAssessor()
@@ -182,9 +206,24 @@ def test_health_status_off_track():
     """Test determination of OFF_TRACK status."""
     # High blocker rate
     tickets = [
-        Task(id="TEST-1", title="Blocked", state=TicketState.BLOCKED, priority=Priority.HIGH),
-        Task(id="TEST-2", title="Blocked", state=TicketState.BLOCKED, priority=Priority.HIGH),
-        Task(id="TEST-3", title="Blocked", state=TicketState.BLOCKED, priority=Priority.MEDIUM),
+        Task(
+            id="TEST-1",
+            title="Blocked",
+            state=TicketState.BLOCKED,
+            priority=Priority.HIGH,
+        ),
+        Task(
+            id="TEST-2",
+            title="Blocked",
+            state=TicketState.BLOCKED,
+            priority=Priority.HIGH,
+        ),
+        Task(
+            id="TEST-3",
+            title="Blocked",
+            state=TicketState.BLOCKED,
+            priority=Priority.MEDIUM,
+        ),
         Task(id="TEST-4", title="Open", state=TicketState.OPEN, priority=Priority.LOW),
     ]
 
@@ -198,10 +237,24 @@ def test_health_status_off_track():
 def test_completion_rate_includes_tested():
     """Test that completion rate includes TESTED state."""
     tickets = [
-        Task(id="TEST-1", title="Done", state=TicketState.DONE, priority=Priority.MEDIUM),
-        Task(id="TEST-2", title="Tested", state=TicketState.TESTED, priority=Priority.MEDIUM),
-        Task(id="TEST-3", title="Closed", state=TicketState.CLOSED, priority=Priority.MEDIUM),
-        Task(id="TEST-4", title="Open", state=TicketState.OPEN, priority=Priority.MEDIUM),
+        Task(
+            id="TEST-1", title="Done", state=TicketState.DONE, priority=Priority.MEDIUM
+        ),
+        Task(
+            id="TEST-2",
+            title="Tested",
+            state=TicketState.TESTED,
+            priority=Priority.MEDIUM,
+        ),
+        Task(
+            id="TEST-3",
+            title="Closed",
+            state=TicketState.CLOSED,
+            priority=Priority.MEDIUM,
+        ),
+        Task(
+            id="TEST-4", title="Open", state=TicketState.OPEN, priority=Priority.MEDIUM
+        ),
     ]
 
     assessor = HealthAssessor()
@@ -219,9 +272,21 @@ def test_progress_rate_includes_ready():
             state=TicketState.IN_PROGRESS,
             priority=Priority.MEDIUM,
         ),
-        Task(id="TEST-2", title="Ready", state=TicketState.READY, priority=Priority.MEDIUM),
-        Task(id="TEST-3", title="Tested", state=TicketState.TESTED, priority=Priority.MEDIUM),
-        Task(id="TEST-4", title="Open", state=TicketState.OPEN, priority=Priority.MEDIUM),
+        Task(
+            id="TEST-2",
+            title="Ready",
+            state=TicketState.READY,
+            priority=Priority.MEDIUM,
+        ),
+        Task(
+            id="TEST-3",
+            title="Tested",
+            state=TicketState.TESTED,
+            priority=Priority.MEDIUM,
+        ),
+        Task(
+            id="TEST-4", title="Open", state=TicketState.OPEN, priority=Priority.MEDIUM
+        ),
     ]
 
     assessor = HealthAssessor()
@@ -233,10 +298,24 @@ def test_progress_rate_includes_ready():
 def test_blocked_rate_includes_waiting():
     """Test that blocked rate includes WAITING state."""
     tickets = [
-        Task(id="TEST-1", title="Blocked", state=TicketState.BLOCKED, priority=Priority.MEDIUM),
-        Task(id="TEST-2", title="Waiting", state=TicketState.WAITING, priority=Priority.MEDIUM),
-        Task(id="TEST-3", title="Open", state=TicketState.OPEN, priority=Priority.MEDIUM),
-        Task(id="TEST-4", title="Open", state=TicketState.OPEN, priority=Priority.MEDIUM),
+        Task(
+            id="TEST-1",
+            title="Blocked",
+            state=TicketState.BLOCKED,
+            priority=Priority.MEDIUM,
+        ),
+        Task(
+            id="TEST-2",
+            title="Waiting",
+            state=TicketState.WAITING,
+            priority=Priority.MEDIUM,
+        ),
+        Task(
+            id="TEST-3", title="Open", state=TicketState.OPEN, priority=Priority.MEDIUM
+        ),
+        Task(
+            id="TEST-4", title="Open", state=TicketState.OPEN, priority=Priority.MEDIUM
+        ),
     ]
 
     assessor = HealthAssessor()
@@ -255,7 +334,9 @@ def test_health_score_calculation():
             state=TicketState.IN_PROGRESS,
             priority=Priority.HIGH,
         ),
-        Task(id="TEST-3", title="Open", state=TicketState.OPEN, priority=Priority.MEDIUM),
+        Task(
+            id="TEST-3", title="Open", state=TicketState.OPEN, priority=Priority.MEDIUM
+        ),
     ]
 
     assessor = HealthAssessor()
@@ -272,9 +353,24 @@ def test_priority_score_with_critical_tickets():
     """Test health score with critical priority tickets."""
     # Critical tickets done = good score
     tickets = [
-        Task(id="TEST-1", title="Critical Done", state=TicketState.DONE, priority=Priority.CRITICAL),
-        Task(id="TEST-2", title="High Done", state=TicketState.DONE, priority=Priority.HIGH),
-        Task(id="TEST-3", title="Medium Open", state=TicketState.OPEN, priority=Priority.MEDIUM),
+        Task(
+            id="TEST-1",
+            title="Critical Done",
+            state=TicketState.DONE,
+            priority=Priority.CRITICAL,
+        ),
+        Task(
+            id="TEST-2",
+            title="High Done",
+            state=TicketState.DONE,
+            priority=Priority.HIGH,
+        ),
+        Task(
+            id="TEST-3",
+            title="Medium Open",
+            state=TicketState.OPEN,
+            priority=Priority.MEDIUM,
+        ),
     ]
 
     assessor = HealthAssessor()
@@ -288,9 +384,24 @@ def test_priority_score_with_critical_open():
     """Test health score with critical priority tickets still open."""
     # Critical tickets still open = lower score
     tickets = [
-        Task(id="TEST-1", title="Critical Open", state=TicketState.OPEN, priority=Priority.CRITICAL),
-        Task(id="TEST-2", title="High Open", state=TicketState.OPEN, priority=Priority.HIGH),
-        Task(id="TEST-3", title="Medium Done", state=TicketState.DONE, priority=Priority.MEDIUM),
+        Task(
+            id="TEST-1",
+            title="Critical Open",
+            state=TicketState.OPEN,
+            priority=Priority.CRITICAL,
+        ),
+        Task(
+            id="TEST-2",
+            title="High Open",
+            state=TicketState.OPEN,
+            priority=Priority.HIGH,
+        ),
+        Task(
+            id="TEST-3",
+            title="Medium Done",
+            state=TicketState.DONE,
+            priority=Priority.MEDIUM,
+        ),
     ]
 
     assessor = HealthAssessor()
@@ -303,7 +414,12 @@ def test_priority_score_with_critical_open():
 def test_no_high_priority_tickets():
     """Test that projects with no high priority tickets get good priority score."""
     tickets = [
-        Task(id="TEST-1", title="Medium", state=TicketState.OPEN, priority=Priority.MEDIUM),
+        Task(
+            id="TEST-1",
+            title="Medium",
+            state=TicketState.OPEN,
+            priority=Priority.MEDIUM,
+        ),
         Task(id="TEST-2", title="Low", state=TicketState.OPEN, priority=Priority.LOW),
     ]
 

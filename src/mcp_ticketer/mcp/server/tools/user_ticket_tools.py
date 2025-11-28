@@ -525,7 +525,9 @@ async def ticket_transition(
             auto_updates_mgr = AutoProjectUpdateManager(config_dict, adapter)
             if auto_updates_mgr.is_enabled():
                 # Check if ticket has parent_epic
-                parent_epic = updated.parent_epic if hasattr(updated, "parent_epic") else None
+                parent_epic = (
+                    updated.parent_epic if hasattr(updated, "parent_epic") else None
+                )
 
                 if parent_epic:
                     # Only trigger on configured frequency
@@ -535,19 +537,23 @@ async def ticket_transition(
                     # For "on_completion", only trigger if transitioned to done/closed
                     if update_frequency == "on_completion":
                         from ....core.models import TicketState as TSEnum
+
                         should_trigger = target_state in (TSEnum.DONE, TSEnum.CLOSED)
 
                     if should_trigger:
-                        auto_update_result = await auto_updates_mgr.create_transition_update(
-                            ticket_id=ticket_id,
-                            ticket_title=updated.title or "",
-                            old_state=current_state.value,
-                            new_state=target_state.value,
-                            parent_epic=parent_epic,
+                        auto_update_result = (
+                            await auto_updates_mgr.create_transition_update(
+                                ticket_id=ticket_id,
+                                ticket_title=updated.title or "",
+                                old_state=current_state.value,
+                                new_state=target_state.value,
+                                parent_epic=parent_epic,
+                            )
                         )
         except Exception as e:
             # Log error but don't block the transition
             import logging
+
             logging.getLogger(__name__).warning(
                 f"Auto project update failed (non-blocking): {e}"
             )

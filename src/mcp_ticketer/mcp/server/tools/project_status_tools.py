@@ -114,9 +114,7 @@ async def project_status(project_id: str | None = None) -> dict[str, Any]:
                 "summary": {"total": 0},
                 "message": "Project has no tickets yet",
                 "recommended_next": [],
-                "recommendations": [
-                    "Project is empty - Create tickets to get started"
-                ],
+                "recommendations": ["Project is empty - Create tickets to get started"],
             }
 
         # Fetch each child issue
