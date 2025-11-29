@@ -224,9 +224,13 @@ mcp-ticket search --rebuild-index
 
 **Best for**: Modern development teams, agile workflows, product management, collaborative projects.
 
+**Documentation:** [Complete Linear Adapter Guide](LINEAR.md) | [Linear URL Handling](LINEAR_URL_HANDLING.md)
+
 ### Overview
 
 Linear is a modern issue tracking and project management tool designed for software teams. The adapter provides full integration with Linear's GraphQL API.
+
+> **Note:** Linear project URLs with different path suffixes (`/issues`, `/overview`, `/updates`) all work identically. See [Linear URL Handling Guide](LINEAR_URL_HANDLING.md) for details.
 
 ### Prerequisites
 

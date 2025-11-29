@@ -2,6 +2,8 @@
 
 This guide explains how to set up and use the Linear adapter with mcp-ticketer.
 
+> **Note:** For detailed information about how Linear URLs are handled, see [Linear URL Handling Guide](../../developer-docs/adapters/LINEAR_URL_HANDLING.md).
+
 ## Prerequisites
 
 1. A Linear account with access to a team

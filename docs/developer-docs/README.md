@@ -18,6 +18,7 @@ Documentation for developers contributing to MCP Ticketer.
 - **[Adapter Overview](adapters/OVERVIEW.md)** - Understanding adapters and feature support
 - **[GitHub Adapter](adapters/github.md)** - GitHub implementation
 - **[Linear Adapter](adapters/LINEAR.md)** - Linear implementation
+- **[Linear URL Handling](adapters/LINEAR_URL_HANDLING.md)** - How Linear URLs are parsed and handled
 
 ## Release Management
 

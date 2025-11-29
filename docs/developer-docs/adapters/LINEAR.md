@@ -5,6 +5,7 @@ The Linear adapter provides comprehensive integration with Linear's modern issue
 ## Table of Contents
 
 - [Overview](#overview)
+- [URL Handling](#url-handling)
 - [Configuration](#configuration)
 - [Core Features](#core-features)
 - [Enhanced Features](#enhanced-features)
@@ -29,6 +30,43 @@ Linear is a modern issue tracking and project management tool designed for softw
 - **State transitions** and workflow management
 - **Comment management** with full thread support
 - **Epic/Issue/Task hierarchy** support
+
+## URL Handling
+
+The Linear adapter intelligently handles different Linear URL formats. All project URL variants (e.g., `/issues`, `/overview`, `/updates`) are treated identically because these are frontend-only routes. The adapter extracts the project ID and uses Linear's unified GraphQL API.
+
+### Quick Overview
+
+**All these URLs work identically:**
+```
+https://linear.app/workspace/project/my-project-abc123/issues
+https://linear.app/workspace/project/my-project-abc123/overview
+https://linear.app/workspace/project/my-project-abc123/updates
+```
+
+They all extract `my-project-abc123` and fetch the same project data.
+
+### Understanding URL Suffixes
+
+Linear's web UI uses different URL paths to show different views:
+- `/issues` - Shows project issues list
+- `/overview` - Shows project summary
+- `/updates` - Shows status updates feed
+
+**Important:** These suffixes are frontend routes only. Linear's GraphQL API doesn't distinguish between them. All project URLs query the same `project(id:)` endpoint.
+
+### Getting Different Data Types
+
+To access different types of project data, use the appropriate MCP tool:
+
+| Data Type | MCP Tool | GraphQL Query |
+|-----------|----------|---------------|
+| Project metadata + issues | `epic_get(project_id)` | `project(id:)` + `issues()` |
+| Project updates only | `project_update_list(project_id)` | `project(id:).projectUpdates` |
+| Issues only | `epic_issues(project_id)` | `issues(filter: {project: ...})` |
+| Single issue | `ticket_read(issue_id)` | `issue(id:)` |
+
+**For detailed documentation**, see [Linear URL Handling Guide](LINEAR_URL_HANDLING.md).
 
 ## Configuration
 
