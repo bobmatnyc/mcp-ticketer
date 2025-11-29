@@ -25,6 +25,7 @@ from typing import Any
 
 from ....core.label_manager import CasingStrategy, LabelDeduplicator, LabelNormalizer
 from ....core.models import SearchQuery
+from ....utils.token_utils import estimate_json_tokens, paginate_response
 from ..server_sdk import get_adapter, get_router, has_router, mcp
 
 logger = logging.getLogger(__name__)
@@ -52,11 +53,20 @@ def _build_adapter_metadata(adapter: Any) -> dict[str, Any]:
 async def label_list(
     adapter_name: str | None = None,
     include_usage_count: bool = False,
+    limit: int = 100,
+    offset: int = 0,
 ) -> dict[str, Any]:
     """List all available labels/tags from the ticket system.
 
     Retrieves labels from the configured adapter or a specific adapter if specified.
     Optionally includes usage statistics showing how many tickets use each label.
+
+    Token Usage:
+    - Without usage_count: ~10 tokens per label
+    - With usage_count: ~15 tokens per label
+    - Default limit=100: ~1,000-1,500 tokens (safe)
+    - All labels (no limit): Could exceed 15,000 tokens for large projects
+    - Recommendation: Use pagination (limit + offset) for large label sets
 
     Multi-Adapter Support:
     - Without adapter_name: Uses default configured adapter
@@ -66,6 +76,8 @@ async def label_list(
     ----
         adapter_name: Optional adapter to query (e.g., "linear", "github", "jira")
         include_usage_count: Include usage statistics for each label (default: False)
+        limit: Maximum number of labels to return (default: 100, max: 500)
+        offset: Number of labels to skip for pagination (default: 0)
 
     Returns:
     -------
@@ -74,7 +86,12 @@ async def label_list(
         - adapter: Adapter type that was queried
         - adapter_name: Human-readable adapter name
         - labels: List of label objects with id, name, and optionally usage_count
-        - total_labels: Total number of labels available
+        - total_labels: Total number of labels available (before pagination)
+        - count: Number of labels returned in this response
+        - limit: Limit used for pagination
+        - offset: Offset used for pagination
+        - has_more: Boolean indicating if more labels exist
+        - estimated_tokens: Approximate token count for response
         - error: Error message (if failed)
 
     Example:
@@ -89,15 +106,35 @@ async def label_list(
                 {"id": "...", "name": "bug", "color": "#ff0000"},
                 {"id": "...", "name": "feature", "color": "#00ff00"}
             ],
-            "total_labels": 2
+            "total_labels": 150,
+            "count": 100,
+            "has_more": true
         }
 
-        >>> result = await label_list(include_usage_count=True)
-        >>> print(result["labels"][0])
-        {"id": "...", "name": "bug", "usage_count": 42}
+        >>> # Get next page
+        >>> result = await label_list(limit=100, offset=100)
+
+        >>> # With usage counts (more tokens)
+        >>> result = await label_list(include_usage_count=True, limit=50)
 
     """
     try:
+        # Validate and cap limits
+        if limit > 500:
+            logger.warning(f"Limit {limit} exceeds maximum 500, using 500")
+            limit = 500
+
+        if offset < 0:
+            logger.warning(f"Invalid offset {offset}, using 0")
+            offset = 0
+
+        # Warn about usage_count with large limits
+        if include_usage_count and limit > 100:
+            logger.warning(
+                f"Calculating usage counts for {limit} labels may be slow and use significant tokens. "
+                f"Consider reducing limit or omitting usage_count."
+            )
+
         # Get adapter (default or specified)
         if adapter_name:
             if not has_router():
@@ -118,10 +155,11 @@ async def label_list(
                 "error": f"Adapter {adapter.adapter_type} does not support label listing",
             }
 
-        # Get labels from adapter
-        labels = await adapter.list_labels()
+        # Get ALL labels from adapter (adapters don't support pagination for labels)
+        all_labels = await adapter.list_labels()
+        total_labels = len(all_labels)
 
-        # Add usage counts if requested
+        # Add usage counts if requested (before pagination)
         if include_usage_count:
             # Count label usage across all tickets
             try:
@@ -136,7 +174,7 @@ async def label_list(
                         label_counts[label_name] = label_counts.get(label_name, 0) + 1
 
                 # Enrich labels with usage counts
-                for label in labels:
+                for label in all_labels:
                     label_name = label.get("name", "")
                     label["usage_count"] = label_counts.get(label_name, 0)
 
@@ -144,12 +182,39 @@ async def label_list(
                 logger.warning(f"Failed to calculate usage counts: {e}")
                 # Continue without usage counts rather than failing
 
-        return {
+        # Apply manual pagination to labels
+        start_idx = offset
+        end_idx = offset + limit
+        paginated_labels = all_labels[start_idx:end_idx]
+        has_more = end_idx < total_labels
+
+        # Build response
+        response = {
             "status": "completed",
             **_build_adapter_metadata(adapter),
-            "labels": labels,
-            "total_labels": len(labels),
+            "labels": paginated_labels,
+            "total_labels": total_labels,
+            "count": len(paginated_labels),
+            "limit": limit,
+            "offset": offset,
+            "has_more": has_more,
         }
+
+        # Estimate tokens and warn if approaching limit
+        estimated_tokens = estimate_json_tokens(response)
+        response["estimated_tokens"] = estimated_tokens
+
+        if estimated_tokens > 15_000:
+            logger.warning(
+                f"Label list response contains ~{estimated_tokens} tokens. "
+                f"Consider reducing limit or omitting usage_count."
+            )
+            response["token_warning"] = (
+                f"Response approaching token limit ({estimated_tokens} tokens). "
+                f"Use smaller limit or omit usage_count."
+            )
+
+        return response
 
     except Exception as e:
         error_response = {

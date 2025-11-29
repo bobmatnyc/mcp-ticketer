@@ -28,6 +28,12 @@ When interacting with Claude Desktop, the following MCP tools are available:
 
 Universal ticket management interface for AI agents with MCP support
 
+## Issue Tracking
+
+**Primary Project**: https://linear.app/1m-hyperdev/project/mcp-ticketer-eac28953c267/issues
+
+**IMPORTANT**: All issues and tickets for this project MUST be created in the Linear project above. This is the single source of truth for all project work items.
+
 ## Key Technologies
 - Python
 

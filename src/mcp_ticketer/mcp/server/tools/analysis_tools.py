@@ -29,6 +29,7 @@ except ImportError:
     StaleTicketDetector = None  # type: ignore
 
 from ....core.models import SearchQuery, TicketState
+from ....utils.token_utils import estimate_json_tokens
 from ..server_sdk import get_adapter, mcp
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,7 @@ async def ticket_find_similar(
     ticket_id: str | None = None,
     threshold: float = 0.75,
     limit: int = 10,
+    internal_limit: int = 100,
 ) -> dict[str, Any]:
     """Find similar tickets to detect duplicates.
 
@@ -46,20 +48,32 @@ async def ticket_find_similar(
     titles and descriptions. Useful for identifying duplicate tickets
     or related work that should be linked.
 
+    Token Usage:
+    - CRITICAL: This tool can generate significant tokens
+    - Default settings (limit=10, internal_limit=100): ~2,000-5,000 tokens
+    - With internal_limit=500: Up to 92,500 tokens (EXCEEDS 20k limit!)
+    - Recommendation: Keep internal_limit ≤ 100 for typical queries
+    - For large datasets: Run multiple queries with specific ticket_id
+
     Args:
         ticket_id: Find similar tickets to this one (if None, find all similar pairs)
         threshold: Similarity threshold 0.0-1.0 (default: 0.75)
-        limit: Maximum number of results (default: 10)
+        limit: Maximum number of similarity results to return (default: 10, max: 50)
+        internal_limit: Maximum tickets to fetch for comparison (default: 100, max: 200)
+                       Higher values increase accuracy but exponentially increase tokens
 
     Returns:
         List of similar ticket pairs with similarity scores and recommended actions
 
     Example:
-        # Find tickets similar to a specific ticket
+        # Find tickets similar to a specific ticket (most efficient)
         result = await ticket_find_similar(ticket_id="TICKET-123", threshold=0.8)
 
-        # Find all similar pairs in the system
-        result = await ticket_find_similar(limit=20)
+        # Find all similar pairs with controlled dataset size
+        result = await ticket_find_similar(limit=20, internal_limit=100)
+
+        # Large analysis (use cautiously - can exceed token limits)
+        result = await ticket_find_similar(limit=10, internal_limit=200)
 
     """
     if not ANALYSIS_AVAILABLE:
@@ -84,6 +98,22 @@ async def ticket_find_similar(
                 "error": "threshold must be between 0.0 and 1.0",
             }
 
+        # Validate and cap limits
+        if limit > 50:
+            logger.warning(f"Limit {limit} exceeds maximum 50, using 50")
+            limit = 50
+
+        if internal_limit > 200:
+            logger.warning(f"Internal limit {internal_limit} exceeds maximum 200, using 200")
+            internal_limit = 200
+
+        # Warn about high token usage
+        if internal_limit > 150:
+            logger.warning(
+                f"Large internal_limit={internal_limit} may generate >15k tokens. "
+                f"Consider reducing to ≤100 or using specific ticket_id for targeted search."
+            )
+
         # Fetch tickets
         if ticket_id:
             try:
@@ -99,11 +129,12 @@ async def ticket_find_similar(
                     "error": f"Failed to read ticket {ticket_id}: {str(e)}",
                 }
 
-            # Fetch more tickets for comparison
-            tickets = await adapter.list(limit=100)
+            # Fetch tickets for comparison (smaller dataset when targeting specific ticket)
+            tickets = await adapter.list(limit=min(internal_limit, 100))
         else:
             target = None
-            tickets = await adapter.list(limit=500)  # Larger for pairwise analysis
+            # Pairwise analysis - use full internal_limit
+            tickets = await adapter.list(limit=internal_limit)
 
         if len(tickets) < 2:
             return {
@@ -117,13 +148,32 @@ async def ticket_find_similar(
         analyzer = TicketSimilarityAnalyzer(threshold=threshold)
         results = analyzer.find_similar_tickets(tickets, target, limit)
 
-        return {
+        # Build response
+        similar_tickets_data = [r.model_dump() for r in results]
+        response = {
             "status": "completed",
-            "similar_tickets": [r.model_dump() for r in results],
+            "similar_tickets": similar_tickets_data,
             "count": len(results),
             "threshold": threshold,
             "tickets_analyzed": len(tickets),
+            "internal_limit": internal_limit,
         }
+
+        # Estimate token usage and warn if approaching limit
+        estimated_tokens = estimate_json_tokens(response)
+        response["estimated_tokens"] = estimated_tokens
+
+        if estimated_tokens > 15_000:
+            logger.warning(
+                f"Response contains ~{estimated_tokens} tokens (approaching 20k limit). "
+                f"Consider reducing internal_limit or result limit."
+            )
+            response["token_warning"] = (
+                f"Response approaching token limit ({estimated_tokens} tokens). "
+                f"Consider using ticket_id for targeted search or reducing internal_limit."
+            )
+
+        return response
 
     except Exception as e:
         logger.error(f"Failed to find similar tickets: {e}")
@@ -326,6 +376,7 @@ async def ticket_cleanup_report(
     include_similar: bool = True,
     include_stale: bool = True,
     include_orphaned: bool = True,
+    summary_only: bool = False,
     format: str = "json",
 ) -> dict[str, Any]:
     """Generate comprehensive ticket cleanup report.
@@ -335,24 +386,33 @@ async def ticket_cleanup_report(
     - Stale tickets (candidates for closing)
     - Orphaned tickets (missing hierarchy)
 
+    Token Usage:
+    - CRITICAL: Full report can exceed 40,000 tokens
+    - Summary only (summary_only=True): ~500-1,000 tokens
+    - Full report with all sections: Up to 40,000+ tokens (EXCEEDS 20k limit!)
+    - Recommendation: Use summary_only=True for overview, then fetch specific sections
+
     Args:
         include_similar: Include similarity analysis (default: True)
         include_stale: Include staleness analysis (default: True)
         include_orphaned: Include orphaned ticket analysis (default: True)
+        summary_only: Return only summary statistics, not full details (default: False)
+                     Set to True to stay under token limits
         format: Output format: "json" or "markdown" (default: "json")
 
     Returns:
         Comprehensive cleanup report with all analyses and recommendations
 
     Example:
-        # Full cleanup report
-        result = await ticket_cleanup_report()
+        # Summary only (recommended for initial overview)
+        result = await ticket_cleanup_report(summary_only=True)
 
-        # Only stale and orphaned analysis
-        result = await ticket_cleanup_report(include_similar=False)
+        # Get specific section details separately
+        similar = await ticket_find_similar(limit=10)
+        stale = await ticket_find_stale(limit=20)
 
-        # Generate markdown report
-        result = await ticket_cleanup_report(format="markdown")
+        # Full report (WARNING: Can exceed 20k tokens!)
+        result = await ticket_cleanup_report(summary_only=False)
 
     """
     if not ANALYSIS_AVAILABLE:
@@ -371,39 +431,93 @@ async def ticket_cleanup_report(
         report: dict[str, Any] = {
             "status": "completed",
             "generated_at": datetime.now().isoformat(),
-            "analyses": {},
+            "summary_only": summary_only,
         }
 
-        # Similar tickets
-        if include_similar:
-            similar_result = await ticket_find_similar(limit=20)
-            report["analyses"]["similar_tickets"] = similar_result
+        # If summary_only, fetch smaller datasets and only extract counts
+        if summary_only:
+            similar_count = 0
+            stale_count = 0
+            orphaned_count = 0
 
-        # Stale tickets
-        if include_stale:
-            stale_result = await ticket_find_stale(limit=50)
-            report["analyses"]["stale_tickets"] = stale_result
+            if include_similar:
+                similar_result = await ticket_find_similar(limit=5, internal_limit=50)
+                similar_count = similar_result.get("count", 0)
 
-        # Orphaned tickets
-        if include_orphaned:
-            orphaned_result = await ticket_find_orphaned(limit=100)
-            report["analyses"]["orphaned_tickets"] = orphaned_result
+            if include_stale:
+                stale_result = await ticket_find_stale(limit=10)
+                stale_count = stale_result.get("count", 0)
 
-        # Summary statistics
-        similar_count = report["analyses"].get("similar_tickets", {}).get("count", 0)
-        stale_count = report["analyses"].get("stale_tickets", {}).get("count", 0)
-        orphaned_count = report["analyses"].get("orphaned_tickets", {}).get("count", 0)
+            if include_orphaned:
+                orphaned_result = await ticket_find_orphaned(limit=20)
+                orphaned_count = orphaned_result.get("count", 0)
 
-        report["summary"] = {
-            "total_issues_found": similar_count + stale_count + orphaned_count,
-            "similar_pairs": similar_count,
-            "stale_count": stale_count,
-            "orphaned_count": orphaned_count,
-        }
+            report["summary"] = {
+                "total_issues_found": similar_count + stale_count + orphaned_count,
+                "similar_pairs": similar_count,
+                "stale_count": stale_count,
+                "orphaned_count": orphaned_count,
+            }
 
-        # Format as markdown if requested
-        if format == "markdown":
-            report["markdown"] = _format_report_as_markdown(report)
+            report["recommendation"] = (
+                "Use summary_only=False or fetch specific sections with "
+                "ticket_find_similar(), ticket_find_stale(), ticket_find_orphaned() "
+                "for full details."
+            )
+
+        else:
+            # Full report mode - WARNING: Can exceed token limits!
+            logger.warning(
+                "Generating full cleanup report. This may exceed 20k tokens. "
+                "Consider using summary_only=True for overview."
+            )
+
+            report["analyses"] = {}
+
+            # Similar tickets with reduced limits to control tokens
+            if include_similar:
+                similar_result = await ticket_find_similar(limit=10, internal_limit=100)
+                report["analyses"]["similar_tickets"] = similar_result
+
+            # Stale tickets
+            if include_stale:
+                stale_result = await ticket_find_stale(limit=20)
+                report["analyses"]["stale_tickets"] = stale_result
+
+            # Orphaned tickets
+            if include_orphaned:
+                orphaned_result = await ticket_find_orphaned(limit=30)
+                report["analyses"]["orphaned_tickets"] = orphaned_result
+
+            # Summary statistics
+            similar_count = report["analyses"].get("similar_tickets", {}).get("count", 0)
+            stale_count = report["analyses"].get("stale_tickets", {}).get("count", 0)
+            orphaned_count = report["analyses"].get("orphaned_tickets", {}).get("count", 0)
+
+            report["summary"] = {
+                "total_issues_found": similar_count + stale_count + orphaned_count,
+                "similar_pairs": similar_count,
+                "stale_count": stale_count,
+                "orphaned_count": orphaned_count,
+            }
+
+            # Format as markdown if requested
+            if format == "markdown":
+                report["markdown"] = _format_report_as_markdown(report)
+
+        # Estimate tokens and add warning if needed
+        estimated_tokens = estimate_json_tokens(report)
+        report["estimated_tokens"] = estimated_tokens
+
+        if estimated_tokens > 15_000:
+            logger.warning(
+                f"Cleanup report contains ~{estimated_tokens} tokens. "
+                f"Consider using summary_only=True or fetching sections separately."
+            )
+            report["token_warning"] = (
+                f"Response approaching token limit ({estimated_tokens} tokens). "
+                f"Use summary_only=True or fetch sections individually."
+            )
 
         return report
 
