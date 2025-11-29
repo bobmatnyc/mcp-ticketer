@@ -95,7 +95,7 @@ mcp-ticketer install                       # Auto-detect and prompt for platform
 mcp-ticketer install --auto-detect         # Show what's installed on your system
 
 # Install for all detected platforms at once
-mcp-ticketer install --all                 # Configure all detected AI clients
+mcp-ticketer install --all                 # Configure all detected code editors
 
 # Or install for specific platform
 mcp-ticketer install claude-code           # Claude Code (project-level)
@@ -103,6 +103,32 @@ mcp-ticketer install claude-desktop        # Claude Desktop (global)
 mcp-ticketer install gemini                # Gemini CLI
 mcp-ticketer install codex                 # Codex CLI
 mcp-ticketer install auggie                # Auggie
+```
+
+#### Installation Scope (v1.4+)
+
+By default, `mcp-ticketer install` focuses on **code editors only**:
+- ✅ Claude Code
+- ✅ Cursor
+- ✅ Auggie
+- ✅ Codex
+- ✅ Gemini
+
+**Why code editors only?** Code editors are project-scoped tools designed for working with codebases. Claude Desktop is a general-purpose AI assistant. This separation ensures mcp-ticketer is configured where it provides the most value.
+
+**Including Claude Desktop**:
+
+To also install for Claude Desktop (AI assistant), use the `--include-desktop` flag:
+
+```bash
+# Install for all platforms including Claude Desktop
+mcp-ticketer install --all --include-desktop
+
+# Auto-detect including Claude Desktop
+mcp-ticketer install --auto-detect --include-desktop
+
+# Install ONLY Claude Desktop
+mcp-ticketer install claude-desktop
 ```
 
 **See [AI Client Integration Guide](docs/integrations/AI_CLIENT_INTEGRATION.md) for detailed setup instructions.**
@@ -980,6 +1006,9 @@ LINEAR_TEAM_ID=02d15669-7351-4451-9719-807576c16049
 - `https://linear.app/your-org/team/ABC/active` (full issues page)
 - `https://linear.app/your-org/team/ABC/` (team page)
 - `https://linear.app/your-org/team/ABC` (short form)
+
+**Understanding Linear URLs:**
+Linear project and issue URLs work with any path suffix (`/issues`, `/overview`, `/updates`). The adapter automatically extracts the identifier and uses Linear's GraphQL API. See [Linear URL Handling Guide](docs/developer-docs/adapters/LINEAR_URL_HANDLING.md) for details.
 
 **Finding your team information:**
 1. **Easiest**: Copy the URL from your Linear team's issues page

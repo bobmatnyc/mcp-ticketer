@@ -6,6 +6,64 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### ⚠️ BREAKING CHANGES
+
+**Project Filtering Now Mandatory** (Security & Foundational Fix)
+
+All search and list operations now require explicit project context to prevent cross-project data leakage. This is a critical security enhancement for multi-project and multi-tenant usage.
+
+**Affected MCP Tools** (5 tools require migration):
+- `ticket_search()` - Now requires `project_id` parameter or `default_project` configuration
+- `ticket_search_hierarchy()` - Now requires `project_id` parameter or `default_project` configuration
+- `ticket_list()` - Now requires `project_id` parameter or `default_project` configuration
+- `epic_list()` - Now requires `project_id` parameter or `default_project` configuration
+- `get_my_tickets()` - Now requires `project_id` parameter or `default_project` configuration
+
+**Why This Change?**
+- **Security**: Prevents cross-project data leakage in multi-tenant environments
+- **Data Integrity**: Eliminates confusion from tickets appearing in wrong project context
+- **Consistency**: Aligns all tools with project-scoped operations
+
+**Migration Required**: See [Migration Guide](docs/migration/v1.4-project-filtering.md) for detailed instructions.
+
+**Quick Migration Paths**:
+
+```python
+# Option 1: Set default project (RECOMMENDED - one-time setup)
+config_set_default_project(project_id='YOUR-PROJECT-ID')
+# All subsequent searches/lists will use this project automatically
+
+# Option 2: Pass project_id explicitly (per-call)
+ticket_search(query="bug", project_id='YOUR-PROJECT-ID')
+ticket_list(state="open", project_id='YOUR-PROJECT-ID')
+get_my_tickets(project_id='YOUR-PROJECT-ID')
+```
+
+**Error Handling**:
+- Calls without project context will return clear error messages
+- Error messages include project_id discovery instructions
+- Use `epic_list()` or adapter-specific tools to find your project IDs
+
+**Linear Users**: Your project_id is the UUID from Linear URLs (e.g., `eac28953c267` from `https://linear.app/team/project/mcp-ticketer-eac28953c267`)
+
+**Commit**: 46f9e0e
+
+### Added
+
+**Installer Improvements** - Code Editor Focus
+- New `--include-desktop` flag for `mcp-ticketer install` command
+  - By default, installer now focuses on **code editors only**: Claude Code, Cursor, Auggie, Codex, Gemini
+  - Claude Desktop (general AI assistant) is now **opt-in** via `--include-desktop` flag
+  - Improves installation relevance by prioritizing project-scoped tools
+- Updated `--all` and `--auto-detect` modes to exclude Claude Desktop by default
+  - Use `mcp-ticketer install --all --include-desktop` to include all platforms
+  - Use `mcp-ticketer install --auto-detect --include-desktop` for interactive selection with desktop
+
+**Why Code Editors Only?**
+Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for working with codebases. Claude Desktop is a general-purpose AI assistant. This separation ensures mcp-ticketer is configured where it provides the most value for development workflows.
+
+**Commit**: 46f9e0e
+
 ### Fixed
 - **[BREAKING]** Linear label updates now fail-fast on any label creation error instead of silently succeeding with partial results (1M-396)
   - **Root Cause**: Silent partial label resolution in `_ensure_labels_exist()` method was swallowing exceptions for non-existent labels
