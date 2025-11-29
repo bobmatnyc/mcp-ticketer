@@ -24,7 +24,6 @@ from ..server_sdk import get_adapter, get_router, has_router, mcp
 # Sentinel value to distinguish between "parameter not provided" and "explicitly None"
 _UNSET = object()
 
-
 def _build_adapter_metadata(
     adapter: BaseAdapter,
     ticket_id: str | None = None,
@@ -53,7 +52,6 @@ def _build_adapter_metadata(
         metadata["routed_from_url"] = True
 
     return metadata
-
 
 async def detect_and_apply_labels(
     adapter: Any,
@@ -156,7 +154,6 @@ async def detect_and_apply_labels(
 
     return final_labels
 
-
 @mcp.tool()
 async def ticket_create(
     title: str,
@@ -186,10 +183,9 @@ async def ticket_create(
     Args:
         title: Ticket title (required)
         description: Detailed description of the ticket
-        priority: Priority level - supports natural language (e.g., "urgent", "asap", "important")
-                 or exact values (low, medium, high, critical)
-        tags: List of tags to categorize the ticket (auto-detection adds to these)
-        assignee: User ID or email to assign the ticket to
+        priority: Priority level (see glossary for semantic matching) (low, medium, high, critical)
+        tags: See glossary
+        assignee: See glossary the ticket to
         parent_epic: Parent epic/project ID to assign this ticket to (optional)
         auto_detect_labels: Automatically detect and apply relevant labels (default: True)
 
@@ -349,7 +345,6 @@ async def ticket_create(
 
         return error_response
 
-
 @mcp.tool()
 async def ticket_read(ticket_id: str) -> dict[str, Any]:
     """Read a ticket by its ID or URL.
@@ -365,7 +360,7 @@ async def ticket_read(ticket_id: str) -> dict[str, Any]:
     appropriate adapter. Multi-platform support must be configured for URL access.
 
     Args:
-        ticket_id: Ticket ID or URL to read
+        ticket_id: See glossary
 
     Returns:
         Ticket details if found, or error information
@@ -444,7 +439,6 @@ async def ticket_read(ticket_id: str) -> dict[str, Any]:
 
         return error_response
 
-
 @mcp.tool()
 async def ticket_update(
     ticket_id: str,
@@ -461,13 +455,13 @@ async def ticket_update(
     See ticket_read for supported URL formats.
 
     Args:
-        ticket_id: Ticket ID or URL to update
+        ticket_id: See glossary
         title: New title for the ticket
         description: New description for the ticket
         priority: New priority - supports natural language (e.g., "urgent", "asap", "important")
                  or exact values (low, medium, high, critical)
-        state: New state - must be one of: open, in_progress, ready, tested, done, closed, waiting, blocked
-        assignee: User ID or email to assign the ticket to
+        state: Workflow state (see glossary), waiting, blocked
+        assignee: See glossary the ticket to
         tags: New list of tags (replaces existing tags)
 
     Returns:
@@ -584,7 +578,6 @@ async def ticket_update(
 
         return error_response
 
-
 @mcp.tool()
 async def ticket_delete(ticket_id: str) -> dict[str, Any]:
     """Delete a ticket by its ID or URL.
@@ -593,7 +586,7 @@ async def ticket_delete(ticket_id: str) -> dict[str, Any]:
     See ticket_read for supported URL formats.
 
     Args:
-        ticket_id: Ticket ID or URL to delete
+        ticket_id: See glossary
 
     Returns:
         Success confirmation or error information
@@ -645,7 +638,6 @@ async def ticket_delete(ticket_id: str) -> dict[str, Any]:
             "error": f"Failed to delete ticket: {str(e)}",
         }
 
-
 def _compact_ticket(ticket_dict: dict[str, Any]) -> dict[str, Any]:
     """Extract compact representation of ticket for reduced token usage.
 
@@ -668,7 +660,6 @@ def _compact_ticket(ticket_dict: dict[str, Any]) -> dict[str, Any]:
         "title": ticket_dict.get("title"),
         "state": ticket_dict.get("state"),
     }
-
 
 @mcp.tool()
 async def ticket_list(
@@ -698,10 +689,10 @@ async def ticket_list(
         - 50 tickets, compact=False: ~9.25k tokens (~4.6% of context) ← AVOID unless necessary
 
     Args:
-        limit: Maximum number of tickets to return (default: 20, recommended: 20 or less, max: 100)
+        limit: Maximum results (see glossary)
         offset: Number of tickets to skip for pagination (default: 0)
-        state: Filter by state - must be one of: open, in_progress, ready, tested, done, closed, waiting, blocked
-        priority: Filter by priority - must be one of: low, medium, high, critical
+        state: Workflow state (see glossary), waiting, blocked
+        priority: Priority level (see glossary for semantic matching)
         assignee: Filter by assigned user ID or email
         compact: Return minimal fields (titles only) for reduced token usage (default: True, strongly recommended)
                 Set to False ONLY when full ticket details with description explicitly requested
@@ -805,7 +796,6 @@ async def ticket_list(
 
         return error_response
 
-
 @mcp.tool()
 async def ticket_summary(ticket_id: str) -> dict[str, Any]:
     """Get ultra-compact ticket summary for minimal token usage.
@@ -830,7 +820,7 @@ async def ticket_summary(ticket_id: str) -> dict[str, Any]:
     For list queries with filtering, use ticket_list with compact=True.
 
     Args:
-        ticket_id: Ticket ID or URL to summarize
+        ticket_id: See glossary
 
     Returns:
         Ultra-compact ticket summary with essential fields only, or error information
@@ -876,7 +866,6 @@ async def ticket_summary(ticket_id: str) -> dict[str, Any]:
             "error": f"Failed to get ticket summary: {str(e)}",
         }
 
-
 @mcp.tool()
 async def ticket_latest(ticket_id: str, limit: int = 5) -> dict[str, Any]:
     """Get recent activity and changes for a ticket (comments, state changes, updates).
@@ -902,7 +891,7 @@ async def ticket_latest(ticket_id: str, limit: int = 5) -> dict[str, Any]:
     - Some adapters may not support activity history
 
     Args:
-        ticket_id: Ticket ID or URL to query
+        ticket_id: See glossary
         limit: Maximum number of recent activities to return (default: 5, max: 20)
 
     Returns:
@@ -1039,7 +1028,6 @@ async def ticket_latest(ticket_id: str, limit: int = 5) -> dict[str, Any]:
 
         return error_response
 
-
 @mcp.tool()
 async def ticket_assign(
     ticket_id: str,
@@ -1095,26 +1083,13 @@ async def ticket_assign(
     - Comment support is adapter-dependent
 
     Args:
-        ticket_id: Ticket ID or URL to assign
-        assignee: User identifier (ID, email, or name) or None to unassign
+        ticket_id: See glossary
+        assignee: See glossary
         comment: Optional comment to add explaining the assignment
         auto_transition: Automatically transition to IN_PROGRESS when appropriate (default: True)
 
     Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - ticket: Full updated ticket object
-        - previous_assignee: Who the ticket was assigned to before (if any)
-        - new_assignee: Who the ticket is now assigned to (if any)
-        - previous_state: State before assignment
-        - new_state: State after assignment
-        - state_auto_transitioned: Boolean indicating if state was automatically changed
-        - comment_added: Boolean indicating if comment was added
-        - adapter: Which adapter handled the operation
-        - adapter_name: Human-readable adapter name
-        - routed_from_url: True if ticket_id was a URL (optional)
-
-    Example:
+        Returns: StandardResponse with ticket and adapter infoExample:
         # Assign ticket to user by email (auto-transitions OPEN → IN_PROGRESS)
         >>> ticket_assign(
         ...     ticket_id="PROJ-123",

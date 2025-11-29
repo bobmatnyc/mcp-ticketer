@@ -30,7 +30,6 @@ from ..server_sdk import get_adapter, get_router, has_router, mcp
 
 logger = logging.getLogger(__name__)
 
-
 def _build_adapter_metadata(adapter: Any) -> dict[str, Any]:
     """Build adapter metadata for MCP responses.
 
@@ -47,7 +46,6 @@ def _build_adapter_metadata(adapter: Any) -> dict[str, Any]:
         "adapter": adapter.adapter_type,
         "adapter_name": adapter.adapter_display_name,
     }
-
 
 @mcp.tool()
 async def label_list(
@@ -76,25 +74,12 @@ async def label_list(
     ----
         adapter_name: Optional adapter to query (e.g., "linear", "github", "jira")
         include_usage_count: Include usage statistics for each label (default: False)
-        limit: Maximum number of labels to return (default: 100, max: 500)
+        limit: Maximum results (see glossary)
         offset: Number of labels to skip for pagination (default: 0)
 
     Returns:
     -------
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapter: Adapter type that was queried
-        - adapter_name: Human-readable adapter name
-        - labels: List of label objects with id, name, and optionally usage_count
-        - total_labels: Total number of labels available (before pagination)
-        - count: Number of labels returned in this response
-        - limit: Limit used for pagination
-        - offset: Offset used for pagination
-        - has_more: Boolean indicating if more labels exist
-        - estimated_tokens: Approximate token count for response
-        - error: Error message (if failed)
-
-    Example:
+        Returns: ListResponse with labels, adapter infoExample:
     -------
     Example: `label_list()` → {"status": "completed", ...}
 
@@ -215,7 +200,6 @@ async def label_list(
             pass
         return error_response
 
-
 @mcp.tool()
 async def label_normalize(
     label_name: str,
@@ -240,15 +224,7 @@ async def label_normalize(
 
     Returns:
     -------
-        Dictionary containing:
-        - status: "completed" or "error"
-        - original: Original label name
-        - normalized: Normalized label name
-        - casing: Casing strategy applied
-        - changed: Whether normalization changed the label
-        - error: Error message (if failed)
-
-    Example:
+        Returns: StandardResponse with original, normalized, casingExample:
     -------
     Example: `label_normalize("Bug Report", casing="kebab-case")` → {"status": "completed", ...}
 
@@ -282,7 +258,6 @@ async def label_normalize(
             "error": f"Failed to normalize label: {str(e)}",
         }
 
-
 @mcp.tool()
 async def label_find_duplicates(
     threshold: float = 0.85,
@@ -308,15 +283,7 @@ async def label_find_duplicates(
 
     Returns:
     -------
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapter: Adapter type queried
-        - adapter_name: Human-readable adapter name
-        - duplicates: List of duplicate pairs with similarity scores
-        - total_duplicates: Total number of duplicate pairs found
-        - error: Error message (if failed)
-
-    Example:
+        Returns: AnalysisResponse with duplicates and similarity scoresExample:
     -------
     Example: `label_find_duplicates(threshold=0.80)` → {"status": "completed", ...}
 
@@ -389,7 +356,6 @@ async def label_find_duplicates(
             pass
         return error_response
 
-
 @mcp.tool()
 async def label_suggest_merge(
     source_label: str,
@@ -412,18 +378,7 @@ async def label_suggest_merge(
 
     Returns:
     -------
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapter: Adapter type
-        - adapter_name: Human-readable adapter name
-        - source_label: Source label name
-        - target_label: Target label name
-        - affected_tickets: Number of tickets that would be updated
-        - preview: List of ticket IDs that would be affected (up to 10)
-        - warning: Any warnings about the operation
-        - error: Error message (if failed)
-
-    Example:
+        Returns: StandardResponse with affected_tickets count and previewExample:
     -------
     Example: `label_suggest_merge("Bug", "bug")` → {"status": "completed", ...}
 
@@ -482,7 +437,6 @@ async def label_suggest_merge(
             pass
         return error_response
 
-
 @mcp.tool()
 async def label_merge(
     source_label: str,
@@ -514,17 +468,7 @@ async def label_merge(
 
     Returns:
     -------
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapter: Adapter type
-        - adapter_name: Human-readable adapter name
-        - tickets_updated: Number of tickets modified
-        - tickets_skipped: Number of tickets skipped (already had target)
-        - dry_run: Whether this was a dry run
-        - changes: List of changes made (up to 20)
-        - error: Error message (if failed)
-
-    Example:
+        Returns: StandardResponse with tickets_updated, changesExample:
     -------
         >>> # Dry run first
     Example: `label_merge("Bug", "bug", dry_run=True)` → {"status": "completed", ...}
@@ -647,7 +591,6 @@ async def label_merge(
             pass
         return error_response
 
-
 @mcp.tool()
 async def label_rename(
     old_name: str,
@@ -672,16 +615,7 @@ async def label_rename(
 
     Returns:
     -------
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapter: Adapter type
-        - adapter_name: Human-readable adapter name
-        - tickets_updated: Number of tickets modified
-        - old_name: Original label name
-        - new_name: New label name
-        - error: Error message (if failed)
-
-    Example:
+        Returns: StandardResponse with tickets_updated, changesExample:
     -------
     Example: `label_rename("feture", "feature", update_tickets=True)` → {"status": "completed", ...}
 
@@ -702,7 +636,6 @@ async def label_rename(
         result.pop("target_label", None)
 
     return result
-
 
 @mcp.tool()
 async def label_cleanup_report(
@@ -732,18 +665,7 @@ async def label_cleanup_report(
 
     Returns:
     -------
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapter: Adapter type
-        - adapter_name: Human-readable adapter name
-        - summary: High-level statistics
-        - spelling_issues: List of spelling problems (if enabled)
-        - duplicate_groups: List of duplicate label groups (if enabled)
-        - unused_labels: List of unused labels (if enabled)
-        - recommendations: Prioritized list of actions to take
-        - error: Error message (if failed)
-
-    Example:
+        Returns: AnalysisResponse with summary and recommendationsExample:
     -------
         >>> result = await label_cleanup_report()
         >>> print(result["summary"])

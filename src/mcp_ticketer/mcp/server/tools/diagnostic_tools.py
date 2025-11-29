@@ -9,7 +9,6 @@ from ..server_sdk import mcp
 
 logger = logging.getLogger(__name__)
 
-
 @mcp.tool()
 async def system_diagnostics(simple: bool = False) -> dict[str, Any]:
     """Run system diagnostics to troubleshoot configuration issues.
@@ -110,7 +109,6 @@ async def system_diagnostics(simple: bool = False) -> dict[str, Any]:
             "recommendation": "Try running with simple=True for basic diagnostics",
             "fallback_command": "CLI: mcp-ticketer doctor --simple",
         }
-
 
 @mcp.tool()
 async def check_adapter_health(adapter_name: str | None = None) -> dict[str, Any]:

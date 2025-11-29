@@ -38,7 +38,6 @@ from ....core.project_config import (
 from ....core.registry import AdapterRegistry
 from ..server_sdk import mcp
 
-
 def get_resolver() -> ConfigResolver:
     """Get or create the configuration resolver.
 
@@ -55,7 +54,6 @@ def get_resolver() -> ConfigResolver:
     """
     return ConfigResolver(project_path=Path.cwd())
 
-
 @mcp.tool()
 async def config_set_primary_adapter(adapter: str) -> dict[str, Any]:
     """Set the default adapter for ticket operations.
@@ -70,19 +68,9 @@ async def config_set_primary_adapter(adapter: str) -> dict[str, Any]:
             - "github" (GitHub Issues)
             - "jira" (Atlassian JIRA)
 
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - message: Success or error message
-        - previous_adapter: Previous default adapter (if successful)
-        - new_adapter: New default adapter (if successful)
-        - error: Error details (if failed)
+    Returns: ConfigResponse with previous_adapter, new_adapter, message
 
     Example: `config_set_primary_adapter("linear")` → {"status": "completed", "message": "Default adapter set to 'linear'"}
-
-    Error Conditions:
-        - Invalid adapter name: Returns error with valid options
-        - Configuration file write failure: Returns error with file path
 
     """
     try:
@@ -121,7 +109,6 @@ async def config_set_primary_adapter(adapter: str) -> dict[str, Any]:
             "error": f"Failed to set default adapter: {str(e)}",
         }
 
-
 @mcp.tool()
 async def config_set_default_project(
     project_id: str,
@@ -137,21 +124,9 @@ async def config_set_default_project(
         project_id: Project or epic ID to set as default (required)
         project_key: Optional project key (for adapters that use keys vs IDs)
 
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - message: Success or error message
-        - previous_project: Previous default project (if any)
-        - new_project: New default project ID
-        - error: Error details (if failed)
+    Returns: ConfigResponse with previous_project, new_project, message
 
-    Example:
     Example: `config_set_default_project("PROJ-123")` → {"status": "completed", ...}
-
-    Usage Notes:
-        - This sets both default_project and default_epic (for backward compatibility)
-        - Empty string or null clears the default project
-        - Project ID is not validated (allows flexibility across adapters)
 
     """
     try:
@@ -186,7 +161,6 @@ async def config_set_default_project(
             "error": f"Failed to set default project: {str(e)}",
         }
 
-
 @mcp.tool()
 async def config_set_default_user(
     user_id: str,
@@ -202,24 +176,12 @@ async def config_set_default_user(
         user_id: User identifier or email to set as default assignee (required)
         user_email: Optional email (for adapters that require separate email field)
 
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - message: Success or error message
-        - previous_user: Previous default user (if any)
-        - new_user: New default user ID
-        - error: Error details (if failed)
+    Returns: ConfigResponse with previous_user, new_user, message
 
-    Example:
     Example: `config_set_default_user("user123")` → {"status": "completed", ...}
 
     Example with email:
     Example: `config_set_default_user("user123")` → {"status": "completed", ...}
-
-    Usage Notes:
-        - User ID/email is not validated (allows flexibility across adapters)
-        - Empty string or null clears the default user
-        - Some adapters prefer email, others prefer user UUID
 
     """
     try:
@@ -253,7 +215,6 @@ async def config_set_default_user(
             "error": f"Failed to set default user: {str(e)}",
         }
 
-
 @mcp.tool()
 async def config_get() -> dict[str, Any]:
     """Get current configuration settings.
@@ -261,26 +222,9 @@ async def config_get() -> dict[str, Any]:
     Retrieves the current project-local configuration including default adapter,
     project, user, and all adapter-specific settings.
 
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - config: Complete configuration dictionary including:
-            - default_adapter: Primary adapter name
-            - default_project: Default project/epic ID (if set)
-            - default_user: Default assignee (if set)
-            - adapters: All adapter configurations
-            - hybrid_mode: Hybrid mode settings (if enabled)
-        - config_path: Path to configuration file
-        - error: Error details (if failed)
+    Returns: ConfigResponse with config dictionary and config_path
 
-    Example:
     Example: `config_get()` → {"status": "completed", ...}
-
-    Usage Notes:
-        - Sensitive values (API keys) are masked in the response
-        - Returns default values if no configuration file exists
-        - Configuration is merged from multiple sources (env vars, .env files, config.json)
-        - default_tags returns empty list if not configured
 
     """
     try:
@@ -314,7 +258,6 @@ async def config_get() -> dict[str, Any]:
             "error": f"Failed to retrieve configuration: {str(e)}",
         }
 
-
 @mcp.tool()
 async def config_set_default_tags(
     tags: list[str],
@@ -328,20 +271,9 @@ async def config_set_default_tags(
     Args:
         tags: List of default tags to apply to new tickets
 
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - message: Success or error message
-        - default_tags: List of default tags that were set
-        - error: Error details (if failed)
+    Returns: ConfigResponse with status and message
 
-    Example:
     Example: `config_set_default_tags(["bug", "urgent"])` → {"status": "completed", ...}
-
-    Usage Notes:
-        - Empty list clears the default tags
-        - Tags are validated for reasonable length (2-50 characters)
-        - Tags are merged with user-provided tags during ticket creation
 
     """
     try:
@@ -384,7 +316,6 @@ async def config_set_default_tags(
             "error": f"Failed to set default tags: {str(e)}",
         }
 
-
 @mcp.tool()
 async def config_set_default_team(
     team_id: str,
@@ -398,21 +329,9 @@ async def config_set_default_team(
     Args:
         team_id: Team ID or key to set as default (e.g., "ENG", UUID)
 
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - message: Success or error message
-        - previous_team: Previous default team (if any)
-        - new_team: New default team ID
-        - error: Error details (if failed)
+    Returns: ConfigResponse with status and message
 
-    Example:
     Example: `config_set_default_team("ENG")` → {"status": "completed", ...}
-
-    Usage Notes:
-        - Team ID is not validated (allows flexibility across adapters)
-        - Empty string or null clears the default team
-        - Helps scope ticket_list and ticket_search operations
 
     """
     try:
@@ -447,7 +366,6 @@ async def config_set_default_team(
             "error": f"Failed to set default team: {str(e)}",
         }
 
-
 @mcp.tool()
 async def config_set_default_cycle(
     cycle_id: str,
@@ -461,21 +379,9 @@ async def config_set_default_cycle(
     Args:
         cycle_id: Cycle/sprint ID to set as default (e.g., "Sprint 23", UUID)
 
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - message: Success or error message
-        - previous_cycle: Previous default cycle (if any)
-        - new_cycle: New default cycle ID
-        - error: Error details (if failed)
+    Returns: ConfigResponse with status and message
 
-    Example:
     Example: `config_set_default_cycle("Sprint 23")` → {"status": "completed", ...}
-
-    Usage Notes:
-        - Cycle ID is not validated (allows flexibility across adapters)
-        - Empty string or null clears the default cycle
-        - Helps scope ticket_list and ticket_search operations
 
     """
     try:
@@ -510,7 +416,6 @@ async def config_set_default_cycle(
             "error": f"Failed to set default cycle: {str(e)}",
         }
 
-
 @mcp.tool()
 async def config_set_default_epic(
     epic_id: str,
@@ -524,21 +429,9 @@ async def config_set_default_epic(
     Args:
         epic_id: Epic or project identifier (e.g., "PROJ-123" or UUID)
 
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - message: Success or error message
-        - default_epic: The epic ID that was set
-        - default_project: Same value (for compatibility)
-        - error: Error details (if failed)
+    Returns: ConfigResponse with status and message
 
-    Example:
     Example: `config_set_default_epic("PROJ-123")` → {"status": "completed", ...}
-
-    Usage Notes:
-        - Epic ID is not validated (allows flexibility across adapters)
-        - Empty string or null clears the default epic
-        - Sets both default_epic and default_project for backward compatibility
 
     """
     try:
@@ -571,7 +464,6 @@ async def config_set_default_epic(
             "error": f"Failed to set default epic: {str(e)}",
         }
 
-
 @mcp.tool()
 async def config_set_assignment_labels(labels: list[str]) -> dict[str, Any]:
     """Set labels that indicate ticket assignment to user.
@@ -588,22 +480,9 @@ async def config_set_assignment_labels(labels: list[str]) -> dict[str, Any]:
         labels: List of label names that indicate ticket is assigned to user.
                 Examples: ["assigned-to-me", "my-work", "active-sprint"]
 
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - message: Success message with label list
-        - assignment_labels: The labels that were set
-        - config_path: Path to configuration file
-        - error: Error details (if failed)
+    Returns: ConfigResponse with status and message
 
-    Example:
     Example: `config_set_assignment_labels(["my-work", "in-progress"])` → {"status": "completed", ...}
-
-    Usage Notes:
-        - Labels are platform-specific (Linear uses different names than GitHub)
-        - Empty list is valid (disables assignment label filtering)
-        - Labels are case-sensitive
-        - Labels must be 2-50 characters
 
     """
     try:
@@ -639,7 +518,6 @@ async def config_set_assignment_labels(labels: list[str]) -> dict[str, Any]:
             "error": f"Failed to set assignment labels: {str(e)}",
         }
 
-
 @mcp.tool()
 async def config_validate() -> dict[str, Any]:
     """Validate all adapter configurations without testing connectivity.
@@ -652,156 +530,9 @@ async def config_validate() -> dict[str, Any]:
 
     Does NOT test actual API connectivity. Use config_test_adapter() for that.
 
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - validation_results: Dict mapping adapter names to validation status
-        - all_valid: Boolean indicating if all configs are valid
-        - issues: List of validation errors (empty if all valid)
-        - message: Summary message
+    Returns: ConfigResponse with status and message
 
-    Example:
-    Example: `config_validate()` → {"status": "completed", ...}
-
-    """
-    try:
-        resolver = get_resolver()
-        config = resolver.load_project_config() or TicketerConfig()
-
-        if not config.adapters:
-            return {
-                "status": "completed",
-                "validation_results": {},
-                "all_valid": True,
-                "issues": [],
-                "message": "No adapters configured",
-            }
-
-        results = {}
-        issues = []
-
-        for adapter_name, adapter_config in config.adapters.items():
-            is_valid, error = ConfigValidator.validate(
-                adapter_name, adapter_config.to_dict()
-            )
-
-            results[adapter_name] = {
-                "valid": is_valid,
-                "error": error,
-            }
-
-            if not is_valid:
-                issues.append(f"{adapter_name}: {error}")
-
-        return {
-            "status": "completed",
-            "validation_results": results,
-            "all_valid": len(issues) == 0,
-            "issues": issues,
-            "message": (
-                "All configurations valid"
-                if len(issues) == 0
-                else f"Found {len(issues)} validation issue(s)"
-            ),
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "error": f"Failed to validate configuration: {str(e)}",
-        }
-
-
-@mcp.tool()
-async def config_test_adapter(adapter_name: str) -> dict[str, Any]:
-    """Test connectivity for a specific adapter.
-
-    Performs actual API connectivity test by:
-    1. Loading adapter configuration
-    2. Initializing adapter with credentials
-    3. Making test API call (list operation)
-    4. Reporting success or specific error
-
-    Args:
-        adapter_name: Name of adapter to test (linear, github, jira, aitrackdown)
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapter: Adapter name
-        - healthy: Boolean indicating if test passed
-        - message: Success or error message
-        - error_type: Type of error (if failed)
-
-    Example:
-    Example: `config_test_adapter("linear")` → {"status": "completed", ...}
-
-    Error Conditions:
-        - Adapter not configured: Returns error with available adapters
-        - Invalid credentials: Returns healthy=False with specific error
-        - Network issues: Returns healthy=False with connection error
-
-    """
-    try:
-        # Import diagnostic tool
-        from .diagnostic_tools import check_adapter_health
-
-        # Validate adapter name
-        valid_adapters = [adapter_type.value for adapter_type in AdapterType]
-        if adapter_name.lower() not in valid_adapters:
-            return {
-                "status": "error",
-                "error": f"Invalid adapter '{adapter_name}'",
-                "valid_adapters": valid_adapters,
-            }
-
-        # Use existing health check infrastructure
-        result = await check_adapter_health(adapter_name=adapter_name)
-
-        if result["status"] == "error":
-            return result
-
-        # Extract adapter-specific result
-        adapter_result = result["adapters"][adapter_name]
-
-        return {
-            "status": "completed",
-            "adapter": adapter_name,
-            "healthy": adapter_result["status"] == "healthy",
-            "message": adapter_result.get("message") or adapter_result.get("error"),
-            "error_type": adapter_result.get("error_type"),
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "error": f"Failed to test adapter: {str(e)}",
-        }
-
-
-@mcp.tool()
-async def config_list_adapters() -> dict[str, Any]:
-    """List all available adapters with configuration status.
-
-    Returns information about all supported adapters including:
-    - Which adapters are available
-    - Which are currently configured
-    - Which is the default adapter
-    - Adapter metadata and descriptions
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapters: List of adapter info dictionaries
-        - default_adapter: Current default adapter name
-        - total_configured: Count of configured adapters
-        - error: Error details (if failed)
-
-    Example:
     Example: `config_list_adapters()` → {"status": "completed", ...}
-
-    Usage Notes:
-        - Adapters are considered configured if they exist in config.adapters
-        - Default adapter is determined by config.default_adapter
-        - Adapter descriptions are static (not from API)
 
     """
     try:
@@ -870,7 +601,6 @@ async def config_list_adapters() -> dict[str, Any]:
             "error": f"Failed to list adapters: {str(e)}",
         }
 
-
 @mcp.tool()
 async def config_get_adapter_requirements(adapter: str) -> dict[str, Any]:
     """Get configuration requirements for a specific adapter.
@@ -882,196 +612,9 @@ async def config_get_adapter_requirements(adapter: str) -> dict[str, Any]:
     Args:
         adapter: Adapter name (linear, github, jira, aitrackdown, asana)
 
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapter: Adapter name
-        - requirements: Dict of field name to field spec
-        - error: Error details (if failed)
-
-    Example:
-    Example: `config_get_adapter_requirements("linear")` → {"status": "completed", ...}
-
-    Usage Notes:
-        - Requirements are based on ConfigValidator validation logic
-        - env_var shows which environment variable can provide the value
-        - validation patterns are regex strings (when applicable)
-        - Some adapters accept alternative field names (aliases)
-
-    """
-    try:
-        # Validate adapter name
-        valid_adapters = [adapter_type.value for adapter_type in AdapterType]
-        if adapter.lower() not in valid_adapters:
-            return {
-                "status": "error",
-                "error": f"Invalid adapter '{adapter}'. Must be one of: {', '.join(valid_adapters)}",
-                "valid_adapters": valid_adapters,
-            }
-
-        adapter_type = adapter.lower()
-
-        # Define requirements for each adapter based on ConfigValidator logic
-        requirements_map = {
-            "linear": {
-                "api_key": {
-                    "type": "string",
-                    "required": True,
-                    "description": "Linear API key (get from Linear Settings > API)",
-                    "env_var": "LINEAR_API_KEY",
-                    "validation": "^lin_api_[a-zA-Z0-9]{40}$",
-                },
-                "team_key": {
-                    "type": "string",
-                    "required": True,
-                    "description": "Team key (e.g., 'ENG') OR team_id (UUID). At least one required.",
-                    "env_var": "LINEAR_TEAM_KEY",
-                },
-                "team_id": {
-                    "type": "string",
-                    "required": False,
-                    "description": "Team UUID (alternative to team_key)",
-                    "env_var": "LINEAR_TEAM_ID",
-                    "validation": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-                },
-                "workspace": {
-                    "type": "string",
-                    "required": False,
-                    "description": "Linear workspace name (for documentation only)",
-                    "env_var": "LINEAR_WORKSPACE",
-                },
-            },
-            "github": {
-                "token": {
-                    "type": "string",
-                    "required": True,
-                    "description": "GitHub personal access token (or api_key alias)",
-                    "env_var": "GITHUB_TOKEN",
-                },
-                "owner": {
-                    "type": "string",
-                    "required": True,
-                    "description": "Repository owner (username or organization)",
-                    "env_var": "GITHUB_OWNER",
-                },
-                "repo": {
-                    "type": "string",
-                    "required": True,
-                    "description": "Repository name",
-                    "env_var": "GITHUB_REPO",
-                },
-            },
-            "jira": {
-                "server": {
-                    "type": "string",
-                    "required": True,
-                    "description": "JIRA server URL (e.g., https://company.atlassian.net)",
-                    "env_var": "JIRA_SERVER",
-                    "validation": "^https?://",
-                },
-                "email": {
-                    "type": "string",
-                    "required": True,
-                    "description": "JIRA account email address",
-                    "env_var": "JIRA_EMAIL",
-                    "validation": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
-                },
-                "api_token": {
-                    "type": "string",
-                    "required": True,
-                    "description": "JIRA API token (get from Atlassian Account Settings)",
-                    "env_var": "JIRA_API_TOKEN",
-                },
-                "project_key": {
-                    "type": "string",
-                    "required": False,
-                    "description": "Default JIRA project key (e.g., 'PROJ')",
-                    "env_var": "JIRA_PROJECT_KEY",
-                },
-            },
-            "aitrackdown": {
-                "base_path": {
-                    "type": "string",
-                    "required": False,
-                    "description": "Base directory for ticket storage (defaults to .aitrackdown)",
-                    "env_var": "AITRACKDOWN_BASE_PATH",
-                },
-            },
-            "asana": {
-                "api_key": {
-                    "type": "string",
-                    "required": True,
-                    "description": "Asana Personal Access Token",
-                    "env_var": "ASANA_API_KEY",
-                },
-                "workspace": {
-                    "type": "string",
-                    "required": False,
-                    "description": "Asana workspace GID (optional, can be auto-detected)",
-                    "env_var": "ASANA_WORKSPACE",
-                },
-            },
-        }
-
-        requirements = requirements_map.get(adapter_type, {})
-
-        return {
-            "status": "completed",
-            "adapter": adapter_type,
-            "requirements": requirements,
-            "total_fields": len(requirements),
-            "required_fields": [
-                field for field, spec in requirements.items() if spec.get("required")
-            ],
-            "optional_fields": [
-                field
-                for field, spec in requirements.items()
-                if not spec.get("required")
-            ],
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "error": f"Failed to get adapter requirements: {str(e)}",
-        }
-
-
-@mcp.tool()
-async def config_setup_wizard(
-    adapter_type: str,
-    credentials: dict[str, Any],
-    set_as_default: bool = True,
-    test_connection: bool = True,
-) -> dict[str, Any]:
-    """Interactive setup wizard for adapter configuration.
-
-    Single-call tool that validates, tests, and saves adapter configuration.
-
-    Args:
-        adapter_type: Adapter to configure (linear, github, jira, aitrackdown, asana)
-        credentials: Dict with adapter-specific credentials
-        set_as_default: Set as default adapter (default: True)
-        test_connection: Test connection before saving (default: True)
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapter: Adapter type that was configured
-        - message: Success or error message
-        - tested: Boolean indicating if connection was tested
-        - connection_healthy: Boolean indicating if test passed (if tested)
-        - set_as_default: Boolean indicating if set as default
-        - config_path: Path to configuration file (if successful)
-        - error: Error details (if failed)
+    Returns: ConfigResponse with status and message
 
     Example: `config_setup_wizard(adapter_type="linear", credentials={...})` → {"status": "completed", ...}
-
-    Error Conditions:
-        - Invalid adapter_type: Returns error with valid adapters list
-        - Missing required credentials: Returns error with missing fields
-        - Invalid credential format: Returns error with validation pattern
-        - Connection test failure: Returns error with connection details
-        - File write failure: Returns error with path and permissions info
 
     """
     try:
@@ -1253,7 +796,6 @@ async def config_setup_wizard(
             "error": f"Setup wizard failed: {str(e)}",
             "traceback": traceback.format_exc(),
         }
-
 
 def _mask_sensitive_values(config: dict[str, Any]) -> dict[str, Any]:
     """Mask sensitive values in configuration dictionary.

@@ -9,7 +9,6 @@ from typing import Any
 from ....core.models import Priority, Task, TicketState, TicketType
 from ..server_sdk import get_adapter, mcp
 
-
 @mcp.tool()
 async def ticket_bulk_create(
     tickets: list[dict[str, Any]],
@@ -128,7 +127,6 @@ async def ticket_bulk_create(
             "status": "error",
             "error": f"Bulk creation failed: {str(e)}",
         }
-
 
 @mcp.tool()
 async def ticket_bulk_update(

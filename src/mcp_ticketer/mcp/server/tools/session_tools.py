@@ -9,7 +9,6 @@ from ..server_sdk import mcp
 
 logger = logging.getLogger(__name__)
 
-
 @mcp.tool()
 async def attach_ticket(
     action: str,
@@ -129,7 +128,6 @@ async def attach_ticket(
             "success": False,
             "error": str(e),
         }
-
 
 @mcp.tool()
 async def get_session_info() -> dict[str, Any]:
