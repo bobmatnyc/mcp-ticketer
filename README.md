@@ -331,6 +331,270 @@ mcp-ticketer project-update get "update-uuid-here"
 
 For complete documentation, see [Linear Setup Guide](docs/integrations/setup/LINEAR_SETUP.md#project-status-updates).
 
+## 🎯 Project Status Analysis (NEW in v1.3.0)
+
+Get intelligent project health assessments and actionable work plans with automated dependency analysis, blocker detection, and smart recommendations.
+
+### Overview
+
+The Project Status Analysis feature provides PM agents with comprehensive project insights:
+
+- **Health Assessment**: Automated scoring (on_track, at_risk, off_track)
+- **Dependency Analysis**: Critical path detection and blocker identification
+- **Smart Recommendations**: Top 3 tickets to start next with reasoning
+- **Work Distribution**: Team workload analysis and balance checking
+- **Progress Tracking**: Completion rates and timeline risk assessment
+
+### Quick Start
+
+```python
+# Get project status analysis (uses default_project from config)
+result = await project_status()
+
+# Analyze specific project
+result = await project_status(project_id="eac28953c267")
+```
+
+**Example response:**
+```json
+{
+  "status": "success",
+  "project_id": "eac28953c267",
+  "project_name": "MCP Ticketer",
+  "health": "at_risk",
+  "summary": {
+    "total": 12,
+    "open": 5,
+    "in_progress": 4,
+    "done": 3
+  },
+  "recommended_next": [
+    {
+      "ticket_id": "1M-317",
+      "title": "Fix critical bug",
+      "priority": "critical",
+      "reason": "Critical priority, Unblocks 2 tickets",
+      "blocks": ["1M-315", "1M-316"]
+    }
+  ],
+  "recommendations": [
+    "🔓 Resolve 1M-317 first (critical) - Unblocks 2 tickets",
+    "⚡ Project is AT RISK - Monitor closely"
+  ]
+}
+```
+
+### Features
+
+#### 🏥 Health Assessment
+Automated project health scoring based on:
+- **Completion Rate**: % of tickets done
+- **Progress Rate**: % of tickets actively worked
+- **Blocker Rate**: % of tickets blocked (negative factor)
+- **Priority Balance**: Critical/high priority completion
+
+**Health Levels:**
+- `on_track`: Project progressing well (health score ≥ 0.7)
+- `at_risk`: Some concerns, needs monitoring (0.4-0.7)
+- `off_track`: Serious issues, intervention needed (< 0.4)
+
+#### 🔗 Dependency Analysis
+Automatic dependency graph construction from ticket descriptions:
+
+**Supported patterns:**
+- "Depends on TICKET-123"
+- "Blocks #456"
+- "Related to PROJ-789"
+- "1M-316: Feature name" (inline references)
+
+**Insights:**
+- **Critical Path**: Longest dependency chain
+- **High-Impact Tickets**: Tickets blocking the most work
+- **Blockers**: Active blockers preventing progress
+
+#### 🎯 Smart Recommendations
+Intelligent ticket prioritization based on:
+1. **Priority** (critical > high > medium > low)
+2. **Impact** (tickets blocking others score higher)
+3. **Critical Path** (tickets on longest chain prioritized)
+4. **Blockers** (unblocked tickets preferred)
+5. **State** (open/ready tickets ranked higher)
+
+Returns top 3 tickets to start next with clear reasoning.
+
+#### 👥 Work Distribution Analysis
+Team workload analysis showing:
+- Tickets per assignee
+- State breakdown per assignee
+- Workload imbalance detection
+
+### Usage Examples
+
+#### Basic Project Health Check
+```python
+# Get health of default project
+status = await project_status()
+
+print(f"Health: {status['health']}")
+print(f"Total tickets: {status['summary']['total']}")
+print(f"Completion: {status['health_metrics']['completion_rate']:.1%}")
+```
+
+#### Analyze Specific Project
+```python
+# Analyze by project ID
+status = await project_status(project_id="eac28953c267")
+
+# Check for critical issues
+if status['health'] == 'off_track':
+    print("⚠️ Project needs immediate attention!")
+    for rec in status['recommendations']:
+        print(f"  • {rec}")
+```
+
+#### Get Next Actions
+```python
+# Get recommended tickets to work on
+status = await project_status()
+
+print("Top priorities:")
+for ticket in status['recommended_next']:
+    print(f"  {ticket['ticket_id']}: {ticket['title']}")
+    print(f"    Priority: {ticket['priority']}")
+    print(f"    Reason: {ticket['reason']}")
+    if ticket['blocks']:
+        print(f"    Unblocks: {', '.join(ticket['blocks'])}")
+```
+
+#### Identify Blockers
+```python
+# Find what's blocking progress
+status = await project_status()
+
+if status['blockers']:
+    print("🚧 Active blockers:")
+    for blocker in status['blockers']:
+        print(f"  {blocker['ticket_id']}: {blocker['title']}")
+        print(f"    Blocking {blocker['blocks_count']} tickets")
+        print(f"    State: {blocker['state']}, Priority: {blocker['priority']}")
+```
+
+#### PM Daily Standup Workflow
+```python
+# Complete PM workflow for daily standup
+async def daily_standup():
+    status = await project_status()
+
+    # 1. Overall health
+    print(f"📊 Project Health: {status['health'].upper()}")
+    print(f"   Completion: {status['health_metrics']['completion_rate']:.0%}")
+    print(f"   In Progress: {status['summary'].get('in_progress', 0)} tickets")
+
+    # 2. Blockers
+    if status['blockers']:
+        print(f"\n🚧 {len(status['blockers'])} Active Blockers:")
+        for blocker in status['blockers'][:3]:
+            print(f"   • {blocker['ticket_id']}: {blocker['title']}")
+
+    # 3. Next actions
+    print(f"\n🎯 Top Priorities:")
+    for ticket in status['recommended_next']:
+        print(f"   • {ticket['ticket_id']}: {ticket['reason']}")
+
+    # 4. Recommendations
+    print(f"\n💡 Recommendations:")
+    for rec in status['recommendations']:
+        print(f"   • {rec}")
+```
+
+### Configuration
+
+Set default project for automatic analysis:
+
+```bash
+# Via CLI
+mcp-ticketer config set-project eac28953c267
+
+# Via MCP tool
+result = await config_set_default_project(project_id="eac28953c267")
+```
+
+### Advanced Usage
+
+#### Health Metrics Deep Dive
+```python
+status = await project_status()
+metrics = status['health_metrics']
+
+print(f"Health Score: {metrics['health_score']:.2f}/1.00")
+print(f"Completion Rate: {metrics['completion_rate']:.1%}")
+print(f"Progress Rate: {metrics['progress_rate']:.1%}")
+print(f"Blocked Rate: {metrics['blocked_rate']:.1%}")
+print(f"Critical Tickets: {metrics['critical_count']}")
+print(f"High Priority: {metrics['high_count']}")
+```
+
+#### Critical Path Analysis
+```python
+status = await project_status()
+
+if status['critical_path']:
+    print("🛣️ Critical Path (longest dependency chain):")
+    for ticket_id in status['critical_path']:
+        print(f"  → {ticket_id}")
+    print(f"\nLength: {len(status['critical_path'])} tickets")
+```
+
+#### Work Distribution
+```python
+status = await project_status()
+
+print("👥 Work Distribution:")
+for assignee, workload in status['work_distribution'].items():
+    print(f"\n{assignee}:")
+    print(f"  Total: {workload['total']}")
+    for state, count in workload.items():
+        if state != 'total':
+            print(f"  {state}: {count}")
+```
+
+### Integration with Other Features
+
+#### Combine with Project Updates
+```python
+# 1. Analyze project status
+status = await project_status(project_id="proj-123")
+
+# 2. Create status update with health indicator
+update = await project_update_create(
+    project_id="proj-123",
+    body=f"Sprint review: {status['summary']['done']} tickets completed",
+    health=status['health']  # Use analyzed health
+)
+```
+
+#### Combine with Ticket Management
+```python
+# 1. Get recommendations
+status = await project_status()
+
+# 2. Auto-assign top priority ticket
+if status['recommended_next']:
+    top_ticket = status['recommended_next'][0]
+    await ticket_assign(
+        ticket_id=top_ticket['ticket_id'],
+        assignee="john.doe@example.com",
+        comment=f"Priority: {top_ticket['reason']}"
+    )
+```
+
+### Learn More
+
+- **Comprehensive Guide**: [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) - Full documentation
+- **Runnable Examples**: [examples/project_status_examples.py](examples/project_status_examples.py) - Copy-paste code
+- **PM Monitoring Tools**: [docs/PM_MONITORING_TOOLS.md](docs/PM_MONITORING_TOOLS.md) - Ticket cleanup features
+- **Linear Setup**: [docs/integrations/setup/LINEAR_SETUP.md](docs/integrations/setup/LINEAR_SETUP.md) - Platform-specific guides
+
 ## 🤖 MCP Server Integration
 
 MCP Ticketer provides seamless integration with AI clients through automatic configuration and platform detection:
