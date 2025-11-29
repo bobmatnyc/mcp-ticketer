@@ -201,6 +201,51 @@ class PlatformDetector:
         )
 
     @staticmethod
+    def detect_cursor() -> DetectedPlatform | None:
+        """Detect Cursor code editor installation.
+
+        Cursor uses project-level MCP configuration stored in:
+        - ~/.cursor/mcp.json (global location with flat structure)
+
+        Returns:
+            DetectedPlatform if Cursor config exists, None otherwise
+
+        """
+        # Check global configuration location
+        config_path = Path.home() / ".cursor" / "mcp.json"
+
+        # Check if config file exists
+        if not config_path.exists():
+            return None
+
+        # Validate it's valid JSON
+        try:
+            with config_path.open() as f:
+                content = f.read().strip()
+                if content:  # Only validate if not empty
+                    json.loads(content)
+
+            return DetectedPlatform(
+                name="cursor",
+                display_name="Cursor",
+                config_path=config_path,
+                is_installed=True,
+                scope="project",
+                executable_path=None,  # Cursor doesn't have a CLI
+            )
+        except (json.JSONDecodeError, OSError):
+            # Config exists but is corrupted - still consider it "detected"
+            # but mark as not installed/usable
+            return DetectedPlatform(
+                name="cursor",
+                display_name="Cursor",
+                config_path=config_path,
+                is_installed=False,
+                scope="project",
+                executable_path=None,
+            )
+
+    @staticmethod
     def detect_codex() -> DetectedPlatform | None:
         """Detect Codex installation.
 
@@ -310,11 +355,12 @@ class PlatformDetector:
         )
 
     @classmethod
-    def detect_all(cls, project_path: Path | None = None) -> list[DetectedPlatform]:
+    def detect_all(cls, project_path: Path | None = None, exclude_desktop: bool = False) -> list[DetectedPlatform]:
         """Detect all installed AI client platforms.
 
         Args:
             project_path: Optional project directory for project-level detection
+            exclude_desktop: If True, exclude desktop AI assistants (Claude Desktop)
 
         Returns:
             List of detected platforms (empty if none found)
@@ -332,30 +378,40 @@ class PlatformDetector:
             >>> gemini = next(p for p in platforms if p.name == "gemini")
             >>> print(gemini.scope)  # "project" or "global" or "both"
 
+            >>> # Exclude desktop AI assistants (code editors only)
+            >>> platforms = detector.detect_all(exclude_desktop=True)
+            >>> # Returns: Claude Code, Cursor, Auggie, Codex, Gemini (NOT Claude Desktop)
+
         """
         detected = []
 
-        # Detect Claude Code
+        # Detect Claude Code (project-level code editor)
         claude_code = cls.detect_claude_code()
         if claude_code:
             detected.append(claude_code)
 
-        # Detect Claude Desktop
-        claude_desktop = cls.detect_claude_desktop()
-        if claude_desktop:
-            detected.append(claude_desktop)
+        # Detect Claude Desktop (desktop AI assistant - optional)
+        if not exclude_desktop:
+            claude_desktop = cls.detect_claude_desktop()
+            if claude_desktop:
+                detected.append(claude_desktop)
 
-        # Detect Auggie
+        # Detect Cursor (code editor)
+        cursor = cls.detect_cursor()
+        if cursor:
+            detected.append(cursor)
+
+        # Detect Auggie (code assistant)
         auggie = cls.detect_auggie()
         if auggie:
             detected.append(auggie)
 
-        # Detect Codex
+        # Detect Codex (code assistant)
         codex = cls.detect_codex()
         if codex:
             detected.append(codex)
 
-        # Detect Gemini (with project path support)
+        # Detect Gemini (code assistant with project path support)
         gemini = cls.detect_gemini(project_path=project_path)
         if gemini:
             detected.append(gemini)
@@ -387,6 +443,7 @@ def get_platform_by_name(
     detection_map = {
         "claude-code": detector.detect_claude_code,
         "claude-desktop": detector.detect_claude_desktop,
+        "cursor": detector.detect_cursor,
         "auggie": detector.detect_auggie,
         "codex": detector.detect_codex,
         "gemini": lambda: detector.detect_gemini(project_path),
