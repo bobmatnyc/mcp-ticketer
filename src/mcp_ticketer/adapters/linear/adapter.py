@@ -971,6 +971,11 @@ class LinearAdapter(BaseAdapter[Task]):
         3. Create missing labels
         4. Return list of label IDs
 
+        Behavior (1M-396):
+        - Fail-fast: If any label creation fails, the exception is propagated
+        - All-or-nothing: Partial label updates are not allowed
+        - Clear errors: Callers receive actionable error messages
+
         Args:
         ----
             label_names: List of label names (strings)
@@ -978,6 +983,10 @@ class LinearAdapter(BaseAdapter[Task]):
         Returns:
         -------
             List of Linear label IDs (UUIDs)
+
+        Raises:
+        ------
+            ValueError: If any label creation fails
 
         """
         logger = logging.getLogger(__name__)
@@ -1019,19 +1028,12 @@ class LinearAdapter(BaseAdapter[Task]):
                 logger.debug(f"Resolved existing label '{name}' to ID: {label_id}")
             else:
                 # Label doesn't exist - create it
-                try:
-                    new_label_id = await self._create_label(name, team_id)
-                    label_ids.append(new_label_id)
-                    # Update local map for subsequent labels in same call
-                    label_map[name_lower] = new_label_id
-                    logger.info(f"Created new label '{name}' with ID: {new_label_id}")
-                except Exception as e:
-                    # Log error for better visibility (was warning)
-                    logger.error(
-                        f"Failed to create label '{name}': {e}. "
-                        f"This label will be excluded from issue creation."
-                    )
-                    # Continue processing other labels
+                # Propagate exceptions for fail-fast behavior (1M-396)
+                new_label_id = await self._create_label(name, team_id)
+                label_ids.append(new_label_id)
+                # Update local map for subsequent labels in same call
+                label_map[name_lower] = new_label_id
+                logger.info(f"Created new label '{name}' with ID: {new_label_id}")
 
         return label_ids
 
@@ -1662,9 +1664,18 @@ class LinearAdapter(BaseAdapter[Task]):
             # Resolve label names to IDs if provided
             if "tags" in updates:
                 if updates["tags"]:  # Non-empty list
-                    label_ids = await self._resolve_label_ids(updates["tags"])
-                    if label_ids:
-                        update_input["labelIds"] = label_ids
+                    try:
+                        label_ids = await self._resolve_label_ids(updates["tags"])
+                        if label_ids:
+                            update_input["labelIds"] = label_ids
+                    except ValueError as e:
+                        # Label creation failed - provide clear error message (1M-396)
+                        raise ValueError(
+                            f"Failed to update labels for issue {ticket_id}. "
+                            f"Label creation error: {e}. "
+                            f"Tip: Use the 'label_list' tool to check existing labels, "
+                            f"or verify you have permissions to create new labels."
+                        ) from e
                 else:  # Empty list = remove all labels
                     update_input["labelIds"] = []
 

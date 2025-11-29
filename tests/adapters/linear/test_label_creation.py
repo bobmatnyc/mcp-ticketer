@@ -211,7 +211,7 @@ class TestLabelCreation:
 
     @pytest.mark.asyncio
     async def test_ensure_labels_exist_partial_failure(self, adapter):
-        """Test that partial label creation failure doesn't block entire operation."""
+        """Test that label creation failure propagates (fail-fast behavior, 1M-396)."""
         label_names = ["Success Label", "Failure Label", "Another Success"]
         team_id = "test-team-id"
 
@@ -226,14 +226,14 @@ class TestLabelCreation:
 
         adapter._create_label = AsyncMock(side_effect=mock_create_label)
 
-        # Execute
-        result = await adapter._ensure_labels_exist(label_names)
+        # Execute - should raise exception on first failure (fail-fast)
+        with pytest.raises(ValueError) as exc_info:
+            await adapter._ensure_labels_exist(label_names)
 
-        # Verify - should have 2 labels (failed one skipped)
-        assert len(result) == 2
-        assert "label-success-label" in result
-        assert "label-another-success" in result
-        assert adapter._create_label.call_count == 3
+        # Verify exception message
+        assert "Simulated creation failure" in str(exc_info.value)
+        # First label succeeds, second fails and raises
+        assert adapter._create_label.call_count == 2
 
     @pytest.mark.asyncio
     async def test_ensure_labels_exist_empty_list(self, adapter):
