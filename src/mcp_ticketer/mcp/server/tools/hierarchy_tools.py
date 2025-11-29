@@ -176,7 +176,11 @@ async def epic_list(
         # Check if adapter has optimized list_epics method
         if hasattr(adapter, "list_epics"):
             # Build kwargs for adapter-specific parameters with required project scoping
-            kwargs: dict[str, Any] = {"limit": limit, "offset": offset, "project": final_project}
+            kwargs: dict[str, Any] = {
+                "limit": limit,
+                "offset": offset,
+                "project": final_project,
+            }
 
             # Add state filter if supported
             if state is not None:

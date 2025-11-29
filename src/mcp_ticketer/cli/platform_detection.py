@@ -355,7 +355,9 @@ class PlatformDetector:
         )
 
     @classmethod
-    def detect_all(cls, project_path: Path | None = None, exclude_desktop: bool = False) -> list[DetectedPlatform]:
+    def detect_all(
+        cls, project_path: Path | None = None, exclude_desktop: bool = False
+    ) -> list[DetectedPlatform]:
         """Detect all installed AI client platforms.
 
         Args:

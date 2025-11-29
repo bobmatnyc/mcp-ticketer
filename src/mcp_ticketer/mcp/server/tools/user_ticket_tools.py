@@ -117,7 +117,10 @@ async def get_my_tickets(
                 }
 
         # Build filters with required project scoping
-        filters: dict[str, Any] = {"assignee": config.default_user, "project": final_project}
+        filters: dict[str, Any] = {
+            "assignee": config.default_user,
+            "project": final_project,
+        }
         if state_filter:
             filters["state"] = state_filter
 

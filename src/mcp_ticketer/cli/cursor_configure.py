@@ -184,7 +184,9 @@ def remove_cursor_mcp(dry_run: bool = False) -> None:
 
     # Show what would be removed (dry run)
     if dry_run:
-        console.print(f"\n[cyan]DRY RUN - Would remove from: {cursor_config_path}[/cyan]")
+        console.print(
+            f"\n[cyan]DRY RUN - Would remove from: {cursor_config_path}[/cyan]"
+        )
         console.print("  Server name: mcp-ticketer")
         return
 
