@@ -20,18 +20,23 @@ console = Console()
 def install(
     platform: str | None = typer.Argument(
         None,
-        help="Platform to install (claude-code, claude-desktop, gemini, codex, auggie)",
+        help="Platform to install (claude-code, cursor, gemini, codex, auggie). Use claude-desktop for desktop AI assistant.",
     ),
     auto_detect: bool = typer.Option(
         False,
         "--auto-detect",
         "-d",
-        help="Auto-detect and show all installed AI platforms",
+        help="Auto-detect and show all code editors (excludes desktop AI assistants by default)",
     ),
     install_all: bool = typer.Option(
         False,
         "--all",
-        help="Install for all detected platforms",
+        help="Install for all detected code editors (excludes Claude Desktop unless --include-desktop specified)",
+    ),
+    include_desktop: bool = typer.Option(
+        False,
+        "--include-desktop",
+        help="Include Claude Desktop in auto-detection and --all installation",
     ),
     adapter: str | None = typer.Option(
         None,
@@ -121,17 +126,22 @@ def install(
     # Handle auto-detect flag (just show detected platforms and exit)
     if auto_detect:
         detected = detector.detect_all(
-            project_path=Path(project_path) if project_path else Path.cwd()
+            project_path=Path(project_path) if project_path else Path.cwd(),
+            exclude_desktop=not include_desktop,
         )
 
         if not detected:
-            console.print("[yellow]No AI platforms detected.[/yellow]")
-            console.print("\n[bold]Supported platforms:[/bold]")
-            console.print("  • Claude Code - Project-level configuration")
-            console.print("  • Claude Desktop - Global GUI application")
-            console.print("  • Auggie - CLI tool with global config")
-            console.print("  • Codex - CLI tool with global config")
-            console.print("  • Gemini - CLI tool with project/global config")
+            console.print("[yellow]No code editors detected.[/yellow]")
+            console.print("\n[bold]Supported code editors:[/bold]")
+            console.print("  • Claude Code - Project-level AI code assistant")
+            console.print("  • Cursor - AI-powered code editor")
+            console.print("  • Auggie - CLI code assistant")
+            console.print("  • Codex - CLI code assistant")
+            console.print("  • Gemini - CLI code assistant")
+            if not include_desktop:
+                console.print(
+                    "\n[dim]Use --include-desktop to also detect Claude Desktop (desktop AI assistant)[/dim]"
+                )
             console.print(
                 "\n[dim]Install these platforms to use them with mcp-ticketer.[/dim]"
             )
@@ -160,7 +170,8 @@ def install(
     # Handle --all flag (install for all detected platforms)
     if install_all:
         detected = detector.detect_all(
-            project_path=Path(project_path) if project_path else Path.cwd()
+            project_path=Path(project_path) if project_path else Path.cwd(),
+            exclude_desktop=not include_desktop,
         )
 
         if not detected:
@@ -198,6 +209,7 @@ def install(
         # Import configuration functions
         from .auggie_configure import configure_auggie_mcp
         from .codex_configure import configure_codex_mcp
+        from .cursor_configure import configure_cursor_mcp
         from .gemini_configure import configure_gemini_mcp
         from .mcp_configure import configure_claude_mcp
 
@@ -209,6 +221,7 @@ def install(
             "claude-desktop": lambda: configure_claude_mcp(
                 global_config=True, force=True
             ),
+            "cursor": lambda: configure_cursor_mcp(force=True),
             "auggie": lambda: configure_auggie_mcp(force=True),
             "gemini": lambda: configure_gemini_mcp(scope="project", force=True),
             "codex": lambda: configure_codex_mcp(force=True),
@@ -328,6 +341,7 @@ def install(
         # Import configuration functions
         from .auggie_configure import configure_auggie_mcp
         from .codex_configure import configure_codex_mcp
+        from .cursor_configure import configure_cursor_mcp
         from .gemini_configure import configure_gemini_mcp
         from .mcp_configure import configure_claude_mcp
 
@@ -340,6 +354,10 @@ def install(
             "claude-desktop": {
                 "func": lambda: configure_claude_mcp(global_config=True, force=True),
                 "name": "Claude Desktop",
+            },
+            "cursor": {
+                "func": lambda: configure_cursor_mcp(force=True),
+                "name": "Cursor",
             },
             "auggie": {
                 "func": lambda: configure_auggie_mcp(force=True),
@@ -396,7 +414,7 @@ def install(
 def remove(
     platform: str | None = typer.Argument(
         None,
-        help="Platform to remove (claude-code, claude-desktop, auggie, gemini, codex)",
+        help="Platform to remove (claude-code, claude-desktop, cursor, auggie, gemini, codex)",
     ),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be done without making changes"
@@ -436,6 +454,7 @@ def remove(
     # Import removal functions
     from .auggie_configure import remove_auggie_mcp
     from .codex_configure import remove_codex_mcp
+    from .cursor_configure import remove_cursor_mcp
     from .gemini_configure import remove_gemini_mcp
     from .mcp_configure import remove_claude_mcp
 
@@ -448,6 +467,10 @@ def remove(
         "claude-desktop": {
             "func": lambda: remove_claude_mcp(global_config=True, dry_run=dry_run),
             "name": "Claude Desktop",
+        },
+        "cursor": {
+            "func": lambda: remove_cursor_mcp(dry_run=dry_run),
+            "name": "Cursor",
         },
         "auggie": {
             "func": lambda: remove_auggie_mcp(dry_run=dry_run),

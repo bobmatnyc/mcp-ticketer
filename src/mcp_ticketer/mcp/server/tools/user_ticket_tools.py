@@ -62,11 +62,17 @@ def get_config_resolver() -> ConfigResolver:
 @mcp.tool()
 async def get_my_tickets(
     state: str | None = None,
+    project_id: str | None = None,
     limit: int = 10,
 ) -> dict[str, Any]:
-    """Get tickets assigned to default_user (requires config_set_default_user first).
+    """Get tickets assigned to default_user (requires default_user and project scoping).
 
-    Args: state (optional workflow state filter), limit (max: 100)
+    ⚠️ Project Filtering Required:
+    This tool requires project_id parameter OR default_project configuration.
+    To set default project: config_set_default_project(project_id="YOUR-PROJECT")
+    To check current config: config_get()
+
+    Args: state (optional workflow state filter), project_id (required), limit (max: 100)
     Returns: TicketListResponse with tickets, count, user, state_filter
     See: docs/mcp-api-reference.md#ticket-response-format
     """
@@ -75,7 +81,7 @@ async def get_my_tickets(
         if limit > 100:
             limit = 100
 
-        # Load configuration to get default user
+        # Load configuration to get default user and project
         resolver = get_config_resolver()
         config = resolver.load_project_config() or TicketerConfig()
 
@@ -84,6 +90,17 @@ async def get_my_tickets(
                 "status": "error",
                 "error": "No default user configured. Use config_set_default_user() to set a default user first.",
                 "setup_command": "config_set_default_user",
+            }
+
+        # Validate project context (NEW: Required for list operations)
+        final_project = project_id or config.default_project
+
+        if not final_project:
+            return {
+                "status": "error",
+                "error": "project_id required. Provide project_id parameter or configure default_project.",
+                "help": "Use config_set_default_project(project_id='YOUR-PROJECT') to set default project",
+                "check_config": "Use config_get() to view current configuration",
             }
 
         # Validate state if provided
@@ -99,8 +116,8 @@ async def get_my_tickets(
                     "valid_states": valid_states,
                 }
 
-        # Build filters
-        filters: dict[str, Any] = {"assignee": config.default_user}
+        # Build filters with required project scoping
+        filters: dict[str, Any] = {"assignee": config.default_user, "project": final_project}
         if state_filter:
             filters["state"] = state_filter
 

@@ -139,21 +139,44 @@ async def epic_list(
     limit: int = 10,
     offset: int = 0,
     state: str | None = None,
+    project_id: str | None = None,
     include_completed: bool = False,
 ) -> dict[str, Any]:
-    """List epics with pagination and filters (state for Linear/JIRA, include_completed for Linear).
+    """List epics with pagination and filters (project scoping required).
 
-    Args: limit (default: 10), offset, state (adapter-specific), include_completed (Linear, default: False)
+    ⚠️ Project Filtering Required:
+    This tool requires project_id parameter OR default_project configuration.
+    To set default project: config_set_default_project(project_id="YOUR-PROJECT")
+    To check current config: config_get()
+
+    Args: limit (default: 10), offset, state (adapter-specific), project_id (required), include_completed (Linear, default: False)
     Returns: ListResponse with epics array, count
     See: docs/mcp-api-reference.md#list-response-format
     """
     try:
+        # Validate project context (NEW: Required for list operations)
+        from pathlib import Path
+
+        from ....core.project_config import ConfigResolver
+
+        resolver = ConfigResolver(project_path=Path.cwd())
+        config = resolver.load_project_config()
+        final_project = project_id or (config.default_project if config else None)
+
+        if not final_project:
+            return {
+                "status": "error",
+                "error": "project_id required. Provide project_id parameter or configure default_project.",
+                "help": "Use config_set_default_project(project_id='YOUR-PROJECT') to set default project",
+                "check_config": "Use config_get() to view current configuration",
+            }
+
         adapter = get_adapter()
 
         # Check if adapter has optimized list_epics method
         if hasattr(adapter, "list_epics"):
-            # Build kwargs for adapter-specific parameters
-            kwargs: dict[str, Any] = {"limit": limit, "offset": offset}
+            # Build kwargs for adapter-specific parameters with required project scoping
+            kwargs: dict[str, Any] = {"limit": limit, "offset": offset, "project": final_project}
 
             # Add state filter if supported
             if state is not None:
@@ -166,8 +189,8 @@ async def epic_list(
 
             epics = await adapter.list_epics(**kwargs)
         else:
-            # Fallback to generic list method with epic filter
-            filters = {"ticket_type": TicketType.EPIC}
+            # Fallback to generic list method with epic filter and project scoping
+            filters = {"ticket_type": TicketType.EPIC, "project": final_project}
             if state is not None:
                 filters["state"] = state
             epics = await adapter.list(limit=limit, offset=offset, filters=filters)

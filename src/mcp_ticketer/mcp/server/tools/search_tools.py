@@ -18,12 +18,17 @@ async def ticket_search(
     priority: str | None = None,
     tags: list[str] | None = None,
     assignee: str | None = None,
+    project_id: str | None = None,
     limit: int = 10,
 ) -> dict[str, Any]:
-    """Search tickets using advanced filters.
+    """Search tickets using advanced filters with project scoping.
 
-    Searches for tickets matching the specified criteria. All filters are
-    optional and can be combined.
+    ⚠️ Project Filtering Required:
+    This tool requires project_id parameter OR default_project configuration.
+    To set default project: config_set_default_project(project_id="YOUR-PROJECT")
+    To check current config: config_get()
+
+    Exception: Single ticket operations (ticket_read) don't require project filtering.
 
     Args:
         query: Text search query to match against title and description
@@ -31,6 +36,7 @@ async def ticket_search(
         priority: Filter by priority - must be one of: low, medium, high, critical
         tags: Filter by tags - tickets must have all specified tags
         assignee: Filter by assigned user ID or email
+        project_id: Project/epic ID (required unless default_project configured)
         limit: Maximum number of results to return (default: 10, max: 100)
 
     Returns:
@@ -38,6 +44,23 @@ async def ticket_search(
 
     """
     try:
+        # Validate project context (NEW: Required for search operations)
+        from pathlib import Path
+
+        from ....core.project_config import ConfigResolver
+
+        resolver = ConfigResolver(project_path=Path.cwd())
+        config = resolver.load_project_config()
+        final_project = project_id or (config.default_project if config else None)
+
+        if not final_project:
+            return {
+                "status": "error",
+                "error": "project_id required. Provide project_id parameter or configure default_project.",
+                "help": "Use config_set_default_project(project_id='YOUR-PROJECT') to set default project",
+                "check_config": "Use config_get() to view current configuration",
+            }
+
         adapter = get_adapter()
 
         # Add warning for unscoped searches
@@ -69,13 +92,14 @@ async def ticket_search(
                     "error": f"Invalid priority '{priority}'. Must be one of: low, medium, high, critical",
                 }
 
-        # Create search query
+        # Create search query with project scoping
         search_query = SearchQuery(
             query=query,
             state=state_enum,
             priority=priority_enum,
             tags=tags,
             assignee=assignee,
+            project=final_project,  # Always required for search operations
             limit=min(limit, 100),  # Enforce max limit
         )
 
@@ -92,6 +116,7 @@ async def ticket_search(
                 "priority": priority,
                 "tags": tags,
                 "assignee": assignee,
+                "project": final_project,
             },
         }
     except Exception as e:
@@ -104,16 +129,23 @@ async def ticket_search(
 @mcp.tool()
 async def ticket_search_hierarchy(
     query: str,
+    project_id: str | None = None,
     include_children: bool = True,
     max_depth: int = 3,
 ) -> dict[str, Any]:
-    """Search tickets and include their hierarchy.
+    """Search tickets and include their hierarchy with project scoping.
+
+    ⚠️ Project Filtering Required:
+    This tool requires project_id parameter OR default_project configuration.
+    To set default project: config_set_default_project(project_id="YOUR-PROJECT")
+    To check current config: config_get()
 
     Performs a text search and returns matching tickets along with their
     hierarchical context (parent epics/issues and child issues/tasks).
 
     Args:
         query: Text search query to match against title and description
+        project_id: Project/epic ID (required unless default_project configured)
         include_children: Whether to include child tickets in results
         max_depth: Maximum hierarchy depth to include (1-3, default: 3)
 
@@ -122,6 +154,23 @@ async def ticket_search_hierarchy(
 
     """
     try:
+        # Validate project context (NEW: Required for search operations)
+        from pathlib import Path
+
+        from ....core.project_config import ConfigResolver
+
+        resolver = ConfigResolver(project_path=Path.cwd())
+        config = resolver.load_project_config()
+        final_project = project_id or (config.default_project if config else None)
+
+        if not final_project:
+            return {
+                "status": "error",
+                "error": "project_id required. Provide project_id parameter or configure default_project.",
+                "help": "Use config_set_default_project(project_id='YOUR-PROJECT') to set default project",
+                "check_config": "Use config_get() to view current configuration",
+            }
+
         adapter = get_adapter()
 
         # Validate max_depth
@@ -131,9 +180,10 @@ async def ticket_search_hierarchy(
                 "error": "max_depth must be between 1 and 3",
             }
 
-        # Create search query
+        # Create search query with project scoping
         search_query = SearchQuery(
             query=query,
+            project=final_project,  # Always required for search operations
             limit=50,  # Reasonable limit for hierarchical search
         )
 

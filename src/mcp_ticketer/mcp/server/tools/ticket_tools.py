@@ -617,15 +617,38 @@ async def ticket_list(
     state: str | None = None,
     priority: str | None = None,
     assignee: str | None = None,
+    project_id: str | None = None,
     compact: bool = True,
 ) -> dict[str, Any]:
-    """List tickets with pagination and filters (compact mode default for token efficiency).
+    """List tickets with pagination and filters (compact mode default, project scoping required).
 
-    Args: limit (max: 100, default: 20), offset (pagination), state, priority, assignee, compact (default: True, ~15 tokens/ticket vs ~185 full)
+    ⚠️ Project Filtering Required:
+    This tool requires project_id parameter OR default_project configuration.
+    To set default project: config_set_default_project(project_id="YOUR-PROJECT")
+    To check current config: config_get()
+
+    Args: limit (max: 100, default: 20), offset (pagination), state, priority, assignee, project_id (required), compact (default: True, ~15 tokens/ticket vs ~185 full)
     Returns: ListResponse with tickets array, count, pagination
     See: docs/mcp-api-reference.md#list-response-format, docs/mcp-api-reference.md#token-usage-optimization
     """
     try:
+        # Validate project context (NEW: Required for list operations)
+        from pathlib import Path
+
+        from ....core.project_config import ConfigResolver
+
+        resolver = ConfigResolver(project_path=Path.cwd())
+        config = resolver.load_project_config()
+        final_project = project_id or (config.default_project if config else None)
+
+        if not final_project:
+            return {
+                "status": "error",
+                "error": "project_id required. Provide project_id parameter or configure default_project.",
+                "help": "Use config_set_default_project(project_id='YOUR-PROJECT') to set default project",
+                "check_config": "Use config_get() to view current configuration",
+            }
+
         adapter = get_adapter()
 
         # Add warning for large non-compact queries
@@ -644,8 +667,8 @@ async def ticket_list(
                 f"Tip: Configure default_team or default_project for automatic scoping."
             )
 
-        # Build filters dictionary
-        filters: dict[str, Any] = {}
+        # Build filters dictionary with required project scoping
+        filters: dict[str, Any] = {"project": final_project}
 
         if state is not None:
             try:
