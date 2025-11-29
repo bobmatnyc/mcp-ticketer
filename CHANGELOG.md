@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Fixed
+- **[BREAKING]** Linear label updates now fail-fast on any label creation error instead of silently succeeding with partial results (1M-396)
+  - **Root Cause**: Silent partial label resolution in `_ensure_labels_exist()` method was swallowing exceptions for non-existent labels
+  - **Breaking Change**: Partial label updates now fail completely instead of partially succeeding, ensuring data integrity
+  - **User Impact**: Users will now see clear error messages when attempting to use non-existent labels
+  - **Error Messages**: New actionable errors suggest using `label_list` tool to check available labels or verify permissions
+  - **Migration**: Review label usage and ensure all referenced labels exist in Linear workspace before updating
+  - **Why This Matters**: Previous silent failures led to data integrity issues where users expected labels to be applied but they weren't
+  - **See Also**: [Linear Adapter Documentation](docs/developer-docs/adapters/LINEAR.md#troubleshooting-label-errors), [Troubleshooting Guide](docs/user-docs/troubleshooting/TROUBLESHOOTING.md#linear-label-creation-failures)
+
 ## [1.3.1] - 2025-11-28
 
 ### Added

@@ -195,6 +195,195 @@ Team not found: <team-id>
 
 ---
 
+### Issue: Linear Label Creation Failures
+
+**Symptom**:
+
+Starting in version 1.3.2+, you may see clear error messages when attempting to create or update tickets with non-existent labels:
+
+```
+ValueError: Label creation failed for 'priority:urgent'. Use label_list tool to check available labels or verify permissions.
+```
+
+```
+ValueError: Label 'high-priority' not found in team. Available labels can be listed using the label_list tool.
+```
+
+```
+ValueError: Failed to resolve labels: ['invalid-label', 'another-bad-label']
+```
+
+**What Changed**:
+
+This is a **positive breaking change** introduced in v1.3.2 (ticket 1M-396):
+
+- **Before**: Silent partial failures - if some labels didn't exist, they were skipped with only a warning
+- **After**: Fail-fast approach - if ANY label doesn't exist, the entire operation fails with a clear error
+
+**Why This Change**:
+
+Silent failures caused data integrity issues:
+- Users expected labels to be applied but they weren't
+- No clear indication when labels were missing
+- Difficult to debug why labels weren't showing up on tickets
+- Partial updates created inconsistent ticket state
+
+**Solutions**:
+
+1. **List Available Labels**:
+
+   Using MCP tools:
+   ```bash
+   # Via MCP tool
+   mcp__mcp_ticketer__label_list
+   ```
+
+   Or via CLI:
+   ```bash
+   mcp-ticketer label list
+   ```
+
+   This shows all labels available in your Linear team.
+
+2. **Create Missing Labels in Linear**:
+
+   If you want to use a label that doesn't exist:
+   - Open Linear in your browser
+   - Go to **Team Settings** → **Labels**
+   - Click **Create Label**
+   - Add the label name and choose a color
+   - Save and retry your operation
+
+3. **Verify Label Names**:
+
+   Labels are **case-insensitive** but must match exactly:
+   ```bash
+   # These are all treated as the same label:
+   "bug" = "Bug" = "BUG"
+
+   # But these are different labels (if both exist):
+   "high-priority" ≠ "high priority" ≠ "highpriority"
+   ```
+
+4. **Check Permissions**:
+
+   Ensure your Linear API key has permission to:
+   - Read team labels
+   - Create/update issues with labels
+
+   Verify in Linear: **Settings** → **API** → **Personal API keys**
+
+5. **Use Error Message Suggestions**:
+
+   Error messages now provide actionable guidance:
+   ```
+   ValueError: Label 'invalid' not found. Use label_list tool to check available labels.
+   ```
+
+   Follow the suggestion - use `label_list` to see what labels exist.
+
+**Common Scenarios**:
+
+**Scenario 1**: Typo in Label Name
+
+```bash
+# Error: Label 'bgu' not found
+mcp-ticket create "Fix login bug" --tag "bgu"
+
+# Solution: Fix typo
+mcp-ticket create "Fix login bug" --tag "bug"
+```
+
+**Scenario 2**: Label Doesn't Exist Yet
+
+```bash
+# Error: Label 'critical' not found
+mcp-ticket create "Production down" --tag "critical"
+
+# Solution 1: Create label in Linear UI first
+# Solution 2: Use existing label
+mcp-ticket create "Production down" --tag "bug" --priority critical
+```
+
+**Scenario 3**: Multiple Labels, Some Invalid
+
+```bash
+# Error: Failed to resolve labels: ['invalid1', 'invalid2']
+mcp-ticket create "New feature" --tag "feature" --tag "invalid1" --tag "invalid2"
+
+# Solution: Remove invalid labels or create them first
+mcp-ticket create "New feature" --tag "feature"
+```
+
+**Migration from v1.3.1 or Earlier**:
+
+If you're upgrading from a version before 1.3.2, you may need to:
+
+1. **Review Existing Scripts/Code**:
+   - Check all ticket creation/update commands
+   - Identify labels being used
+   - Verify those labels exist in Linear
+
+2. **Create Missing Labels**:
+   - List current labels: `mcp-ticketer label list`
+   - Compare with labels used in your scripts
+   - Create any missing labels in Linear UI
+
+3. **Update Error Handling**:
+
+   If you have scripts that create tickets:
+   ```bash
+   # Before: Succeeded with partial labels (silent failure)
+   mcp-ticket create "Title" --tag "valid" --tag "invalid"
+   # Created ticket with only "valid" label
+
+   # After v1.3.2: Fails completely (fail-fast)
+   mcp-ticket create "Title" --tag "valid" --tag "invalid"
+   # Error: Label 'invalid' not found
+
+   # Solution: Add error handling or validate labels first
+   ```
+
+**Best Practices**:
+
+1. **Use Label List Tool First**:
+   ```bash
+   # Get available labels
+   mcp-ticketer label list
+
+   # Then use only labels that exist
+   mcp-ticket create "Title" --tag "bug" --tag "frontend"
+   ```
+
+2. **Maintain Label Constants**:
+   ```python
+   # In your scripts/code
+   VALID_LABELS = ["bug", "feature", "enhancement", "documentation"]
+
+   # Validate before use
+   for label in requested_labels:
+       if label not in VALID_LABELS:
+           raise ValueError(f"Invalid label: {label}")
+   ```
+
+3. **Handle Errors Gracefully**:
+   ```python
+   try:
+       create_ticket_with_labels(title, tags)
+   except ValueError as e:
+       if "Label" in str(e):
+           print(f"Label error: {e}")
+           # Fallback: create without labels
+           create_ticket_without_labels(title)
+   ```
+
+**See Also**:
+- [Linear Adapter - Enhanced Label Management](../../developer-docs/adapters/LINEAR.md#enhanced-label-management)
+- [Linear Adapter - Troubleshooting Label Errors](../../developer-docs/adapters/LINEAR.md#troubleshooting-label-errors)
+- [CHANGELOG - Label Update Fix](../../../CHANGELOG.md#unreleased)
+
+---
+
 ### Issue: Rate Limiting
 
 **Symptom**:

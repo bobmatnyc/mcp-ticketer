@@ -860,6 +860,180 @@ Linear states are mapped to universal states based on their type:
 
 ### Common Issues
 
+#### Troubleshooting Label Errors
+
+**Problem**: Label creation or update fails with clear error message
+
+Starting in version 1.3.2+, label operations now fail-fast instead of silently succeeding with partial results. This is a **positive breaking change** that improves data integrity.
+
+**Error Messages You Might See**:
+
+```
+ValueError: Label creation failed for 'priority:urgent'. Use label_list tool to check available labels or verify permissions.
+```
+
+```
+ValueError: Label 'high-priority' not found in team. Available labels can be listed using the label_list tool.
+```
+
+```
+ValueError: Failed to resolve labels: ['invalid-label', 'another-bad-label']
+```
+
+**What Changed**:
+
+- **Before v1.3.2**: Silent partial failures - if some labels didn't exist, they were skipped with only a warning, and the ticket was created/updated with only the valid labels
+- **After v1.3.2**: Fail-fast approach - if ANY label doesn't exist, the entire operation fails with a clear error message
+
+**Why This Change Matters**:
+
+Silent failures led to data integrity issues:
+- Users expected labels to be applied but they weren't
+- No clear indication that labels were missing
+- Difficult to debug why labels weren't showing up
+- Partial updates created inconsistent state
+
+**Solutions**:
+
+1. **Check Available Labels Before Use**:
+   ```python
+   from mcp_ticketer.mcp.server.tools import label_list
+
+   # List all available labels in your team
+   result = label_list()
+   available_labels = [label["name"] for label in result["labels"]]
+   print(f"Available labels: {available_labels}")
+   ```
+
+2. **Create Missing Labels in Linear**:
+   - Go to Linear → Team Settings → Labels → Create Label
+   - Add the label with appropriate name and color
+   - Retry your operation
+
+3. **Verify Label Names**:
+   ```python
+   # Labels are case-insensitive but must match exactly
+   # Good:
+   tags=["bug", "frontend", "high-priority"]
+
+   # These will fail if labels don't exist:
+   tags=["Bug", "Front-End", "priority:urgent"]
+   ```
+
+4. **Use Only Existing Labels**:
+   ```python
+   # Check before creating ticket
+   available = ["bug", "feature", "frontend", "backend"]
+   requested = ["bug", "frontend", "invalid"]
+
+   # Filter to only valid labels
+   valid_labels = [tag for tag in requested if tag in available]
+
+   task = Task(
+       title="Fix login issue",
+       tags=valid_labels  # Only uses labels that exist
+   )
+   ```
+
+5. **Handle Label Errors Gracefully**:
+   ```python
+   try:
+       task = Task(
+           title="New feature",
+           tags=["feature", "might-not-exist"]
+       )
+       created = await adapter.create(task)
+   except ValueError as e:
+       if "Label" in str(e):
+           print(f"Label error: {e}")
+           # Create without labels, add them manually later
+           task.tags = []
+           created = await adapter.create(task)
+   ```
+
+**Migration Guide**:
+
+If you're upgrading from v1.3.1 or earlier:
+
+1. **Audit Your Label Usage**:
+   - Review all code that creates/updates tickets with labels
+   - List all labels used in your codebase
+   - Compare against available labels in Linear
+
+2. **Create Missing Labels**:
+   - Use `label_list` tool to get current labels
+   - Create any missing labels in Linear UI
+   - Or update code to use only existing labels
+
+3. **Add Error Handling**:
+   - Wrap label operations in try-catch blocks
+   - Handle `ValueError` exceptions specifically for labels
+   - Provide fallback behavior (e.g., create without labels)
+
+4. **Test Thoroughly**:
+   - Test ticket creation with all label combinations
+   - Verify error messages are actionable
+   - Ensure fallback logic works as expected
+
+**Best Practices**:
+
+```python
+# 1. Use label constants to avoid typos
+VALID_LABELS = ["bug", "feature", "enhancement", "documentation"]
+
+def create_ticket_with_labels(title, label_names):
+    # Validate labels before use
+    invalid = [l for l in label_names if l not in VALID_LABELS]
+    if invalid:
+        raise ValueError(f"Invalid labels: {invalid}. Valid: {VALID_LABELS}")
+
+    return Task(title=title, tags=label_names)
+
+# 2. Maintain a label registry
+class LabelRegistry:
+    def __init__(self, adapter):
+        self.adapter = adapter
+        self._cache = None
+
+    def get_available_labels(self):
+        if self._cache is None:
+            result = label_list()
+            self._cache = [l["name"] for l in result["labels"]]
+        return self._cache
+
+    def validate_labels(self, labels):
+        available = self.get_available_labels()
+        invalid = [l for l in labels if l not in available]
+        if invalid:
+            raise ValueError(
+                f"Invalid labels: {invalid}. "
+                f"Use label_list tool to see available labels."
+            )
+
+# 3. Use defensive label filtering
+def safe_create_with_labels(task, requested_labels):
+    # Get available labels
+    available = get_available_labels()
+
+    # Filter to only valid labels
+    valid_labels = [l for l in requested_labels if l in available]
+
+    # Warn about skipped labels
+    skipped = [l for l in requested_labels if l not in available]
+    if skipped:
+        logger.warning(f"Skipping unavailable labels: {skipped}")
+
+    task.tags = valid_labels
+    return adapter.create(task)
+```
+
+**See Also**:
+- [Enhanced Label Management](#enhanced-label-management) - Full label management documentation
+- [Troubleshooting Guide](../../user-docs/troubleshooting/TROUBLESHOOTING.md#linear-label-creation-failures) - Additional troubleshooting steps
+- [CHANGELOG.md](../../../CHANGELOG.md#unreleased) - Release notes for this change
+
+---
+
 #### Project Not Found
 
 **Problem**: Warning about unable to resolve project identifier
