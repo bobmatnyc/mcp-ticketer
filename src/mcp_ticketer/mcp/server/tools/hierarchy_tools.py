@@ -53,25 +53,11 @@ async def epic_create(
     lead_id: str | None = None,
     child_issues: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Create a new epic (strategic level container).
+    """Create epic/project/milestone (all adapters supported).
 
-    Adapter Support: All adapters support epic creation
-    - Linear: Creates project with timeline (via create())
-    - JIRA: Creates epic in configured project (dedicated create_epic())
-    - GitHub: Creates milestone (via create_milestone())
-    - Asana: Creates project (dedicated create_epic())
-    - AiTrackDown: Creates epic in local storage (dedicated create_epic())
-
-    Args:
-        title: Epic title (required)
-        description: Detailed description of the epic
-        target_date: Target completion date in ISO format (YYYY-MM-DD)
-        lead_id: User ID or email of the epic lead
-        child_issues: List of existing issue IDs to link to this epic
-
-    Returns:
-        Created epic details including ID and metadata, or error information
-
+    Args: title (required), description, target_date (ISO YYYY-MM-DD), lead_id (user ID/email), child_issues (list of IDs)
+    Returns: EpicResponse with created epic, ID, metadata
+    See: docs/mcp-api-reference.md#epic-response-format
     """
     try:
         adapter = get_adapter()
@@ -113,23 +99,11 @@ async def epic_create(
 
 @mcp.tool()
 async def epic_get(epic_id: str) -> dict[str, Any]:
-    """Read an epic by its ID.
+    """Read epic/project/milestone by ID (all adapters supported).
 
-    This tool retrieves detailed information about a specific epic/project/milestone.
-
-    Adapter Support: All adapters support reading epics
-    - Linear: Reads project details (via read())
-    - JIRA: Reads epic with dedicated get_epic() method
-    - GitHub: Reads milestone (via read())
-    - Asana: Reads project with dedicated get_epic() method
-    - AiTrackDown: Reads epic with dedicated get_epic() method
-
-    Args:
-        epic_id: Unique identifier of the epic to retrieve
-
-    Returns:
-        Epic details if found, or error information
-
+    Args: epic_id (required)
+    Returns: EpicResponse with epic details
+    See: docs/mcp-api-reference.md#epic-response-format
     """
     try:
         adapter = get_adapter()
@@ -167,28 +141,11 @@ async def epic_list(
     state: str | None = None,
     include_completed: bool = False,
 ) -> dict[str, Any]:
-    """List all epics with pagination and optional filtering.
+    """List epics with pagination and filters (state for Linear/JIRA, include_completed for Linear).
 
-    Adapter Support: All adapters support listing epics
-    - Linear: Optimized list_epics() with state filter and include_completed
-    - JIRA: Optimized list_epics() with state filtering (mapped to JIRA status)
-    - GitHub: Generic list() method (state filter not supported)
-    - Asana: Optimized list_epics() method (state filter not supported)
-    - AiTrackDown: Optimized list_epics() with basic pagination
-
-    Adapter-Specific Parameters:
-    - state: Supported by Linear (e.g., "planned", "started", "completed") and JIRA (e.g., "To Do", "In Progress", "Done")
-    - include_completed: Linear-specific parameter to include/exclude completed projects
-
-    Args:
-        limit: Maximum number of epics to return (default: 10)
-        offset: Number of epics to skip for pagination (default: 0)
-        state: Optional state filter - adapter-specific behavior
-        include_completed: Include completed epics (Linear-specific, default: False)
-
-    Returns:
-        List of epics with adapter information, or error information
-
+    Args: limit (default: 10), offset, state (adapter-specific), include_completed (Linear, default: False)
+    Returns: ListResponse with epics array, count
+    See: docs/mcp-api-reference.md#list-response-format
     """
     try:
         adapter = get_adapter()
@@ -236,14 +193,11 @@ async def epic_list(
 
 @mcp.tool()
 async def epic_issues(epic_id: str) -> dict[str, Any]:
-    """Get all issues belonging to an epic.
+    """Get all issues in epic (child issues list).
 
-    Args:
-        epic_id: Unique identifier of the epic
-
-    Returns:
-        List of issues in the epic, or error information
-
+    Args: epic_id (required)
+    Returns: IssueListResponse with issues array, count
+    See: docs/mcp-api-reference.md#list-response-format
     """
     try:
         adapter = get_adapter()
@@ -289,23 +243,11 @@ async def issue_create(
     tags: list[str] | None = None,
     auto_detect_labels: bool = True,
 ) -> dict[str, Any]:
-    """Create a new issue (standard work item) with automatic label detection.
+    """Create issue with auto-label detection.
 
-    This tool automatically scans available labels/tags and intelligently
-    applies relevant ones based on the issue title and description.
-
-    Args:
-        title: Issue title (required)
-        description: Detailed description of the issue
-        epic_id: Parent epic ID to link this issue to
-        assignee: User ID or email to assign the issue to
-        priority: Priority level - must be one of: low, medium, high, critical
-        tags: List of tags to categorize the issue (auto-detection adds to these)
-        auto_detect_labels: Automatically detect and apply relevant labels (default: True)
-
-    Returns:
-        Created issue details including ID and metadata, or error information
-
+    Args: title (required), description, epic_id (parent), assignee, priority, tags, auto_detect_labels (default: True)
+    Returns: IssueResponse with created issue, ID, metadata
+    See: docs/mcp-api-reference.md#issue-response-format
     """
     try:
         adapter = get_adapter()
@@ -378,44 +320,11 @@ async def issue_create(
 
 @mcp.tool()
 async def issue_get_parent(issue_id: str) -> dict[str, Any]:
-    """Get the parent issue of a sub-issue.
+    """Get parent issue of sub-issue (returns None if top-level).
 
-    This tool retrieves the parent issue details for a given sub-issue ID.
-    Returns None if the issue has no parent (i.e., it's a top-level issue).
-
-    Args:
-        issue_id: Unique identifier of the sub-issue (e.g., "ENG-842", UUID)
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - parent: Parent issue details (dict) if exists, None if no parent
-        - adapter: Adapter type that handled the operation
-        - adapter_name: Human-readable adapter name
-        - error: Error message (if failed)
-
-    Example response (has parent):
-        {
-            "status": "completed",
-            "parent": {
-                "id": "abc-123",
-                "identifier": "ENG-840",
-                "title": "Implement hierarchy features",
-                "state": "in_progress",
-                ...
-            },
-            "adapter": "linear",
-            "adapter_name": "Linear"
-        }
-
-    Example response (no parent):
-        {
-            "status": "completed",
-            "parent": None,
-            "adapter": "linear",
-            "adapter_name": "Linear"
-        }
-
+    Args: issue_id (required)
+    Returns: ParentResponse with parent issue details or None
+    See: docs/mcp-api-reference.md#hierarchy-response
     """
     try:
         adapter = get_adapter()
@@ -466,37 +375,11 @@ async def issue_tasks(
     assignee: str | None = None,
     priority: str | None = None,
 ) -> dict[str, Any]:
-    """Get all tasks (sub-items) belonging to an issue with optional filtering.
+    """Get tasks in issue with optional filters (state, assignee, priority).
 
-    This tool retrieves child tasks/sub-issues for a given issue ID, with support
-    for filtering by state, assignee, and priority. All filter parameters are optional.
-
-    Args:
-        issue_id: Unique identifier of the issue
-        state: Optional state filter - must be one of: open, in_progress, ready,
-            tested, done, closed, waiting, blocked
-        assignee: Optional user ID or email to filter by assignee
-        priority: Optional priority filter - must be one of: low, medium, high, critical
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - tasks: List of task objects matching filters
-        - count: Number of tasks returned
-        - filters_applied: Dict showing which filters were used
-        - adapter: Adapter type that handled the operation
-        - error: Error message (if failed)
-
-    Example:
-        # Get all tasks for issue
-        result = issue_tasks("ENG-840")
-
-        # Get only in-progress tasks assigned to user
-        result = issue_tasks("ENG-840", state="in_progress", assignee="user@example.com")
-
-        # Get high priority tasks
-        result = issue_tasks("ENG-840", priority="high")
-
+    Args: issue_id (required), state (optional), assignee (optional), priority (optional)
+    Returns: TaskListResponse with tasks array, count, filters_applied
+    See: docs/mcp-api-reference.md#list-response-format
     """
     try:
         adapter = get_adapter()
@@ -612,23 +495,11 @@ async def task_create(
     tags: list[str] | None = None,
     auto_detect_labels: bool = True,
 ) -> dict[str, Any]:
-    """Create a new task (sub-work item) with automatic label detection.
+    """Create task with auto-label detection.
 
-    This tool automatically scans available labels/tags and intelligently
-    applies relevant ones based on the task title and description.
-
-    Args:
-        title: Task title (required)
-        description: Detailed description of the task
-        issue_id: Parent issue ID to link this task to
-        assignee: User ID or email to assign the task to
-        priority: Priority level - must be one of: low, medium, high, critical
-        tags: List of tags to categorize the task (auto-detection adds to these)
-        auto_detect_labels: Automatically detect and apply relevant labels (default: True)
-
-    Returns:
-        Created task details including ID and metadata, or error information
-
+    Args: title (required), description, issue_id (parent), assignee, priority, tags, auto_detect_labels (default: True)
+    Returns: TaskResponse with created task, ID, metadata
+    See: docs/mcp-api-reference.md#task-response-format
     """
     try:
         adapter = get_adapter()
@@ -693,31 +564,11 @@ async def epic_update(
     state: str | None = None,
     target_date: str | None = None,
 ) -> dict[str, Any]:
-    """Update an existing epic's metadata and description.
+    """Update epic metadata (all adapters with update_epic method).
 
-    Adapter Support: All adapters support epic updates with dedicated update_epic() method
-    - Linear: ✓ Updates project fields (title, description, state, target_date, etc.)
-    - JIRA: ✓ Updates epic fields (title, description, status, due date)
-    - GitHub: ✓ Updates milestone (title, description, state, due_on)
-    - Asana: ✓ Updates project metadata (name, notes, due_on, color, etc.)
-    - AiTrackDown: ✓ Updates epic in local storage
-
-    Supported Update Fields:
-    - title: Epic/project/milestone title (all adapters)
-    - description: Detailed description (all adapters)
-    - state: Epic state - adapter-specific values (Linear, JIRA, GitHub)
-    - target_date: Due date in ISO format YYYY-MM-DD (all adapters)
-
-    Args:
-        epic_id: Epic identifier (required)
-        title: New title for the epic
-        description: New description for the epic
-        state: New state (open, in_progress, done, closed)
-        target_date: Target completion date in ISO format (YYYY-MM-DD)
-
-    Returns:
-        Updated epic details, or error information
-
+    Args: epic_id (required), title, description, state (adapter-specific), target_date (ISO YYYY-MM-DD)
+    Returns: EpicResponse with updated epic
+    See: docs/mcp-api-reference.md#epic-response-format
     """
     try:
         adapter = get_adapter()
@@ -787,26 +638,11 @@ async def epic_update(
 
 @mcp.tool()
 async def epic_delete(epic_id: str) -> dict[str, Any]:
-    """Delete an epic/project/milestone by ID.
+    """Delete epic/project/milestone (GitHub: permanent, Asana: archive, Linear/JIRA: not supported).
 
-    Adapter Support:
-    - GitHub: ✓ Deletes milestone (delete_epic() - permanent deletion)
-    - Asana: ✓ Archives project (delete_epic() - can be restored from archive)
-    - Linear: ✗ Linear API doesn't support project deletion
-    - JIRA: ✗ JIRA API doesn't support epic deletion
-    - AiTrackDown: ✗ Epic deletion not implemented yet
-
-    Important Notes:
-    - GitHub: Deletion is permanent and cannot be undone
-    - Asana: Project is archived, not deleted, and can be restored
-    - For unsupported adapters, the tool returns an error with details
-
-    Args:
-        epic_id: Unique identifier of the epic to delete
-
-    Returns:
-        Success/failure status with adapter information
-
+    Args: epic_id (required)
+    Returns: DeleteResponse with status
+    See: docs/mcp-api-reference.md#delete-response
     """
     try:
         adapter = get_adapter()
@@ -859,18 +695,11 @@ async def hierarchy_tree(
     epic_id: str,
     max_depth: int = 3,
 ) -> dict[str, Any]:
-    """Get complete hierarchy tree for an epic.
+    """Get full hierarchy tree (epic → issues → tasks, up to max_depth).
 
-    Retrieves the full hierarchy tree starting from an epic, including all
-    child issues and their tasks up to the specified depth.
-
-    Args:
-        epic_id: Unique identifier of the root epic
-        max_depth: Maximum depth to traverse (1=epic only, 2=epic+issues, 3=epic+issues+tasks)
-
-    Returns:
-        Complete hierarchy tree structure, or error information
-
+    Args: epic_id (required), max_depth (1=epic, 2=+issues, 3=+tasks, default: 3)
+    Returns: TreeResponse with hierarchical structure
+    See: docs/mcp-api-reference.md#hierarchy-tree-format
     """
     try:
         adapter = get_adapter()

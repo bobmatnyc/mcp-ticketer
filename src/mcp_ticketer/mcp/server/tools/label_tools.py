@@ -58,52 +58,9 @@ async def label_list(
 ) -> dict[str, Any]:
     """List all available labels/tags from the ticket system.
 
-    Retrieves labels from the configured adapter or a specific adapter if specified.
-    Optionally includes usage statistics showing how many tickets use each label.
-
-    Token Usage:
-    - Without usage_count: ~10 tokens per label
-    - With usage_count: ~15 tokens per label
-    - Default limit=100: ~1,000-1,500 tokens (safe)
-    - All labels (no limit): Could exceed 15,000 tokens for large projects
-    - Recommendation: Use pagination (limit + offset) for large label sets
-
-    Multi-Adapter Support:
-    - Without adapter_name: Uses default configured adapter
-    - With adapter_name: Uses specified adapter (requires multi-adapter setup)
-
-    Args:
-    ----
-        adapter_name: Optional adapter to query (e.g., "linear", "github", "jira")
-        include_usage_count: Include usage statistics for each label (default: False)
-        limit: Maximum number of labels to return (default: 100, max: 500)
-        offset: Number of labels to skip for pagination (default: 0)
-
-    Returns:
-    -------
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapter: Adapter type that was queried
-        - adapter_name: Human-readable adapter name
-        - labels: List of label objects with id, name, and optionally usage_count
-        - total_labels: Total number of labels available (before pagination)
-        - count: Number of labels returned in this response
-        - limit: Limit used for pagination
-        - offset: Offset used for pagination
-        - has_more: Boolean indicating if more labels exist
-        - estimated_tokens: Approximate token count for response
-        - error: Error message (if failed)
-
-    Example:
-    -------
-    Example: `label_list()` → {"status": "completed", ...}
-
-        >>> # Get next page
-        >>> result = await label_list(limit=100, offset=100)
-
-        >>> # With usage counts (more tokens)
-        >>> result = await label_list(include_usage_count=True, limit=50)
-
+    Args: adapter_name (optional adapter), include_usage_count (default: False), limit (max: 500), offset (pagination)
+    Returns: LabelListResponse with labels array, count, pagination, estimated_tokens
+    See: docs/mcp-api-reference.md#label-response-format
     """
     try:
         # Validate and cap limits
@@ -221,37 +178,11 @@ async def label_normalize(
     label_name: str,
     casing: str = "lowercase",
 ) -> dict[str, Any]:
-    """Normalize a label name using specified casing strategy.
+    """Normalize label name using casing strategy (lowercase, titlecase, uppercase, kebab-case, snake_case).
 
-    Applies consistent casing rules to label names for standardization.
-    Useful for ensuring labels follow a consistent naming convention.
-
-    Supported Casing Strategies:
-    - lowercase: Convert to lowercase (e.g., "Bug Report" → "bug report")
-    - titlecase: Convert to title case (e.g., "bug report" → "Bug Report")
-    - uppercase: Convert to uppercase (e.g., "bug report" → "BUG REPORT")
-    - kebab-case: Convert to kebab-case (e.g., "Bug Report" → "bug-report")
-    - snake_case: Convert to snake_case (e.g., "Bug Report" → "bug_report")
-
-    Args:
-    ----
-        label_name: Label name to normalize (required)
-        casing: Casing strategy to apply (default: "lowercase")
-
-    Returns:
-    -------
-        Dictionary containing:
-        - status: "completed" or "error"
-        - original: Original label name
-        - normalized: Normalized label name
-        - casing: Casing strategy applied
-        - changed: Whether normalization changed the label
-        - error: Error message (if failed)
-
-    Example:
-    -------
-    Example: `label_normalize("Bug Report", casing="kebab-case")` → {"status": "completed", ...}
-
+    Args: label_name (required), casing (default: "lowercase")
+    Returns: NormalizationResponse with original, normalized, casing, changed
+    See: docs/mcp-api-reference.md#label-normalization
     """
     try:
         # Validate casing strategy
@@ -288,38 +219,11 @@ async def label_find_duplicates(
     threshold: float = 0.85,
     limit: int = 50,
 ) -> dict[str, Any]:
-    """Find duplicate or similar labels in the ticket system.
+    """Find duplicate/similar labels using fuzzy matching (case, spelling, plurals).
 
-    Uses fuzzy matching to identify labels that are likely duplicates due to:
-    - Case variations (e.g., "bug" vs "Bug")
-    - Spelling variations (e.g., "feature" vs "feture")
-    - Plural forms (e.g., "bug" vs "bugs")
-    - Similar wording (e.g., "bug" vs "issue")
-
-    Similarity Scoring:
-    - 1.0: Exact match (case-insensitive)
-    - 0.95: Spelling correction or synonym
-    - 0.70-0.95: Fuzzy match based on string similarity
-
-    Args:
-    ----
-        threshold: Minimum similarity threshold (0.0-1.0, default: 0.85)
-        limit: Maximum number of duplicate pairs to return (default: 50)
-
-    Returns:
-    -------
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapter: Adapter type queried
-        - adapter_name: Human-readable adapter name
-        - duplicates: List of duplicate pairs with similarity scores
-        - total_duplicates: Total number of duplicate pairs found
-        - error: Error message (if failed)
-
-    Example:
-    -------
-    Example: `label_find_duplicates(threshold=0.80)` → {"status": "completed", ...}
-
+    Args: threshold (0.0-1.0, default: 0.85), limit (default: 50)
+    Returns: DuplicateResponse with duplicates array (similarity scores, recommendations), total_duplicates
+    See: docs/mcp-api-reference.md#label-similarity-scoring
     """
     try:
         adapter = get_adapter()
@@ -395,38 +299,11 @@ async def label_suggest_merge(
     source_label: str,
     target_label: str,
 ) -> dict[str, Any]:
-    """Preview a label merge operation without executing it.
+    """Preview label merge operation (dry run, shows affected tickets).
 
-    Shows what would happen if source_label was merged into target_label,
-    including the number of tickets that would be affected.
-
-    Merge Operation Preview:
-    - All tickets with source_label will be updated to use target_label
-    - The source_label itself is NOT deleted from the system
-    - Tickets that already have both labels will only keep target_label
-
-    Args:
-    ----
-        source_label: Label to merge from (will be replaced on tickets)
-        target_label: Label to merge into (replacement label)
-
-    Returns:
-    -------
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapter: Adapter type
-        - adapter_name: Human-readable adapter name
-        - source_label: Source label name
-        - target_label: Target label name
-        - affected_tickets: Number of tickets that would be updated
-        - preview: List of ticket IDs that would be affected (up to 10)
-        - warning: Any warnings about the operation
-        - error: Error message (if failed)
-
-    Example:
-    -------
-    Example: `label_suggest_merge("Bug", "bug")` → {"status": "completed", ...}
-
+    Args: source_label (from), target_label (to)
+    Returns: MergePreviewResponse with affected_tickets count, preview IDs (up to 10), warnings
+    See: docs/mcp-api-reference.md#label-merge-preview
     """
     try:
         adapter = get_adapter()
@@ -490,48 +367,11 @@ async def label_merge(
     update_tickets: bool = True,
     dry_run: bool = False,
 ) -> dict[str, Any]:
-    """Merge source label into target label across all tickets.
+    """Merge source label into target across all tickets (does NOT delete source definition).
 
-    Replaces all occurrences of source_label with target_label on affected tickets.
-    This operation updates tickets but does NOT delete the source label definition.
-
-    Merge Behavior:
-    - Tickets with source_label: Label replaced with target_label
-    - Tickets with both labels: Keep only target_label (remove duplicate)
-    - Tickets with neither: No changes
-    - Source label definition: Remains in system (use adapter's label delete API separately)
-
-    Safety Features:
-    - dry_run mode: Preview changes without applying them
-    - update_tickets=False: Only show what would change, don't modify anything
-
-    Args:
-    ----
-        source_label: Label to merge from (will be replaced on tickets)
-        target_label: Label to merge into (replacement label)
-        update_tickets: Actually update tickets (default: True)
-        dry_run: Preview mode - show changes without applying (default: False)
-
-    Returns:
-    -------
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapter: Adapter type
-        - adapter_name: Human-readable adapter name
-        - tickets_updated: Number of tickets modified
-        - tickets_skipped: Number of tickets skipped (already had target)
-        - dry_run: Whether this was a dry run
-        - changes: List of changes made (up to 20)
-        - error: Error message (if failed)
-
-    Example:
-    -------
-        >>> # Dry run first
-    Example: `label_merge("Bug", "bug", dry_run=True)` → {"status": "completed", ...}
-
-        >>> # Execute merge
-    Example: `label_merge("Bug", "bug", dry_run=True)` → {"status": "completed", ...}
-
+    Args: source_label (from), target_label (to), update_tickets (default: True), dry_run (default: False)
+    Returns: MergeResponse with tickets_updated, tickets_skipped, changes array (up to 20)
+    See: docs/mcp-api-reference.md#label-merge-behavior
     """
     try:
         adapter = get_adapter()
@@ -654,37 +494,11 @@ async def label_rename(
     new_name: str,
     update_tickets: bool = True,
 ) -> dict[str, Any]:
-    """Rename a label across all tickets.
+    """Rename label across all tickets (alias for label_merge, semantic variant for typo fixes).
 
-    Updates all tickets using old_name to use new_name instead.
-    This is effectively an alias for label_merge with different semantics.
-
-    Use label_rename when:
-    - Fixing typos in label names
-    - Standardizing label naming conventions
-    - Rebranding labels for clarity
-
-    Args:
-    ----
-        old_name: Current label name to rename
-        new_name: New label name to use
-        update_tickets: Actually update tickets (default: True)
-
-    Returns:
-    -------
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapter: Adapter type
-        - adapter_name: Human-readable adapter name
-        - tickets_updated: Number of tickets modified
-        - old_name: Original label name
-        - new_name: New label name
-        - error: Error message (if failed)
-
-    Example:
-    -------
-    Example: `label_rename("feture", "feature", update_tickets=True)` → {"status": "completed", ...}
-
+    Args: old_name (current), new_name (replacement), update_tickets (default: True)
+    Returns: RenameResponse with tickets_updated, old_name, new_name
+    See: docs/mcp-api-reference.md#label-merge-behavior
     """
     # Delegate to label_merge (rename is just a semantic alias)
     result: dict[str, Any] = await label_merge(
@@ -710,60 +524,11 @@ async def label_cleanup_report(
     include_duplicates: bool = True,
     include_unused: bool = True,
 ) -> dict[str, Any]:
-    """Generate comprehensive label cleanup report with actionable recommendations.
+    """Generate label cleanup report (spelling errors, duplicates, unused labels with recommendations).
 
-    Analyzes all labels in the ticket system and identifies:
-    - Spelling errors and typos (using spelling dictionary)
-    - Duplicate or similar labels (using fuzzy matching)
-    - Unused labels (labels with zero tickets)
-
-    Report Sections:
-    1. Spelling Issues: Labels that match known misspellings
-    2. Duplicate Labels: Similar labels that should be consolidated
-    3. Unused Labels: Labels not assigned to any tickets
-
-    Each issue includes actionable recommendations and severity ratings.
-
-    Args:
-    ----
-        include_spelling: Include spelling error analysis (default: True)
-        include_duplicates: Include duplicate detection (default: True)
-        include_unused: Include unused label detection (default: True)
-
-    Returns:
-    -------
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapter: Adapter type
-        - adapter_name: Human-readable adapter name
-        - summary: High-level statistics
-        - spelling_issues: List of spelling problems (if enabled)
-        - duplicate_groups: List of duplicate label groups (if enabled)
-        - unused_labels: List of unused labels (if enabled)
-        - recommendations: Prioritized list of actions to take
-        - error: Error message (if failed)
-
-    Example:
-    -------
-        >>> result = await label_cleanup_report()
-        >>> print(result["summary"])
-        {
-            "total_labels": 45,
-            "spelling_issues": 3,
-            "duplicate_groups": 5,
-            "unused_labels": 8,
-            "estimated_cleanup_savings": "16 labels can be consolidated"
-        }
-
-        >>> print(result["recommendations"][0])
-        {
-            "priority": "high",
-            "category": "spelling",
-            "action": "Rename 'feture' to 'feature'",
-            "affected_tickets": 12,
-            "command": "label_rename(old_name='feture', new_name='feature')"
-        }
-
+    Args: include_spelling (default: True), include_duplicates (default: True), include_unused (default: True)
+    Returns: CleanupReportResponse with summary, spelling_issues, duplicate_groups, unused_labels, recommendations (prioritized)
+    See: docs/mcp-api-reference.md#label-cleanup-report
     """
     try:
         adapter = get_adapter()

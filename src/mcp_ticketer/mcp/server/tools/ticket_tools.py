@@ -167,37 +167,11 @@ async def ticket_create(
     parent_epic: str | None = _UNSET,
     auto_detect_labels: bool = True,
 ) -> dict[str, Any]:
-    """Create a new ticket with automatic label/tag detection.
+    """Create ticket with auto-label detection and semantic priority matching.
 
-    This tool automatically scans available labels/tags and intelligently
-    applies relevant ones based on the ticket title and description.
-
-    Label Detection:
-    - Scans all available labels in the configured adapter
-    - Matches labels based on keywords in title/description
-    - Combines auto-detected labels with user-specified ones
-    - Can be disabled by setting auto_detect_labels=false
-
-    Common label patterns detected:
-    - bug, feature, improvement, documentation
-    - test, security, performance
-    - ui, api, backend, frontend
-
-    Args:
-        title: Ticket title (required)
-        description: Detailed description of the ticket
-        priority: Priority level - supports natural language (e.g., "urgent", "asap", "important")
-                 or exact values (low, medium, high, critical)
-        tags: List of tags to categorize the ticket (auto-detection adds to these)
-        assignee: User ID or email to assign the ticket to
-        parent_epic: Parent epic/project ID to assign this ticket to (optional)
-        auto_detect_labels: Automatically detect and apply relevant labels (default: True)
-
-    Returns:
-        Created ticket details including ID and metadata, or error information
-
-    Ticket Reference: ISS-0002 - Semantic priority matching
-
+    Args: title (required), description, priority (supports natural language), tags, assignee, parent_epic (optional), auto_detect_labels (default: True)
+    Returns: TicketResponse with created ticket, ID, metadata
+    See: docs/mcp-api-reference.md#ticket-response-format, docs/mcp-api-reference.md#semantic-priority-matching
     """
     try:
         adapter = get_adapter()
@@ -352,24 +326,11 @@ async def ticket_create(
 
 @mcp.tool()
 async def ticket_read(ticket_id: str) -> dict[str, Any]:
-    """Read a ticket by its ID or URL.
+    """Read ticket by ID or URL (supports Linear, GitHub, JIRA, Asana URLs with multi-platform routing).
 
-    This tool supports both plain ticket IDs and full URLs from multiple platforms:
-    - Plain IDs: Use the configured default adapter (e.g., "ABC-123", "456")
-    - Linear URLs: https://linear.app/team/issue/ABC-123
-    - GitHub URLs: https://github.com/owner/repo/issues/123
-    - JIRA URLs: https://company.atlassian.net/browse/PROJ-123
-    - Asana URLs: https://app.asana.com/0/1234567890/9876543210
-
-    The tool automatically detects the platform from URLs and routes to the
-    appropriate adapter. Multi-platform support must be configured for URL access.
-
-    Args:
-        ticket_id: Ticket ID or URL to read
-
-    Returns:
-        Ticket details if found, or error information
-
+    Args: ticket_id (ID or full URL)
+    Returns: TicketResponse with ticket details
+    See: docs/mcp-api-reference.md#ticket-response-format, docs/mcp-api-reference.md#url-routing
     """
     try:
         is_routed = False
@@ -455,26 +416,11 @@ async def ticket_update(
     assignee: str | None = None,
     tags: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Update an existing ticket using ID or URL.
+    """Update ticket using ID or URL (semantic priority matching, workflow states).
 
-    Supports both plain ticket IDs and full URLs from multiple platforms.
-    See ticket_read for supported URL formats.
-
-    Args:
-        ticket_id: Ticket ID or URL to update
-        title: New title for the ticket
-        description: New description for the ticket
-        priority: New priority - supports natural language (e.g., "urgent", "asap", "important")
-                 or exact values (low, medium, high, critical)
-        state: New state - must be one of: open, in_progress, ready, tested, done, closed, waiting, blocked
-        assignee: User ID or email to assign the ticket to
-        tags: New list of tags (replaces existing tags)
-
-    Returns:
-        Updated ticket details, or error information
-
-    Ticket Reference: ISS-0002 - Semantic priority matching
-
+    Args: ticket_id (ID or URL), title, description, priority (natural language), state (workflow), assignee, tags
+    Returns: TicketResponse with updated ticket
+    See: docs/mcp-api-reference.md#ticket-response-format, docs/mcp-api-reference.md#semantic-priority-matching
     """
     try:
         # Build updates dictionary with only provided fields
@@ -587,17 +533,11 @@ async def ticket_update(
 
 @mcp.tool()
 async def ticket_delete(ticket_id: str) -> dict[str, Any]:
-    """Delete a ticket by its ID or URL.
+    """Delete ticket by ID or URL.
 
-    Supports both plain ticket IDs and full URLs from multiple platforms.
-    See ticket_read for supported URL formats.
-
-    Args:
-        ticket_id: Ticket ID or URL to delete
-
-    Returns:
-        Success confirmation or error information
-
+    Args: ticket_id (ID or URL)
+    Returns: DeleteResponse with status confirmation
+    See: docs/mcp-api-reference.md#delete-response
     """
     try:
         # Route to appropriate adapter
@@ -679,46 +619,11 @@ async def ticket_list(
     assignee: str | None = None,
     compact: bool = True,
 ) -> dict[str, Any]:
-    """List tickets with pagination and optional filters.
+    """List tickets with pagination and filters (compact mode default for token efficiency).
 
-    IMPORTANT - Use defaults to minimize token usage:
-        - Always use compact=True (titles only) unless full details explicitly needed
-        - Keep limit=20 or lower for routine queries
-        - Only increase limit or use compact=False when specifically requested
-
-    Token Usage Optimization:
-        Default settings (limit=20, compact=True) return ~300 tokens per response.
-        Compact mode returns only id, title, and state (~15 tokens per ticket).
-        Non-compact mode (compact=False) returns full details (~185 tokens per ticket).
-
-        Token usage examples:
-        - 20 tickets, compact=True: ~300 tokens (~0.15% of context) ← RECOMMENDED DEFAULT
-        - 20 tickets, compact=False: ~3.7k tokens (~1.85% of context)
-        - 50 tickets, compact=True: ~750 tokens (~0.38% of context)
-        - 50 tickets, compact=False: ~9.25k tokens (~4.6% of context) ← AVOID unless necessary
-
-    Args:
-        limit: Maximum number of tickets to return (default: 20, recommended: 20 or less, max: 100)
-        offset: Number of tickets to skip for pagination (default: 0)
-        state: Filter by state - must be one of: open, in_progress, ready, tested, done, closed, waiting, blocked
-        priority: Filter by priority - must be one of: low, medium, high, critical
-        assignee: Filter by assigned user ID or email
-        compact: Return minimal fields (titles only) for reduced token usage (default: True, strongly recommended)
-                Set to False ONLY when full ticket details with description explicitly requested
-
-    Returns:
-        List of tickets matching criteria, or error information
-
-    Examples:
-        # Default: 20 compact tickets with id, title, state (~300 tokens)
-        tickets = await ticket_list()
-
-        # Get full details for fewer tickets when description/metadata needed
-        tickets = await ticket_list(limit=10, compact=False)
-
-        # More tickets with compact mode (still efficient)
-        tickets = await ticket_list(limit=50, compact=True)
-
+    Args: limit (max: 100, default: 20), offset (pagination), state, priority, assignee, compact (default: True, ~15 tokens/ticket vs ~185 full)
+    Returns: ListResponse with tickets array, count, pagination
+    See: docs/mcp-api-reference.md#list-response-format, docs/mcp-api-reference.md#token-usage-optimization
     """
     try:
         adapter = get_adapter()
@@ -808,41 +713,11 @@ async def ticket_list(
 
 @mcp.tool()
 async def ticket_summary(ticket_id: str) -> dict[str, Any]:
-    """Get ultra-compact ticket summary for minimal token usage.
+    """Get ultra-compact summary (id, title, state, priority, assignee only - ~20 tokens vs ~185 full).
 
-    This tool returns only the most essential ticket information for quick
-    status checks. It's optimized for minimal token usage (~20 tokens vs
-    ~185 tokens for full ticket details).
-
-    Use Cases:
-    - Quick status check: "What's the current state of TICKET-123?"
-    - Batch status queries: Check multiple tickets without context overload
-    - Dashboard updates: Get high-level overview of many tickets
-
-    Fields Returned:
-    - id: Ticket identifier
-    - title: Ticket title
-    - state: Current workflow state
-    - priority: Priority level
-    - assignee: Assigned user (if any)
-
-    For full details including description, metadata, dates, etc., use ticket_read.
-    For list queries with filtering, use ticket_list with compact=True.
-
-    Args:
-        ticket_id: Ticket ID or URL to summarize
-
-    Returns:
-        Ultra-compact ticket summary with essential fields only, or error information
-
-    Examples:
-        # Quick status check
-        summary = await ticket_summary("PROJ-123")
-        # Returns: {"id": "PROJ-123", "title": "...", "state": "in_progress", "priority": "high", "assignee": "user@example.com"}
-
-        # Check using URL
-        summary = await ticket_summary("https://linear.app/team/issue/ABC-123")
-
+    Args: ticket_id (ID or URL)
+    Returns: SummaryResponse with minimal fields (90% token savings)
+    See: docs/mcp-api-reference.md#compact-ticket-format
     """
     try:
         # Use ticket_read to get full ticket
@@ -879,45 +754,11 @@ async def ticket_summary(ticket_id: str) -> dict[str, Any]:
 
 @mcp.tool()
 async def ticket_latest(ticket_id: str, limit: int = 5) -> dict[str, Any]:
-    """Get recent activity and changes for a ticket (comments, state changes, updates).
+    """Get recent activity (comments, state changes, updates - adapter-dependent behavior).
 
-    This tool retrieves only recent activity without loading full ticket history,
-    optimizing for scenarios where you need to know "what changed recently" without
-    context overhead from full ticket details.
-
-    Use Cases:
-    - "What's the latest update on TICKET-123?"
-    - "Any recent comments or status changes?"
-    - "What happened since I last checked?"
-
-    Returns:
-    - Recent comments (if adapter supports comment listing)
-    - State transition history (if available)
-    - Last update timestamp
-    - Summary of recent changes
-
-    Note: This tool's behavior varies by adapter based on available APIs:
-    - Adapters with comment API: Returns recent comments
-    - Adapters without comment API: Returns last update summary
-    - Some adapters may not support activity history
-
-    Args:
-        ticket_id: Ticket ID or URL to query
-        limit: Maximum number of recent activities to return (default: 5, max: 20)
-
-    Returns:
-        Recent activity list with timestamps and change descriptions, or error information
-
-    Examples:
-        # Get last 5 activities
-        activity = await ticket_latest("PROJ-123")
-
-        # Get last 10 activities
-        activity = await ticket_latest("PROJ-123", limit=10)
-
-        # Check using URL
-        activity = await ticket_latest("https://linear.app/team/issue/ABC-123")
-
+    Args: ticket_id (ID or URL), limit (max: 20, default: 5)
+    Returns: ActivityResponse with recent activities, timestamps, change descriptions
+    See: docs/mcp-api-reference.md#activity-response-format
     """
     try:
         # Validate limit
@@ -1047,104 +888,11 @@ async def ticket_assign(
     comment: str | None = None,
     auto_transition: bool = True,
 ) -> dict[str, Any]:
-    """Assign or reassign a ticket to a user with automatic state transition.
+    """Assign/unassign ticket with auto-transition to IN_PROGRESS (OPEN/WAITING/BLOCKED → IN_PROGRESS when assigned).
 
-    This tool provides dedicated assignment functionality with audit trail support
-    and automatic state transitions. It accepts both plain ticket IDs and full URLs
-    from multiple platforms:
-    - Plain IDs: Use the configured default adapter (e.g., "ABC-123", "456")
-    - Linear URLs: https://linear.app/team/issue/ABC-123
-    - GitHub URLs: https://github.com/owner/repo/issues/123
-    - JIRA URLs: https://company.atlassian.net/browse/PROJ-123
-    - Asana URLs: https://app.asana.com/0/1234567890/9876543210
-
-    The tool automatically detects the platform from URLs and routes to the
-    appropriate adapter. Multi-platform support must be configured for URL access.
-
-    Auto-Transition Behavior:
-    When a ticket is assigned (not unassigned), the tool automatically transitions
-    the ticket to IN_PROGRESS if it's currently in one of these states:
-    - OPEN → IN_PROGRESS: When starting work on new ticket
-    - WAITING → IN_PROGRESS: When resuming after waiting period
-    - BLOCKED → IN_PROGRESS: When resuming after block removed
-
-    States that do NOT auto-transition:
-    - Already IN_PROGRESS: No change needed
-    - READY, TESTED, DONE: Don't move backwards in workflow
-    - CLOSED: Terminal state, should not be worked on
-    - Unassignment (assignee=None): No state change
-    - Can be disabled with auto_transition=False
-
-    User Resolution:
-    - Accepts user IDs, emails, or names (adapter-dependent)
-    - Each adapter handles user resolution according to its platform's API
-    - Linear: User ID (UUID) or email
-    - GitHub: Username
-    - JIRA: Account ID or email
-    - Asana: User GID or email
-
-    Unassignment:
-    - Set assignee=None to unassign the ticket
-    - The ticket will be moved to unassigned state
-    - No automatic state change occurs during unassignment
-
-    Audit Trail:
-    - Optional comment parameter adds a note to the ticket
-    - Useful for explaining assignment/reassignment decisions
-    - Automatic comment is added if state is auto-transitioned and no comment provided
-    - Comment support is adapter-dependent
-
-    Args:
-        ticket_id: Ticket ID or URL to assign
-        assignee: User identifier (ID, email, or name) or None to unassign
-        comment: Optional comment to add explaining the assignment
-        auto_transition: Automatically transition to IN_PROGRESS when appropriate (default: True)
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - ticket: Full updated ticket object
-        - previous_assignee: Who the ticket was assigned to before (if any)
-        - new_assignee: Who the ticket is now assigned to (if any)
-        - previous_state: State before assignment
-        - new_state: State after assignment
-        - state_auto_transitioned: Boolean indicating if state was automatically changed
-        - comment_added: Boolean indicating if comment was added
-        - adapter: Which adapter handled the operation
-        - adapter_name: Human-readable adapter name
-        - routed_from_url: True if ticket_id was a URL (optional)
-
-    Example:
-        # Assign ticket to user by email (auto-transitions OPEN → IN_PROGRESS)
-        >>> ticket_assign(
-        ...     ticket_id="PROJ-123",
-        ...     assignee="user@example.com",
-        ...     comment="Taking ownership of this issue"
-        ... )
-
-        # Assign ticket using URL (with auto-transition)
-        >>> ticket_assign(
-        ...     ticket_id="https://linear.app/team/issue/ABC-123",
-        ...     assignee="john.doe@example.com"
-        ... )
-
-        # Assign without auto-transition
-        >>> ticket_assign(
-        ...     ticket_id="PROJ-123",
-        ...     assignee="user@example.com",
-        ...     auto_transition=False
-        ... )
-
-        # Unassign ticket (no state change)
-        >>> ticket_assign(ticket_id="PROJ-123", assignee=None)
-
-        # Reassign with explanation
-        >>> ticket_assign(
-        ...     ticket_id="PROJ-123",
-        ...     assignee="jane.smith@example.com",
-        ...     comment="Reassigning to Jane who has domain expertise"
-        ... )
-
+    Args: ticket_id (ID or URL), assignee (user ID/email or None to unassign), comment (optional audit trail), auto_transition (default: True)
+    Returns: AssignmentResponse with ticket, previous/new assignee, previous/new state, state_auto_transitioned, comment_added
+    See: docs/ticket-workflows.md#auto-transitions, docs/mcp-api-reference.md#user-identifiers
     """
     try:
         # Read current ticket to get previous assignee

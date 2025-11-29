@@ -60,30 +60,10 @@ def get_resolver() -> ConfigResolver:
 async def config_set_primary_adapter(adapter: str) -> dict[str, Any]:
     """Set the default adapter for ticket operations.
 
-    Updates the project-local configuration (.mcp-ticketer/config.json)
-    to use the specified adapter as the default for all ticket operations.
-
-    Args:
-        adapter: Adapter name to set as primary. Must be one of:
-            - "aitrackdown" (file-based tracking)
-            - "linear" (Linear.app)
-            - "github" (GitHub Issues)
-            - "jira" (Atlassian JIRA)
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - message: Success or error message
-        - previous_adapter: Previous default adapter (if successful)
-        - new_adapter: New default adapter (if successful)
-        - error: Error details (if failed)
-
-    Example: `config_set_primary_adapter("linear")` → {"status": "completed", "message": "Default adapter set to 'linear'"}
-
-    Error Conditions:
-        - Invalid adapter name: Returns error with valid options
-        - Configuration file write failure: Returns error with file path
-
+    Args: adapter - Adapter type (aitrackdown, linear, github, jira)
+    Returns: ConfigResponse with previous/new adapter, config_path
+    See: docs/mcp-api-reference.md#config-response-format
+         docs/mcp-api-reference.md#adapter-types
     """
     try:
         # Validate adapter name against registry
@@ -129,30 +109,10 @@ async def config_set_default_project(
 ) -> dict[str, Any]:
     """Set the default project/epic for new tickets.
 
-    Updates the project-local configuration to automatically assign new tickets
-    to the specified project or epic. This is useful for teams working primarily
-    on a single project or feature area.
-
-    Args:
-        project_id: Project or epic ID to set as default (required)
-        project_key: Optional project key (for adapters that use keys vs IDs)
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - message: Success or error message
-        - previous_project: Previous default project (if any)
-        - new_project: New default project ID
-        - error: Error details (if failed)
-
-    Example:
-    Example: `config_set_default_project("PROJ-123")` → {"status": "completed", ...}
-
-    Usage Notes:
-        - This sets both default_project and default_epic (for backward compatibility)
-        - Empty string or null clears the default project
-        - Project ID is not validated (allows flexibility across adapters)
-
+    Args: project_id (required), project_key (optional for key-based adapters)
+    Returns: ConfigResponse with previous/new project
+    Note: Sets both default_project and default_epic for backward compatibility
+    See: docs/mcp-api-reference.md#config-response-format
     """
     try:
         # Load current configuration
@@ -194,33 +154,9 @@ async def config_set_default_user(
 ) -> dict[str, Any]:
     """Set the default assignee for new tickets.
 
-    Updates the project-local configuration to automatically assign new tickets
-    to the specified user. Supports both user IDs and email addresses depending
-    on adapter requirements.
-
-    Args:
-        user_id: User identifier or email to set as default assignee (required)
-        user_email: Optional email (for adapters that require separate email field)
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - message: Success or error message
-        - previous_user: Previous default user (if any)
-        - new_user: New default user ID
-        - error: Error details (if failed)
-
-    Example:
-    Example: `config_set_default_user("user123")` → {"status": "completed", ...}
-
-    Example with email:
-    Example: `config_set_default_user("user123")` → {"status": "completed", ...}
-
-    Usage Notes:
-        - User ID/email is not validated (allows flexibility across adapters)
-        - Empty string or null clears the default user
-        - Some adapters prefer email, others prefer user UUID
-
+    Args: user_id (ID/email/username), user_email (optional for adapters needing both)
+    Returns: ConfigResponse with previous/new user
+    See: docs/mcp-api-reference.md#user-identifiers
     """
     try:
         # Load current configuration
@@ -258,30 +194,9 @@ async def config_set_default_user(
 async def config_get() -> dict[str, Any]:
     """Get current configuration settings.
 
-    Retrieves the current project-local configuration including default adapter,
-    project, user, and all adapter-specific settings.
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - config: Complete configuration dictionary including:
-            - default_adapter: Primary adapter name
-            - default_project: Default project/epic ID (if set)
-            - default_user: Default assignee (if set)
-            - adapters: All adapter configurations
-            - hybrid_mode: Hybrid mode settings (if enabled)
-        - config_path: Path to configuration file
-        - error: Error details (if failed)
-
-    Example:
-    Example: `config_get()` → {"status": "completed", ...}
-
-    Usage Notes:
-        - Sensitive values (API keys) are masked in the response
-        - Returns default values if no configuration file exists
-        - Configuration is merged from multiple sources (env vars, .env files, config.json)
-        - default_tags returns empty list if not configured
-
+    Returns: Complete config dict with default_adapter, default_project, default_user, adapters
+    Note: Sensitive values (API keys) masked; merges env vars, .env, config.json
+    See: docs/mcp-api-reference.md#config-response-format
     """
     try:
         # Load current configuration
@@ -321,28 +236,9 @@ async def config_set_default_tags(
 ) -> dict[str, Any]:
     """Set default tags for new ticket creation.
 
-    Updates the project-local configuration to automatically apply the specified
-    tags to all new tickets. These tags are merged with any tags provided when
-    creating a ticket.
-
-    Args:
-        tags: List of default tags to apply to new tickets
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - message: Success or error message
-        - default_tags: List of default tags that were set
-        - error: Error details (if failed)
-
-    Example:
-    Example: `config_set_default_tags(["bug", "urgent"])` → {"status": "completed", ...}
-
-    Usage Notes:
-        - Empty list clears the default tags
-        - Tags are validated for reasonable length (2-50 characters)
-        - Tags are merged with user-provided tags during ticket creation
-
+    Args: tags - List of tag names (2-50 chars each, merged with user tags at creation)
+    Returns: ConfigResponse with default_tags list
+    See: docs/mcp-api-reference.md#config-response-format
     """
     try:
         # Validate tags
@@ -391,29 +287,10 @@ async def config_set_default_team(
 ) -> dict[str, Any]:
     """Set the default team for ticket operations.
 
-    Updates the project-local configuration to automatically scope ticket
-    operations to the specified team. This is useful for multi-team platforms
-    like Linear where teams have separate workspaces.
-
-    Args:
-        team_id: Team ID or key to set as default (e.g., "ENG", UUID)
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - message: Success or error message
-        - previous_team: Previous default team (if any)
-        - new_team: New default team ID
-        - error: Error details (if failed)
-
-    Example:
-    Example: `config_set_default_team("ENG")` → {"status": "completed", ...}
-
-    Usage Notes:
-        - Team ID is not validated (allows flexibility across adapters)
-        - Empty string or null clears the default team
-        - Helps scope ticket_list and ticket_search operations
-
+    Args: team_id - Team ID/key (e.g., "ENG", UUID for Linear multi-team workspaces)
+    Returns: ConfigResponse with previous/new team
+    Note: Helps scope ticket_list and ticket_search operations
+    See: docs/mcp-api-reference.md#config-response-format
     """
     try:
         # Validate team ID
@@ -454,29 +331,10 @@ async def config_set_default_cycle(
 ) -> dict[str, Any]:
     """Set the default cycle/sprint for ticket operations.
 
-    Updates the project-local configuration to automatically scope ticket
-    operations to the specified cycle or sprint. This is useful for platforms
-    that support sprint/cycle-based planning.
-
-    Args:
-        cycle_id: Cycle/sprint ID to set as default (e.g., "Sprint 23", UUID)
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - message: Success or error message
-        - previous_cycle: Previous default cycle (if any)
-        - new_cycle: New default cycle ID
-        - error: Error details (if failed)
-
-    Example:
-    Example: `config_set_default_cycle("Sprint 23")` → {"status": "completed", ...}
-
-    Usage Notes:
-        - Cycle ID is not validated (allows flexibility across adapters)
-        - Empty string or null clears the default cycle
-        - Helps scope ticket_list and ticket_search operations
-
+    Args: cycle_id - Sprint/cycle ID (e.g., "Sprint 23", UUID for sprint planning)
+    Returns: ConfigResponse with previous/new cycle
+    Note: Helps scope ticket_list and ticket_search to active sprint
+    See: docs/mcp-api-reference.md#config-response-format
     """
     try:
         # Validate cycle ID
@@ -517,29 +375,9 @@ async def config_set_default_epic(
 ) -> dict[str, Any]:
     """Set default epic/project for new ticket creation.
 
-    Updates the project-local configuration to automatically assign new tickets
-    to the specified epic or project. This is an alias for config_set_default_project
-    but uses the "epic" terminology which some teams prefer.
-
-    Args:
-        epic_id: Epic or project identifier (e.g., "PROJ-123" or UUID)
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - message: Success or error message
-        - default_epic: The epic ID that was set
-        - default_project: Same value (for compatibility)
-        - error: Error details (if failed)
-
-    Example:
-    Example: `config_set_default_epic("PROJ-123")` → {"status": "completed", ...}
-
-    Usage Notes:
-        - Epic ID is not validated (allows flexibility across adapters)
-        - Empty string or null clears the default epic
-        - Sets both default_epic and default_project for backward compatibility
-
+    Args: epic_id - Epic/project ID (alias for config_set_default_project)
+    Returns: ConfigResponse with default_epic and default_project (both set for compatibility)
+    See: docs/mcp-api-reference.md#config-response-format
     """
     try:
         # Validate epic ID
@@ -576,35 +414,10 @@ async def config_set_default_epic(
 async def config_set_assignment_labels(labels: list[str]) -> dict[str, Any]:
     """Set labels that indicate ticket assignment to user.
 
-    Assignment labels are used by the check_open_tickets feature to find
-    tickets that should be worked on, in addition to tickets directly
-    assigned to the default_user.
-
-    This is useful for teams that use labels like "assigned-to-me",
-    "my-work", "in-progress" to indicate ticket ownership beyond
-    formal assignment fields.
-
-    Args:
-        labels: List of label names that indicate ticket is assigned to user.
-                Examples: ["assigned-to-me", "my-work", "active-sprint"]
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - message: Success message with label list
-        - assignment_labels: The labels that were set
-        - config_path: Path to configuration file
-        - error: Error details (if failed)
-
-    Example:
-    Example: `config_set_assignment_labels(["my-work", "in-progress"])` → {"status": "completed", ...}
-
-    Usage Notes:
-        - Labels are platform-specific (Linear uses different names than GitHub)
-        - Empty list is valid (disables assignment label filtering)
-        - Labels are case-sensitive
-        - Labels must be 2-50 characters
-
+    Args: labels - Label names indicating user ownership (e.g., ["my-work", "in-progress"])
+    Returns: ConfigResponse with assignment_labels list
+    Note: Used by check_open_tickets to find work beyond formal assignment field
+    See: docs/mcp-api-reference.md#config-response-format
     """
     try:
         # Validate label format
@@ -642,27 +455,11 @@ async def config_set_assignment_labels(labels: list[str]) -> dict[str, Any]:
 
 @mcp.tool()
 async def config_validate() -> dict[str, Any]:
-    """Validate all adapter configurations without testing connectivity.
+    """Validate all adapter configurations (structure only, no connectivity test).
 
-    Performs structural validation of adapter configurations including:
-    - Required field presence
-    - Field format validation (API keys, URLs, emails)
-    - Team ID/key validation
-    - Configuration consistency checks
-
-    Does NOT test actual API connectivity. Use config_test_adapter() for that.
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - validation_results: Dict mapping adapter names to validation status
-        - all_valid: Boolean indicating if all configs are valid
-        - issues: List of validation errors (empty if all valid)
-        - message: Summary message
-
-    Example:
-    Example: `config_validate()` → {"status": "completed", ...}
-
+    Returns: ValidationResponse with validation_results, all_valid, issues list
+    Note: Checks required fields, formats (API keys, URLs, emails). Use config_test_adapter() for connectivity.
+    See: docs/mcp-api-reference.md#validation-response-format
     """
     try:
         resolver = get_resolver()
@@ -713,33 +510,12 @@ async def config_validate() -> dict[str, Any]:
 
 @mcp.tool()
 async def config_test_adapter(adapter_name: str) -> dict[str, Any]:
-    """Test connectivity for a specific adapter.
+    """Test connectivity for a specific adapter (actual API call).
 
-    Performs actual API connectivity test by:
-    1. Loading adapter configuration
-    2. Initializing adapter with credentials
-    3. Making test API call (list operation)
-    4. Reporting success or specific error
-
-    Args:
-        adapter_name: Name of adapter to test (linear, github, jira, aitrackdown)
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapter: Adapter name
-        - healthy: Boolean indicating if test passed
-        - message: Success or error message
-        - error_type: Type of error (if failed)
-
-    Example:
-    Example: `config_test_adapter("linear")` → {"status": "completed", ...}
-
-    Error Conditions:
-        - Adapter not configured: Returns error with available adapters
-        - Invalid credentials: Returns healthy=False with specific error
-        - Network issues: Returns healthy=False with connection error
-
+    Args: adapter_name - Adapter to test (linear, github, jira, aitrackdown)
+    Returns: ValidationResponse with adapter, healthy status, message, error_type
+    Note: Makes real API call (list operation) to verify credentials and connectivity
+    See: docs/mcp-api-reference.md#validation-response-format
     """
     try:
         # Import diagnostic tool
@@ -781,28 +557,9 @@ async def config_test_adapter(adapter_name: str) -> dict[str, Any]:
 async def config_list_adapters() -> dict[str, Any]:
     """List all available adapters with configuration status.
 
-    Returns information about all supported adapters including:
-    - Which adapters are available
-    - Which are currently configured
-    - Which is the default adapter
-    - Adapter metadata and descriptions
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapters: List of adapter info dictionaries
-        - default_adapter: Current default adapter name
-        - total_configured: Count of configured adapters
-        - error: Error details (if failed)
-
-    Example:
-    Example: `config_list_adapters()` → {"status": "completed", ...}
-
-    Usage Notes:
-        - Adapters are considered configured if they exist in config.adapters
-        - Default adapter is determined by config.default_adapter
-        - Adapter descriptions are static (not from API)
-
+    Returns: ListResponse with adapters array (type, name, configured, is_default, description), default_adapter, total_configured
+    See: docs/mcp-api-reference.md#list-response-format
+         docs/mcp-api-reference.md#adapter-types
     """
     try:
         # Get all registered adapters from registry
@@ -875,29 +632,9 @@ async def config_list_adapters() -> dict[str, Any]:
 async def config_get_adapter_requirements(adapter: str) -> dict[str, Any]:
     """Get configuration requirements for a specific adapter.
 
-    Returns required and optional configuration fields for the specified
-    adapter, including field types, descriptions, validation patterns,
-    and environment variable names.
-
-    Args:
-        adapter: Adapter name (linear, github, jira, aitrackdown, asana)
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapter: Adapter name
-        - requirements: Dict of field name to field spec
-        - error: Error details (if failed)
-
-    Example:
-    Example: `config_get_adapter_requirements("linear")` → {"status": "completed", ...}
-
-    Usage Notes:
-        - Requirements are based on ConfigValidator validation logic
-        - env_var shows which environment variable can provide the value
-        - validation patterns are regex strings (when applicable)
-        - Some adapters accept alternative field names (aliases)
-
+    Args: adapter - Adapter name (linear, github, jira, aitrackdown, asana)
+    Returns: Requirements dict with field specs (type, required, description, env_var, validation pattern)
+    See: docs/mcp-api-reference.md#adapter-types for setup instructions
     """
     try:
         # Validate adapter name
@@ -1043,36 +780,13 @@ async def config_setup_wizard(
     set_as_default: bool = True,
     test_connection: bool = True,
 ) -> dict[str, Any]:
-    """Interactive setup wizard for adapter configuration.
+    """Interactive setup wizard for adapter configuration (validates, tests, saves).
 
-    Single-call tool that validates, tests, and saves adapter configuration.
-
-    Args:
-        adapter_type: Adapter to configure (linear, github, jira, aitrackdown, asana)
-        credentials: Dict with adapter-specific credentials
-        set_as_default: Set as default adapter (default: True)
-        test_connection: Test connection before saving (default: True)
-
-    Returns:
-        Dictionary containing:
-        - status: "completed" or "error"
-        - adapter: Adapter type that was configured
-        - message: Success or error message
-        - tested: Boolean indicating if connection was tested
-        - connection_healthy: Boolean indicating if test passed (if tested)
-        - set_as_default: Boolean indicating if set as default
-        - config_path: Path to configuration file (if successful)
-        - error: Error details (if failed)
-
-    Example: `config_setup_wizard(adapter_type="linear", credentials={...})` → {"status": "completed", ...}
-
-    Error Conditions:
-        - Invalid adapter_type: Returns error with valid adapters list
-        - Missing required credentials: Returns error with missing fields
-        - Invalid credential format: Returns error with validation pattern
-        - Connection test failure: Returns error with connection details
-        - File write failure: Returns error with path and permissions info
-
+    Args: adapter_type, credentials dict, set_as_default (default: True), test_connection (default: True)
+    Returns: ConfigResponse with adapter, message, tested, connection_healthy, config_path
+    Note: Single-call setup - validates format, tests API connectivity, saves config
+    See: docs/mcp-api-reference.md#config-response-format
+         docs/mcp-api-reference.md#adapter-types
     """
     try:
         # Step 1: Validate adapter type
