@@ -11,6 +11,7 @@ from ....core.models import Comment
 from ....core.url_parser import is_url
 from ..server_sdk import get_adapter, get_router, has_router, mcp
 
+
 def _build_adapter_metadata(
     adapter: BaseAdapter,
     ticket_id: str | None = None,
@@ -39,6 +40,7 @@ def _build_adapter_metadata(
         metadata["routed_from_url"] = True
 
     return metadata
+
 
 @mcp.tool()
 async def ticket_comment(

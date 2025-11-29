@@ -19,6 +19,7 @@ from .ticket_tools import detect_and_apply_labels
 # Sentinel value to distinguish between "parameter not provided" and "explicitly None"
 _UNSET = object()
 
+
 def _build_adapter_metadata(
     adapter: BaseAdapter,
     ticket_id: str | None = None,
@@ -42,6 +43,7 @@ def _build_adapter_metadata(
         metadata["ticket_id"] = ticket_id
 
     return metadata
+
 
 @mcp.tool()
 async def epic_create(
@@ -108,6 +110,7 @@ async def epic_create(
             "error": f"Failed to create epic: {str(e)}",
         }
 
+
 @mcp.tool()
 async def epic_get(epic_id: str) -> dict[str, Any]:
     """Read an epic by its ID.
@@ -156,6 +159,7 @@ async def epic_get(epic_id: str) -> dict[str, Any]:
             "error": f"Failed to get epic: {str(e)}",
         }
 
+
 @mcp.tool()
 async def epic_list(
     limit: int = 10,
@@ -177,7 +181,7 @@ async def epic_list(
     - include_completed: Linear-specific parameter to include/exclude completed projects
 
     Args:
-        limit: Maximum results (see glossary)
+        limit: Maximum number of epics to return (default: 10)
         offset: Number of epics to skip for pagination (default: 0)
         state: Optional state filter - adapter-specific behavior
         include_completed: Include completed epics (Linear-specific, default: False)
@@ -229,6 +233,7 @@ async def epic_list(
             "error": f"Failed to list epics: {str(e)}",
         }
 
+
 @mcp.tool()
 async def epic_issues(epic_id: str) -> dict[str, Any]:
     """Get all issues belonging to an epic.
@@ -273,6 +278,7 @@ async def epic_issues(epic_id: str) -> dict[str, Any]:
             "error": f"Failed to get epic issues: {str(e)}",
         }
 
+
 @mcp.tool()
 async def issue_create(
     title: str,
@@ -292,9 +298,9 @@ async def issue_create(
         title: Issue title (required)
         description: Detailed description of the issue
         epic_id: Parent epic ID to link this issue to
-        assignee: See glossary the issue to
-        priority: Priority level (see glossary for semantic matching)
-        tags: See glossary
+        assignee: User ID or email to assign the issue to
+        priority: Priority level - must be one of: low, medium, high, critical
+        tags: List of tags to categorize the issue (auto-detection adds to these)
         auto_detect_labels: Automatically detect and apply relevant labels (default: True)
 
     Returns:
@@ -368,6 +374,7 @@ async def issue_create(
             "status": "error",
             "error": f"Failed to create issue: {str(e)}",
         }
+
 
 @mcp.tool()
 async def issue_get_parent(issue_id: str) -> dict[str, Any]:
@@ -451,6 +458,7 @@ async def issue_get_parent(issue_id: str) -> dict[str, Any]:
             "error": f"Failed to get parent issue: {str(e)}",
         }
 
+
 @mcp.tool()
 async def issue_tasks(
     issue_id: str,
@@ -465,12 +473,21 @@ async def issue_tasks(
 
     Args:
         issue_id: Unique identifier of the issue
-        state: Workflow state (see glossary), waiting, blocked
-        assignee: See glossary or email to filter by assignee
+        state: Optional state filter - must be one of: open, in_progress, ready,
+            tested, done, closed, waiting, blocked
+        assignee: Optional user ID or email to filter by assignee
         priority: Optional priority filter - must be one of: low, medium, high, critical
 
     Returns:
-        Returns: ListResponse with tasks and filters_appliedExample:
+        Dictionary containing:
+        - status: "completed" or "error"
+        - tasks: List of task objects matching filters
+        - count: Number of tasks returned
+        - filters_applied: Dict showing which filters were used
+        - adapter: Adapter type that handled the operation
+        - error: Error message (if failed)
+
+    Example:
         # Get all tasks for issue
         result = issue_tasks("ENG-840")
 
@@ -584,6 +601,7 @@ async def issue_tasks(
             "error": f"Failed to get issue tasks: {str(e)}",
         }
 
+
 @mcp.tool()
 async def task_create(
     title: str,
@@ -603,9 +621,9 @@ async def task_create(
         title: Task title (required)
         description: Detailed description of the task
         issue_id: Parent issue ID to link this task to
-        assignee: See glossary the task to
-        priority: Priority level (see glossary for semantic matching)
-        tags: See glossary
+        assignee: User ID or email to assign the task to
+        priority: Priority level - must be one of: low, medium, high, critical
+        tags: List of tags to categorize the task (auto-detection adds to these)
         auto_detect_labels: Automatically detect and apply relevant labels (default: True)
 
     Returns:
@@ -665,6 +683,7 @@ async def task_create(
             "status": "error",
             "error": f"Failed to create task: {str(e)}",
         }
+
 
 @mcp.tool()
 async def epic_update(
@@ -765,6 +784,7 @@ async def epic_update(
             "epic_id": epic_id,
         }
 
+
 @mcp.tool()
 async def epic_delete(epic_id: str) -> dict[str, Any]:
     """Delete an epic/project/milestone by ID.
@@ -832,6 +852,7 @@ async def epic_delete(epic_id: str) -> dict[str, Any]:
             "error": f"Failed to delete epic: {str(e)}",
             **_build_adapter_metadata(adapter, epic_id),
         }
+
 
 @mcp.tool()
 async def hierarchy_tree(

@@ -17,6 +17,7 @@ from ..server_sdk import get_adapter, mcp
 
 logger = logging.getLogger(__name__)
 
+
 def _build_adapter_metadata(
     adapter: BaseAdapter,
     project_id: str | None = None,
@@ -40,6 +41,7 @@ def _build_adapter_metadata(
         metadata["project_id"] = project_id
 
     return metadata
+
 
 @mcp.tool()
 async def project_update_create(
@@ -140,6 +142,7 @@ async def project_update_create(
             "error": f"Failed to create project update: {str(e)}",
         }
 
+
 @mcp.tool()
 async def project_update_list(
     project_id: str,
@@ -218,6 +221,7 @@ async def project_update_list(
             "status": "error",
             "error": f"Failed to list project updates: {str(e)}",
         }
+
 
 @mcp.tool()
 async def project_update_get(

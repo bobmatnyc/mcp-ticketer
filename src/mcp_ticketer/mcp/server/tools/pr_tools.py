@@ -9,6 +9,7 @@ from typing import Any
 
 from ..server_sdk import get_adapter, mcp
 
+
 @mcp.tool()
 async def ticket_create_pr(
     ticket_id: str,
@@ -23,7 +24,7 @@ async def ticket_create_pr(
     ticket. This functionality may not be available in all adapters.
 
     Args:
-        ticket_id: See glossary
+        ticket_id: Unique identifier of the ticket to link the PR to
         title: Pull request title
         description: Pull request description
         source_branch: Source branch for the PR (if not specified, may use ticket ID)
@@ -84,6 +85,7 @@ async def ticket_create_pr(
             "ticket_id": ticket_id,
         }
 
+
 @mcp.tool()
 async def ticket_link_pr(
     ticket_id: str,
@@ -96,7 +98,7 @@ async def ticket_link_pr(
     or as a comment.
 
     Args:
-        ticket_id: See glossary
+        ticket_id: Unique identifier of the ticket
         pr_url: URL of the pull request to link
 
     Returns:

@@ -34,6 +34,7 @@ from ..server_sdk import get_adapter, mcp
 
 logger = logging.getLogger(__name__)
 
+
 @mcp.tool()
 async def ticket_find_similar(
     ticket_id: str | None = None,
@@ -183,6 +184,7 @@ async def ticket_find_similar(
             "error": f"Failed to find similar tickets: {str(e)}",
         }
 
+
 @mcp.tool()
 async def ticket_find_stale(
     age_threshold_days: int = 90,
@@ -295,6 +297,7 @@ async def ticket_find_stale(
             "error": f"Failed to find stale tickets: {str(e)}",
         }
 
+
 @mcp.tool()
 async def ticket_find_orphaned(
     limit: int = 100,
@@ -368,6 +371,7 @@ async def ticket_find_orphaned(
             "status": "error",
             "error": f"Failed to find orphaned tickets: {str(e)}",
         }
+
 
 @mcp.tool()
 async def ticket_cleanup_report(
@@ -529,6 +533,7 @@ async def ticket_cleanup_report(
             "status": "error",
             "error": f"Failed to generate cleanup report: {str(e)}",
         }
+
 
 def _format_report_as_markdown(report: dict[str, Any]) -> str:
     """Format cleanup report as markdown.

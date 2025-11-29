@@ -34,6 +34,7 @@ from ....core.project_config import ConfigResolver, TicketerConfig
 from ....core.state_matcher import get_state_matcher
 from ..server_sdk import get_adapter, mcp
 
+
 def _build_adapter_metadata(
     adapter: BaseAdapter,
     ticket_id: str | None = None,
@@ -47,6 +48,7 @@ def _build_adapter_metadata(
         metadata["ticket_id"] = ticket_id
     return metadata
 
+
 def get_config_resolver() -> ConfigResolver:
     """Get configuration resolver for current project.
 
@@ -56,6 +58,7 @@ def get_config_resolver() -> ConfigResolver:
     """
     return ConfigResolver(project_path=Path.cwd())
 
+
 @mcp.tool()
 async def get_my_tickets(
     state: str | None = None,
@@ -63,17 +66,34 @@ async def get_my_tickets(
 ) -> dict[str, Any]:
     """Get tickets assigned to the configured default user.
 
+    Retrieves tickets assigned to the user specified in default_user configuration.
     Requires default_user to be set via config_set_default_user().
 
     Args:
-        state: Workflow state filter (see glossary for valid values)
-        limit: Maximum results (see glossary)
+        state: Optional state filter - must be one of: open, in_progress, ready,
+            tested, done, closed, waiting, blocked
+        limit: Maximum number of tickets to return (default: 10, max: 100)
 
-    Returns: ListResponse with tickets assigned to user, count, user ID, state_filter
+    Returns:
+        Dictionary containing:
+        - status: "completed" or "error"
+        - tickets: List of ticket objects assigned to user
+        - count: Number of tickets returned
+        - user: User ID that was queried
+        - state_filter: State filter applied (if any)
+        - error: Error details (if failed)
 
     Example: `get_my_tickets(state="in_progress", limit=5)` → {"status": "completed", "tickets": [...], "count": 2}
 
-    See: docs/mcp-api-reference.md for standard response format and error handling
+    Error Conditions:
+        - No default user configured: Returns error with setup instructions
+        - Invalid state: Returns error with valid state options
+        - Adapter query failure: Returns error with details
+
+    Usage Notes:
+        - Requires default_user to be set in configuration
+        - Use config_set_default_user() to configure the user first
+        - Limit is capped at 100 to prevent performance issues
 
     """
     try:
@@ -129,19 +149,38 @@ async def get_my_tickets(
             "error": f"Failed to retrieve tickets: {str(e)}",
         }
 
+
 @mcp.tool()
 async def get_available_transitions(ticket_id: str) -> dict[str, Any]:
     """Get valid next states for a ticket based on workflow rules.
 
-    Args:
-        ticket_id: See glossary
+    Retrieves the ticket's current state and returns all valid target states
+    according to the defined workflow state machine. This helps AI agents and
+    users understand which state transitions are allowed.
 
-    Returns: StandardResponse with current_state, available_transitions, transition_descriptions
+    Args:
+        ticket_id: Unique identifier of the ticket
+
+    Returns:
+        Dictionary containing:
+        - status: "completed" or "error"
+        - ticket_id: ID of the queried ticket
+        - current_state: Current workflow state
+        - available_transitions: List of valid target states
+        - transition_descriptions: Human-readable descriptions of each transition
+        - error: Error details (if failed)
 
     Example: `get_available_transitions("TICKET-123")` → {"status": "completed", "current_state": "in_progress", "available_transitions": [...]}
 
-    Note: Use this before ticket_transition() to validate intended state change.
-    See: docs/mcp-api-reference.md#workflow-state-machine for state machine details
+    Error Conditions:
+        - Ticket not found: Returns error with ticket ID
+        - Adapter query failure: Returns error with details
+        - Terminal state (CLOSED): Returns empty transitions list
+
+    Usage Notes:
+        - CLOSED is a terminal state with no valid transitions
+        - Use this before ticket_transition() to validate intended state change
+        - Transition validation prevents workflow violations
 
     """
     try:
@@ -195,6 +234,7 @@ async def get_available_transitions(ticket_id: str) -> dict[str, Any]:
             "error": f"Failed to get available transitions: {str(e)}",
         }
 
+
 @mcp.tool()
 async def ticket_transition(
     ticket_id: str,
@@ -204,25 +244,64 @@ async def ticket_transition(
 ) -> dict[str, Any]:
     """Move ticket through workflow with validation and optional comment.
 
-    Supports natural language state inputs with semantic matching (e.g., "working on it" → IN_PROGRESS).
+    Supports natural language state inputs with semantic matching.
+    Transitions a ticket to a new state, validating the transition against the
+    defined workflow rules. Optionally adds a comment explaining the transition.
+
+    Semantic State Matching:
+        - Accepts natural language: "working on it" → IN_PROGRESS
+        - Handles typos: "reviw" → READY
+        - Provides suggestions for ambiguous inputs
+        - Confidence-based handling (high/medium/low)
+
+    Workflow State Machine:
+        OPEN → IN_PROGRESS, WAITING, BLOCKED, CLOSED
+        IN_PROGRESS → READY, WAITING, BLOCKED, OPEN
+        READY → TESTED, IN_PROGRESS, BLOCKED
+        TESTED → DONE, IN_PROGRESS
+        DONE → CLOSED
+        WAITING → OPEN, IN_PROGRESS, CLOSED
+        BLOCKED → OPEN, IN_PROGRESS, CLOSED
+        CLOSED → (no transitions)
 
     Args:
-        ticket_id: See glossary
-        to_state: Target state (supports natural language and exact values)
-            Examples: "working on it", "needs review", "finished"
-        comment: Optional comment explaining the transition
+        ticket_id: Unique identifier of the ticket to transition
+        to_state: Target state (supports natural language!)
+            Examples: "working on it", "needs review", "finished", "review"
+        comment: Optional comment explaining the transition reason
         auto_confirm: Auto-apply high confidence matches (default: True)
 
-    Returns: TransitionResponse with state changes, confidence, suggestions (if ambiguous)
+    Returns:
+        Dictionary containing:
+        - status: "completed", "needs_confirmation", or "error"
+        - ticket: Updated ticket object with new state (if completed)
+        - previous_state: State before transition
+        - new_state: State after transition
+        - matched_state: Matched state from input (if semantic match used)
+        - confidence: Confidence score (0.0-1.0) for semantic matches
+        - original_input: Original user input
+        - suggestions: Alternative matches (for ambiguous inputs)
+        - comment_added: Whether a comment was added (if applicable)
+        - error: Error details (if failed)
 
-    Example: `ticket_transition("TICKET-123", "working on it")` → {"status": "completed", "new_state": "in_progress", "confidence": 0.95}
+    Example:
+        Natural language: `ticket_transition("TICKET-123", "working on it")` → {"status": "completed", "new_state": "in_progress", "confidence": 0.95}
+        Ambiguous input: `ticket_transition("TICKET-123", "rev")` → {"status": "needs_confirmation", "suggestions": [...]}
 
-    Confidence Levels:
-        - High (≥0.90): Auto-applied
-        - Medium (0.70-0.89): Needs confirmation (if auto_confirm=False)
-        - Low (<0.70): Returns suggestions
+    Error Conditions:
+        - Ticket not found: Returns error with ticket ID
+        - Invalid transition: Returns error with valid options
+        - Invalid state name: Returns error with valid states
+        - Adapter update failure: Returns error with details
 
-    See: docs/mcp-api-reference.md#workflow-state-machine for valid transitions
+    Usage Notes:
+        - Use get_available_transitions() first to see valid options
+        - Comments are adapter-dependent (some may not support them)
+        - Validation prevents workflow violations
+        - Terminal state (CLOSED) has no valid transitions
+        - High confidence (≥0.90): Auto-applied
+        - Medium confidence (0.70-0.89): Needs confirmation (if auto_confirm=False)
+        - Low confidence (<0.70): Returns suggestions
 
     """
     try:
@@ -447,6 +526,7 @@ async def ticket_transition(
             "status": "error",
             "error": f"Failed to transition ticket: {str(e)}",
         }
+
 
 def _get_state_description(state: TicketState) -> str:
     """Get human-readable description of a state.

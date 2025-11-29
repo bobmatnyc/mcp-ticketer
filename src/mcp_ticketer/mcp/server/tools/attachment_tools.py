@@ -12,6 +12,7 @@ from typing import Any
 from ....core.models import Comment, TicketType
 from ..server_sdk import get_adapter, mcp
 
+
 @mcp.tool()
 async def ticket_attach(
     ticket_id: str,
@@ -24,7 +25,7 @@ async def ticket_attach(
     functionality may not be available in all adapters.
 
     Args:
-        ticket_id: See glossary
+        ticket_id: Unique identifier of the ticket
         file_path: Path to the file to attach
         description: Optional description of the attachment
 
@@ -143,6 +144,7 @@ async def ticket_attach(
             "ticket_id": ticket_id,
         }
 
+
 @mcp.tool()
 async def ticket_attachments(
     ticket_id: str,
@@ -153,7 +155,7 @@ async def ticket_attachments(
     This functionality may not be available in all adapters.
 
     Args:
-        ticket_id: See glossary
+        ticket_id: Unique identifier of the ticket
 
     Returns:
         List of attachments with metadata, or error information

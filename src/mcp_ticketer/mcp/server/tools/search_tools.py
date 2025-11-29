@@ -10,6 +10,7 @@ from typing import Any
 from ....core.models import Priority, SearchQuery, TicketState
 from ..server_sdk import get_adapter, mcp
 
+
 @mcp.tool()
 async def ticket_search(
     query: str | None = None,
@@ -26,11 +27,11 @@ async def ticket_search(
 
     Args:
         query: Text search query to match against title and description
-        state: Workflow state (see glossary), waiting, blocked
-        priority: Priority level (see glossary for semantic matching)
+        state: Filter by state - must be one of: open, in_progress, ready, tested, done, closed, waiting, blocked
+        priority: Filter by priority - must be one of: low, medium, high, critical
         tags: Filter by tags - tickets must have all specified tags
         assignee: Filter by assigned user ID or email
-        limit: Maximum results (see glossary)
+        limit: Maximum number of results to return (default: 10, max: 100)
 
     Returns:
         List of tickets matching search criteria, or error information
@@ -98,6 +99,7 @@ async def ticket_search(
             "status": "error",
             "error": f"Failed to search tickets: {str(e)}",
         }
+
 
 @mcp.tool()
 async def ticket_search_hierarchy(

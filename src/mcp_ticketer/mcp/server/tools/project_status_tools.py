@@ -16,6 +16,7 @@ from ..server_sdk import get_adapter, mcp
 
 logger = logging.getLogger(__name__)
 
+
 @mcp.tool()
 async def project_status(project_id: str | None = None) -> dict[str, Any]:
     """Analyze project/epic status and generate work plan with recommendations.
