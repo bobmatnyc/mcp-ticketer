@@ -38,7 +38,7 @@ MCP Ticketer is optimized for AI agent usage with built-in token management:
 - **Compact Mode**: Minimal responses (15 tokens vs 185 per ticket)
 - **Progressive Disclosure**: Summary first, details on demand
 
-See [Token Pagination Guide](docs/TOKEN_PAGINATION.md) for detailed usage patterns and best practices.
+See [📄 Token Pagination](#-token-pagination-v131) section below for quick start, or [docs/TOKEN_PAGINATION.md](docs/TOKEN_PAGINATION.md) for detailed technical guide.
 
 ## 📦 Installation
 
@@ -330,6 +330,200 @@ mcp-ticketer project-update get "update-uuid-here"
 - **Cross-Platform**: Linear (native), GitHub V2, Asana, Jira (workaround)
 
 For complete documentation, see [Linear Setup Guide](docs/integrations/setup/LINEAR_SETUP.md#project-status-updates).
+
+## 📄 Token Pagination (v1.3.1)
+
+### Overview
+
+mcp-ticketer implements intelligent token pagination to prevent context overflow when working with large datasets. The MCP server automatically paginates responses that exceed 20,000 tokens, ensuring Claude conversations remain responsive and efficient.
+
+### Why Pagination Matters
+
+Working with large ticket systems can quickly consume your AI context window:
+
+- **Context Protection**: Large ticket lists can consume 50k+ tokens, leaving little room for conversation
+- **Performance**: Prevents timeout errors when fetching 100+ tickets
+- **Reliability**: Guarantees predictable response sizes regardless of dataset size
+- **Efficiency**: Enables working with projects containing 500+ tickets without context overflow
+
+### Quick Start
+
+Pagination is **automatic** - you don't need to configure anything. Tools intelligently paginate when responses approach 20k tokens:
+
+```python
+# Compact mode (default) - Minimal token usage
+tickets = await ticket_list(limit=20, compact=True)  # ~300 tokens
+
+# Full mode - When you need all details
+tickets = await ticket_list(limit=20, compact=False)  # ~3,700 tokens
+
+# Large datasets - Automatic pagination kicks in
+labels = await label_list(limit=100)  # ~1,500 tokens (safe)
+```
+
+### Paginated MCP Tools
+
+The following tools support automatic token pagination with intelligent limits:
+
+| Tool | Description | Default Limit | Max Safe Limit | Token Estimate |
+|------|-------------|---------------|----------------|----------------|
+| `ticket_list` | List tickets with filters | 20 tickets | 100 (compact) | 15-185 tokens/ticket |
+| `ticket_search` | Search tickets by query | 10 tickets | 50 | 200-500 tokens/result |
+| `label_list` | List all labels | 100 labels | 500 | 10-15 tokens/label |
+| `ticket_find_similar` | Find duplicate tickets | 10 results | 50 results | 200-500 tokens/result |
+| `ticket_cleanup_report` | Generate cleanup report | Summary mode | Full report | 1k-8k tokens |
+
+**Note**: All tools stay under the 20,000 token limit per response.
+
+### Usage Examples
+
+#### Example 1: Basic Ticket Listing (Optimal)
+
+```python
+# Default settings optimized for AI agents
+result = await ticket_list()  # Uses limit=20, compact=True
+# Returns ~300 tokens - perfect for conversations
+
+# Response includes:
+{
+    "items": [...],              # Tickets with id, title, state, priority, assignee
+    "count": 20,                 # Items in this response
+    "total": 150,                # Total tickets available
+    "has_more": True,            # More pages exist
+    "estimated_tokens": 300      # Approximate token usage
+}
+```
+
+#### Example 2: Fetching More Data (Continuation)
+
+```python
+# Get first page
+page1 = await ticket_list(limit=50, offset=0, compact=True)
+print(f"Showing {page1['count']} of {page1['total']} tickets")
+# ~750 tokens (safe)
+
+# Check if more pages exist
+if page1['has_more']:
+    # Get next page
+    page2 = await ticket_list(limit=50, offset=50, compact=True)
+    # Continue paginating as needed...
+```
+
+#### Example 3: Handling Large Projects (500+ Tickets)
+
+```python
+# Progressive disclosure pattern for large projects
+# 1. Start with summary (minimal tokens)
+summary = await ticket_cleanup_report(summary_only=True)  # ~1k tokens
+print(f"Project has {summary['total_issues']} potential issues")
+
+# 2. Get compact list to filter
+tickets = await ticket_list(
+    state="in_progress",
+    priority="high",
+    limit=20,
+    compact=True  # Only 300 tokens
+)
+
+# 3. Fetch full details only for selected tickets
+for ticket_summary in tickets['items'][:5]:  # Top 5 only
+    full_ticket = await ticket_read(ticket_summary['id'])  # ~200 tokens each
+    # Process full ticket details...
+```
+
+#### Example 4: Search with Pagination
+
+```python
+# Search returns paginated results automatically
+results = await ticket_search(
+    query="authentication bug",
+    state="open",
+    limit=10  # Safe limit for search results
+)
+# ~3k-5k tokens (includes relevance scoring)
+
+# Access results
+for ticket in results['items']:
+    print(f"{ticket['id']}: {ticket['title']} (score: {ticket['relevance_score']})")
+```
+
+### Token Optimization Tips
+
+**Use compact mode by default** (70% token reduction):
+```python
+# ✅ Good: Compact mode for browsing
+tickets = await ticket_list(limit=50, compact=True)  # ~750 tokens
+
+# ❌ Avoid: Full mode with large limits
+tickets = await ticket_list(limit=100, compact=False)  # ~18,500 tokens (too close to limit!)
+```
+
+**Progressive disclosure** (fetch details on demand):
+```python
+# ✅ Good: Summary first, details on demand
+summary = await ticket_list(limit=50, compact=True)
+# Then fetch full details only for tickets you need
+for ticket in important_tickets:
+    details = await ticket_read(ticket['id'])
+```
+
+**Paginate large datasets**:
+```python
+# ✅ Good: Process in batches
+all_labels = []
+offset = 0
+while True:
+    batch = await label_list(limit=100, offset=offset)
+    all_labels.extend(batch['labels'])
+    if not batch['has_more']:
+        break
+    offset += 100
+```
+
+### Configuration
+
+Pagination is automatic and requires no configuration. However, you can control response size through parameters:
+
+```python
+# Adjust limit per tool (within safe maximums)
+tickets = await ticket_list(limit=50)  # Increase from default 20
+
+# Use compact mode to maximize items per response
+tickets = await ticket_list(limit=100, compact=True)  # Safe with compact mode
+
+# Use summary_only for analysis tools
+report = await ticket_cleanup_report(summary_only=True)  # Minimal tokens
+```
+
+### Response Fields
+
+All paginated tools return these metadata fields:
+
+```python
+{
+    "status": "completed",
+    "items": [...],                    # Results (tickets, labels, etc.)
+    "count": 20,                       # Items in this response
+    "total": 150,                      # Total items available (if known)
+    "offset": 0,                       # Offset used for this page
+    "limit": 20,                       # Limit used for this page
+    "has_more": true,                  # Whether more pages exist
+    "truncated_by_tokens": false,      # Whether token limit was hit before item limit
+    "estimated_tokens": 2500           # Approximate tokens in response
+}
+```
+
+### Learn More
+
+- **Comprehensive Guide**: [docs/TOKEN_PAGINATION.md](docs/TOKEN_PAGINATION.md) - Detailed technical documentation
+  - Token estimation algorithms
+  - Per-tool optimization strategies
+  - Advanced pagination patterns
+  - Troubleshooting guide
+- **Code Examples**: [examples/token_pagination_examples.py](examples/token_pagination_examples.py) - Runnable examples
+- **Migration from v1.2.x**: No breaking changes - existing code works with automatic pagination
+
+---
 
 ## 🎯 Project Status Analysis (NEW in v1.3.0)
 
@@ -688,9 +882,9 @@ Claude Code supports two configuration file locations with automatic detection:
 
 ## 💾 Compact Mode for AI Agents (v0.15.0+)
 
-The `ticket_list` MCP tool now supports compact mode, reducing token usage by **70%** when listing tickets - perfect for AI agents working with large ticket sets.
+The `ticket_list` MCP tool supports compact mode, reducing token usage by **70%** when listing tickets - perfect for AI agents working with large ticket sets. Compact mode is part of the broader [Token Pagination](#-token-pagination-v131) system introduced in v1.3.1.
 
-### Token Usage Comparison
+### Quick Reference
 
 | Mode | Tokens (100 tickets) | Use Case |
 |------|---------------------|----------|
@@ -698,42 +892,15 @@ The `ticket_list` MCP tool now supports compact mode, reducing token usage by **
 | **Compact** | ~5,500 tokens | Dashboards, bulk operations, filtering |
 | **Savings** | **70% reduction** | Query 3x more tickets in same context window |
 
-### Usage in AI Clients
-
-When using MCP tools through Claude Code, Claude Desktop, or other AI clients:
+### Basic Usage
 
 ```python
-# Standard mode (default) - Full ticket details
-result = await ticket_list(limit=100)
-# Returns: ~18,500 tokens
+# Compact mode (recommended default)
+result = await ticket_list(limit=100, compact=True)  # ~5,500 tokens
 
-# Compact mode - Essential fields only
-result = await ticket_list(limit=100, compact=True)
-# Returns: ~5,500 tokens (70% reduction)
-
-# With filters + compact mode
-result = await ticket_list(
-    state="in_progress",
-    priority="high",
-    limit=50,
-    compact=True  # Saves ~7,500 tokens
-)
+# Full mode (when you need all details)
+result = await ticket_list(limit=20, compact=False)  # ~3,700 tokens
 ```
-
-### When to Use Compact Mode
-
-**Use `compact=True` when:**
-- ✅ Listing many tickets (>10)
-- ✅ Building ticket dashboards/overviews
-- ✅ Filtering/searching across large ticket sets
-- ✅ Optimizing token usage in AI workflows
-- ✅ Working within token-limited contexts
-
-**Use `compact=False` (default) when:**
-- ✅ Need full ticket details (descriptions, metadata, timestamps)
-- ✅ Processing individual tickets
-- ✅ Displaying ticket content to users
-- ✅ Listing < 10 tickets
 
 ### Fields Returned
 
@@ -743,7 +910,11 @@ result = await ticket_list(
 **Standard Mode (16 fields):**
 - All compact fields plus: `description`, `created_at`, `updated_at`, `metadata`, `ticket_type`, `estimated_hours`, `actual_hours`, `children`, `parent_issue`
 
-For complete details, see [Compact Mode Summary](COMPACT_MODE_SUMMARY.md).
+### Learn More
+
+- **Token Pagination**: See [📄 Token Pagination](#-token-pagination-v131) section for comprehensive guide on pagination, token optimization, and best practices
+- **Technical Details**: [docs/TOKEN_PAGINATION.md](docs/TOKEN_PAGINATION.md) - Per-tool token estimates and optimization strategies
+- **Quick Summary**: [COMPACT_MODE_SUMMARY.md](COMPACT_MODE_SUMMARY.md) - Compact mode reference
 
 ## ⚙️ Configuration
 
