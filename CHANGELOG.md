@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.3.1] - 2025-11-28
+
 ### Added
 - **20k Token Pagination** (1M-363): Automatic pagination for all MCP tools to prevent context overflow
   - Implemented token estimation and pagination utilities (`src/mcp_ticketer/utils/token_utils.py`)
@@ -18,6 +20,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Comprehensive test suite with 29 unit tests covering edge cases and pagination behavior
   - Progressive disclosure pattern: summary → details → deep dive
   - See [Token Pagination Guide](docs/TOKEN_PAGINATION.md) for usage patterns and best practices
+
+### Fixed
+- Removed unused imports causing linting failures
+- Updated import statements to use `collections.abc.Callable` instead of `typing.Callable`
 
 ## [1.2.15] - 2025-11-28
 
