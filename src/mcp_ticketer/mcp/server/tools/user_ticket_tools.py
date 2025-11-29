@@ -83,19 +83,7 @@ async def get_my_tickets(
         - state_filter: State filter applied (if any)
         - error: Error details (if failed)
 
-    Example:
-        >>> result = await get_my_tickets(state="in_progress", limit=5)
-        >>> print(result)
-        {
-            "status": "completed",
-            "tickets": [
-                {"id": "TICKET-1", "title": "Fix bug", "state": "in_progress"},
-                {"id": "TICKET-2", "title": "Add feature", "state": "in_progress"}
-            ],
-            "count": 2,
-            "user": "user@example.com",
-            "state_filter": "in_progress"
-        }
+    Example: `get_my_tickets(state="in_progress", limit=5)` → {"status": "completed", "tickets": [...], "count": 2}
 
     Error Conditions:
         - No default user configured: Returns error with setup instructions
@@ -182,21 +170,7 @@ async def get_available_transitions(ticket_id: str) -> dict[str, Any]:
         - transition_descriptions: Human-readable descriptions of each transition
         - error: Error details (if failed)
 
-    Example:
-        >>> result = await get_available_transitions("TICKET-123")
-        >>> print(result)
-        {
-            "status": "completed",
-            "ticket_id": "TICKET-123",
-            "current_state": "in_progress",
-            "available_transitions": ["ready", "waiting", "blocked", "open"],
-            "transition_descriptions": {
-                "ready": "Mark work as complete and ready for review",
-                "waiting": "Pause work while waiting for external dependency",
-                "blocked": "Work is blocked by an impediment",
-                "open": "Move back to backlog"
-            }
-        }
+    Example: `get_available_transitions("TICKET-123")` → {"status": "completed", "current_state": "in_progress", "available_transitions": [...]}
 
     Error Conditions:
         - Ticket not found: Returns error with ticket ID
@@ -311,36 +285,8 @@ async def ticket_transition(
         - error: Error details (if failed)
 
     Example:
-        >>> # Natural language input
-        >>> result = await ticket_transition(
-        ...     "TICKET-123",
-        ...     "working on it",
-        ...     "Started implementation"
-        ... )
-        >>> print(result)
-        {
-            "status": "completed",
-            "ticket": {"id": "TICKET-123", "state": "in_progress", ...},
-            "previous_state": "open",
-            "new_state": "in_progress",
-            "matched_state": "in_progress",
-            "confidence": 0.95,
-            "original_input": "working on it",
-            "comment_added": True
-        }
-
-        >>> # Ambiguous input returns suggestions
-        >>> result = await ticket_transition("TICKET-123", "rev")
-        >>> print(result)
-        {
-            "status": "needs_confirmation",
-            "matched_state": "ready",
-            "confidence": 0.75,
-            "suggestions": [
-                {"state": "ready", "confidence": 0.75},
-                {"state": "reviewed", "confidence": 0.60}
-            ]
-        }
+        Natural language: `ticket_transition("TICKET-123", "working on it")` → {"status": "completed", "new_state": "in_progress", "confidence": 0.95}
+        Ambiguous input: `ticket_transition("TICKET-123", "rev")` → {"status": "needs_confirmation", "suggestions": [...]}
 
     Error Conditions:
         - Ticket not found: Returns error with ticket ID

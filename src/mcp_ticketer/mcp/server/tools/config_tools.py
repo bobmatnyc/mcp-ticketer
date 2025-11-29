@@ -78,15 +78,7 @@ async def config_set_primary_adapter(adapter: str) -> dict[str, Any]:
         - new_adapter: New default adapter (if successful)
         - error: Error details (if failed)
 
-    Example:
-        >>> result = await config_set_primary_adapter("linear")
-        >>> print(result)
-        {
-            "status": "completed",
-            "message": "Default adapter set to 'linear'",
-            "previous_adapter": "aitrackdown",
-            "new_adapter": "linear"
-        }
+    Example: `config_set_primary_adapter("linear")` → {"status": "completed", "message": "Default adapter set to 'linear'"}
 
     Error Conditions:
         - Invalid adapter name: Returns error with valid options
@@ -154,14 +146,7 @@ async def config_set_default_project(
         - error: Error details (if failed)
 
     Example:
-        >>> result = await config_set_default_project("PROJ-123")
-        >>> print(result)
-        {
-            "status": "completed",
-            "message": "Default project set to 'PROJ-123'",
-            "previous_project": None,
-            "new_project": "PROJ-123"
-        }
+    Example: `config_set_default_project("PROJ-123")` → {"status": "completed", ...}
 
     Usage Notes:
         - This sets both default_project and default_epic (for backward compatibility)
@@ -226,24 +211,10 @@ async def config_set_default_user(
         - error: Error details (if failed)
 
     Example:
-        >>> result = await config_set_default_user("user123")
-        >>> print(result)
-        {
-            "status": "completed",
-            "message": "Default user set to 'user123'",
-            "previous_user": None,
-            "new_user": "user123"
-        }
+    Example: `config_set_default_user("user123")` → {"status": "completed", ...}
 
     Example with email:
-        >>> result = await config_set_default_user("user@example.com")
-        >>> print(result)
-        {
-            "status": "completed",
-            "message": "Default user set to 'user@example.com'",
-            "previous_user": "old_user@example.com",
-            "new_user": "user@example.com"
-        }
+    Example: `config_set_default_user("user123")` → {"status": "completed", ...}
 
     Usage Notes:
         - User ID/email is not validated (allows flexibility across adapters)
@@ -303,21 +274,7 @@ async def config_get() -> dict[str, Any]:
         - error: Error details (if failed)
 
     Example:
-        >>> result = await config_get()
-        >>> print(result)
-        {
-            "status": "completed",
-            "config": {
-                "default_adapter": "linear",
-                "default_project": "PROJ-123",
-                "default_user": "user@example.com",
-                "default_tags": ["backend", "api"],
-                "adapters": {
-                    "linear": {"api_key": "***", "team_id": "..."}
-                }
-            },
-            "config_path": "/project/.mcp-ticketer/config.json"
-        }
+    Example: `config_get()` → {"status": "completed", ...}
 
     Usage Notes:
         - Sensitive values (API keys) are masked in the response
@@ -379,13 +336,7 @@ async def config_set_default_tags(
         - error: Error details (if failed)
 
     Example:
-        >>> result = await config_set_default_tags(["bug", "urgent"])
-        >>> print(result)
-        {
-            "status": "completed",
-            "message": "Default tags set to: bug, urgent",
-            "default_tags": ["bug", "urgent"]
-        }
+    Example: `config_set_default_tags(["bug", "urgent"])` → {"status": "completed", ...}
 
     Usage Notes:
         - Empty list clears the default tags
@@ -456,14 +407,7 @@ async def config_set_default_team(
         - error: Error details (if failed)
 
     Example:
-        >>> result = await config_set_default_team("ENG")
-        >>> print(result)
-        {
-            "status": "completed",
-            "message": "Default team set to 'ENG'",
-            "previous_team": None,
-            "new_team": "ENG"
-        }
+    Example: `config_set_default_team("ENG")` → {"status": "completed", ...}
 
     Usage Notes:
         - Team ID is not validated (allows flexibility across adapters)
@@ -526,14 +470,7 @@ async def config_set_default_cycle(
         - error: Error details (if failed)
 
     Example:
-        >>> result = await config_set_default_cycle("Sprint 23")
-        >>> print(result)
-        {
-            "status": "completed",
-            "message": "Default cycle set to 'Sprint 23'",
-            "previous_cycle": None,
-            "new_cycle": "Sprint 23"
-        }
+    Example: `config_set_default_cycle("Sprint 23")` → {"status": "completed", ...}
 
     Usage Notes:
         - Cycle ID is not validated (allows flexibility across adapters)
@@ -596,14 +533,7 @@ async def config_set_default_epic(
         - error: Error details (if failed)
 
     Example:
-        >>> result = await config_set_default_epic("PROJ-123")
-        >>> print(result)
-        {
-            "status": "completed",
-            "message": "Default epic/project set to: PROJ-123",
-            "default_epic": "PROJ-123",
-            "default_project": "PROJ-123"
-        }
+    Example: `config_set_default_epic("PROJ-123")` → {"status": "completed", ...}
 
     Usage Notes:
         - Epic ID is not validated (allows flexibility across adapters)
@@ -667,14 +597,7 @@ async def config_set_assignment_labels(labels: list[str]) -> dict[str, Any]:
         - error: Error details (if failed)
 
     Example:
-        >>> result = await config_set_assignment_labels(["my-work", "in-progress"])
-        >>> print(result)
-        {
-            "status": "completed",
-            "message": "Assignment labels set to: my-work, in-progress",
-            "assignment_labels": ["my-work", "in-progress"],
-            "config_path": "/path/to/.mcp-ticketer/config.json"
-        }
+    Example: `config_set_assignment_labels(["my-work", "in-progress"])` → {"status": "completed", ...}
 
     Usage Notes:
         - Labels are platform-specific (Linear uses different names than GitHub)
@@ -738,17 +661,7 @@ async def config_validate() -> dict[str, Any]:
         - message: Summary message
 
     Example:
-        >>> result = await config_validate()
-        >>> print(result)
-        {
-            "status": "completed",
-            "validation_results": {
-                "linear": {"valid": True, "error": None},
-                "github": {"valid": False, "error": "GitHub token is missing"}
-            },
-            "all_valid": False,
-            "issues": ["github: GitHub token is missing"]
-        }
+    Example: `config_validate()` → {"status": "completed", ...}
 
     """
     try:
@@ -820,14 +733,7 @@ async def config_test_adapter(adapter_name: str) -> dict[str, Any]:
         - error_type: Type of error (if failed)
 
     Example:
-        >>> result = await config_test_adapter("linear")
-        >>> print(result)
-        {
-            "status": "completed",
-            "adapter": "linear",
-            "healthy": True,
-            "message": "Adapter initialized and API call successful"
-        }
+    Example: `config_test_adapter("linear")` → {"status": "completed", ...}
 
     Error Conditions:
         - Adapter not configured: Returns error with available adapters
@@ -890,29 +796,7 @@ async def config_list_adapters() -> dict[str, Any]:
         - error: Error details (if failed)
 
     Example:
-        >>> result = await config_list_adapters()
-        >>> print(result)
-        {
-            "status": "completed",
-            "adapters": [
-                {
-                    "type": "linear",
-                    "name": "Linear",
-                    "configured": True,
-                    "is_default": True,
-                    "description": "Linear issue tracking"
-                },
-                {
-                    "type": "github",
-                    "name": "Github",
-                    "configured": False,
-                    "is_default": False,
-                    "description": "GitHub Issues"
-                }
-            ],
-            "default_adapter": "linear",
-            "total_configured": 1
-        }
+    Example: `config_list_adapters()` → {"status": "completed", ...}
 
     Usage Notes:
         - Adapters are considered configured if they exist in config.adapters
@@ -1006,27 +890,7 @@ async def config_get_adapter_requirements(adapter: str) -> dict[str, Any]:
         - error: Error details (if failed)
 
     Example:
-        >>> result = await config_get_adapter_requirements("linear")
-        >>> print(result)
-        {
-            "status": "completed",
-            "adapter": "linear",
-            "requirements": {
-                "api_key": {
-                    "type": "string",
-                    "required": True,
-                    "description": "Linear API key",
-                    "env_var": "LINEAR_API_KEY",
-                    "validation": "^lin_api_[a-zA-Z0-9]{40}$"
-                },
-                "team_key": {
-                    "type": "string",
-                    "required": True,
-                    "description": "Team key (e.g., 'ENG') or team_id (UUID)",
-                    "env_var": "LINEAR_TEAM_KEY"
-                }
-            }
-        }
+    Example: `config_get_adapter_requirements("linear")` → {"status": "completed", ...}
 
     Usage Notes:
         - Requirements are based on ConfigValidator validation logic
@@ -1200,24 +1064,7 @@ async def config_setup_wizard(
         - config_path: Path to configuration file (if successful)
         - error: Error details (if failed)
 
-    Example:
-        >>> result = await config_setup_wizard(
-        ...     adapter_type="linear",
-        ...     credentials={
-        ...         "api_key": "lin_api_...",
-        ...         "team_key": "ENG"
-        ...     }
-        ... )
-        >>> print(result)
-        {
-            "status": "completed",
-            "adapter": "linear",
-            "message": "Linear adapter configured successfully",
-            "tested": True,
-            "connection_healthy": True,
-            "set_as_default": True,
-            "config_path": "/path/to/.mcp-ticketer/config.json"
-        }
+    Example: `config_setup_wizard(adapter_type="linear", credentials={...})` → {"status": "completed", ...}
 
     Error Conditions:
         - Invalid adapter_type: Returns error with valid adapters list

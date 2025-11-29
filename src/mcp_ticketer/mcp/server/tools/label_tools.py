@@ -96,20 +96,7 @@ async def label_list(
 
     Example:
     -------
-        >>> result = await label_list()
-        >>> print(result)
-        {
-            "status": "completed",
-            "adapter": "linear",
-            "adapter_name": "Linear",
-            "labels": [
-                {"id": "...", "name": "bug", "color": "#ff0000"},
-                {"id": "...", "name": "feature", "color": "#00ff00"}
-            ],
-            "total_labels": 150,
-            "count": 100,
-            "has_more": true
-        }
+    Example: `label_list()` → {"status": "completed", ...}
 
         >>> # Get next page
         >>> result = await label_list(limit=100, offset=100)
@@ -263,15 +250,7 @@ async def label_normalize(
 
     Example:
     -------
-        >>> result = await label_normalize("Bug Report", casing="kebab-case")
-        >>> print(result)
-        {
-            "status": "completed",
-            "original": "Bug Report",
-            "normalized": "bug-report",
-            "casing": "kebab-case",
-            "changed": True
-        }
+    Example: `label_normalize("Bug Report", casing="kebab-case")` → {"status": "completed", ...}
 
     """
     try:
@@ -339,28 +318,7 @@ async def label_find_duplicates(
 
     Example:
     -------
-        >>> result = await label_find_duplicates(threshold=0.80)
-        >>> print(result)
-        {
-            "status": "completed",
-            "adapter": "linear",
-            "adapter_name": "Linear",
-            "duplicates": [
-                {
-                    "label1": "bug",
-                    "label2": "Bug",
-                    "similarity": 1.0,
-                    "recommendation": "Merge 'Bug' into 'bug'"
-                },
-                {
-                    "label1": "feature",
-                    "label2": "feture",
-                    "similarity": 0.92,
-                    "recommendation": "Merge 'feture' into 'feature' (likely typo)"
-                }
-            ],
-            "total_duplicates": 2
-        }
+    Example: `label_find_duplicates(threshold=0.80)` → {"status": "completed", ...}
 
     """
     try:
@@ -467,18 +425,7 @@ async def label_suggest_merge(
 
     Example:
     -------
-        >>> result = await label_suggest_merge("Bug", "bug")
-        >>> print(result)
-        {
-            "status": "completed",
-            "adapter": "linear",
-            "adapter_name": "Linear",
-            "source_label": "Bug",
-            "target_label": "bug",
-            "affected_tickets": 15,
-            "preview": ["PROJ-123", "PROJ-456", "PROJ-789"],
-            "warning": null
-        }
+    Example: `label_suggest_merge("Bug", "bug")` → {"status": "completed", ...}
 
     """
     try:
@@ -580,27 +527,10 @@ async def label_merge(
     Example:
     -------
         >>> # Dry run first
-        >>> result = await label_merge("Bug", "bug", dry_run=True)
-        >>> print(result)
-        {
-            "status": "completed",
-            "dry_run": True,
-            "tickets_updated": 0,
-            "tickets_would_update": 15,
-            "changes": [
-                {"ticket_id": "PROJ-123", "action": "Replace 'Bug' with 'bug'"}
-            ]
-        }
+    Example: `label_merge("Bug", "bug", dry_run=True)` → {"status": "completed", ...}
 
         >>> # Execute merge
-        >>> result = await label_merge("Bug", "bug", update_tickets=True)
-        >>> print(result)
-        {
-            "status": "completed",
-            "tickets_updated": 15,
-            "tickets_skipped": 3,
-            "changes": [...]
-        }
+    Example: `label_merge("Bug", "bug", dry_run=True)` → {"status": "completed", ...}
 
     """
     try:
@@ -753,16 +683,7 @@ async def label_rename(
 
     Example:
     -------
-        >>> result = await label_rename("feture", "feature", update_tickets=True)
-        >>> print(result)
-        {
-            "status": "completed",
-            "adapter": "linear",
-            "adapter_name": "Linear",
-            "old_name": "feture",
-            "new_name": "feature",
-            "tickets_updated": 8
-        }
+    Example: `label_rename("feture", "feature", update_tickets=True)` → {"status": "completed", ...}
 
     """
     # Delegate to label_merge (rename is just a semantic alias)

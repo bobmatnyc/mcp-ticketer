@@ -79,21 +79,7 @@ async def project_update_create(
         ...     body="Sprint completed with 15/20 stories done",
         ...     health="at_risk"
         ... )
-        >>> print(result)
-        {
-            "status": "completed",
-            "adapter": "linear",
-            "adapter_name": "Linear",
-            "project_id": "PROJ-123",
-            "update": {
-                "id": "update-456",
-                "project_id": "PROJ-123",
-                "body": "Sprint completed with 15/20 stories done",
-                "health": "at_risk",
-                "created_at": "2025-11-26T10:00:00Z",
-                ...
-            }
-        }
+    Example: See Returns section
 
     Note:
         Related to ticket 1M-238: Add project updates support with flexible
@@ -185,25 +171,7 @@ async def project_update_list(
         ...     project_id="PROJ-123",
         ...     limit=5
         ... )
-        >>> print(result)
-        {
-            "status": "completed",
-            "adapter": "linear",
-            "adapter_name": "Linear",
-            "project_id": "PROJ-123",
-            "count": 5,
-            "updates": [
-                {
-                    "id": "update-456",
-                    "project_id": "PROJ-123",
-                    "body": "Sprint completed...",
-                    "health": "at_risk",
-                    "created_at": "2025-11-26T10:00:00Z",
-                    ...
-                },
-                ...
-            ]
-        }
+    Example: See Returns section
 
     Note:
         Related to ticket 1M-238: Add project updates support with flexible
@@ -279,21 +247,7 @@ async def project_update_get(
         >>> result = await project_update_get(
         ...     update_id="update-456"
         ... )
-        >>> print(result)
-        {
-            "status": "completed",
-            "adapter": "linear",
-            "adapter_name": "Linear",
-            "update": {
-                "id": "update-456",
-                "project_id": "PROJ-123",
-                "body": "Sprint completed with 15/20 stories done",
-                "health": "at_risk",
-                "created_at": "2025-11-26T10:00:00Z",
-                "diff_markdown": "### Changes since last update...",
-                ...
-            }
-        }
+    Example: See Returns section
 
     Note:
         Related to ticket 1M-238: Add project updates support with flexible
