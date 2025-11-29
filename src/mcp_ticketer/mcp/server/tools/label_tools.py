@@ -25,7 +25,7 @@ from typing import Any
 
 from ....core.label_manager import CasingStrategy, LabelDeduplicator, LabelNormalizer
 from ....core.models import SearchQuery
-from ....utils.token_utils import estimate_json_tokens, paginate_response
+from ....utils.token_utils import estimate_json_tokens
 from ..server_sdk import get_adapter, get_router, has_router, mcp
 
 logger = logging.getLogger(__name__)

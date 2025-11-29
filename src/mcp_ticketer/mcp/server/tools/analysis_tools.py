@@ -104,7 +104,9 @@ async def ticket_find_similar(
             limit = 50
 
         if internal_limit > 200:
-            logger.warning(f"Internal limit {internal_limit} exceeds maximum 200, using 200")
+            logger.warning(
+                f"Internal limit {internal_limit} exceeds maximum 200, using 200"
+            )
             internal_limit = 200
 
         # Warn about high token usage
@@ -490,9 +492,13 @@ async def ticket_cleanup_report(
                 report["analyses"]["orphaned_tickets"] = orphaned_result
 
             # Summary statistics
-            similar_count = report["analyses"].get("similar_tickets", {}).get("count", 0)
+            similar_count = (
+                report["analyses"].get("similar_tickets", {}).get("count", 0)
+            )
             stale_count = report["analyses"].get("stale_tickets", {}).get("count", 0)
-            orphaned_count = report["analyses"].get("orphaned_tickets", {}).get("count", 0)
+            orphaned_count = (
+                report["analyses"].get("orphaned_tickets", {}).get("count", 0)
+            )
 
             report["summary"] = {
                 "total_issues_found": similar_count + stale_count + orphaned_count,

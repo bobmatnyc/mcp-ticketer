@@ -16,7 +16,8 @@ Memory: O(1) auxiliary space (no allocations beyond JSON serialization)
 
 import json
 import logging
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 # Type variable for generic list items
 T = TypeVar("T")

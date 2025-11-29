@@ -11,8 +11,6 @@ Test Coverage:
 
 import json
 
-import pytest
-
 from mcp_ticketer.utils.token_utils import (
     CHARS_PER_TOKEN,
     estimate_json_tokens,
