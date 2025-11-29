@@ -29,6 +29,17 @@ Universal ticket management interface for AI agents with MCP (Model Context Prot
 - **🚀 Auto-Dependency Install**: Automatic adapter dependency detection and installation
 - **💾 Compact Mode**: 70% token reduction for AI agent ticket list queries (v0.15.0+)
 
+## ⚡ Token Efficiency
+
+MCP Ticketer is optimized for AI agent usage with built-in token management:
+
+- **20k Token Limit**: All tool responses stay under 20,000 tokens
+- **Automatic Pagination**: Tools that could exceed limits support pagination
+- **Compact Mode**: Minimal responses (15 tokens vs 185 per ticket)
+- **Progressive Disclosure**: Summary first, details on demand
+
+See [Token Pagination Guide](docs/TOKEN_PAGINATION.md) for detailed usage patterns and best practices.
+
 ## 📦 Installation
 
 ### From PyPI (Recommended)

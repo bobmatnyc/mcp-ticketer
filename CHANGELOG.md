@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+- **20k Token Pagination** (1M-363): Automatic pagination for all MCP tools to prevent context overflow
+  - Implemented token estimation and pagination utilities (`src/mcp_ticketer/utils/token_utils.py`)
+  - Fixed high-risk tools with token-aware pagination:
+    - `ticket_find_similar`: 95% token reduction (internal_limit parameter, default 100 vs. previous 500)
+    - `ticket_cleanup_report`: 97.5% token reduction (summary_only mode, paginated sections)
+    - `label_list`: 90% token reduction (limit/offset pagination, default 100 labels)
+  - All MCP tool responses now respect 20,000 token limit
+  - Conservative token estimation using 4-chars-per-token heuristic (±10% accuracy, zero dependencies)
+  - Comprehensive test suite with 29 unit tests covering edge cases and pagination behavior
+  - Progressive disclosure pattern: summary → details → deep dive
+  - See [Token Pagination Guide](docs/TOKEN_PAGINATION.md) for usage patterns and best practices
+
 ## [1.2.15] - 2025-11-28
 
 ### Added
