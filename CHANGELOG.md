@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.4.3] - 2025-11-30
+
+### Fixed
+
+**Critical Hotfix: Label Duplicate Error Prevention (1M-443)**
+- **Root Cause**: v1.4.2 fix had error handling flaw that swallowed network exceptions
+- The `_find_label_by_name()` method returned `None` on both "label not found" and "check failed" scenarios
+- Network failures were interpreted as "label doesn't exist", leading to duplicate creation attempts
+- **Solution**:
+  - Added retry logic with 3 attempts and exponential backoff (1s, 2s, 4s)
+  - Changed exception handling to propagate failures after retries exhausted
+  - Clear semantics: `None` = "label not found", `Exception` = "check failed"
+  - Updated `_ensure_labels_exist()` to prevent creation on server check failures
+- **Impact**:
+  - Transient network failures now retry and succeed (reliability improvement)
+  - Persistent failures raise clear exceptions instead of creating duplicates
+  - No silent failures - all errors are explicit and actionable
+- Added 3 new tests for retry scenarios
+- Fixed 4 existing tests to expect correct behavior
+- All 23 tests passing
+- **Commit**: b660fb6
+- **Related Issues**: 1M-443
+
 ## [1.4.2] - 2025-11-30
 
 ### Fixed
