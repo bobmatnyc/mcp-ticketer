@@ -118,6 +118,9 @@ class TestLabelCreation:
         adapter._labels_cache = []
         adapter._ensure_team_id = AsyncMock(return_value=team_id)
 
+        # Mock Tier 2: Server check returns None (labels don't exist)
+        adapter._find_label_by_name = AsyncMock(return_value=None)
+
         # Mock label creation
         created_ids = ["label-1", "label-2", "label-3"]
 
@@ -167,6 +170,9 @@ class TestLabelCreation:
             {"id": "existing-label-1", "name": "MCP Ticketer", "color": "#0366d6"},
         ]
         adapter._ensure_team_id = AsyncMock(return_value=team_id)
+
+        # Mock Tier 2: Server check returns None for new labels
+        adapter._find_label_by_name = AsyncMock(return_value=None)
 
         # Mock creating new labels
         new_ids = {"Bug": "new-label-1", "Enhancement": "new-label-2"}
@@ -218,6 +224,9 @@ class TestLabelCreation:
         adapter._labels_cache = []
         adapter._ensure_team_id = AsyncMock(return_value=team_id)
 
+        # Mock Tier 2: Server check returns None (labels don't exist)
+        adapter._find_label_by_name = AsyncMock(return_value=None)
+
         # Mock creation where middle label fails
         async def mock_create_label(name, tid, color="#0366d6"):
             if name == "Failure Label":
@@ -253,6 +262,8 @@ class TestLabelCreation:
         adapter._load_team_labels = AsyncMock(
             side_effect=lambda tid: setattr(adapter, "_labels_cache", [])
         )
+        # Mock Tier 2: Server check returns None (label doesn't exist)
+        adapter._find_label_by_name = AsyncMock(return_value=None)
         adapter._create_label = AsyncMock(return_value="new-label-id")
 
         # Execute
@@ -357,7 +368,7 @@ class TestLabelCreation:
 
     @pytest.mark.asyncio
     async def test_find_label_by_name_api_failure(self, adapter):
-        """Test graceful handling of API failure during label search (1M-443)."""
+        """Test that API failures propagate after retries (1M-443 hotfix)."""
         team_id = "test-team-id"
         label_name = "Test Label"
 
@@ -366,11 +377,91 @@ class TestLabelCreation:
             side_effect=Exception("API connection error")
         )
 
-        # Execute - should return None gracefully
+        # Execute - should raise after 3 retries
+        with pytest.raises(Exception, match="API connection error"):
+            await adapter._find_label_by_name(label_name, team_id)
+
+    @pytest.mark.asyncio
+    async def test_find_label_by_name_retry_success(self, adapter):
+        """Test retry logic succeeds on second attempt (1M-443 hotfix)."""
+        team_id = "test-team-id"
+        label_name = "Test Label"
+        expected_label = {
+            "id": "label-id-123",
+            "name": "Test Label",
+            "color": "#0366d6",
+            "description": "Found on retry",
+        }
+
+        # Mock: Fail once, then succeed
+        call_count = 0
+
+        async def mock_query(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise Exception("Transient network error")
+            return {"team": {"labels": {"nodes": [expected_label]}}}
+
+        adapter.client.execute_query = AsyncMock(side_effect=mock_query)
+
+        # Execute - should succeed on retry
         result = await adapter._find_label_by_name(label_name, team_id)
 
-        # Verify - returns None to allow creation attempt
-        assert result is None
+        # Verify
+        assert result == expected_label
+        assert adapter.client.execute_query.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_find_label_by_name_retry_exhaustion(self, adapter):
+        """Test retry exhaustion raises exception (1M-443 hotfix)."""
+        team_id = "test-team-id"
+        label_name = "Test Label"
+
+        # Mock: Always fail
+        adapter.client.execute_query = AsyncMock(
+            side_effect=Exception("Persistent network failure")
+        )
+
+        # Execute - should raise after 3 retries
+        with pytest.raises(Exception, match="Persistent network failure"):
+            await adapter._find_label_by_name(label_name, team_id)
+
+        # Verify retry count (3 attempts)
+        assert adapter.client.execute_query.call_count == 3
+
+    @pytest.mark.asyncio
+    async def test_ensure_labels_exist_server_check_failure_propagates(self, adapter):
+        """Test that server check failures prevent label creation (1M-443 hotfix)."""
+        label_names = ["Test Label"]
+        team_id = "test-team-id"
+
+        # Setup
+        adapter._labels_cache = []  # Cache miss
+        adapter._ensure_team_id = AsyncMock(return_value=team_id)
+
+        # Mock server check failure (after retries)
+        adapter._find_label_by_name = AsyncMock(
+            side_effect=Exception("Network timeout after retries")
+        )
+
+        # Execute - should raise ValueError preventing duplicate creation
+        with pytest.raises(ValueError, match="Unable to verify label.*existence"):
+            await adapter._ensure_labels_exist(label_names)
+
+        # Verify _create_label was NOT called (critical for duplicate prevention)
+        # We need to mock it to verify it wasn't called
+        adapter._create_label = AsyncMock()
+
+        # Try again to verify create isn't called
+        adapter._find_label_by_name = AsyncMock(
+            side_effect=Exception("Network timeout after retries")
+        )
+
+        with pytest.raises(ValueError):
+            await adapter._ensure_labels_exist(label_names)
+
+        adapter._create_label.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_ensure_labels_exist_cache_staleness(self, adapter):
@@ -560,6 +651,8 @@ class TestLabelCreationIntegration:
         team_id = "test-team-id"
 
         adapter._ensure_team_id = AsyncMock(return_value=team_id)
+        adapter._initialized = True
+        adapter._workflow_states = {"unstarted": {"id": "state-id-1", "position": 0}}
         adapter._labels_cache = []
 
         # Mock label creation

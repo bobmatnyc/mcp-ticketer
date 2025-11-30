@@ -956,21 +956,35 @@ class LinearAdapter(BaseAdapter[Task]):
                     )
                     self._labels_cache = []  # Explicitly empty on failure
 
-    async def _find_label_by_name(self, name: str, team_id: str) -> dict | None:
-        """Find a label by name using Linear API (server-side check).
+    async def _find_label_by_name(
+        self, name: str, team_id: str, max_retries: int = 3
+    ) -> dict | None:
+        """Find a label by name using Linear API (server-side check) with retry logic.
 
         Handles cache staleness by checking Linear's server-side state.
         This method is used when cache lookup misses to prevent duplicate
         label creation attempts.
 
+        Implements retry logic with exponential backoff to handle transient
+        network failures and distinguish between "label not found" (None) and
+        "check failed" (exception).
+
         Args:
         ----
             name: Label name to search for (case-insensitive)
             team_id: Linear team ID
+            max_retries: Maximum retry attempts for transient failures (default: 3)
 
         Returns:
         -------
-            Label dict with id, name, color, description if found, None otherwise
+            dict: Label data if found (with id, name, color, description)
+            None: Label definitively doesn't exist (checked successfully)
+
+        Raises:
+        ------
+            Exception: Unable to check label existence after retries exhausted
+                      (network/API failure). Caller must handle to prevent
+                      duplicate label creation.
 
         Note:
         ----
@@ -980,6 +994,7 @@ class LinearAdapter(BaseAdapter[Task]):
         Related:
         -------
             1M-443: Fix duplicate label error when setting existing labels
+            1M-443 hotfix: Add retry logic to prevent ambiguous error handling
 
         """
         logger = logging.getLogger(__name__)
@@ -999,28 +1014,40 @@ class LinearAdapter(BaseAdapter[Task]):
             }
         """
 
-        try:
-            result = await self.client.execute_query(query, {"teamId": team_id})
-            labels = result.get("team", {}).get("labels", {}).get("nodes", [])
+        for attempt in range(max_retries):
+            try:
+                result = await self.client.execute_query(query, {"teamId": team_id})
+                labels = result.get("team", {}).get("labels", {}).get("nodes", [])
 
-            # Case-insensitive search
-            name_lower = name.lower()
-            for label in labels:
-                if label["name"].lower() == name_lower:
+                # Case-insensitive search
+                name_lower = name.lower()
+                for label in labels:
+                    if label["name"].lower() == name_lower:
+                        logger.debug(
+                            f"Found label '{name}' via server-side search (ID: {label['id']})"
+                        )
+                        return label
+
+                # Label definitively doesn't exist (successful check)
+                logger.debug(f"Label '{name}' not found in {len(labels)} team labels")
+                return None
+
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    # Transient failure, retry with exponential backoff
+                    wait_time = 2**attempt
+                    await asyncio.sleep(wait_time)
                     logger.debug(
-                        f"Found label '{name}' via server-side search (ID: {label['id']})"
+                        f"Retry {attempt + 1}/{max_retries} for label '{name}' search: {e}"
                     )
-                    return label
-
-            logger.debug(f"Label '{name}' not found in {len(labels)} team labels")
-            return None
-
-        except Exception as e:
-            logger.warning(
-                f"Failed to query labels from server for '{name}': {e}. "
-                "Proceeding with creation attempt."
-            )
-            return None
+                    continue
+                else:
+                    # All retries exhausted, propagate exception
+                    # CRITICAL: Caller must handle to prevent duplicate creation
+                    logger.error(
+                        f"Failed to check label '{name}' after {max_retries} attempts: {e}"
+                    )
+                    raise
 
     async def _create_label(
         self, name: str, team_id: str, color: str = "#0366d6"
@@ -1148,10 +1175,25 @@ class LinearAdapter(BaseAdapter[Task]):
             if name_lower in label_map:
                 label_id = label_map[name_lower]
                 label_ids.append(label_id)
-                logger.debug(f"[Tier 1] Resolved cached label '{name}' to ID: {label_id}")
+                logger.debug(
+                    f"[Tier 1] Resolved cached label '{name}' to ID: {label_id}"
+                )
             else:
                 # Tier 2: Check server for label (handles cache staleness)
-                server_label = await self._find_label_by_name(name, team_id)
+                try:
+                    server_label = await self._find_label_by_name(name, team_id)
+                except Exception as e:
+                    # Server check failed after retries (1M-443 hotfix)
+                    # CRITICAL: Do NOT proceed to creation to prevent duplicates
+                    # Re-raise to signal failure to verify label existence
+                    logger.error(
+                        f"Unable to verify label '{name}' existence. "
+                        f"Cannot safely create to avoid duplicates. Error: {e}"
+                    )
+                    raise ValueError(
+                        f"Unable to verify label '{name}' existence. "
+                        f"Cannot safely create to avoid duplicates. Error: {e}"
+                    ) from e
 
                 if server_label:
                     # Label exists on server but not in cache - update cache
@@ -1174,7 +1216,9 @@ class LinearAdapter(BaseAdapter[Task]):
                     label_ids.append(new_label_id)
                     # Update local map for subsequent labels in same call
                     label_map[name_lower] = new_label_id
-                    logger.info(f"[Tier 3] Created new label '{name}' with ID: {new_label_id}")
+                    logger.info(
+                        f"[Tier 3] Created new label '{name}' with ID: {new_label_id}"
+                    )
 
         return label_ids
 
