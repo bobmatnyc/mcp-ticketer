@@ -6,17 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
-### Added
-
-### Changed
-
 ### Fixed
 
-### Deprecated
-
-### Removed
-
-### Security
+**Linear Connection Test Enhancement (1M-431)**
+- Enhanced connection test logging and error messages for config_setup_wizard
+- Added detailed debug logging in LinearGraphQLClient.test_connection()
+  - Logs API key preview (first 20 chars) for verification
+  - Logs full API response at DEBUG level
+  - Logs specific failure reasons (missing viewer, missing id)
+  - Logs successful connections with user identity
+- Improved error messages in LinearAdapter.initialize()
+  - Structured troubleshooting steps with numbered lists
+  - Shows API key preview and team for verification
+  - Distinguishes connection failures from other errors
+  - Adds progress logging for initialization steps
+- Enhanced error handling in config_setup_wizard
+  - Try/except wrapper catches all exceptions
+  - Troubleshooting lists guide users to solutions
+  - Separates errors for test failures vs. exceptions
+  - Logging captures all failure modes
+- **Breaking Changes**: None - preserved ValueError type, enhanced logging is additive only
+- **Commit**: 5865a97
 
 ## [1.4.0] - 2025-11-30
 
