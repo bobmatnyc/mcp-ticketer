@@ -277,6 +277,212 @@ class TestLabelCreation:
         assert result == expected_ids
         adapter._ensure_labels_exist.assert_called_once_with(label_names)
 
+    @pytest.mark.asyncio
+    async def test_find_label_by_name_success(self, adapter):
+        """Test finding a label by name via server-side search (1M-443)."""
+        team_id = "test-team-id"
+        label_name = "Existing Label"
+        expected_label = {
+            "id": "server-label-id-123",
+            "name": "Existing Label",
+            "color": "#0366d6",
+            "description": "Test label",
+        }
+
+        # Mock server response
+        mock_result = {
+            "team": {
+                "labels": {
+                    "nodes": [
+                        expected_label,
+                        {"id": "other-id", "name": "Other Label", "color": "#ff0000"},
+                    ]
+                }
+            }
+        }
+
+        adapter.client.execute_query = AsyncMock(return_value=mock_result)
+
+        # Execute
+        result = await adapter._find_label_by_name(label_name, team_id)
+
+        # Verify
+        assert result == expected_label
+        adapter.client.execute_query.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_find_label_by_name_case_insensitive(self, adapter):
+        """Test case-insensitive label search (1M-443)."""
+        team_id = "test-team-id"
+        expected_label = {
+            "id": "label-id-456",
+            "name": "MCP Ticketer",
+            "color": "#0366d6",
+            "description": None,
+        }
+
+        mock_result = {"team": {"labels": {"nodes": [expected_label]}}}
+        adapter.client.execute_query = AsyncMock(return_value=mock_result)
+
+        # Execute with different casing
+        result = await adapter._find_label_by_name("mcp ticketer", team_id)
+
+        # Verify - should find despite case difference
+        assert result == expected_label
+
+    @pytest.mark.asyncio
+    async def test_find_label_by_name_not_found(self, adapter):
+        """Test label not found in server-side search (1M-443)."""
+        team_id = "test-team-id"
+        label_name = "Nonexistent Label"
+
+        mock_result = {
+            "team": {
+                "labels": {
+                    "nodes": [
+                        {"id": "id-1", "name": "Label 1", "color": "#ff0000"},
+                        {"id": "id-2", "name": "Label 2", "color": "#00ff00"},
+                    ]
+                }
+            }
+        }
+
+        adapter.client.execute_query = AsyncMock(return_value=mock_result)
+
+        # Execute
+        result = await adapter._find_label_by_name(label_name, team_id)
+
+        # Verify
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_find_label_by_name_api_failure(self, adapter):
+        """Test graceful handling of API failure during label search (1M-443)."""
+        team_id = "test-team-id"
+        label_name = "Test Label"
+
+        # Mock API failure
+        adapter.client.execute_query = AsyncMock(
+            side_effect=Exception("API connection error")
+        )
+
+        # Execute - should return None gracefully
+        result = await adapter._find_label_by_name(label_name, team_id)
+
+        # Verify - returns None to allow creation attempt
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_ensure_labels_exist_cache_staleness(self, adapter):
+        """Test three-tier approach handles cache staleness (1M-443).
+
+        Scenario: Label exists in Linear but not in local cache (stale cache).
+        Expected: Tier 2 finds label on server, updates cache, no duplicate error.
+        """
+        label_names = ["Stale Label"]
+        team_id = "test-team-id"
+        server_label = {
+            "id": "stale-label-id",
+            "name": "Stale Label",
+            "color": "#0366d6",
+            "description": "Exists on server",
+        }
+
+        # Cache is empty (stale)
+        adapter._labels_cache = []
+        adapter._ensure_team_id = AsyncMock(return_value=team_id)
+
+        # Mock Tier 2: Server has the label
+        adapter._find_label_by_name = AsyncMock(return_value=server_label)
+
+        # Mock should NOT be called (Tier 3 skipped)
+        adapter._create_label = AsyncMock()
+
+        # Execute
+        result = await adapter._ensure_labels_exist(label_names)
+
+        # Verify
+        assert result == ["stale-label-id"]
+        adapter._find_label_by_name.assert_called_once_with("Stale Label", team_id)
+        adapter._create_label.assert_not_called()  # Should NOT create duplicate
+        # Cache should be updated
+        assert len(adapter._labels_cache) == 1
+        assert adapter._labels_cache[0] == server_label
+
+    @pytest.mark.asyncio
+    async def test_ensure_labels_exist_duplicate_prevention(self, adapter):
+        """Test that existing labels are never recreated (1M-443).
+
+        Scenario: Label exists on server but cache missed it.
+        Expected: Tier 2 prevents duplicate creation.
+        """
+        label_names = ["Existing Label"]
+        team_id = "test-team-id"
+
+        adapter._labels_cache = []
+        adapter._ensure_team_id = AsyncMock(return_value=team_id)
+
+        # Tier 2 finds it on server
+        adapter._find_label_by_name = AsyncMock(
+            return_value={
+                "id": "existing-id",
+                "name": "Existing Label",
+                "color": "#ff0000",
+            }
+        )
+
+        # Execute
+        result = await adapter._ensure_labels_exist(label_names)
+
+        # Verify - should use existing label, not create new one
+        assert result == ["existing-id"]
+        adapter._find_label_by_name.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_ensure_labels_exist_three_tier_flow(self, adapter):
+        """Test complete three-tier flow with mixed scenarios (1M-443).
+
+        Scenario:
+        - Label 1: In cache (Tier 1 hit)
+        - Label 2: On server but not in cache (Tier 2 hit)
+        - Label 3: Doesn't exist anywhere (Tier 3 create)
+        """
+        label_names = ["Cached Label", "Server Label", "New Label"]
+        team_id = "test-team-id"
+
+        # Cache has only first label
+        adapter._labels_cache = [
+            {"id": "cached-id", "name": "Cached Label", "color": "#0366d6"}
+        ]
+        adapter._ensure_team_id = AsyncMock(return_value=team_id)
+
+        # Tier 2 finds second label, misses third
+        async def mock_find_label(name, tid):
+            if name == "Server Label":
+                return {
+                    "id": "server-id",
+                    "name": "Server Label",
+                    "color": "#ff0000",
+                }
+            return None
+
+        adapter._find_label_by_name = AsyncMock(side_effect=mock_find_label)
+
+        # Tier 3 creates third label
+        adapter._create_label = AsyncMock(return_value="new-id")
+
+        # Execute
+        result = await adapter._ensure_labels_exist(label_names)
+
+        # Verify
+        assert result == ["cached-id", "server-id", "new-id"]
+        # Tier 2 called twice (skipped for cached label)
+        assert adapter._find_label_by_name.call_count == 2
+        # Tier 3 called once (only for truly new label)
+        adapter._create_label.assert_called_once_with("New Label", team_id)
+        # Cache updated with server label
+        assert len(adapter._labels_cache) == 2
+
 
 @pytest.mark.integration
 class TestLabelCreationIntegration:

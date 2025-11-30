@@ -956,6 +956,72 @@ class LinearAdapter(BaseAdapter[Task]):
                     )
                     self._labels_cache = []  # Explicitly empty on failure
 
+    async def _find_label_by_name(self, name: str, team_id: str) -> dict | None:
+        """Find a label by name using Linear API (server-side check).
+
+        Handles cache staleness by checking Linear's server-side state.
+        This method is used when cache lookup misses to prevent duplicate
+        label creation attempts.
+
+        Args:
+        ----
+            name: Label name to search for (case-insensitive)
+            team_id: Linear team ID
+
+        Returns:
+        -------
+            Label dict with id, name, color, description if found, None otherwise
+
+        Note:
+        ----
+            This method queries Linear's API and returns the first 250 labels.
+            For teams with >250 labels, pagination would be needed (future enhancement).
+
+        Related:
+        -------
+            1M-443: Fix duplicate label error when setting existing labels
+
+        """
+        logger = logging.getLogger(__name__)
+
+        query = """
+            query GetTeamLabels($teamId: String!) {
+                team(id: $teamId) {
+                    labels(first: 250) {
+                        nodes {
+                            id
+                            name
+                            color
+                            description
+                        }
+                    }
+                }
+            }
+        """
+
+        try:
+            result = await self.client.execute_query(query, {"teamId": team_id})
+            labels = result.get("team", {}).get("labels", {}).get("nodes", [])
+
+            # Case-insensitive search
+            name_lower = name.lower()
+            for label in labels:
+                if label["name"].lower() == name_lower:
+                    logger.debug(
+                        f"Found label '{name}' via server-side search (ID: {label['id']})"
+                    )
+                    return label
+
+            logger.debug(f"Label '{name}' not found in {len(labels)} team labels")
+            return None
+
+        except Exception as e:
+            logger.warning(
+                f"Failed to query labels from server for '{name}': {e}. "
+                "Proceeding with creation attempt."
+            )
+            return None
+
     async def _create_label(
         self, name: str, team_id: str, color: str = "#0366d6"
     ) -> str:
@@ -1009,16 +1075,25 @@ class LinearAdapter(BaseAdapter[Task]):
     async def _ensure_labels_exist(self, label_names: list[str]) -> list[str]:
         """Ensure labels exist, creating them if necessary.
 
-        This method implements the universal label creation flow:
-        1. Load existing labels (if not cached)
-        2. Map each name to existing labels (case-insensitive)
-        3. Create missing labels
-        4. Return list of label IDs
+        This method implements a three-tier label resolution flow to prevent
+        duplicate label creation errors:
+
+        1. **Tier 1 (Cache)**: Check local cache (fast, 0 API calls)
+        2. **Tier 2 (Server)**: Query Linear API for label (handles staleness, +1 API call)
+        3. **Tier 3 (Create)**: Create new label only if truly doesn't exist
+
+        The three-tier approach solves cache staleness issues where labels exist
+        in Linear but not in local cache, preventing "label already exists" errors.
 
         Behavior (1M-396):
         - Fail-fast: If any label creation fails, the exception is propagated
         - All-or-nothing: Partial label updates are not allowed
         - Clear errors: Callers receive actionable error messages
+
+        Performance:
+        - Cached labels: 0 additional API calls (Tier 1 hit)
+        - New labels: +1 API call for existence check (Tier 2) + 1 for creation (Tier 3)
+        - Trade-off: Accepts +1 API call to prevent duplicate errors
 
         Args:
         ----
@@ -1031,6 +1106,11 @@ class LinearAdapter(BaseAdapter[Task]):
         Raises:
         ------
             ValueError: If any label creation fails
+
+        Related:
+        -------
+            1M-443: Fix duplicate label error when setting existing labels
+            1M-396: Fail-fast label creation behavior
 
         """
         logger = logging.getLogger(__name__)
@@ -1064,20 +1144,37 @@ class LinearAdapter(BaseAdapter[Task]):
         for name in label_names:
             name_lower = name.lower()
 
-            # Check if label already exists (case-insensitive)
+            # Tier 1: Check cache (fast path, 0 API calls)
             if name_lower in label_map:
-                # Label exists - use its ID
                 label_id = label_map[name_lower]
                 label_ids.append(label_id)
-                logger.debug(f"Resolved existing label '{name}' to ID: {label_id}")
+                logger.debug(f"[Tier 1] Resolved cached label '{name}' to ID: {label_id}")
             else:
-                # Label doesn't exist - create it
-                # Propagate exceptions for fail-fast behavior (1M-396)
-                new_label_id = await self._create_label(name, team_id)
-                label_ids.append(new_label_id)
-                # Update local map for subsequent labels in same call
-                label_map[name_lower] = new_label_id
-                logger.info(f"Created new label '{name}' with ID: {new_label_id}")
+                # Tier 2: Check server for label (handles cache staleness)
+                server_label = await self._find_label_by_name(name, team_id)
+
+                if server_label:
+                    # Label exists on server but not in cache - update cache
+                    label_id = server_label["id"]
+                    label_ids.append(label_id)
+                    label_map[name_lower] = label_id
+
+                    # Update cache to prevent future misses
+                    if self._labels_cache is not None:
+                        self._labels_cache.append(server_label)
+
+                    logger.info(
+                        f"[Tier 2] Found stale label '{name}' on server (ID: {label_id}), "
+                        "updated cache"
+                    )
+                else:
+                    # Tier 3: Label truly doesn't exist - create it
+                    # Propagate exceptions for fail-fast behavior (1M-396)
+                    new_label_id = await self._create_label(name, team_id)
+                    label_ids.append(new_label_id)
+                    # Update local map for subsequent labels in same call
+                    label_map[name_lower] = new_label_id
+                    logger.info(f"[Tier 3] Created new label '{name}' with ID: {new_label_id}")
 
         return label_ids
 
