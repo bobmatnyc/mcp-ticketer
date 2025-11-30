@@ -1,7 +1,6 @@
 """Tests for MCP configuration with Claude CLI support."""
 
 import subprocess
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -227,7 +226,9 @@ class TestConfigureClaudeMCPNative:
 
     @patch("subprocess.run")
     @patch("mcp_ticketer.cli.mcp_configure.console")
-    def test_successful_configuration(self, mock_console: MagicMock, mock_run: MagicMock) -> None:
+    def test_successful_configuration(
+        self, mock_console: MagicMock, mock_run: MagicMock
+    ) -> None:
         """Test successful configuration using native CLI."""
         mock_run.return_value = MagicMock(returncode=0, stderr="", stdout="Success")
 
@@ -250,7 +251,9 @@ class TestConfigureClaudeMCPNative:
 
     @patch("subprocess.run")
     @patch("mcp_ticketer.cli.mcp_configure.console")
-    def test_failed_configuration_raises_error(self, mock_console: MagicMock, mock_run: MagicMock) -> None:
+    def test_failed_configuration_raises_error(
+        self, mock_console: MagicMock, mock_run: MagicMock
+    ) -> None:
         """Test that failed configuration raises RuntimeError."""
         mock_run.return_value = MagicMock(
             returncode=1,
@@ -273,7 +276,9 @@ class TestConfigureClaudeMCPNative:
 
     @patch("subprocess.run")
     @patch("mcp_ticketer.cli.mcp_configure.console")
-    def test_timeout_handling(self, mock_console: MagicMock, mock_run: MagicMock) -> None:
+    def test_timeout_handling(
+        self, mock_console: MagicMock, mock_run: MagicMock
+    ) -> None:
         """Test that timeout is properly handled."""
         mock_run.side_effect = subprocess.TimeoutExpired("claude", 30)
 
@@ -292,7 +297,9 @@ class TestConfigureClaudeMCPNative:
 
     @patch("subprocess.run")
     @patch("mcp_ticketer.cli.mcp_configure.console")
-    def test_sensitive_values_masked_in_output(self, mock_console: MagicMock, mock_run: MagicMock) -> None:
+    def test_sensitive_values_masked_in_output(
+        self, mock_console: MagicMock, mock_run: MagicMock
+    ) -> None:
         """Test that sensitive environment variable values are masked in console output."""
         mock_run.return_value = MagicMock(returncode=0, stderr="", stdout="Success")
 

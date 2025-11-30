@@ -161,7 +161,9 @@ def configure_claude_mcp_native(
         )
 
         if result.returncode == 0:
-            scope_label = "globally" if global_config else f"for project: {project_path}"
+            scope_label = (
+                "globally" if global_config else f"for project: {project_path}"
+            )
             console.print(f"[green]✓[/green] Claude Code configured {scope_label}")
             console.print("[dim]Restart Claude Code to load the MCP server[/dim]")
 
@@ -687,7 +689,9 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
     console.print("\n[cyan]🔍 Checking for Claude CLI...[/cyan]")
     if is_claude_cli_available():
         console.print("[green]✓[/green] Claude CLI found - using native command")
-        console.print("[dim]This provides better integration and automatic updates[/dim]")
+        console.print(
+            "[dim]This provides better integration and automatic updates[/dim]"
+        )
 
         # Get absolute project path for local scope
         absolute_project_path = str(Path.cwd().resolve()) if not global_config else None
@@ -700,8 +704,12 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
         )
 
     # Fall back to JSON manipulation
-    console.print("[yellow]⚠[/yellow] Claude CLI not found - using legacy JSON configuration")
-    console.print("[dim]For better experience, install Claude CLI: https://docs.claude.ai/cli[/dim]")
+    console.print(
+        "[yellow]⚠[/yellow] Claude CLI not found - using legacy JSON configuration"
+    )
+    console.print(
+        "[dim]For better experience, install Claude CLI: https://docs.claude.ai/cli[/dim]"
+    )
 
     # Determine project path for venv detection
     project_path = Path.cwd() if not global_config else None
