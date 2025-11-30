@@ -2,6 +2,7 @@
 
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -10,6 +11,189 @@ from rich.console import Console
 from .python_detection import get_mcp_ticketer_python
 
 console = Console()
+
+
+def is_claude_cli_available() -> bool:
+    """Check if Claude CLI is available in PATH.
+
+    Returns:
+        True if 'claude' command is available, False otherwise
+
+    """
+    try:
+        result = subprocess.run(
+            ["claude", "--version"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        return result.returncode == 0
+    except (subprocess.SubprocessError, FileNotFoundError, OSError):
+        return False
+
+
+def build_claude_mcp_command(
+    project_config: dict,
+    project_path: str | None = None,
+    global_config: bool = False,
+) -> list[str]:
+    """Build 'claude mcp add' command arguments.
+
+    Args:
+        project_config: Project configuration dict
+        project_path: Path to project (for --path arg)
+        global_config: If True, use --scope user (global), else --scope local
+
+    Returns:
+        List of command arguments for subprocess
+
+    """
+    cmd = ["claude", "mcp", "add"]
+
+    # Scope: user (global) or local (project)
+    scope = "user" if global_config else "local"
+    cmd.extend(["--scope", scope])
+
+    # Transport: always stdio
+    cmd.extend(["--transport", "stdio"])
+
+    # Environment variables (credentials)
+    adapters = project_config.get("adapters", {})
+
+    # Linear adapter
+    if "linear" in adapters:
+        linear_config = adapters["linear"]
+        if "api_key" in linear_config:
+            cmd.extend(["--env", f"LINEAR_API_KEY={linear_config['api_key']}"])
+        if "team_id" in linear_config:
+            cmd.extend(["--env", f"LINEAR_TEAM_ID={linear_config['team_id']}"])
+        if "team_key" in linear_config:
+            cmd.extend(["--env", f"LINEAR_TEAM_KEY={linear_config['team_key']}"])
+
+    # GitHub adapter
+    if "github" in adapters:
+        github_config = adapters["github"]
+        if "token" in github_config:
+            cmd.extend(["--env", f"GITHUB_TOKEN={github_config['token']}"])
+        if "owner" in github_config:
+            cmd.extend(["--env", f"GITHUB_OWNER={github_config['owner']}"])
+        if "repo" in github_config:
+            cmd.extend(["--env", f"GITHUB_REPO={github_config['repo']}"])
+
+    # JIRA adapter
+    if "jira" in adapters:
+        jira_config = adapters["jira"]
+        if "api_token" in jira_config:
+            cmd.extend(["--env", f"JIRA_API_TOKEN={jira_config['api_token']}"])
+        if "email" in jira_config:
+            cmd.extend(["--env", f"JIRA_EMAIL={jira_config['email']}"])
+        if "url" in jira_config:
+            cmd.extend(["--env", f"JIRA_URL={jira_config['url']}"])
+
+    # Add default adapter
+    default_adapter = project_config.get("default_adapter", "aitrackdown")
+    cmd.extend(["--env", f"MCP_TICKETER_ADAPTER={default_adapter}"])
+
+    # Server label
+    cmd.append("mcp-ticketer")
+
+    # Command separator
+    cmd.append("--")
+
+    # Server command and args
+    cmd.extend(["mcp-ticketer", "mcp"])
+
+    # Project path (for local scope)
+    if project_path and not global_config:
+        cmd.extend(["--path", project_path])
+
+    return cmd
+
+
+def configure_claude_mcp_native(
+    project_config: dict,
+    project_path: str | None = None,
+    global_config: bool = False,
+    force: bool = False,
+) -> None:
+    """Configure Claude Code using native 'claude mcp add' command.
+
+    Args:
+        project_config: Project configuration dict
+        project_path: Path to project directory
+        global_config: If True, install globally (--scope user)
+        force: If True, force reinstallation (currently unused, reserved for future)
+
+    Raises:
+        RuntimeError: If claude mcp add command fails
+        subprocess.TimeoutExpired: If command times out
+
+    """
+    # Build command
+    cmd = build_claude_mcp_command(
+        project_config=project_config,
+        project_path=project_path,
+        global_config=global_config,
+    )
+
+    # Show command to user (mask sensitive values)
+    masked_cmd = []
+    for i, arg in enumerate(cmd):
+        if arg.startswith("--env=") or (i > 0 and cmd[i - 1] == "--env"):
+            # Mask environment variable values
+            if "=" in arg:
+                key, _ = arg.split("=", 1)
+                masked_cmd.append(f"{key}=***")
+            else:
+                masked_cmd.append(arg)
+        else:
+            masked_cmd.append(arg)
+
+    console.print(f"[cyan]Executing:[/cyan] {' '.join(masked_cmd)}")
+
+    try:
+        # Execute native command
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+        if result.returncode == 0:
+            scope_label = "globally" if global_config else f"for project: {project_path}"
+            console.print(f"[green]✓[/green] Claude Code configured {scope_label}")
+            console.print("[dim]Restart Claude Code to load the MCP server[/dim]")
+
+            # Show adapter information
+            adapter = project_config.get("default_adapter", "aitrackdown")
+            console.print("\n[bold]Configuration Details:[/bold]")
+            console.print("  Server name: mcp-ticketer")
+            console.print(f"  Adapter: {adapter}")
+            console.print("  Protocol: Content-Length framing (FastMCP SDK)")
+            if project_path and not global_config:
+                console.print(f"  Project path: {project_path}")
+
+            # Next steps
+            console.print("\n[bold cyan]Next Steps:[/bold cyan]")
+            if global_config:
+                console.print("1. Restart Claude Desktop")
+                console.print("2. Open a conversation")
+            else:
+                console.print("1. Restart Claude Code")
+                console.print("2. Open this project in Claude Code")
+            console.print("3. mcp-ticketer tools will be available in the MCP menu")
+        else:
+            console.print("[red]✗[/red] Failed to configure Claude Code")
+            console.print(f"[red]Error:[/red] {result.stderr}")
+            raise RuntimeError(f"claude mcp add failed: {result.stderr}")
+
+    except subprocess.TimeoutExpired:
+        console.print("[red]✗[/red] Claude CLI command timed out")
+        raise
+    except Exception as e:
+        console.print(f"[red]✗[/red] Error executing Claude CLI: {e}")
+        raise
 
 
 def load_env_file(env_path: Path) -> dict[str, str]:
@@ -477,6 +661,9 @@ def remove_claude_mcp(global_config: bool = False, dry_run: bool = False) -> Non
 def configure_claude_mcp(global_config: bool = False, force: bool = False) -> None:
     """Configure Claude Code to use mcp-ticketer.
 
+    Automatically detects if Claude CLI is available and uses native
+    'claude mcp add' command if possible, falling back to JSON configuration.
+
     Args:
         global_config: Configure Claude Desktop instead of project-level
         force: Overwrite existing configuration
@@ -486,11 +673,41 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
         ValueError: If configuration is invalid
 
     """
+    # Load project configuration early (needed for both native and JSON methods)
+    console.print("[cyan]📖 Reading project configuration...[/cyan]")
+    try:
+        project_config = load_project_config()
+        adapter = project_config.get("default_adapter", "aitrackdown")
+        console.print(f"[green]✓[/green] Adapter: {adapter}")
+    except (FileNotFoundError, ValueError) as e:
+        console.print(f"[red]✗[/red] {e}")
+        raise
+
+    # Check for native CLI availability
+    console.print("\n[cyan]🔍 Checking for Claude CLI...[/cyan]")
+    if is_claude_cli_available():
+        console.print("[green]✓[/green] Claude CLI found - using native command")
+        console.print("[dim]This provides better integration and automatic updates[/dim]")
+
+        # Get absolute project path for local scope
+        absolute_project_path = str(Path.cwd().resolve()) if not global_config else None
+
+        return configure_claude_mcp_native(
+            project_config=project_config,
+            project_path=absolute_project_path,
+            global_config=global_config,
+            force=force,
+        )
+
+    # Fall back to JSON manipulation
+    console.print("[yellow]⚠[/yellow] Claude CLI not found - using legacy JSON configuration")
+    console.print("[dim]For better experience, install Claude CLI: https://docs.claude.ai/cli[/dim]")
+
     # Determine project path for venv detection
     project_path = Path.cwd() if not global_config else None
 
     # Step 1: Find Python executable (project-specific if available)
-    console.print("[cyan]🔍 Finding mcp-ticketer Python executable...[/cyan]")
+    console.print("\n[cyan]🔍 Finding mcp-ticketer Python executable...[/cyan]")
     try:
         python_path = get_mcp_ticketer_python(project_path=project_path)
         console.print(f"[green]✓[/green] Found: {python_path}")
@@ -507,16 +724,6 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
             "Please ensure mcp-ticketer is installed.\n"
             "Install with: pip install mcp-ticketer or pipx install mcp-ticketer"
         ) from e
-
-    # Step 2: Load project configuration
-    console.print("\n[cyan]📖 Reading project configuration...[/cyan]")
-    try:
-        project_config = load_project_config()
-        adapter = project_config.get("default_adapter", "aitrackdown")
-        console.print(f"[green]✓[/green] Adapter: {adapter}")
-    except (FileNotFoundError, ValueError) as e:
-        console.print(f"[red]✗[/red] {e}")
-        raise
 
     # Step 3: Find Claude MCP config location
     config_type = "Claude Desktop" if global_config else "Claude Code"
