@@ -1049,6 +1049,9 @@ class LinearAdapter(BaseAdapter[Task]):
                     )
                     raise
 
+        # This should never be reached (all paths return/raise in loop)
+        return None
+
     async def _create_label(
         self, name: str, team_id: str, color: str = "#0366d6"
     ) -> str:
