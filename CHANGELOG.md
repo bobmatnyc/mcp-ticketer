@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+
+### Fixed
+
+### Deprecated
+
+### Removed
+
+### Security
+
+## [1.4.0] - 2025-11-30
+
 ### ⚠️ BREAKING CHANGES
 
 **Project Filtering Now Mandatory** (Security & Foundational Fix)
