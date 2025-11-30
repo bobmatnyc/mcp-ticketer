@@ -50,6 +50,27 @@ get_my_tickets(project_id='YOUR-PROJECT-ID')
 
 ### Added
 
+**Claude Code Native CLI Support** - Hybrid Installation Approach
+- **Auto-Detection**: Installer now auto-detects and uses Claude's native `claude mcp add` command when available
+  - Hybrid approach: Uses native CLI when available, falls back to JSON when not
+  - Support for all adapters (Linear, GitHub, JIRA, AITrackdown)
+  - Sensitive credential masking in console output for security
+  - Comprehensive test coverage (15 test cases)
+  - Zero breaking changes - fully backward compatible
+- **Native Command Benefits**:
+  - Validated by Claude's built-in validation
+  - Better error messages
+  - Automatic restart prompts
+  - Consistent with Claude's native tooling
+- **Graceful Fallback**: Automatically uses JSON configuration if Claude CLI unavailable
+  - Works on all systems regardless of Claude CLI installation
+  - Same functionality as before
+  - No manual intervention required
+- **Documentation**: New comprehensive feature documentation at `docs/features/claude-code-native-cli.md`
+- **See Also**: [Claude Code Native CLI Feature Documentation](docs/features/claude-code-native-cli.md)
+
+**Commit**: 6af6014
+
 **Installer Improvements** - Code Editor Focus
 - New `--include-desktop` flag for `mcp-ticketer install` command
   - By default, installer now focuses on **code editors only**: Claude Code, Cursor, Auggie, Codex, Gemini

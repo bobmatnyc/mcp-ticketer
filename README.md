@@ -848,6 +848,32 @@ mcp-ticketer uninstall auggie              # Alias for remove
 3. Generate the appropriate MCP server config
 4. Save it to the correct location for your AI client
 
+#### Claude Code Installation
+
+**Automatic (Recommended)**:
+```bash
+mcp-ticketer install --platform claude-code
+```
+
+The installer automatically detects if you have Claude CLI installed:
+- **With Claude CLI**: Uses native `claude mcp add` command (recommended)
+- **Without Claude CLI**: Falls back to JSON configuration
+
+**Manual Installation** (if needed):
+```bash
+# If you have Claude CLI installed
+claude mcp add --scope local --transport stdio mcp-ticketer \
+  -- mcp-ticketer mcp --path $(pwd)
+
+# Or configure manually via JSON (legacy method)
+# See manual configuration example below for details
+```
+
+**Note**: Claude CLI provides better validation and error handling.
+Install it from: https://docs.claude.ai/cli
+
+For comprehensive details on native CLI support, see [Claude Code Native CLI Feature Documentation](docs/features/claude-code-native-cli.md).
+
 **Manual Configuration Example** (Claude Code):
 
 Claude Code supports two configuration file locations with automatic detection:
