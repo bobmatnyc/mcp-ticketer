@@ -206,7 +206,17 @@ class LinearGraphQLClient:
         -------
             True if connection is successful, False otherwise
 
+        Design Decision: Enhanced Debug Logging (1M-431)
+        -------------------------------------------------
+        Added comprehensive logging to diagnose connection failures.
+        Logs API key preview, query results, and specific failure reasons
+        to help users troubleshoot authentication and configuration issues.
+
         """
+        import logging
+
+        logger = logging.getLogger(__name__)
+
         try:
             # Simple query to test authentication
             test_query = """
@@ -214,14 +224,42 @@ class LinearGraphQLClient:
                     viewer {
                         id
                         name
+                        email
                     }
                 }
             """
 
+            logger.debug(
+                f"Testing Linear API connection with API key: {self.api_key[:20]}..."
+            )
             result = await self.execute_query(test_query)
-            return bool(result.get("viewer"))
 
-        except Exception:
+            # Log the actual response for debugging
+            logger.debug(f"Linear API test response: {result}")
+
+            viewer = result.get("viewer")
+
+            if not viewer:
+                logger.warning(
+                    f"Linear test connection query succeeded but returned no viewer data. "
+                    f"Response: {result}"
+                )
+                return False
+
+            if not viewer.get("id"):
+                logger.warning(f"Linear viewer missing id field. Viewer data: {viewer}")
+                return False
+
+            logger.info(
+                f"Linear API connected successfully as: {viewer.get('name')} ({viewer.get('email')})"
+            )
+            return True
+
+        except Exception as e:
+            logger.error(
+                f"Linear connection test failed: {type(e).__name__}: {e}",
+                exc_info=True,
+            )
             return False
 
     async def get_team_info(self, team_id: str) -> dict[str, Any] | None:

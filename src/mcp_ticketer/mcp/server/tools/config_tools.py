@@ -910,26 +910,67 @@ async def config_setup_wizard(
             config.adapters[adapter_lower] = adapter_config
             resolver.save_project_config(config)
 
-            # Test the adapter
-            test_result = await config_test_adapter(adapter_lower)
+            # Test the adapter with enhanced error handling (1M-431)
+            import logging
 
-            if test_result["status"] == "error":
+            logger = logging.getLogger(__name__)
+
+            try:
+                test_result = await config_test_adapter(adapter_lower)
+
+                if test_result["status"] == "error":
+                    logger.error(
+                        f"Connection test failed for {adapter_lower}: {test_result.get('error')}"
+                    )
+                    return {
+                        "status": "error",
+                        "error": f"Connection test failed: {test_result.get('error')}",
+                        "test_result": test_result,
+                        "message": "Configuration was saved but connection test failed.",
+                        "troubleshooting": [
+                            "1. Verify API key is correct and starts with expected prefix",
+                            f"2. Check network connectivity to {adapter_lower} API",
+                            "3. Ensure credentials have proper permissions",
+                            "4. Review application logs for detailed error information",
+                            "5. Try running config_test_adapter() separately for more details",
+                        ],
+                    }
+
+                connection_healthy = test_result.get("healthy", False)
+
+                if not connection_healthy:
+                    test_error = test_result.get("message", "Unknown connection error")
+                    logger.warning(
+                        f"Connection test unhealthy for {adapter_lower}: {test_error}"
+                    )
+                    return {
+                        "status": "error",
+                        "error": f"Connection test failed: {test_error}",
+                        "test_result": test_result,
+                        "message": "Configuration was saved but adapter could not connect.",
+                        "troubleshooting": [
+                            "1. Check adapter logs for specific error details",
+                            "2. Verify API permissions in service settings",
+                            "3. Ensure all required configuration fields are provided",
+                            "4. Test credentials directly via service web interface",
+                        ],
+                    }
+
+            except Exception as e:
+                logger.error(
+                    f"Connection test exception for {adapter_lower}: {type(e).__name__}: {e}",
+                    exc_info=True,
+                )
                 return {
                     "status": "error",
-                    "error": f"Connection test failed: {test_result.get('error')}",
-                    "test_result": test_result,
-                    "message": "Configuration was saved but connection test failed. Please verify your credentials.",
-                }
-
-            connection_healthy = test_result.get("healthy", False)
-
-            if not connection_healthy:
-                test_error = test_result.get("message", "Unknown connection error")
-                return {
-                    "status": "error",
-                    "error": f"Connection test failed: {test_error}",
-                    "test_result": test_result,
-                    "message": "Configuration was saved but adapter could not connect. Please verify your credentials and network connection.",
+                    "error": f"Connection test failed with exception: {type(e).__name__}: {e}",
+                    "message": "Configuration was saved but connection test raised an exception.",
+                    "troubleshooting": [
+                        "1. This may indicate a code bug rather than configuration issue",
+                        "2. Check application logs for full stack trace",
+                        "3. Verify all required dependencies are installed",
+                        "4. Report to maintainers if issue persists",
+                    ],
                 }
         else:
             # Save config without testing

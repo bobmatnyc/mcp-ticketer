@@ -174,16 +174,49 @@ class LinearAdapter(BaseAdapter[Task]):
         return True, ""
 
     async def initialize(self) -> None:
-        """Initialize adapter by preloading team, states, and labels data concurrently."""
+        """Initialize adapter by preloading team, states, and labels data concurrently.
+
+        Design Decision: Enhanced Error Handling (1M-431)
+        --------------------------------------------------
+        Improved error messages to provide actionable troubleshooting guidance.
+        Added logging to track initialization progress and identify failure points.
+        Preserves original ValueError type for backward compatibility.
+
+        Raises:
+        ------
+            ValueError: If connection fails or initialization encounters errors
+                       with detailed troubleshooting information
+
+        """
         if self._initialized:
             return
 
+        import logging
+
+        logger = logging.getLogger(__name__)
+
         try:
             # Test connection first
-            if not await self.client.test_connection():
-                raise ValueError("Failed to connect to Linear API - check credentials")
+            logger.info(
+                f"Testing Linear API connection for team {self.team_key or self.team_id}..."
+            )
+            connection_ok = await self.client.test_connection()
+
+            if not connection_ok:
+                raise ValueError(
+                    "Failed to connect to Linear API. Troubleshooting:\n"
+                    "1. Verify API key is valid (starts with 'lin_api_')\n"
+                    "2. Check team_key matches your Linear workspace\n"
+                    "3. Ensure API key has proper permissions\n"
+                    "4. Review logs for detailed error information\n"
+                    f"   API key preview: {self.api_key[:20] if self.api_key else 'None'}...\n"
+                    f"   Team: {self.team_key or self.team_id}"
+                )
+
+            logger.info("Linear API connection successful")
 
             # Load team data and workflow states concurrently
+            logger.debug("Loading team data and workflow states...")
             team_id = await self._ensure_team_id()
 
             # Load workflow states and labels for the team
@@ -191,9 +224,20 @@ class LinearAdapter(BaseAdapter[Task]):
             await self._load_team_labels(team_id)
 
             self._initialized = True
+            logger.info("Linear adapter initialized successfully")
 
+        except ValueError:
+            # Re-raise ValueError with original message (for connection failures)
+            raise
         except Exception as e:
-            raise ValueError(f"Failed to initialize Linear adapter: {e}") from e
+            logger.error(
+                f"Linear adapter initialization failed: {type(e).__name__}: {e}",
+                exc_info=True,
+            )
+            raise ValueError(
+                f"Failed to initialize Linear adapter: {type(e).__name__}: {e}\n"
+                "Check your credentials and network connection."
+            ) from e
 
     async def _ensure_team_id(self) -> str:
         """Ensure we have a team ID, resolving from team_key if needed.
