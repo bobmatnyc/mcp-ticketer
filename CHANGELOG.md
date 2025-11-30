@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.4.1] - 2025-11-30
+
 ### Fixed
 
 **Linear Connection Test Enhancement (1M-431)**
