@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.4.2] - 2025-11-30
+
+### Fixed
+
+**Linear Label Duplicate Error Prevention (1M-443)**
+- Fixed label duplicate creation error when setting existing labels on tickets
+- **Root Cause**: `_ensure_labels_exist()` only checked local cache before creating labels. When a label exists in Linear but not in cache (due to cache staleness), the system attempted to create a duplicate label, causing Linear API to reject with "duplicate label name" error
+- **Solution**: Implemented three-tier label existence check:
+  - **Tier 1**: Check local cache first (fast path, 0 API calls for cached labels)
+  - **Tier 2**: Query Linear API via new `_find_label_by_name()` method when cache misses
+  - **Tier 3**: Only create label if both cache and server checks fail
+- Added `_find_label_by_name()` method for server-side label lookup with case-insensitive matching
+- Enhanced `_ensure_labels_exist()` with three-tier resolution logic
+- Updates cache when server-side label is found to prevent future cache misses
+- **Performance Impact**:
+  - Cached labels: 0 additional API calls (no change)
+  - Existing labels with stale cache: 1 API call (prevents error)
+  - New labels: 2 API calls (check + create, +1 overhead acceptable)
+- Added 7 comprehensive tests covering all scenarios (18/18 tests passing, >95% coverage)
+- **Breaking Changes**: None - maintains full backward compatibility
+- **Commit**: 8826824
+- **Related Issues**: 1M-443
+
 ## [1.4.1] - 2025-11-30
 
 ### Fixed
