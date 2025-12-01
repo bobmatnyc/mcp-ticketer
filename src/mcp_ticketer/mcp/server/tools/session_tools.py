@@ -1,13 +1,104 @@
-"""MCP tools for session and ticket association management."""
+"""MCP tools for session and ticket association management.
+
+This module implements tools for session management and user ticket operations.
+
+Features:
+- user_session: Unified interface for user ticket queries and session info
+- get_my_tickets: Get user's tickets (deprecated, use user_session)
+- get_session_info: Get session metadata (deprecated, use user_session)
+- attach_ticket: Associate work session with ticket
+
+All tools follow the MCP response pattern:
+    {
+        "status": "completed" | "error",
+        "data": {...}
+    }
+"""
 
 import logging
+import warnings
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from ....core.session_state import SessionStateManager
 from ..server_sdk import mcp
 
+# Import for user_session routing
+# Note: We import the implementation, not the decorated tool to avoid decorator issues
+from . import user_ticket_tools
+
 logger = logging.getLogger(__name__)
+
+
+@mcp.tool()
+async def user_session(
+    action: Literal["get_my_tickets", "get_session_info"],
+    state: str | None = None,
+    project_id: str | None = None,
+    limit: int = 10,
+) -> dict[str, Any]:
+    """Unified user session management tool.
+
+    Handles user ticket queries and session information through a single
+    interface. This tool consolidates get_my_tickets and get_session_info.
+
+    Args:
+        action: Operation to perform. Valid values:
+            - "get_my_tickets": Get tickets assigned to default user
+            - "get_session_info": Get current session information
+        state: Filter tickets by state (for get_my_tickets only)
+        project_id: Filter tickets by project (for get_my_tickets only)
+        limit: Maximum tickets to return (for get_my_tickets, default: 10, max: 100)
+
+    Returns:
+        Results dictionary containing operation-specific data
+
+    Raises:
+        ValueError: If action is invalid
+
+    Examples:
+        # Get user's tickets
+        result = await user_session(
+            action="get_my_tickets",
+            state="open",
+            limit=20
+        )
+
+        # Get user's tickets with project filter
+        result = await user_session(
+            action="get_my_tickets",
+            project_id="PROJ-123",
+            state="in_progress"
+        )
+
+        # Get session info
+        result = await user_session(
+            action="get_session_info"
+        )
+
+    Migration from old tools:
+        - get_my_tickets(state=..., limit=...) → user_session(action="get_my_tickets", state=..., limit=...)
+        - get_session_info() → user_session(action="get_session_info")
+
+    See: docs/mcp-api-reference.md for detailed response formats
+    """
+    action_lower = action.lower()
+
+    # Route to appropriate handler based on action
+    if action_lower == "get_my_tickets":
+        return await user_ticket_tools.get_my_tickets(
+            state=state, project_id=project_id, limit=limit
+        )
+    elif action_lower == "get_session_info":
+        return await get_session_info()
+    else:
+        valid_actions = ["get_my_tickets", "get_session_info"]
+        return {
+            "status": "error",
+            "error": f"Invalid action '{action}'. Must be one of: {', '.join(valid_actions)}",
+            "valid_actions": valid_actions,
+            "hint": "Use user_session(action='get_my_tickets'|'get_session_info', ...)",
+        }
 
 
 @mcp.tool()
@@ -135,12 +226,23 @@ async def attach_ticket(
 async def get_session_info() -> dict[str, Any]:
     """Get current session information and ticket association status.
 
+    .. deprecated:: 1.5.0
+        Use :func:`user_session` with ``action='get_session_info'`` instead.
+        This function will be removed in version 2.0.0.
+
     Returns session metadata including ID, current ticket, and activity status.
 
     Returns:
         Session information dictionary
 
-    Example:
+    Examples:
+        # Old way (deprecated)
+        result = await get_session_info()
+
+        # New way (recommended)
+        result = await user_session(action="get_session_info")
+
+    Example Response:
         {
             "session_id": "abc-123",
             "current_ticket": "PROJ-123",
@@ -149,6 +251,12 @@ async def get_session_info() -> dict[str, Any]:
         }
 
     """
+    warnings.warn(
+        "get_session_info is deprecated. Use user_session(action='get_session_info') instead. "
+        "This function will be removed in version 2.0.0.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         manager = SessionStateManager(project_path=Path.cwd())
         state = manager.load_session()

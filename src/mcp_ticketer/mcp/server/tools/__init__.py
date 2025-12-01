@@ -19,7 +19,7 @@ Modules:
     project_status_tools: Project status analysis and work planning (1M-316)
 
 Note:
-    instruction_tools: Removed from MCP server (CLI-only as of Phase 1 consolidation)
+    instruction_tools: Removed from MCP server (CLI-only as of Phase 2 Sprint 2.3)
     pr_tools: Removed from MCP server (CLI-only as of Phase 2 Sprint 1.3)
     attachment_tools: Removed from MCP server (CLI-only as of Phase 2 Sprint 1.3)
     These tools are available via CLI commands but not exposed through MCP interface.
@@ -36,7 +36,7 @@ from . import (
     comment_tools,  # noqa: F401
     config_tools,  # noqa: F401
     hierarchy_tools,  # noqa: F401
-    # instruction_tools removed - CLI-only (Phase 1 consolidation)
+    # instruction_tools removed - CLI-only (Phase 2 Sprint 2.3)
     label_tools,  # noqa: F401
     # pr_tools removed - CLI-only (Phase 2 Sprint 1.3 - use GitHub MCP)
     project_status_tools,  # noqa: F401
@@ -54,7 +54,7 @@ __all__ = [
     "comment_tools",
     "config_tools",
     "hierarchy_tools",
-    # "instruction_tools" removed - CLI-only (Phase 1 consolidation)
+    # "instruction_tools" removed - CLI-only (Phase 2 Sprint 2.3)
     "label_tools",
     # "pr_tools" removed - CLI-only (Phase 2 Sprint 1.3)
     "project_status_tools",

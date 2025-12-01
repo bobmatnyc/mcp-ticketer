@@ -23,8 +23,12 @@ Performance Considerations:
 - get_my_tickets uses adapter's native filtering when available
 - Falls back to client-side filtering for adapters without assignee filter
 - State transition validation is O(1) lookup in predefined state machine
+
+Deprecation Notice:
+- get_my_tickets is deprecated, use user_session(action="get_my_tickets") instead
 """
 
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -67,15 +71,38 @@ async def get_my_tickets(
 ) -> dict[str, Any]:
     """Get tickets assigned to default_user (requires default_user and project scoping).
 
+    .. deprecated:: 1.5.0
+        Use :func:`user_session` with ``action='get_my_tickets'`` instead.
+        This function will be removed in version 2.0.0.
+
     ⚠️ Project Filtering Required:
     This tool requires project_id parameter OR default_project configuration.
     To set default project: config_set_default_project(project_id="YOUR-PROJECT")
     To check current config: config_get()
 
-    Args: state (optional workflow state filter), project_id (required), limit (max: 100)
-    Returns: TicketListResponse with tickets, count, user, state_filter
+    Args:
+        state: Optional workflow state filter
+        project_id: Project/epic ID (required unless default_project configured)
+        limit: Maximum tickets to return (default: 10, max: 100)
+
+    Returns:
+        TicketListResponse with tickets, count, user, state_filter
+
+    Examples:
+        # Old way (deprecated)
+        result = await get_my_tickets(state="open", limit=20)
+
+        # New way (recommended)
+        result = await user_session(action="get_my_tickets", state="open", limit=20)
+
     See: docs/mcp-api-reference.md#ticket-response-format
     """
+    warnings.warn(
+        "get_my_tickets is deprecated. Use user_session(action='get_my_tickets', ...) instead. "
+        "This function will be removed in version 2.0.0.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Validate limit
         if limit > 100:

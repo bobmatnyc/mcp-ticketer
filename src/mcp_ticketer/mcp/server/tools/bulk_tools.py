@@ -2,8 +2,21 @@
 
 This module implements tools for batch operations on tickets to improve
 efficiency when working with multiple items.
+
+Features:
+- ticket_bulk: Unified interface for all bulk operations (create, update)
+- ticket_bulk_create: Create multiple tickets (deprecated, use ticket_bulk)
+- ticket_bulk_update: Update multiple tickets (deprecated, use ticket_bulk)
+
+All tools follow the MCP response pattern:
+    {
+        "status": "completed" | "error",
+        "summary": {"total": N, "created": N, "updated": N, "failed": N},
+        "results": {...}
+    }
 """
 
+import warnings
 from typing import Any
 
 from ....core.models import Priority, Task, TicketState, TicketType
@@ -11,10 +24,99 @@ from ..server_sdk import get_adapter, mcp
 
 
 @mcp.tool()
+async def ticket_bulk(
+    action: str,
+    tickets: list[dict[str, Any]] | None = None,
+    updates: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Unified bulk ticket operations tool.
+
+    Performs bulk create or update operations on tickets through a single
+    interface. This tool consolidates ticket_bulk_create and ticket_bulk_update.
+
+    Args:
+        action: Operation to perform. Valid values:
+            - "create": Create multiple new tickets
+            - "update": Update multiple existing tickets
+        tickets: List of ticket dicts for bulk create (required if action="create")
+                Each dict should contain at minimum 'title', with optional fields:
+                description, priority, tags, assignee, ticket_type, parent_epic, parent_issue
+        updates: List of update dicts for bulk update (required if action="update")
+                Each dict must contain 'ticket_id' and at least one field to update.
+                Valid update fields: title, description, priority, state, assignee, tags
+
+    Returns:
+        Results dictionary containing:
+        - status: "completed" or "error"
+        - summary: Statistics (total, created/updated, failed)
+        - results: Detailed results for each operation
+
+    Raises:
+        ValueError: If action is invalid or required parameters missing
+
+    Examples:
+        # Bulk create
+        result = await ticket_bulk(
+            action="create",
+            tickets=[
+                {"title": "Bug 1", "priority": "high", "description": "Fix login"},
+                {"title": "Bug 2", "priority": "medium", "tags": ["backend"]}
+            ]
+        )
+
+        # Bulk update
+        result = await ticket_bulk(
+            action="update",
+            updates=[
+                {"ticket_id": "PROJ-123", "state": "done", "priority": "low"},
+                {"ticket_id": "PROJ-456", "assignee": "user@example.com"}
+            ]
+        )
+
+    Migration from old tools:
+        - ticket_bulk_create(tickets=[...]) → ticket_bulk(action="create", tickets=[...])
+        - ticket_bulk_update(updates=[...]) → ticket_bulk(action="update", updates=[...])
+
+    See: docs/mcp-api-reference.md for detailed response formats
+    """
+    action_lower = action.lower()
+
+    # Route to appropriate handler based on action
+    if action_lower == "create":
+        if tickets is None:
+            return {
+                "status": "error",
+                "error": "tickets parameter required for action='create'",
+                "hint": "Use ticket_bulk(action='create', tickets=[...])",
+            }
+        return await ticket_bulk_create(tickets)
+    elif action_lower == "update":
+        if updates is None:
+            return {
+                "status": "error",
+                "error": "updates parameter required for action='update'",
+                "hint": "Use ticket_bulk(action='update', updates=[...])",
+            }
+        return await ticket_bulk_update(updates)
+    else:
+        valid_actions = ["create", "update"]
+        return {
+            "status": "error",
+            "error": f"Invalid action '{action}'. Must be one of: {', '.join(valid_actions)}",
+            "valid_actions": valid_actions,
+            "hint": "Use ticket_bulk(action='create'|'update', ...)",
+        }
+
+
+@mcp.tool()
 async def ticket_bulk_create(
     tickets: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """Create multiple tickets in a single operation.
+
+    .. deprecated:: 1.5.0
+        Use :func:`ticket_bulk` with ``action='create'`` instead.
+        This function will be removed in version 2.0.0.
 
     Each ticket dict should contain at minimum a 'title' field, with optional
     fields: description, priority, tags, assignee, ticket_type, parent_epic, parent_issue.
@@ -25,7 +127,20 @@ async def ticket_bulk_create(
     Returns:
         Results of bulk creation including successes and failures
 
+    Examples:
+        # Old way (deprecated)
+        result = await ticket_bulk_create([{"title": "Bug 1"}])
+
+        # New way (recommended)
+        result = await ticket_bulk(action="create", tickets=[{"title": "Bug 1"}])
+
     """
+    warnings.warn(
+        "ticket_bulk_create is deprecated. Use ticket_bulk(action='create', tickets=...) instead. "
+        "This function will be removed in version 2.0.0.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         adapter = get_adapter()
 
@@ -136,6 +251,10 @@ async def ticket_bulk_update(
 ) -> dict[str, Any]:
     """Update multiple tickets in a single operation.
 
+    .. deprecated:: 1.5.0
+        Use :func:`ticket_bulk` with ``action='update'`` instead.
+        This function will be removed in version 2.0.0.
+
     Each update dict must contain 'ticket_id' and at least one field to update.
     Valid update fields: title, description, priority, state, assignee, tags.
 
@@ -145,7 +264,20 @@ async def ticket_bulk_update(
     Returns:
         Results of bulk update including successes and failures
 
+    Examples:
+        # Old way (deprecated)
+        result = await ticket_bulk_update([{"ticket_id": "123", "state": "done"}])
+
+        # New way (recommended)
+        result = await ticket_bulk(action="update", updates=[{"ticket_id": "123", "state": "done"}])
+
     """
+    warnings.warn(
+        "ticket_bulk_update is deprecated. Use ticket_bulk(action='update', updates=...) instead. "
+        "This function will be removed in version 2.0.0.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         adapter = get_adapter()
 
