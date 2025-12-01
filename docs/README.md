@@ -2,6 +2,8 @@
 
 Welcome to the comprehensive documentation for MCP Ticketer - the universal ticket management interface for AI agents.
 
+**📍 New here? See the [Documentation Navigation Map](NAVIGATION.md) for a complete overview of all documentation.**
+
 ## Documentation Structure
 
 Our documentation is organized by audience and purpose:

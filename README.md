@@ -38,7 +38,7 @@ MCP Ticketer is optimized for AI agent usage with built-in token management:
 - **Compact Mode**: Minimal responses (15 tokens vs 185 per ticket)
 - **Progressive Disclosure**: Summary first, details on demand
 
-See [📄 Token Pagination](#-token-pagination-v131) section below for quick start, or [docs/TOKEN_PAGINATION.md](docs/TOKEN_PAGINATION.md) for detailed technical guide.
+See [📄 Token Pagination](#-token-pagination-v131) section below for quick start, or [docs/user-docs/features/TOKEN_PAGINATION.md](docs/user-docs/features/TOKEN_PAGINATION.md) for detailed technical guide.
 
 ## 📦 Installation
 
@@ -541,7 +541,7 @@ All paginated tools return these metadata fields:
 
 ### Learn More
 
-- **Comprehensive Guide**: [docs/TOKEN_PAGINATION.md](docs/TOKEN_PAGINATION.md) - Detailed technical documentation
+- **Comprehensive Guide**: [docs/user-docs/features/TOKEN_PAGINATION.md](docs/user-docs/features/TOKEN_PAGINATION.md) - Detailed technical documentation
   - Token estimation algorithms
   - Per-tool optimization strategies
   - Advanced pagination patterns
@@ -810,7 +810,7 @@ if status['recommended_next']:
 
 ### Learn More
 
-- **Comprehensive Guide**: [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) - Full documentation
+- **Comprehensive Guide**: [docs/meta/PROJECT_STATUS.md](docs/meta/PROJECT_STATUS.md) - Full documentation
 - **Runnable Examples**: [examples/project_status_examples.py](examples/project_status_examples.py) - Copy-paste code
 - **PM Monitoring Tools**: [docs/PM_MONITORING_TOOLS.md](docs/PM_MONITORING_TOOLS.md) - Ticket cleanup features
 - **Linear Setup**: [docs/integrations/setup/LINEAR_SETUP.md](docs/integrations/setup/LINEAR_SETUP.md) - Platform-specific guides
@@ -965,7 +965,7 @@ result = await ticket_list(limit=20, compact=False)  # ~3,700 tokens
 ### Learn More
 
 - **Token Pagination**: See [📄 Token Pagination](#-token-pagination-v131) section for comprehensive guide on pagination, token optimization, and best practices
-- **Technical Details**: [docs/TOKEN_PAGINATION.md](docs/TOKEN_PAGINATION.md) - Per-tool token estimates and optimization strategies
+- **Technical Details**: [docs/user-docs/features/TOKEN_PAGINATION.md](docs/user-docs/features/TOKEN_PAGINATION.md) - Per-tool token estimates and optimization strategies
 - **Quick Summary**: [COMPACT_MODE_SUMMARY.md](COMPACT_MODE_SUMMARY.md) - Compact mode reference
 
 ## ⚙️ Configuration
