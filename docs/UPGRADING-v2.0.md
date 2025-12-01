@@ -200,9 +200,11 @@ mcp__mcp-ticketer__ticket_search(
 
 ## Attachments (Removed)
 
-**Removed:** ticket_attach, ticket_attachments
+**Removed:** ticket_attach, ticket_attachments (v1.5.0)
 
 **Rationale:** Functionality available in MCP filesystem server
+
+**Migration Guide:** See [docs/migrations/ATTACHMENT_PR_REMOVAL.md](migrations/ATTACHMENT_PR_REMOVAL.md) for comprehensive examples and patterns.
 
 ### Before (v1.x)
 
@@ -248,6 +250,13 @@ files = mcp__filesystem__list_directory(path="./docs/tickets/TICKET-123")
 - No duplication with MCP filesystem server
 - Better file management
 
+**CLI Availability:**
+These tools remain available via CLI:
+```bash
+aitrackdown attach TICKET-123 /path/to/file.pdf
+aitrackdown attachments TICKET-123
+```
+
 **Migration Checklist:**
 - [ ] Identify all ticket_attach usage
 - [ ] Create docs/tickets/{ticket_id}/ directory structure
@@ -259,9 +268,11 @@ files = mcp__filesystem__list_directory(path="./docs/tickets/TICKET-123")
 
 ## Pull Requests (Removed)
 
-**Removed:** ticket_create_pr, ticket_link_pr
+**Removed:** ticket_create_pr, ticket_link_pr (v1.5.0)
 
 **Rationale:** Functionality available in MCP GitHub server
+
+**Migration Guide:** See [docs/migrations/ATTACHMENT_PR_REMOVAL.md](migrations/ATTACHMENT_PR_REMOVAL.md) for comprehensive examples and patterns.
 
 ### Before (v1.x)
 
@@ -326,6 +337,13 @@ mcp__mcp-ticketer__ticket_update(
 - Direct GitHub integration
 - More PR control (reviewers, labels, etc.)
 - Consistent with GitHub workflow
+
+**CLI Availability:**
+These tools remain available via CLI:
+```bash
+aitrackdown pr create TICKET-123 --branch fix/auth
+aitrackdown pr link TICKET-123 https://github.com/org/repo/pull/42
+```
 
 **Migration Checklist:**
 - [ ] Identify all ticket_create_pr/ticket_link_pr usage

@@ -20,8 +20,15 @@ async def ticket_search(
     assignee: str | None = None,
     project_id: str | None = None,
     limit: int = 10,
+    include_hierarchy: bool = False,
+    include_children: bool = True,
+    max_depth: int = 3,
 ) -> dict[str, Any]:
-    """Search tickets using advanced filters with project scoping.
+    """Search tickets with optional hierarchy information.
+
+    **Consolidates:**
+    - ticket_search() → Default behavior (include_hierarchy=False)
+    - ticket_search_hierarchy() → Set include_hierarchy=True
 
     ⚠️ Project Filtering Required:
     This tool requires project_id parameter OR default_project configuration.
@@ -29,6 +36,19 @@ async def ticket_search(
     To check current config: config_get()
 
     Exception: Single ticket operations (ticket_read) don't require project filtering.
+
+    **Search Filters:**
+    - query: Text search in title and description
+    - state: Filter by workflow state
+    - priority: Filter by priority level
+    - tags: Filter by tags (AND logic)
+    - assignee: Filter by assigned user
+    - project_id: Scope to specific project
+
+    **Hierarchy Options:**
+    - include_hierarchy: Include parent/child relationships (default: False)
+    - include_children: Include child tickets (default: True, requires include_hierarchy=True)
+    - max_depth: Maximum hierarchy depth (default: 3, requires include_hierarchy=True)
 
     Args:
         query: Text search query to match against title and description
@@ -38,9 +58,24 @@ async def ticket_search(
         assignee: Filter by assigned user ID or email
         project_id: Project/epic ID (required unless default_project configured)
         limit: Maximum number of results to return (default: 10, max: 100)
+        include_hierarchy: Include parent/child relationships (default: False)
+        include_children: Include child tickets in hierarchy (default: True)
+        max_depth: Maximum hierarchy depth to traverse (default: 3)
 
     Returns:
         List of tickets matching search criteria, or error information
+
+    Examples:
+        # Simple search (backward compatible)
+        await ticket_search(query="authentication bug", state="open", limit=5)
+
+        # Search with hierarchy
+        await ticket_search(
+            query="oauth implementation",
+            project_id="proj-123",
+            include_hierarchy=True,
+            max_depth=2
+        )
 
     """
     try:
@@ -106,6 +141,85 @@ async def ticket_search(
         # Execute search via adapter
         results = await adapter.search(search_query)
 
+        # Add hierarchy if requested
+        if include_hierarchy:
+            # Validate max_depth
+            if max_depth < 1 or max_depth > 3:
+                return {
+                    "status": "error",
+                    "error": "max_depth must be between 1 and 3",
+                }
+
+            # Build hierarchical results
+            hierarchical_results = []
+            for ticket in results:
+                ticket_data = {
+                    "ticket": ticket.model_dump(),
+                    "hierarchy": {},
+                }
+
+                # Get parent epic if applicable
+                parent_epic_id = getattr(ticket, "parent_epic", None)
+                if parent_epic_id and max_depth >= 2:
+                    try:
+                        parent_epic = await adapter.read(parent_epic_id)
+                        if parent_epic:
+                            ticket_data["hierarchy"][
+                                "parent_epic"
+                            ] = parent_epic.model_dump()
+                    except Exception:
+                        pass  # Parent not found, continue
+
+                # Get parent issue if applicable (for tasks)
+                parent_issue_id = getattr(ticket, "parent_issue", None)
+                if parent_issue_id and max_depth >= 2:
+                    try:
+                        parent_issue = await adapter.read(parent_issue_id)
+                        if parent_issue:
+                            ticket_data["hierarchy"][
+                                "parent_issue"
+                            ] = parent_issue.model_dump()
+                    except Exception:
+                        pass  # Parent not found, continue
+
+                # Get children if requested
+                if include_children and max_depth >= 2:
+                    children = []
+
+                    # Get child issues (for epics)
+                    child_issue_ids = getattr(ticket, "child_issues", [])
+                    for child_id in child_issue_ids:
+                        try:
+                            child = await adapter.read(child_id)
+                            if child:
+                                children.append(child.model_dump())
+                        except Exception:
+                            pass  # Child not found, continue
+
+                    # Get child tasks (for issues)
+                    child_task_ids = getattr(ticket, "children", [])
+                    for child_id in child_task_ids:
+                        try:
+                            child = await adapter.read(child_id)
+                            if child:
+                                children.append(child.model_dump())
+                        except Exception:
+                            pass  # Child not found, continue
+
+                    if children:
+                        ticket_data["hierarchy"]["children"] = children
+
+                hierarchical_results.append(ticket_data)
+
+            return {
+                "status": "completed",
+                "results": hierarchical_results,
+                "count": len(hierarchical_results),
+                "query": query,
+                "max_depth": max_depth,
+            }
+
+        # Standard search response
         return {
             "status": "completed",
             "tickets": [ticket.model_dump() for ticket in results],
@@ -133,15 +247,9 @@ async def ticket_search_hierarchy(
     include_children: bool = True,
     max_depth: int = 3,
 ) -> dict[str, Any]:
-    """Search tickets and include their hierarchy with project scoping.
+    """DEPRECATED: Use ticket_search(include_hierarchy=True, ...) instead.
 
-    ⚠️ Project Filtering Required:
-    This tool requires project_id parameter OR default_project configuration.
-    To set default project: config_set_default_project(project_id="YOUR-PROJECT")
-    To check current config: config_get()
-
-    Performs a text search and returns matching tickets along with their
-    hierarchical context (parent epics/issues and child issues/tasks).
+    This tool will be removed in v2.0.0. Migrate to the unified ticket_search tool.
 
     Args:
         query: Text search query to match against title and description
@@ -152,114 +260,30 @@ async def ticket_search_hierarchy(
     Returns:
         List of tickets with hierarchy information, or error information
 
+    Migration:
+        Before (ticket_search_hierarchy):
+        >>> await ticket_search_hierarchy(query="feature", project_id="proj-123", max_depth=2)
+
+        After (ticket_search with include_hierarchy):
+        >>> await ticket_search(query="feature", project_id="proj-123", include_hierarchy=True, max_depth=2)
+
+    See: docs/UPGRADING-v2.0.md#ticket-search-consolidation
+
     """
-    try:
-        # Validate project context (NEW: Required for search operations)
-        from pathlib import Path
+    import warnings
 
-        from ....core.project_config import ConfigResolver
+    warnings.warn(
+        "ticket_search_hierarchy is deprecated. Use ticket_search(include_hierarchy=True, ...) instead. "
+        "See docs/UPGRADING-v2.0.md#ticket-search-consolidation",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-        resolver = ConfigResolver(project_path=Path.cwd())
-        config = resolver.load_project_config()
-        final_project = project_id or (config.default_project if config else None)
-
-        if not final_project:
-            return {
-                "status": "error",
-                "error": "project_id required. Provide project_id parameter or configure default_project.",
-                "help": "Use config_set_default_project(project_id='YOUR-PROJECT') to set default project",
-                "check_config": "Use config_get() to view current configuration",
-            }
-
-        adapter = get_adapter()
-
-        # Validate max_depth
-        if max_depth < 1 or max_depth > 3:
-            return {
-                "status": "error",
-                "error": "max_depth must be between 1 and 3",
-            }
-
-        # Create search query with project scoping
-        search_query = SearchQuery(
-            query=query,
-            project=final_project,  # Always required for search operations
-            limit=50,  # Reasonable limit for hierarchical search
-        )
-
-        # Execute search via adapter
-        results = await adapter.search(search_query)
-
-        # Build hierarchical results
-        hierarchical_results = []
-        for ticket in results:
-            ticket_data = {
-                "ticket": ticket.model_dump(),
-                "hierarchy": {},
-            }
-
-            # Get parent epic if applicable
-            parent_epic_id = getattr(ticket, "parent_epic", None)
-            if parent_epic_id and max_depth >= 2:
-                try:
-                    parent_epic = await adapter.read(parent_epic_id)
-                    if parent_epic:
-                        ticket_data["hierarchy"][
-                            "parent_epic"
-                        ] = parent_epic.model_dump()
-                except Exception:
-                    pass  # Parent not found, continue
-
-            # Get parent issue if applicable (for tasks)
-            parent_issue_id = getattr(ticket, "parent_issue", None)
-            if parent_issue_id and max_depth >= 2:
-                try:
-                    parent_issue = await adapter.read(parent_issue_id)
-                    if parent_issue:
-                        ticket_data["hierarchy"][
-                            "parent_issue"
-                        ] = parent_issue.model_dump()
-                except Exception:
-                    pass  # Parent not found, continue
-
-            # Get children if requested
-            if include_children and max_depth >= 2:
-                children = []
-
-                # Get child issues (for epics)
-                child_issue_ids = getattr(ticket, "child_issues", [])
-                for child_id in child_issue_ids:
-                    try:
-                        child = await adapter.read(child_id)
-                        if child:
-                            children.append(child.model_dump())
-                    except Exception:
-                        pass  # Child not found, continue
-
-                # Get child tasks (for issues)
-                child_task_ids = getattr(ticket, "children", [])
-                for child_id in child_task_ids:
-                    try:
-                        child = await adapter.read(child_id)
-                        if child:
-                            children.append(child.model_dump())
-                    except Exception:
-                        pass  # Child not found, continue
-
-                if children:
-                    ticket_data["hierarchy"]["children"] = children
-
-            hierarchical_results.append(ticket_data)
-
-        return {
-            "status": "completed",
-            "results": hierarchical_results,
-            "count": len(hierarchical_results),
-            "query": query,
-            "max_depth": max_depth,
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "error": f"Failed to search with hierarchy: {str(e)}",
-        }
+    # Route to unified ticket_search tool
+    return await ticket_search(
+        query=query,
+        project_id=project_id,
+        include_hierarchy=True,
+        include_children=include_children,
+        max_depth=max_depth,
+    )

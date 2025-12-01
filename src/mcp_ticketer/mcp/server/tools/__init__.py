@@ -10,8 +10,6 @@ Modules:
     search_tools: Search and query operations
     bulk_tools: Bulk create and update operations
     comment_tools: Comment management
-    pr_tools: Pull request integration
-    attachment_tools: File attachment handling
     config_tools: Configuration management (adapter, project, user settings)
     session_tools: Session tracking and ticket association management
     user_ticket_tools: User-specific ticket operations (my tickets, transitions)
@@ -22,7 +20,10 @@ Modules:
 
 Note:
     instruction_tools: Removed from MCP server (CLI-only as of Phase 1 consolidation)
+    pr_tools: Removed from MCP server (CLI-only as of Phase 2 Sprint 1.3)
+    attachment_tools: Removed from MCP server (CLI-only as of Phase 2 Sprint 1.3)
     These tools are available via CLI commands but not exposed through MCP interface.
+    Use filesystem MCP for file operations and GitHub MCP for PR management.
 
 """
 
@@ -30,14 +31,14 @@ Note:
 # Order matters - import core functionality first
 from . import (
     analysis_tools,  # noqa: F401
-    attachment_tools,  # noqa: F401
+    # attachment_tools removed - CLI-only (Phase 2 Sprint 1.3 - use filesystem MCP)
     bulk_tools,  # noqa: F401
     comment_tools,  # noqa: F401
     config_tools,  # noqa: F401
     hierarchy_tools,  # noqa: F401
     # instruction_tools removed - CLI-only (Phase 1 consolidation)
     label_tools,  # noqa: F401
-    pr_tools,  # noqa: F401
+    # pr_tools removed - CLI-only (Phase 2 Sprint 1.3 - use GitHub MCP)
     project_status_tools,  # noqa: F401
     project_update_tools,  # noqa: F401
     search_tools,  # noqa: F401
@@ -48,14 +49,14 @@ from . import (
 
 __all__ = [
     "analysis_tools",
-    "attachment_tools",
+    # "attachment_tools" removed - CLI-only (Phase 2 Sprint 1.3)
     "bulk_tools",
     "comment_tools",
     "config_tools",
     "hierarchy_tools",
     # "instruction_tools" removed - CLI-only (Phase 1 consolidation)
     "label_tools",
-    "pr_tools",
+    # "pr_tools" removed - CLI-only (Phase 2 Sprint 1.3)
     "project_status_tools",
     "project_update_tools",
     "search_tools",

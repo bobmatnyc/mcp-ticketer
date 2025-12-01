@@ -4,12 +4,28 @@ This module implements MCP tools for creating, listing, and retrieving project
 status updates with health indicators. Supports Linear (native), GitHub V2,
 Asana, and JIRA (via workaround).
 
+Features:
+- project_update: Unified interface for all project update operations (create, get, list)
+- project_update_create: Create project update (deprecated, use project_update(action="create"))
+- project_update_get: Get project update by ID (deprecated, use project_update(action="get"))
+- project_update_list: List project updates (deprecated, use project_update(action="list"))
+
+All tools follow the MCP response pattern:
+    {
+        "status": "completed" | "error",
+        "adapter": "adapter_type",
+        "adapter_name": "Adapter Display Name",
+        ... tool-specific data ...
+    }
+
 Related to ticket 1M-238: Add project updates support with flexible project
 identification.
+Related to ticket 1M-484: Phase 2 Sprint 1.1 - Consolidate project_update tools.
 """
 
 import logging
-from typing import Any
+import warnings
+from typing import Any, Literal
 
 from ....core.adapter import BaseAdapter
 from ....core.models import ProjectUpdateHealth
@@ -44,12 +60,131 @@ def _build_adapter_metadata(
 
 
 @mcp.tool()
+async def project_update(
+    action: Literal["create", "get", "list"],
+    project_id: str | None = None,
+    update_id: str | None = None,
+    body: str | None = None,
+    health: str | None = None,
+    limit: int = 10,
+) -> dict[str, Any]:
+    """Unified project update management with action-based routing.
+
+    This tool consolidates all project update operations into a single interface:
+    - create: Create new project status update
+    - get: Get specific update by ID
+    - list: List updates for a project
+
+    Args:
+        action: Operation to perform. Valid values:
+            - "create": Create new project status update
+            - "get": Get specific update by ID
+            - "list": List updates for a project
+
+        # Parameters for "create" action (required: project_id, body)
+        project_id: Project identifier (UUID, slugId, or URL)
+        body: Update content in Markdown format
+        health: Optional health status - must be one of:
+            - on_track: Project is progressing as planned
+            - at_risk: Project has some issues but recoverable
+            - off_track: Project is significantly behind or blocked
+            - complete: Project is finished (GitHub-specific)
+            - inactive: Project is not actively being worked on (GitHub-specific)
+
+        # Parameters for "get" action (required: update_id)
+        update_id: Project update identifier (UUID or platform-specific ID)
+
+        # Parameters for "list" action (required: project_id)
+        # project_id: Project identifier
+        limit: Maximum number of updates to return (default: 10, max: 50)
+
+    Returns:
+        Results specific to action with status and relevant data
+
+    Examples:
+        # Create update
+        project_update(action="create", project_id="PROJ-123",
+                      body="Sprint completed with 15/20 stories done",
+                      health="at_risk")
+
+        # Get update
+        project_update(action="get", update_id="update-456")
+
+        # List updates
+        project_update(action="list", project_id="PROJ-123", limit=5)
+
+    Note:
+        Related to ticket 1M-238: Add project updates support with flexible
+        project identification.
+        Related to ticket 1M-484: Phase 2 Sprint 1.1 - Consolidate project_update tools.
+
+    """
+    # Validate action
+    valid_actions = ["create", "get", "list"]
+    if action not in valid_actions:
+        return {
+            "status": "error",
+            "error": f"Invalid action '{action}'. Valid actions: {', '.join(valid_actions)}",
+        }
+
+    # Route to appropriate handler based on action
+    if action == "create":
+        # Validate required parameters for create
+        if not project_id:
+            return {
+                "status": "error",
+                "error": "Parameter 'project_id' is required for action='create'",
+            }
+        if not body:
+            return {
+                "status": "error",
+                "error": "Parameter 'body' is required for action='create'",
+            }
+        return await project_update_create(
+            project_id=project_id,
+            body=body,
+            health=health,
+        )
+
+    elif action == "get":
+        # Validate required parameters for get
+        if not update_id:
+            return {
+                "status": "error",
+                "error": "Parameter 'update_id' is required for action='get'",
+            }
+        return await project_update_get(update_id=update_id)
+
+    elif action == "list":
+        # Validate required parameters for list
+        if not project_id:
+            return {
+                "status": "error",
+                "error": "Parameter 'project_id' is required for action='list'",
+            }
+        return await project_update_list(
+            project_id=project_id,
+            limit=limit,
+        )
+
+    # Should never reach here due to action validation above
+    return {
+        "status": "error",
+        "error": f"Unhandled action: {action}",
+    }
+
+
+@mcp.tool()
 async def project_update_create(
     project_id: str,
     body: str,
     health: str | None = None,
 ) -> dict[str, Any]:
     """Create a project status update.
+
+    .. deprecated::
+        Use project_update(action="create", ...) instead.
+        This tool will be removed in a future version.
 
     Creates a status update for a project with optional health indicator.
     Supports Linear (native), GitHub V2, Asana, and JIRA (via workaround).
@@ -86,6 +221,11 @@ async def project_update_create(
         project identification.
 
     """
+    warnings.warn(
+        "project_update_create is deprecated. Use project_update(action='create', ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Validate body is not empty (before calling get_adapter)
         if not body or not body.strip():
@@ -150,6 +290,10 @@ async def project_update_list(
 ) -> dict[str, Any]:
     """List project updates for a project.
 
+    .. deprecated::
+        Use project_update(action="list", ...) instead.
+        This tool will be removed in a future version.
+
     Retrieves status updates for a specific project with pagination support.
     Returns updates in reverse chronological order (newest first).
 
@@ -178,6 +322,11 @@ async def project_update_list(
         project identification.
 
     """
+    warnings.warn(
+        "project_update_list is deprecated. Use project_update(action='list', ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Validate limit (before calling get_adapter)
         if limit < 1 or limit > 50:
@@ -229,6 +378,10 @@ async def project_update_get(
 ) -> dict[str, Any]:
     """Get a specific project update by ID.
 
+    .. deprecated::
+        Use project_update(action="get", ...) instead.
+        This tool will be removed in a future version.
+
     Retrieves detailed information about a single project status update.
 
     Platform Support:
@@ -254,6 +407,11 @@ async def project_update_get(
         project identification.
 
     """
+    warnings.warn(
+        "project_update_get is deprecated. Use project_update(action='get', ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Validate update_id is not empty (before calling get_adapter)
         if not update_id or not update_id.strip():
