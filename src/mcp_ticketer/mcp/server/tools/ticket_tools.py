@@ -5,8 +5,9 @@ operations for tickets using the FastMCP SDK.
 """
 
 import logging
+import warnings
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from ....core.adapter import BaseAdapter
 from ....core.models import Priority, Task, TicketState
@@ -158,6 +159,208 @@ async def detect_and_apply_labels(
 
 
 @mcp.tool()
+async def ticket(
+    action: Literal[
+        "create", "get", "update", "delete", "list", "summary", "get_activity", "assign"
+    ],
+    # Ticket identification
+    ticket_id: str | None = None,
+    # Create parameters
+    title: str | None = None,
+    description: str = "",
+    priority: str = "medium",
+    tags: list[str] | None = None,
+    assignee: str | None = None,
+    parent_epic: str | None = _UNSET,
+    auto_detect_labels: bool = True,
+    # Update parameters
+    state: str | None = None,
+    # List parameters
+    limit: int = 20,
+    offset: int = 0,
+    project_id: str | None = None,
+    compact: bool = True,
+    # Assign parameters
+    comment: str | None = None,
+    auto_transition: bool = True,
+) -> dict[str, Any]:
+    """Unified ticket management tool for all CRUD operations.
+
+    Handles ticket creation, reading, updating, deletion, listing,
+    summarization, activity tracking, and assignment in a single interface.
+
+    Args:
+        action: Operation to perform (create, get, update, delete, list, summary, get_activity, assign)
+        ticket_id: Ticket ID for get/update/delete/summary/assign operations
+        title: Ticket title (required for create)
+        description: Ticket description
+        priority: Ticket priority (low, medium, high, critical)
+        tags: List of tags/labels
+        assignee: User ID or email to assign ticket
+        parent_epic: Parent epic/project ID
+        auto_detect_labels: Auto-detect labels from content
+        state: Ticket state for updates
+        limit: Maximum results for list/get_activity operations
+        offset: Pagination offset for list
+        project_id: Project filter for list operations
+        compact: Return compact format for list (saves tokens)
+        comment: Comment when assigning ticket
+        auto_transition: Auto-transition state when assigning
+
+    Returns:
+        dict: Operation results
+
+    Raises:
+        ValueError: If action is invalid or required parameters missing
+
+    Examples:
+        # Create ticket
+        await ticket(
+            action="create",
+            title="Fix login bug",
+            priority="high",
+            tags=["bug", "security"]
+        )
+
+        # Get ticket details
+        await ticket(
+            action="get",
+            ticket_id="PROJ-123"
+        )
+
+        # Update ticket
+        await ticket(
+            action="update",
+            ticket_id="PROJ-123",
+            state="in_progress",
+            priority="critical"
+        )
+
+        # List tickets
+        await ticket(
+            action="list",
+            project_id="PROJ",
+            state="open",
+            limit=50
+        )
+
+        # Get compact summary
+        await ticket(
+            action="summary",
+            ticket_id="PROJ-123"
+        )
+
+        # Get activity/comments
+        await ticket(
+            action="get_activity",
+            ticket_id="PROJ-123",
+            limit=5
+        )
+
+        # Assign ticket
+        await ticket(
+            action="assign",
+            ticket_id="PROJ-123",
+            assignee="user@example.com",
+            comment="Taking this one"
+        )
+
+        # Delete ticket
+        await ticket(
+            action="delete",
+            ticket_id="PROJ-123"
+        )
+    """
+    # Normalize action to lowercase for case-insensitive matching
+    action_lower = action.lower()
+
+    if action_lower == "create":
+        if not title:
+            return {
+                "status": "error",
+                "error": "title parameter required for action='create'",
+                "hint": "Example: ticket(action='create', title='Fix bug', priority='high')",
+            }
+        return await ticket_create(
+            title, description, priority, tags, assignee, parent_epic, auto_detect_labels
+        )
+
+    elif action_lower == "get":
+        if not ticket_id:
+            return {
+                "status": "error",
+                "error": "ticket_id parameter required for action='get'",
+                "hint": "Example: ticket(action='get', ticket_id='PROJ-123')",
+            }
+        return await ticket_read(ticket_id)
+
+    elif action_lower == "update":
+        if not ticket_id:
+            return {
+                "status": "error",
+                "error": "ticket_id parameter required for action='update'",
+                "hint": "Example: ticket(action='update', ticket_id='PROJ-123', state='done')",
+            }
+        return await ticket_update(ticket_id, title, description, priority, state, assignee, tags)
+
+    elif action_lower == "delete":
+        if not ticket_id:
+            return {
+                "status": "error",
+                "error": "ticket_id parameter required for action='delete'",
+                "hint": "Example: ticket(action='delete', ticket_id='PROJ-123')",
+            }
+        return await ticket_delete(ticket_id)
+
+    elif action_lower == "list":
+        return await ticket_list(limit, offset, state, priority, assignee, project_id, compact)
+
+    elif action_lower == "summary":
+        if not ticket_id:
+            return {
+                "status": "error",
+                "error": "ticket_id parameter required for action='summary'",
+                "hint": "Example: ticket(action='summary', ticket_id='PROJ-123')",
+            }
+        return await ticket_summary(ticket_id)
+
+    elif action_lower == "get_activity":
+        if not ticket_id:
+            return {
+                "status": "error",
+                "error": "ticket_id parameter required for action='get_activity'",
+                "hint": "Example: ticket(action='get_activity', ticket_id='PROJ-123', limit=5)",
+            }
+        return await ticket_latest(ticket_id, limit)
+
+    elif action_lower == "assign":
+        if not ticket_id:
+            return {
+                "status": "error",
+                "error": "ticket_id parameter required for action='assign'",
+                "hint": "Example: ticket(action='assign', ticket_id='PROJ-123', assignee='user@example.com')",
+            }
+        return await ticket_assign(ticket_id, assignee, comment, auto_transition)
+
+    else:
+        return {
+            "status": "error",
+            "error": f"Invalid action: {action}",
+            "valid_actions": [
+                "create",
+                "get",
+                "update",
+                "delete",
+                "list",
+                "summary",
+                "get_activity",
+                "assign",
+            ],
+            "hint": "Use one of the valid actions listed above",
+        }
+
+
+@mcp.tool()
 async def ticket_create(
     title: str,
     description: str = "",
@@ -169,10 +372,20 @@ async def ticket_create(
 ) -> dict[str, Any]:
     """Create ticket with auto-label detection and semantic priority matching.
 
+    .. deprecated:: 1.5.0
+        Use :func:`ticket` with ``action='create'`` instead.
+        This function will be removed in version 2.0.0.
+
     Args: title (required), description, priority (supports natural language), tags, assignee, parent_epic (optional), auto_detect_labels (default: True)
     Returns: TicketResponse with created ticket, ID, metadata
     See: docs/mcp-api-reference.md#ticket-response-format, docs/mcp-api-reference.md#semantic-priority-matching
     """
+    warnings.warn(
+        "ticket_create is deprecated. Use ticket(action='create', ...) instead. "
+        "This function will be removed in version 2.0.0.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         adapter = get_adapter()
 
@@ -328,10 +541,20 @@ async def ticket_create(
 async def ticket_read(ticket_id: str) -> dict[str, Any]:
     """Read ticket by ID or URL (supports Linear, GitHub, JIRA, Asana URLs with multi-platform routing).
 
+    .. deprecated:: 1.5.0
+        Use :func:`ticket` with ``action='get'`` instead.
+        This function will be removed in version 2.0.0.
+
     Args: ticket_id (ID or full URL)
     Returns: TicketResponse with ticket details
     See: docs/mcp-api-reference.md#ticket-response-format, docs/mcp-api-reference.md#url-routing
     """
+    warnings.warn(
+        "ticket_read is deprecated. Use ticket(action='get', ticket_id=...) instead. "
+        "This function will be removed in version 2.0.0.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         is_routed = False
         # Check if multi-platform routing is available
@@ -418,10 +641,20 @@ async def ticket_update(
 ) -> dict[str, Any]:
     """Update ticket using ID or URL (semantic priority matching, workflow states).
 
+    .. deprecated:: 1.5.0
+        Use :func:`ticket` with ``action='update'`` instead.
+        This function will be removed in version 2.0.0.
+
     Args: ticket_id (ID or URL), title, description, priority (natural language), state (workflow), assignee, tags
     Returns: TicketResponse with updated ticket
     See: docs/mcp-api-reference.md#ticket-response-format, docs/mcp-api-reference.md#semantic-priority-matching
     """
+    warnings.warn(
+        "ticket_update is deprecated. Use ticket(action='update', ticket_id=...) instead. "
+        "This function will be removed in version 2.0.0.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Build updates dictionary with only provided fields
         updates: dict[str, Any] = {}
@@ -535,10 +768,20 @@ async def ticket_update(
 async def ticket_delete(ticket_id: str) -> dict[str, Any]:
     """Delete ticket by ID or URL.
 
+    .. deprecated:: 1.5.0
+        Use :func:`ticket` with ``action='delete'`` instead.
+        This function will be removed in version 2.0.0.
+
     Args: ticket_id (ID or URL)
     Returns: DeleteResponse with status confirmation
     See: docs/mcp-api-reference.md#delete-response
     """
+    warnings.warn(
+        "ticket_delete is deprecated. Use ticket(action='delete', ticket_id=...) instead. "
+        "This function will be removed in version 2.0.0.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Route to appropriate adapter
         is_routed = False
@@ -589,7 +832,7 @@ async def ticket_delete(ticket_id: str) -> dict[str, Any]:
 def _compact_ticket(ticket_dict: dict[str, Any]) -> dict[str, Any]:
     """Extract compact representation of ticket for reduced token usage.
 
-    This helper function reduces ticket data from ~185 tokens to ~15 tokens by
+    This helper function reduces ticket data from ~185 tokens to ~50 tokens by
     including only the most essential fields. Use for listing operations where full
     details are not needed.
 
@@ -597,16 +840,24 @@ def _compact_ticket(ticket_dict: dict[str, Any]) -> dict[str, Any]:
         ticket_dict: Full ticket dictionary from model_dump()
 
     Returns:
-        Compact ticket dictionary with minimal fields:
+        Compact ticket dictionary with essential fields:
         - id: Ticket identifier
         - title: Ticket title
         - state: Current state (for quick status check)
+        - priority: Priority level
+        - assignee: Assigned user (if any)
+        - tags: List of tags/labels (if any)
+        - parent_epic: Parent epic ID (if any)
 
     """
     return {
         "id": ticket_dict.get("id"),
         "title": ticket_dict.get("title"),
         "state": ticket_dict.get("state"),
+        "priority": ticket_dict.get("priority"),
+        "assignee": ticket_dict.get("assignee"),
+        "tags": ticket_dict.get("tags") or [],
+        "parent_epic": ticket_dict.get("parent_epic"),
     }
 
 
@@ -622,15 +873,25 @@ async def ticket_list(
 ) -> dict[str, Any]:
     """List tickets with pagination and filters (compact mode default, project scoping required).
 
+    .. deprecated:: 1.5.0
+        Use :func:`ticket` with ``action='list'`` instead.
+        This function will be removed in version 2.0.0.
+
     ⚠️ Project Filtering Required:
     This tool requires project_id parameter OR default_project configuration.
     To set default project: config_set_default_project(project_id="YOUR-PROJECT")
     To check current config: config_get()
 
-    Args: limit (max: 100, default: 20), offset (pagination), state, priority, assignee, project_id (required), compact (default: True, ~15 tokens/ticket vs ~185 full)
+    Args: limit (max: 100, default: 20), offset (pagination), state, priority, assignee, project_id (required), compact (default: True, ~50 tokens/ticket vs ~185 full)
     Returns: ListResponse with tickets array, count, pagination
     See: docs/mcp-api-reference.md#list-response-format, docs/mcp-api-reference.md#token-usage-optimization
     """
+    warnings.warn(
+        "ticket_list is deprecated. Use ticket(action='list', ...) instead. "
+        "This function will be removed in version 2.0.0.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Validate project context (NEW: Required for list operations)
         from pathlib import Path
@@ -738,10 +999,20 @@ async def ticket_list(
 async def ticket_summary(ticket_id: str) -> dict[str, Any]:
     """Get ultra-compact summary (id, title, state, priority, assignee only - ~20 tokens vs ~185 full).
 
+    .. deprecated:: 1.5.0
+        Use :func:`ticket` with ``action='summary'`` instead.
+        This function will be removed in version 2.0.0.
+
     Args: ticket_id (ID or URL)
     Returns: SummaryResponse with minimal fields (90% token savings)
     See: docs/mcp-api-reference.md#compact-ticket-format
     """
+    warnings.warn(
+        "ticket_summary is deprecated. Use ticket(action='summary', ticket_id=...) instead. "
+        "This function will be removed in version 2.0.0.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Use ticket_read to get full ticket
         result = await ticket_read(ticket_id)
@@ -779,10 +1050,20 @@ async def ticket_summary(ticket_id: str) -> dict[str, Any]:
 async def ticket_latest(ticket_id: str, limit: int = 5) -> dict[str, Any]:
     """Get recent activity (comments, state changes, updates - adapter-dependent behavior).
 
+    .. deprecated:: 1.5.0
+        Use :func:`ticket` with ``action='get_activity'`` instead.
+        This function will be removed in version 2.0.0.
+
     Args: ticket_id (ID or URL), limit (max: 20, default: 5)
     Returns: ActivityResponse with recent activities, timestamps, change descriptions
     See: docs/mcp-api-reference.md#activity-response-format
     """
+    warnings.warn(
+        "ticket_latest is deprecated. Use ticket(action='get_activity', ticket_id=...) instead. "
+        "This function will be removed in version 2.0.0.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Validate limit
         if limit < 1 or limit > 20:
@@ -913,10 +1194,20 @@ async def ticket_assign(
 ) -> dict[str, Any]:
     """Assign/unassign ticket with auto-transition to IN_PROGRESS (OPEN/WAITING/BLOCKED → IN_PROGRESS when assigned).
 
+    .. deprecated:: 1.5.0
+        Use :func:`ticket` with ``action='assign'`` instead.
+        This function will be removed in version 2.0.0.
+
     Args: ticket_id (ID or URL), assignee (user ID/email or None to unassign), comment (optional audit trail), auto_transition (default: True)
     Returns: AssignmentResponse with ticket, previous/new assignee, previous/new state, state_auto_transitioned, comment_added
     See: docs/ticket-workflows.md#auto-transitions, docs/mcp-api-reference.md#user-identifiers
     """
+    warnings.warn(
+        "ticket_assign is deprecated. Use ticket(action='assign', ticket_id=...) instead. "
+        "This function will be removed in version 2.0.0.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Read current ticket to get previous assignee
         is_routed = False
