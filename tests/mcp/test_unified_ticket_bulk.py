@@ -13,8 +13,6 @@ import pytest
 from mcp_ticketer.core.models import Priority, Task, TicketState, TicketType
 from mcp_ticketer.mcp.server.tools.bulk_tools import (
     ticket_bulk,
-    ticket_bulk_create,
-    ticket_bulk_update,
 )
 
 

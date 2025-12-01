@@ -1,35 +1,23 @@
-"""Tests for unified hierarchy() tool consolidation.
+"""Tests for unified hierarchy() tool (v2.0.0).
 
 This test suite verifies:
-1. The unified hierarchy() tool routes correctly to existing functions
-2. All 11 deprecated tools still function with warnings
-3. 100% backward compatibility is maintained
-4. Token savings are achieved while preserving functionality
+1. The unified hierarchy() tool routes correctly to adapter methods
+2. All entity types (epic, issue, task) work with appropriate actions
+3. Error handling for invalid entity types and actions
+4. Parameter normalization (entity_id, epic_id, issue_id)
 
-Strategy: We test the routing logic of hierarchy() by mocking the underlying
-functions it calls, rather than testing the full stack (which is already tested
-in the individual function tests).
+Strategy: We test the routing logic of hierarchy() by mocking the adapter
+layer, rather than testing the full stack (which is already tested in
+integration tests).
 """
 
-import warnings
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from mcp_ticketer.core.models import Epic, Task, TicketType
 from mcp_ticketer.mcp.server.tools.hierarchy_tools import (
-    epic_create,
-    epic_delete,
-    epic_get,
-    epic_issues,
-    epic_list,
-    epic_update,
     hierarchy,
-    hierarchy_tree,
-    issue_create,
-    issue_get_parent,
-    issue_tasks,
-    task_create,
 )
 
 
@@ -87,7 +75,7 @@ async def test_hierarchy_epic_list():
         "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
     ) as mock_adapter:
         # Setup mock
-        adapter = AsyncMock()
+        adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
         adapter.list_epics = AsyncMock(
@@ -129,7 +117,7 @@ async def test_hierarchy_epic_update():
         "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
     ) as mock_adapter:
         # Setup mock
-        adapter = AsyncMock()
+        adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
         adapter.update_epic = AsyncMock(
@@ -158,7 +146,7 @@ async def test_hierarchy_epic_delete():
         "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
     ) as mock_adapter:
         # Setup mock
-        adapter = AsyncMock()
+        adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
         adapter.delete_epic = AsyncMock(return_value=True)
@@ -182,7 +170,7 @@ async def test_hierarchy_epic_get_children():
         "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
     ) as mock_adapter:
         # Setup mock
-        adapter = AsyncMock()
+        adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
         epic = Epic(id="EPIC-1", title="Epic 1", child_issues=["ISSUE-1", "ISSUE-2"])
@@ -210,7 +198,7 @@ async def test_hierarchy_epic_get_tree():
         "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
     ) as mock_adapter:
         # Setup mock
-        adapter = AsyncMock()
+        adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
         epic = Epic(id="EPIC-1", title="Epic 1", child_issues=["ISSUE-1"])
@@ -261,7 +249,7 @@ async def test_hierarchy_epic_with_epic_id_parameter():
         "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
     ) as mock_adapter:
         # Setup mock
-        adapter = AsyncMock()
+        adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
         epic = Epic(id="EPIC-1", title="Test Epic")
@@ -285,7 +273,7 @@ async def test_hierarchy_epic_list_with_filters():
         "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
     ) as mock_adapter:
         # Setup mock
-        adapter = AsyncMock()
+        adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
         adapter.list_epics = AsyncMock(
@@ -326,7 +314,7 @@ async def test_hierarchy_issue_create():
         "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
     ) as mock_adapter:
         # Setup mock
-        adapter = AsyncMock()
+        adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
         created_issue = Task(
@@ -368,7 +356,7 @@ async def test_hierarchy_issue_get_parent():
         "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
     ) as mock_adapter:
         # Setup mock
-        adapter = AsyncMock()
+        adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
         issue = Task(
@@ -402,7 +390,7 @@ async def test_hierarchy_issue_get_children():
         "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
     ) as mock_adapter:
         # Setup mock
-        adapter = AsyncMock()
+        adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
         issue = Task(
@@ -456,7 +444,7 @@ async def test_hierarchy_issue_with_issue_id_parameter():
         "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
     ) as mock_adapter:
         # Setup mock
-        adapter = AsyncMock()
+        adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
         issue = Task(
@@ -484,7 +472,7 @@ async def test_hierarchy_task_create():
         "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
     ) as mock_adapter:
         # Setup mock
-        adapter = AsyncMock()
+        adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
         created_task = Task(
@@ -551,7 +539,7 @@ async def test_hierarchy_tree_max_depth_1():
         "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
     ) as mock_adapter:
         # Setup mock
-        adapter = AsyncMock()
+        adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
         epic = Epic(id="EPIC-1", title="Epic 1")
@@ -580,7 +568,7 @@ async def test_hierarchy_tree_max_depth_3():
         "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
     ) as mock_adapter:
         # Setup mock
-        adapter = AsyncMock()
+        adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
         epic = Epic(id="EPIC-1", title="Epic 1", child_issues=["ISSUE-1"])
@@ -615,7 +603,7 @@ async def test_hierarchy_tree_validation():
         "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
     ) as mock_adapter:
         # Setup mock
-        adapter = AsyncMock()
+        adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
         epic = Epic(id="EPIC-1", title="Epic 1", child_issues=[])
@@ -657,7 +645,7 @@ async def test_hierarchy_case_insensitive_entity_type():
         "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
     ) as mock_adapter:
         # Setup mock
-        adapter = AsyncMock()
+        adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
         epic = Epic(id="EPIC-1", title="Test Epic")
@@ -726,7 +714,7 @@ async def test_hierarchy_invalid_priority():
         "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
     ) as mock_adapter:
         # Setup mock
-        adapter = AsyncMock()
+        adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
         mock_adapter.return_value = adapter
@@ -754,251 +742,15 @@ async def test_hierarchy_invalid_priority():
             assert "priority" in result["error"].lower()
 
 
-# === DEPRECATION WARNINGS (11 tests) ===
 
 
-@pytest.mark.asyncio
-async def test_epic_create_deprecation_warning():
-    """Test epic_create emits deprecation warning."""
-    with patch(
-        "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
-    ) as mock_adapter:
-        adapter = AsyncMock()
-        adapter.adapter_type = "test"
-        adapter.adapter_display_name = "Test Adapter"
-        adapter.create.return_value = Epic(id="EPIC-1", title="Test")
-        mock_adapter.return_value = adapter
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            await epic_create(title="Test Epic")
-
-            assert len(w) >= 1
-            assert issubclass(w[0].category, DeprecationWarning)
-            assert "hierarchy" in str(w[0].message)
 
 
-@pytest.mark.asyncio
-async def test_epic_get_deprecation_warning():
-    """Test epic_get emits deprecation warning."""
-    with patch(
-        "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
-    ) as mock_adapter:
-        adapter = AsyncMock()
-        adapter.read.return_value = Epic(id="EPIC-1", title="Test")
-        mock_adapter.return_value = adapter
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            await epic_get(epic_id="EPIC-1")
-
-            assert len(w) >= 1
-            assert issubclass(w[0].category, DeprecationWarning)
 
 
-@pytest.mark.asyncio
-async def test_epic_list_deprecation_warning():
-    """Test epic_list emits deprecation warning."""
-    with patch(
-        "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
-    ) as mock_adapter:
-        adapter = AsyncMock()
-        adapter.list_epics = AsyncMock(return_value=[])
-        mock_adapter.return_value = adapter
-
-        with patch(
-            "mcp_ticketer.mcp.server.tools.hierarchy_tools.ConfigResolver"
-        ) as mock_config:
-            mock_config_instance = MagicMock()
-            mock_config_instance.load_project_config.return_value = MagicMock(
-                default_project="PROJECT-1"
-            )
-            mock_config.return_value = mock_config_instance
-
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter("always")
-                await epic_list(project_id="PROJECT-1")
-
-                assert len(w) == 1
-                assert issubclass(w[0].category, DeprecationWarning)
 
 
-@pytest.mark.asyncio
-async def test_epic_update_deprecation_warning():
-    """Test epic_update emits deprecation warning."""
-    with patch(
-        "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
-    ) as mock_adapter:
-        adapter = AsyncMock()
-        adapter.update_epic = AsyncMock(
-            return_value=Epic(id="EPIC-1", title="Updated")
-        )
-        mock_adapter.return_value = adapter
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            await epic_update(epic_id="EPIC-1", title="Updated")
-
-            assert len(w) >= 1
-            assert issubclass(w[0].category, DeprecationWarning)
 
 
-@pytest.mark.asyncio
-async def test_epic_delete_deprecation_warning():
-    """Test epic_delete emits deprecation warning."""
-    with patch(
-        "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
-    ) as mock_adapter:
-        adapter = AsyncMock()
-        adapter.delete_epic = AsyncMock(return_value=True)
-        mock_adapter.return_value = adapter
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            await epic_delete(epic_id="EPIC-1")
-
-            assert len(w) >= 1
-            assert issubclass(w[0].category, DeprecationWarning)
 
 
-@pytest.mark.asyncio
-async def test_epic_issues_deprecation_warning():
-    """Test epic_issues emits deprecation warning."""
-    with patch(
-        "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
-    ) as mock_adapter:
-        adapter = AsyncMock()
-        adapter.read.return_value = Epic(id="EPIC-1", title="Epic 1", child_issues=[])
-        mock_adapter.return_value = adapter
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            await epic_issues(epic_id="EPIC-1")
-
-            assert len(w) >= 1
-            assert issubclass(w[0].category, DeprecationWarning)
-
-
-@pytest.mark.asyncio
-async def test_issue_create_deprecation_warning():
-    """Test issue_create emits deprecation warning."""
-    with patch(
-        "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
-    ) as mock_adapter:
-        adapter = AsyncMock()
-        adapter.adapter_type = "test"
-        adapter.adapter_display_name = "Test Adapter"
-        adapter.create.return_value = Task(
-            id="ISSUE-1", title="Test", ticket_type=TicketType.ISSUE
-        )
-        adapter.list_labels = AsyncMock(return_value=[])
-        mock_adapter.return_value = adapter
-
-        with patch(
-            "mcp_ticketer.mcp.server.tools.hierarchy_tools.ConfigResolver"
-        ) as mock_config:
-            mock_config_instance = MagicMock()
-            mock_config_instance.load_project_config.return_value = MagicMock(
-                default_project="EPIC-1", default_user=None
-            )
-            mock_config.return_value = mock_config_instance
-
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter("always")
-                await issue_create(title="Test Issue")
-
-                assert len(w) == 1
-                assert issubclass(w[0].category, DeprecationWarning)
-
-
-@pytest.mark.asyncio
-async def test_issue_get_parent_deprecation_warning():
-    """Test issue_get_parent emits deprecation warning."""
-    with patch(
-        "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
-    ) as mock_adapter:
-        adapter = AsyncMock()
-        adapter.read.return_value = Task(
-            id="ISSUE-1", title="Test", ticket_type=TicketType.ISSUE
-        )
-        mock_adapter.return_value = adapter
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            await issue_get_parent(issue_id="ISSUE-1")
-
-            assert len(w) >= 1
-            assert issubclass(w[0].category, DeprecationWarning)
-
-
-@pytest.mark.asyncio
-async def test_issue_tasks_deprecation_warning():
-    """Test issue_tasks emits deprecation warning."""
-    with patch(
-        "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
-    ) as mock_adapter:
-        adapter = AsyncMock()
-        adapter.read.return_value = Task(
-            id="ISSUE-1",
-            title="Test",
-            ticket_type=TicketType.ISSUE,
-            children=[],
-        )
-        mock_adapter.return_value = adapter
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            await issue_tasks(issue_id="ISSUE-1")
-
-            assert len(w) >= 1
-            assert issubclass(w[0].category, DeprecationWarning)
-
-
-@pytest.mark.asyncio
-async def test_task_create_deprecation_warning():
-    """Test task_create emits deprecation warning."""
-    with patch(
-        "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
-    ) as mock_adapter:
-        adapter = AsyncMock()
-        adapter.adapter_type = "test"
-        adapter.adapter_display_name = "Test Adapter"
-        adapter.create.return_value = Task(
-            id="TASK-1", title="Test", ticket_type=TicketType.TASK
-        )
-        adapter.list_labels = AsyncMock(return_value=[])
-        mock_adapter.return_value = adapter
-
-        with patch(
-            "mcp_ticketer.mcp.server.tools.hierarchy_tools.ConfigResolver"
-        ) as mock_config:
-            mock_config_instance = MagicMock()
-            mock_config_instance.load_project_config.return_value = MagicMock(
-                default_user=None
-            )
-            mock_config.return_value = mock_config_instance
-
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter("always")
-                await task_create(title="Test Task")
-
-                assert len(w) == 1
-                assert issubclass(w[0].category, DeprecationWarning)
-
-
-@pytest.mark.asyncio
-async def test_hierarchy_tree_deprecation_warning():
-    """Test hierarchy_tree emits deprecation warning."""
-    with patch(
-        "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter"
-    ) as mock_adapter:
-        adapter = AsyncMock()
-        adapter.read.return_value = Epic(id="EPIC-1", title="Test")
-        mock_adapter.return_value = adapter
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            await hierarchy_tree(epic_id="EPIC-1")
-
-            assert len(w) >= 1
-            assert issubclass(w[0].category, DeprecationWarning)

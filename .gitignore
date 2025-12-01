@@ -271,3 +271,4 @@ test_*.py
 *_SUMMARY.md
 *_FIX.md
 demo_*.py
+fix_hierarchy_tests.py

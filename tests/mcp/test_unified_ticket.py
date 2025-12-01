@@ -13,14 +13,6 @@ import pytest
 from mcp_ticketer.core.models import Priority, Task, TicketState, TicketType
 from mcp_ticketer.mcp.server.tools.ticket_tools import (
     ticket,
-    ticket_assign,
-    ticket_create,
-    ticket_delete,
-    ticket_latest,
-    ticket_list,
-    ticket_read,
-    ticket_summary,
-    ticket_update,
 )
 
 

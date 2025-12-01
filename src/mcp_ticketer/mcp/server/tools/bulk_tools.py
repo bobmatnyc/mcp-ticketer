@@ -5,8 +5,6 @@ efficiency when working with multiple items.
 
 Features:
 - ticket_bulk: Unified interface for all bulk operations (create, update)
-- ticket_bulk_create: Create multiple tickets (deprecated, use ticket_bulk)
-- ticket_bulk_update: Update multiple tickets (deprecated, use ticket_bulk)
 
 All tools follow the MCP response pattern:
     {
@@ -16,7 +14,6 @@ All tools follow the MCP response pattern:
     }
 """
 
-import warnings
 from typing import Any
 
 from ....core.models import Priority, Task, TicketState, TicketType
@@ -32,7 +29,7 @@ async def ticket_bulk(
     """Unified bulk ticket operations tool.
 
     Performs bulk create or update operations on tickets through a single
-    interface. This tool consolidates ticket_bulk_create and ticket_bulk_update.
+    interface.
 
     Args:
         action: Operation to perform. Valid values:
@@ -73,10 +70,6 @@ async def ticket_bulk(
             ]
         )
 
-    Migration from old tools:
-        - ticket_bulk_create(tickets=[...]) → ticket_bulk(action="create", tickets=[...])
-        - ticket_bulk_update(updates=[...]) → ticket_bulk(action="update", updates=[...])
-
     See: docs/mcp-api-reference.md for detailed response formats
     """
     action_lower = action.lower()
@@ -89,7 +82,110 @@ async def ticket_bulk(
                 "error": "tickets parameter required for action='create'",
                 "hint": "Use ticket_bulk(action='create', tickets=[...])",
             }
-        return await ticket_bulk_create(tickets)
+        # Inline implementation of bulk create
+        try:
+            adapter = get_adapter()
+
+            if not tickets:
+                return {
+                    "status": "error",
+                    "error": "No tickets provided for bulk creation",
+                }
+
+            results: dict[str, list[Any]] = {
+                "created": [],
+                "failed": [],
+            }
+
+            for i, ticket_data in enumerate(tickets):
+                try:
+                    # Validate required fields
+                    if "title" not in ticket_data:
+                        results["failed"].append(
+                            {
+                                "index": i,
+                                "error": "Missing required field: title",
+                                "data": ticket_data,
+                            }
+                        )
+                        continue
+
+                    # Parse priority if provided
+                    priority = Priority.MEDIUM  # Default
+                    if "priority" in ticket_data:
+                        try:
+                            priority = Priority(ticket_data["priority"].lower())
+                        except ValueError:
+                            results["failed"].append(
+                                {
+                                    "index": i,
+                                    "error": f"Invalid priority: {ticket_data['priority']}",
+                                    "data": ticket_data,
+                                }
+                            )
+                            continue
+
+                    # Parse ticket type if provided
+                    ticket_type = TicketType.ISSUE  # Default
+                    if "ticket_type" in ticket_data:
+                        try:
+                            ticket_type = TicketType(ticket_data["ticket_type"].lower())
+                        except ValueError:
+                            results["failed"].append(
+                                {
+                                    "index": i,
+                                    "error": f"Invalid ticket_type: {ticket_data['ticket_type']}",
+                                    "data": ticket_data,
+                                }
+                            )
+                            continue
+
+                    # Create task object
+                    task = Task(
+                        title=ticket_data["title"],
+                        description=ticket_data.get("description", ""),
+                        priority=priority,
+                        ticket_type=ticket_type,
+                        tags=ticket_data.get("tags", []),
+                        assignee=ticket_data.get("assignee"),
+                        parent_epic=ticket_data.get("parent_epic"),
+                        parent_issue=ticket_data.get("parent_issue"),
+                    )
+
+                    # Create via adapter
+                    created = await adapter.create(task)
+                    results["created"].append(
+                        {
+                            "index": i,
+                            "ticket": created.model_dump(),
+                        }
+                    )
+
+                except Exception as e:
+                    results["failed"].append(
+                        {
+                            "index": i,
+                            "error": str(e),
+                            "data": ticket_data,
+                        }
+                    )
+
+            return {
+                "status": "completed",
+                "summary": {
+                    "total": len(tickets),
+                    "created": len(results["created"]),
+                    "failed": len(results["failed"]),
+                },
+                "results": results,
+            }
+
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": f"Bulk creation failed: {str(e)}",
+            }
+
     elif action_lower == "update":
         if updates is None:
             return {
@@ -97,7 +193,133 @@ async def ticket_bulk(
                 "error": "updates parameter required for action='update'",
                 "hint": "Use ticket_bulk(action='update', updates=[...])",
             }
-        return await ticket_bulk_update(updates)
+        # Inline implementation of bulk update
+        try:
+            adapter = get_adapter()
+
+            if not updates:
+                return {
+                    "status": "error",
+                    "error": "No updates provided for bulk operation",
+                }
+
+            results: dict[str, list[Any]] = {
+                "updated": [],
+                "failed": [],
+            }
+
+            for i, update_data in enumerate(updates):
+                try:
+                    # Validate required fields
+                    if "ticket_id" not in update_data:
+                        results["failed"].append(
+                            {
+                                "index": i,
+                                "error": "Missing required field: ticket_id",
+                                "data": update_data,
+                            }
+                        )
+                        continue
+
+                    ticket_id = update_data["ticket_id"]
+
+                    # Build update dict
+                    update_fields: dict[str, Any] = {}
+
+                    if "title" in update_data:
+                        update_fields["title"] = update_data["title"]
+                    if "description" in update_data:
+                        update_fields["description"] = update_data["description"]
+                    if "assignee" in update_data:
+                        update_fields["assignee"] = update_data["assignee"]
+                    if "tags" in update_data:
+                        update_fields["tags"] = update_data["tags"]
+
+                    # Parse priority if provided
+                    if "priority" in update_data:
+                        try:
+                            update_fields["priority"] = Priority(
+                                update_data["priority"].lower()
+                            )
+                        except ValueError:
+                            results["failed"].append(
+                                {
+                                    "index": i,
+                                    "error": f"Invalid priority: {update_data['priority']}",
+                                    "data": update_data,
+                                }
+                            )
+                            continue
+
+                    # Parse state if provided
+                    if "state" in update_data:
+                        try:
+                            update_fields["state"] = TicketState(
+                                update_data["state"].lower()
+                            )
+                        except ValueError:
+                            results["failed"].append(
+                                {
+                                    "index": i,
+                                    "error": f"Invalid state: {update_data['state']}",
+                                    "data": update_data,
+                                }
+                            )
+                            continue
+
+                    if not update_fields:
+                        results["failed"].append(
+                            {
+                                "index": i,
+                                "error": "No valid update fields provided",
+                                "data": update_data,
+                            }
+                        )
+                        continue
+
+                    # Update via adapter
+                    updated = await adapter.update(ticket_id, update_fields)
+                    if updated is None:
+                        results["failed"].append(
+                            {
+                                "index": i,
+                                "error": f"Ticket {ticket_id} not found or update failed",
+                                "data": update_data,
+                            }
+                        )
+                    else:
+                        results["updated"].append(
+                            {
+                                "index": i,
+                                "ticket": updated.model_dump(),
+                            }
+                        )
+
+                except Exception as e:
+                    results["failed"].append(
+                        {
+                            "index": i,
+                            "error": str(e),
+                            "data": update_data,
+                        }
+                    )
+
+            return {
+                "status": "completed",
+                "summary": {
+                    "total": len(updates),
+                    "updated": len(results["updated"]),
+                    "failed": len(results["failed"]),
+                },
+                "results": results,
+            }
+
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": f"Bulk update failed: {str(e)}",
+            }
+
     else:
         valid_actions = ["create", "update"]
         return {
@@ -105,301 +327,4 @@ async def ticket_bulk(
             "error": f"Invalid action '{action}'. Must be one of: {', '.join(valid_actions)}",
             "valid_actions": valid_actions,
             "hint": "Use ticket_bulk(action='create'|'update', ...)",
-        }
-
-
-@mcp.tool()
-async def ticket_bulk_create(
-    tickets: list[dict[str, Any]],
-) -> dict[str, Any]:
-    """Create multiple tickets in a single operation.
-
-    .. deprecated:: 1.5.0
-        Use :func:`ticket_bulk` with ``action='create'`` instead.
-        This function will be removed in version 2.0.0.
-
-    Each ticket dict should contain at minimum a 'title' field, with optional
-    fields: description, priority, tags, assignee, ticket_type, parent_epic, parent_issue.
-
-    Args:
-        tickets: List of ticket dictionaries to create
-
-    Returns:
-        Results of bulk creation including successes and failures
-
-    Examples:
-        # Old way (deprecated)
-        result = await ticket_bulk_create([{"title": "Bug 1"}])
-
-        # New way (recommended)
-        result = await ticket_bulk(action="create", tickets=[{"title": "Bug 1"}])
-
-    """
-    warnings.warn(
-        "ticket_bulk_create is deprecated. Use ticket_bulk(action='create', tickets=...) instead. "
-        "This function will be removed in version 2.0.0.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    try:
-        adapter = get_adapter()
-
-        if not tickets:
-            return {
-                "status": "error",
-                "error": "No tickets provided for bulk creation",
-            }
-
-        results: dict[str, list[Any]] = {
-            "created": [],
-            "failed": [],
-        }
-
-        for i, ticket_data in enumerate(tickets):
-            try:
-                # Validate required fields
-                if "title" not in ticket_data:
-                    results["failed"].append(
-                        {
-                            "index": i,
-                            "error": "Missing required field: title",
-                            "data": ticket_data,
-                        }
-                    )
-                    continue
-
-                # Parse priority if provided
-                priority = Priority.MEDIUM  # Default
-                if "priority" in ticket_data:
-                    try:
-                        priority = Priority(ticket_data["priority"].lower())
-                    except ValueError:
-                        results["failed"].append(
-                            {
-                                "index": i,
-                                "error": f"Invalid priority: {ticket_data['priority']}",
-                                "data": ticket_data,
-                            }
-                        )
-                        continue
-
-                # Parse ticket type if provided
-                ticket_type = TicketType.ISSUE  # Default
-                if "ticket_type" in ticket_data:
-                    try:
-                        ticket_type = TicketType(ticket_data["ticket_type"].lower())
-                    except ValueError:
-                        results["failed"].append(
-                            {
-                                "index": i,
-                                "error": f"Invalid ticket_type: {ticket_data['ticket_type']}",
-                                "data": ticket_data,
-                            }
-                        )
-                        continue
-
-                # Create task object
-                task = Task(
-                    title=ticket_data["title"],
-                    description=ticket_data.get("description", ""),
-                    priority=priority,
-                    ticket_type=ticket_type,
-                    tags=ticket_data.get("tags", []),
-                    assignee=ticket_data.get("assignee"),
-                    parent_epic=ticket_data.get("parent_epic"),
-                    parent_issue=ticket_data.get("parent_issue"),
-                )
-
-                # Create via adapter
-                created = await adapter.create(task)
-                results["created"].append(
-                    {
-                        "index": i,
-                        "ticket": created.model_dump(),
-                    }
-                )
-
-            except Exception as e:
-                results["failed"].append(
-                    {
-                        "index": i,
-                        "error": str(e),
-                        "data": ticket_data,
-                    }
-                )
-
-        return {
-            "status": "completed",
-            "summary": {
-                "total": len(tickets),
-                "created": len(results["created"]),
-                "failed": len(results["failed"]),
-            },
-            "results": results,
-        }
-
-    except Exception as e:
-        return {
-            "status": "error",
-            "error": f"Bulk creation failed: {str(e)}",
-        }
-
-
-@mcp.tool()
-async def ticket_bulk_update(
-    updates: list[dict[str, Any]],
-) -> dict[str, Any]:
-    """Update multiple tickets in a single operation.
-
-    .. deprecated:: 1.5.0
-        Use :func:`ticket_bulk` with ``action='update'`` instead.
-        This function will be removed in version 2.0.0.
-
-    Each update dict must contain 'ticket_id' and at least one field to update.
-    Valid update fields: title, description, priority, state, assignee, tags.
-
-    Args:
-        updates: List of update operation dictionaries
-
-    Returns:
-        Results of bulk update including successes and failures
-
-    Examples:
-        # Old way (deprecated)
-        result = await ticket_bulk_update([{"ticket_id": "123", "state": "done"}])
-
-        # New way (recommended)
-        result = await ticket_bulk(action="update", updates=[{"ticket_id": "123", "state": "done"}])
-
-    """
-    warnings.warn(
-        "ticket_bulk_update is deprecated. Use ticket_bulk(action='update', updates=...) instead. "
-        "This function will be removed in version 2.0.0.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    try:
-        adapter = get_adapter()
-
-        if not updates:
-            return {
-                "status": "error",
-                "error": "No updates provided for bulk operation",
-            }
-
-        results: dict[str, list[Any]] = {
-            "updated": [],
-            "failed": [],
-        }
-
-        for i, update_data in enumerate(updates):
-            try:
-                # Validate required fields
-                if "ticket_id" not in update_data:
-                    results["failed"].append(
-                        {
-                            "index": i,
-                            "error": "Missing required field: ticket_id",
-                            "data": update_data,
-                        }
-                    )
-                    continue
-
-                ticket_id = update_data["ticket_id"]
-
-                # Build update dict
-                update_fields: dict[str, Any] = {}
-
-                if "title" in update_data:
-                    update_fields["title"] = update_data["title"]
-                if "description" in update_data:
-                    update_fields["description"] = update_data["description"]
-                if "assignee" in update_data:
-                    update_fields["assignee"] = update_data["assignee"]
-                if "tags" in update_data:
-                    update_fields["tags"] = update_data["tags"]
-
-                # Parse priority if provided
-                if "priority" in update_data:
-                    try:
-                        update_fields["priority"] = Priority(
-                            update_data["priority"].lower()
-                        )
-                    except ValueError:
-                        results["failed"].append(
-                            {
-                                "index": i,
-                                "error": f"Invalid priority: {update_data['priority']}",
-                                "data": update_data,
-                            }
-                        )
-                        continue
-
-                # Parse state if provided
-                if "state" in update_data:
-                    try:
-                        update_fields["state"] = TicketState(
-                            update_data["state"].lower()
-                        )
-                    except ValueError:
-                        results["failed"].append(
-                            {
-                                "index": i,
-                                "error": f"Invalid state: {update_data['state']}",
-                                "data": update_data,
-                            }
-                        )
-                        continue
-
-                if not update_fields:
-                    results["failed"].append(
-                        {
-                            "index": i,
-                            "error": "No valid update fields provided",
-                            "data": update_data,
-                        }
-                    )
-                    continue
-
-                # Update via adapter
-                updated = await adapter.update(ticket_id, update_fields)
-                if updated is None:
-                    results["failed"].append(
-                        {
-                            "index": i,
-                            "error": f"Ticket {ticket_id} not found or update failed",
-                            "data": update_data,
-                        }
-                    )
-                else:
-                    results["updated"].append(
-                        {
-                            "index": i,
-                            "ticket": updated.model_dump(),
-                        }
-                    )
-
-            except Exception as e:
-                results["failed"].append(
-                    {
-                        "index": i,
-                        "error": str(e),
-                        "data": update_data,
-                    }
-                )
-
-        return {
-            "status": "completed",
-            "summary": {
-                "total": len(updates),
-                "updated": len(results["updated"]),
-                "failed": len(results["failed"]),
-            },
-            "results": results,
-        }
-
-    except Exception as e:
-        return {
-            "status": "error",
-            "error": f"Bulk update failed: {str(e)}",
         }

@@ -1,8 +1,7 @@
 """User-specific ticket management tools.
 
 This module provides tools for managing tickets from a user's perspective,
-including listing assigned tickets and transitioning tickets through workflow
-states with validation.
+including transitioning tickets through workflow states with validation.
 
 Design Decision: Workflow State Validation
 ------------------------------------------
@@ -20,21 +19,14 @@ Valid workflow transitions:
 - CLOSED → (no transitions, terminal state)
 
 Performance Considerations:
-- get_my_tickets uses adapter's native filtering when available
-- Falls back to client-side filtering for adapters without assignee filter
 - State transition validation is O(1) lookup in predefined state machine
-
-Deprecation Notice:
-- get_my_tickets is deprecated, use user_session(action="get_my_tickets") instead
 """
 
-import warnings
 from pathlib import Path
 from typing import Any
 
 from ....core.adapter import BaseAdapter
 from ....core.models import TicketState
-from ....core.project_config import ConfigResolver, TicketerConfig
 from ....core.state_matcher import get_state_matcher
 from ..server_sdk import get_adapter, mcp
 
@@ -51,124 +43,6 @@ def _build_adapter_metadata(
     if ticket_id:
         metadata["ticket_id"] = ticket_id
     return metadata
-
-
-def get_config_resolver() -> ConfigResolver:
-    """Get configuration resolver for current project.
-
-    Returns:
-        ConfigResolver instance for current working directory
-
-    """
-    return ConfigResolver(project_path=Path.cwd())
-
-
-@mcp.tool()
-async def get_my_tickets(
-    state: str | None = None,
-    project_id: str | None = None,
-    limit: int = 10,
-) -> dict[str, Any]:
-    """Get tickets assigned to default_user (requires default_user and project scoping).
-
-    .. deprecated:: 1.5.0
-        Use :func:`user_session` with ``action='get_my_tickets'`` instead.
-        This function will be removed in version 2.0.0.
-
-    ⚠️ Project Filtering Required:
-    This tool requires project_id parameter OR default_project configuration.
-    To set default project: config_set_default_project(project_id="YOUR-PROJECT")
-    To check current config: config_get()
-
-    Args:
-        state: Optional workflow state filter
-        project_id: Project/epic ID (required unless default_project configured)
-        limit: Maximum tickets to return (default: 10, max: 100)
-
-    Returns:
-        TicketListResponse with tickets, count, user, state_filter
-
-    Examples:
-        # Old way (deprecated)
-        result = await get_my_tickets(state="open", limit=20)
-
-        # New way (recommended)
-        result = await user_session(action="get_my_tickets", state="open", limit=20)
-
-    See: docs/mcp-api-reference.md#ticket-response-format
-    """
-    warnings.warn(
-        "get_my_tickets is deprecated. Use user_session(action='get_my_tickets', ...) instead. "
-        "This function will be removed in version 2.0.0.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    try:
-        # Validate limit
-        if limit > 100:
-            limit = 100
-
-        # Load configuration to get default user and project
-        resolver = get_config_resolver()
-        config = resolver.load_project_config() or TicketerConfig()
-
-        if not config.default_user:
-            return {
-                "status": "error",
-                "error": "No default user configured. Use config_set_default_user() to set a default user first.",
-                "setup_command": "config_set_default_user",
-            }
-
-        # Validate project context (NEW: Required for list operations)
-        final_project = project_id or config.default_project
-
-        if not final_project:
-            return {
-                "status": "error",
-                "error": "project_id required. Provide project_id parameter or configure default_project.",
-                "help": "Use config_set_default_project(project_id='YOUR-PROJECT') to set default project",
-                "check_config": "Use config_get() to view current configuration",
-            }
-
-        # Validate state if provided
-        state_filter = None
-        if state is not None:
-            try:
-                state_filter = TicketState(state.lower())
-            except ValueError:
-                valid_states = [s.value for s in TicketState]
-                return {
-                    "status": "error",
-                    "error": f"Invalid state '{state}'. Must be one of: {', '.join(valid_states)}",
-                    "valid_states": valid_states,
-                }
-
-        # Build filters with required project scoping
-        filters: dict[str, Any] = {
-            "assignee": config.default_user,
-            "project": final_project,
-        }
-        if state_filter:
-            filters["state"] = state_filter
-
-        # Query adapter
-        adapter = get_adapter()
-        tickets = await adapter.list(limit=limit, offset=0, filters=filters)
-
-        return {
-            "status": "completed",
-            **_build_adapter_metadata(adapter),
-            "tickets": [ticket.model_dump() for ticket in tickets],
-            "count": len(tickets),
-            "user": config.default_user,
-            "state_filter": state if state else "all",
-            "limit": limit,
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "error": f"Failed to retrieve tickets: {str(e)}",
-        }
 
 
 @mcp.tool()

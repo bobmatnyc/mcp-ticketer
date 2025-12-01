@@ -4,8 +4,6 @@ This module implements tools for session management and user ticket operations.
 
 Features:
 - user_session: Unified interface for user ticket queries and session info
-- get_my_tickets: Get user's tickets (deprecated, use user_session)
-- get_session_info: Get session metadata (deprecated, use user_session)
 - attach_ticket: Associate work session with ticket
 
 All tools follow the MCP response pattern:
@@ -16,16 +14,11 @@ All tools follow the MCP response pattern:
 """
 
 import logging
-import warnings
 from pathlib import Path
 from typing import Any, Literal
 
 from ....core.session_state import SessionStateManager
 from ..server_sdk import mcp
-
-# Import for user_session routing
-# Note: We import the implementation, not the decorated tool to avoid decorator issues
-from . import user_ticket_tools
 
 logger = logging.getLogger(__name__)
 
@@ -86,11 +79,105 @@ async def user_session(
 
     # Route to appropriate handler based on action
     if action_lower == "get_my_tickets":
-        return await user_ticket_tools.get_my_tickets(
-            state=state, project_id=project_id, limit=limit
-        )
+        # Inline implementation of get_my_tickets
+        try:
+            from ....core.adapter import BaseAdapter
+            from ....core.models import TicketState
+            from ....core.project_config import ConfigResolver, TicketerConfig
+            from ..server_sdk import get_adapter
+
+            # Validate limit
+            if limit > 100:
+                limit = 100
+
+            # Load configuration to get default user and project
+            resolver = ConfigResolver(project_path=Path.cwd())
+            config = resolver.load_project_config() or TicketerConfig()
+
+            if not config.default_user:
+                return {
+                    "status": "error",
+                    "error": "No default user configured. Use config_set_default_user() to set a default user first.",
+                    "setup_command": "config_set_default_user",
+                }
+
+            # Validate project context (Required for list operations)
+            final_project = project_id or config.default_project
+
+            if not final_project:
+                return {
+                    "status": "error",
+                    "error": "project_id required. Provide project_id parameter or configure default_project.",
+                    "help": "Use config_set_default_project(project_id='YOUR-PROJECT') to set default project",
+                    "check_config": "Use config_get() to view current configuration",
+                }
+
+            # Validate state if provided
+            state_filter = None
+            if state is not None:
+                try:
+                    state_filter = TicketState(state.lower())
+                except ValueError:
+                    valid_states = [s.value for s in TicketState]
+                    return {
+                        "status": "error",
+                        "error": f"Invalid state '{state}'. Must be one of: {', '.join(valid_states)}",
+                        "valid_states": valid_states,
+                    }
+
+            # Build filters with required project scoping
+            filters: dict[str, Any] = {
+                "assignee": config.default_user,
+                "project": final_project,
+            }
+            if state_filter:
+                filters["state"] = state_filter
+
+            # Query adapter
+            adapter = get_adapter()
+            tickets = await adapter.list(limit=limit, offset=0, filters=filters)
+
+            # Build adapter metadata
+            metadata = {
+                "adapter": adapter.adapter_type,
+                "adapter_name": adapter.adapter_display_name,
+            }
+
+            return {
+                "status": "completed",
+                **metadata,
+                "tickets": [ticket.model_dump() for ticket in tickets],
+                "count": len(tickets),
+                "user": config.default_user,
+                "state_filter": state if state else "all",
+                "limit": limit,
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": f"Failed to retrieve tickets: {str(e)}",
+            }
     elif action_lower == "get_session_info":
-        return await get_session_info()
+        # Inline implementation of get_session_info
+        try:
+            manager = SessionStateManager(project_path=Path.cwd())
+            state_obj = manager.load_session()
+
+            return {
+                "success": True,
+                "session_id": state_obj.session_id,
+                "current_ticket": state_obj.current_ticket,
+                "opted_out": state_obj.ticket_opted_out,
+                "last_activity": state_obj.last_activity,
+                "session_timeout_minutes": 30,
+            }
+
+        except Exception as e:
+            logger.error(f"Error in get_session_info: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+            }
     else:
         valid_actions = ["get_my_tickets", "get_session_info"]
         return {
@@ -222,57 +309,3 @@ async def attach_ticket(
         }
 
 
-@mcp.tool()
-async def get_session_info() -> dict[str, Any]:
-    """Get current session information and ticket association status.
-
-    .. deprecated:: 1.5.0
-        Use :func:`user_session` with ``action='get_session_info'`` instead.
-        This function will be removed in version 2.0.0.
-
-    Returns session metadata including ID, current ticket, and activity status.
-
-    Returns:
-        Session information dictionary
-
-    Examples:
-        # Old way (deprecated)
-        result = await get_session_info()
-
-        # New way (recommended)
-        result = await user_session(action="get_session_info")
-
-    Example Response:
-        {
-            "session_id": "abc-123",
-            "current_ticket": "PROJ-123",
-            "opted_out": false,
-            "last_activity": "2025-01-19T20:00:00"
-        }
-
-    """
-    warnings.warn(
-        "get_session_info is deprecated. Use user_session(action='get_session_info') instead. "
-        "This function will be removed in version 2.0.0.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    try:
-        manager = SessionStateManager(project_path=Path.cwd())
-        state = manager.load_session()
-
-        return {
-            "success": True,
-            "session_id": state.session_id,
-            "current_ticket": state.current_ticket,
-            "opted_out": state.ticket_opted_out,
-            "last_activity": state.last_activity,
-            "session_timeout_minutes": 30,
-        }
-
-    except Exception as e:
-        logger.error(f"Error in get_session_info: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-        }

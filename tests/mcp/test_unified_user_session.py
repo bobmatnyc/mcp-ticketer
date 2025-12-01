@@ -22,10 +22,8 @@ from mcp_ticketer.core.models import Priority, Task, TicketState, TicketType
 from mcp_ticketer.core.project_config import TicketerConfig
 from mcp_ticketer.core.session_state import SessionState
 from mcp_ticketer.mcp.server.tools.session_tools import (
-    get_session_info,
     user_session,
 )
-from mcp_ticketer.mcp.server.tools.user_ticket_tools import get_my_tickets
 
 
 @pytest.fixture

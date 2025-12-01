@@ -1,7 +1,12 @@
-"""Basic CRUD operations for tickets.
+"""Unified ticket CRUD operations (v2.0.0).
 
-This module implements the core create, read, update, delete, and list
-operations for tickets using the FastMCP SDK.
+This module implements ticket management through a single unified `ticket()` interface.
+
+Version 2.0.0 changes:
+- Removed @mcp.tool() decorators from individual operations (converted to private helpers)
+- Single `ticket()` function is the only exposed MCP tool
+- All operations accessible via ticket(action="create"|"get"|"update"|"delete"|"list"|"summary"|"get_activity"|"assign")
+- Individual functions retained as internal helpers for code organization
 """
 
 import logging
@@ -360,7 +365,6 @@ async def ticket(
         }
 
 
-@mcp.tool()
 async def ticket_create(
     title: str,
     description: str = "",
@@ -537,7 +541,6 @@ async def ticket_create(
         return error_response
 
 
-@mcp.tool()
 async def ticket_read(ticket_id: str) -> dict[str, Any]:
     """Read ticket by ID or URL (supports Linear, GitHub, JIRA, Asana URLs with multi-platform routing).
 
@@ -629,7 +632,6 @@ async def ticket_read(ticket_id: str) -> dict[str, Any]:
         return error_response
 
 
-@mcp.tool()
 async def ticket_update(
     ticket_id: str,
     title: str | None = None,
@@ -764,7 +766,6 @@ async def ticket_update(
         return error_response
 
 
-@mcp.tool()
 async def ticket_delete(ticket_id: str) -> dict[str, Any]:
     """Delete ticket by ID or URL.
 
@@ -861,7 +862,6 @@ def _compact_ticket(ticket_dict: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-@mcp.tool()
 async def ticket_list(
     limit: int = 20,
     offset: int = 0,
@@ -995,7 +995,6 @@ async def ticket_list(
         return error_response
 
 
-@mcp.tool()
 async def ticket_summary(ticket_id: str) -> dict[str, Any]:
     """Get ultra-compact summary (id, title, state, priority, assignee only - ~20 tokens vs ~185 full).
 
@@ -1046,7 +1045,6 @@ async def ticket_summary(ticket_id: str) -> dict[str, Any]:
         }
 
 
-@mcp.tool()
 async def ticket_latest(ticket_id: str, limit: int = 5) -> dict[str, Any]:
     """Get recent activity (comments, state changes, updates - adapter-dependent behavior).
 
@@ -1185,7 +1183,6 @@ async def ticket_latest(ticket_id: str, limit: int = 5) -> dict[str, Any]:
         return error_response
 
 
-@mcp.tool()
 async def ticket_assign(
     ticket_id: str,
     assignee: str | None,
