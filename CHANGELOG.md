@@ -6,6 +6,89 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.0.0] - 2025-12-01
+
+### ⚠️ BREAKING CHANGES
+
+**MCP Tool Consolidation Complete (v2.0.0)**
+
+Completed three-phase consolidation of MCP tools, removing 36 deprecated functions.
+This is a BREAKING RELEASE requiring migration from deprecated tools to unified
+interfaces.
+
+**Phase 1: Search & Label Consolidation**
+- Token savings: ~13,300 tokens
+- Tools removed: `ticket_find_similar`, `ticket_find_stale`, `ticket_find_orphaned`, `ticket_cleanup_report` → `ticket_analyze()`
+- Tools removed: `label_list`, `label_normalize`, `label_find_duplicates`, `label_suggest_merge`, `label_merge`, `label_rename`, `label_cleanup_report` → `label()`
+
+**Phase 2: Hierarchy & Ticket CRUD Consolidation**
+- Token savings: ~17,585 tokens
+- Hierarchy: 11 tools → `hierarchy(entity_type, action, ...)`
+  - Removed: `epic_create`, `epic_get`, `epic_list`, `epic_update`, `epic_delete`, `epic_issues`, `issue_create`, `issue_get_parent`, `issue_tasks`, `task_create`, `hierarchy_tree`
+- Ticket CRUD: 8 tools → `ticket(action, ...)`
+  - Removed: `ticket_create`, `ticket_read`, `ticket_update`, `ticket_delete`, `ticket_list`, `ticket_summary`, `ticket_latest`, `ticket_assign`
+- Bulk operations: 2 tools → `ticket_bulk(action, ...)`
+  - Removed: `ticket_bulk_create`, `ticket_bulk_update`
+- User/session: 3 tools → `user_session(action, ...)` + `attach_ticket`
+  - Removed: `get_my_tickets`, `get_session_info`, `attach_ticket` (standalone)
+
+**Phase 3: Config, Label, Analysis & Project Update Consolidation**
+- Token savings: ~13,100 tokens
+- Config: 16 tools → `config(action, ...)`
+  - Removed: `config_set_primary_adapter`, `config_set_default_project`, `config_set_default_user`, `config_get`, `config_set_default_tags`, `config_set_default_team`, `config_set_default_cycle`, `config_set_default_epic`, `config_set_assignment_labels`, `config_validate`, `config_test_adapter`, `config_list_adapters`, `config_get_adapter_requirements`, `config_setup_wizard`
+- Label: 8 tools → `label(action, ...)`
+  - Removed: `label_list`, `label_normalize`, `label_find_duplicates`, `label_suggest_merge`, `label_merge`, `label_rename`, `label_cleanup_report`
+- Analysis: 5 tools → `ticket_analyze(action, ...)`
+  - Removed: `ticket_find_similar`, `ticket_find_stale`, `ticket_find_orphaned`, `ticket_cleanup_report`, `project_status`
+- Project updates: 4 tools → `project_update(action, ...)`
+  - Removed: `project_update_create`, `project_update_list`, `project_update_get`
+- CLI-only tools: 8 decorators removed (attachment, instruction, pr)
+  - Removed: `ticket_attach`, `ticket_attachments`, `ticket_comment`, `ticket_create_pr`, `ticket_link_pr`, `instructions_get`, `instructions_set`, `instructions_reset`, `instructions_validate`
+
+**Total Impact:**
+- **MCP tools: 54 → 18** (36 tools removed, 67% reduction)
+- **Token savings: ~43,985 tokens** (87% reduction from baseline)
+- **Final MCP footprint: ~6,825 tokens** (down from ~50,000)
+
+**Tools Removed (36 total):**
+- Hierarchy: `epic_create`, `epic_get`, `epic_list`, `epic_update`, `epic_delete`, `epic_issues`, `issue_create`, `issue_get_parent`, `issue_tasks`, `task_create`, `hierarchy_tree`
+- Ticket CRUD: `ticket_create`, `ticket_read`, `ticket_update`, `ticket_delete`, `ticket_list`, `ticket_summary`, `ticket_latest`, `ticket_assign`
+- Bulk: `ticket_bulk_create`, `ticket_bulk_update`
+- Session: `get_my_tickets`, `get_session_info`, `attach_ticket` (standalone)
+- Config: 15 individual `config_*` functions
+- Label: 7 individual `label_*` functions
+- Analysis: 4 individual `ticket_find_*` functions
+- Project: 3 individual `project_update_*` functions
+- CLI-only: 8 attachment/instruction/PR functions (moved to CLI-only)
+
+**Migration Required:**
+- See [docs/UPGRADING-v2.0.md](docs/UPGRADING-v2.0.md) for complete migration guide
+- All functionality preserved through unified interfaces
+- Migration complexity: Medium (clear migration paths documented)
+
+**Deprecation Timeline:**
+- v1.5.0: Deprecation warnings added
+- v1.5.0-v1.8.0: 3-month deprecation period
+- v2.0.0: Deprecated functions removed
+
+### Changed
+
+- Unified tool interfaces are now the only MCP API (no deprecated fallbacks)
+- Test suite updated for v2.0.0 (removed deprecation warning tests)
+- Documentation updated with breaking changes and migration guides
+
+### Added
+
+- Comprehensive migration documentation (docs/UPGRADING-v2.0.md)
+- Phase summaries documenting consolidation work
+- Token usage optimization guide
+
+### Fixed
+
+- Reduced MCP context consumption from ~50,000 to ~6,825 tokens
+- Simplified API surface (18 tools vs. 54)
+- Improved consistency across all unified interfaces
+
 ## [1.4.4] - 2025-11-30
 
 ### Fixed
