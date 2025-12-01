@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.4.4] - 2025-11-30
+
+### Fixed
+
+**MCP Configuration Force Reinstall Enhancement**
+
+Enhanced `--force` flag functionality to properly handle reinstallation of existing MCP configurations.
+
+- **Issue**: Force reinstall failed when existing configuration present
+  - Native CLI would error: "Server 'mcp-ticketer' already exists"
+  - Users had to manually run `claude mcp remove` before reinstalling
+  - `--force` flag didn't actually force reinstallation as expected
+
+- **Solution**: Auto-remove existing configuration before reinstalling
+  - Added `remove_claude_mcp_native()` function with native CLI integration
+  - Enhanced `configure_claude_mcp_native()` to auto-remove when `force=True`
+  - Implemented three-tier fallback: Native remove → JSON manipulation → Proceed anyway
+  - Graceful error handling prevents blocking installation
+
+- **Impact**:
+  - `--force` flag now works as expected (true force reinstall)
+  - Improved user experience - single command instead of two-step process
+  - Non-blocking behavior - installation proceeds even if removal fails
+  - Maintains backward compatibility (force defaults to False)
+
+- **Testing**:
+  - Added 13 comprehensive tests covering all removal scenarios
+  - All 28 tests passing in `test_mcp_configure.py`
+  - Tested native CLI and JSON fallback paths
+
+- **Commit**: ca3d6bc
+
 ## [1.4.3] - 2025-11-30
 
 ### Fixed
