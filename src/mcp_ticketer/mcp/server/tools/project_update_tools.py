@@ -1,26 +1,42 @@
 """Project update management tools for status updates with health indicators.
 
-This module implements MCP tools for creating, listing, and retrieving project
-status updates with health indicators. Supports Linear (native), GitHub V2,
-Asana, and JIRA (via workaround).
+This module provides a unified interface for creating, listing, and retrieving project
+status updates with health indicators across multiple platforms.
 
-Features:
-- project_update: Unified interface for all project update operations (create, get, list)
-- project_update_create: Create project update (deprecated, use project_update(action="create"))
-- project_update_get: Get project update by ID (deprecated, use project_update(action="get"))
-- project_update_list: List project updates (deprecated, use project_update(action="list"))
+v2.0.0 Consolidation (Phase 3 Sprint 3.4):
+- Single `project_update()` tool with action-based routing
+- Replaces 4 separate tools (create, get, list) with unified interface
+- Helper functions retained for internal use with deprecation warnings
+- ~1,100 tokens saved (69% reduction)
 
-All tools follow the MCP response pattern:
+Platform Support:
+- Linear: Native ProjectUpdate entities with health, diff_markdown, staleness
+- GitHub V2: ProjectV2StatusUpdate with status options
+- Asana: Project Status Updates with color-coded health
+- JIRA: Comments with custom formatting (workaround)
+
+Primary Tool:
+- project_update(action): Unified interface for all operations
+  - action="create": Create project status update
+  - action="get": Get specific update by ID
+  - action="list": List updates for a project
+
+Internal Helpers (deprecated):
+- project_update_create(): Use project_update(action="create") instead
+- project_update_get(): Use project_update(action="get") instead
+- project_update_list(): Use project_update(action="list") instead
+
+Response Format:
     {
         "status": "completed" | "error",
         "adapter": "adapter_type",
         "adapter_name": "Adapter Display Name",
-        ... tool-specific data ...
+        ... action-specific data ...
     }
 
-Related to ticket 1M-238: Add project updates support with flexible project
-identification.
-Related to ticket 1M-484: Phase 2 Sprint 1.1 - Consolidate project_update tools.
+Related Tickets:
+- 1M-238: Add project updates support with flexible project identification
+- 1M-487: Phase 3 Sprint 3.4 - Consolidate project_update tools (v2.0.0)
 """
 
 import logging
@@ -174,7 +190,6 @@ async def project_update(
     }
 
 
-@mcp.tool()
 async def project_update_create(
     project_id: str,
     body: str,
@@ -283,7 +298,6 @@ async def project_update_create(
         }
 
 
-@mcp.tool()
 async def project_update_list(
     project_id: str,
     limit: int = 10,
@@ -372,7 +386,6 @@ async def project_update_list(
         }
 
 
-@mcp.tool()
 async def project_update_get(
     update_id: str,
 ) -> dict[str, Any]:

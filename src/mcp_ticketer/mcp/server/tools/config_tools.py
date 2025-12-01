@@ -64,12 +64,16 @@ async def config(
     value: Any | None = None,
     adapter_name: str | None = None,
     adapter: str | None = None,
+    adapter_type: str | None = None,
+    credentials: dict[str, Any] | None = None,
+    set_as_default: bool = True,
+    test_connection: bool = True,
     **kwargs: Any,
 ) -> dict[str, Any]:
-    """Unified configuration management tool with action-based routing.
+    """Unified configuration management tool with action-based routing (v2.0.0).
 
-    Single tool for all configuration operations. Routes to appropriate
-    implementation based on 'action' parameter.
+    Single tool for all 16 configuration operations. Consolidates all config_*
+    tools into one interface for ~7,200 token savings (90% reduction).
 
     Args:
         action: Operation to perform. Valid values:
@@ -79,11 +83,16 @@ async def config(
             - "test": Test adapter connectivity (requires adapter_name)
             - "list_adapters": List all available adapters
             - "get_requirements": Get adapter requirements (requires adapter)
+            - "setup_wizard": Interactive adapter setup (requires adapter_type and credentials)
         key: Configuration key (for action="set"). Valid values:
             - "adapter", "project", "user", "tags", "team", "cycle", "epic", "assignment_labels"
         value: Value to set (for action="set", type depends on key)
         adapter_name: Adapter to test (for action="test")
         adapter: Adapter to get requirements for (for action="get_requirements")
+        adapter_type: Adapter type for setup (for action="setup_wizard")
+        credentials: Adapter credentials dict (for action="setup_wizard")
+        set_as_default: Set adapter as default (for action="setup_wizard", default: True)
+        test_connection: Test connection during setup (for action="setup_wizard", default: True)
         **kwargs: Additional parameters passed to underlying functions
 
     Returns:
@@ -108,13 +117,31 @@ async def config(
         # Get adapter requirements
         config(action="get_requirements", adapter="linear")
 
-    Migration from old tools:
+        # Setup wizard (interactive configuration)
+        config(action="setup_wizard", adapter_type="linear",
+               credentials={"api_key": "...", "team_key": "ENG"})
+
+    Migration from deprecated tools:
         - config_get() → config(action="get")
+        - config_set(key="adapter", value="linear") → config(action="set", key="adapter", value="linear")
+        - config_set_primary_adapter("linear") → config(action="set", key="adapter", value="linear")
+        - config_set_default_project("PROJ") → config(action="set", key="project", value="PROJ")
+        - config_set_default_user("user@ex.com") → config(action="set", key="user", value="user@ex.com")
+        - config_set_default_tags(["bug"]) → config(action="set", key="tags", value=["bug"])
+        - config_set_default_team("ENG") → config(action="set", key="team", value="ENG")
+        - config_set_default_cycle("S23") → config(action="set", key="cycle", value="S23")
+        - config_set_default_epic("EP-1") → config(action="set", key="epic", value="EP-1")
+        - config_set_assignment_labels(["my"]) → config(action="set", key="assignment_labels", value=["my"])
         - config_validate() → config(action="validate")
         - config_test_adapter("linear") → config(action="test", adapter_name="linear")
         - config_list_adapters() → config(action="list_adapters")
         - config_get_adapter_requirements("linear") → config(action="get_requirements", adapter="linear")
-        - config_set(key="adapter", value="linear") → config(action="set", key="adapter", value="linear")
+        - config_setup_wizard(...) → config(action="setup_wizard", ...)
+
+    Token Savings:
+        Before: 16 tools × ~500 tokens = ~8,000 tokens
+        After: 1 unified tool × ~800 tokens = ~800 tokens
+        Savings: ~7,200 tokens (90% reduction)
 
     See: docs/mcp-api-reference.md#config-response-format
     """
@@ -157,6 +184,25 @@ async def config(
                 "hint": "Use config(action='get_requirements', adapter='linear')",
             }
         return await config_get_adapter_requirements(adapter=adapter)
+    elif action_lower == "setup_wizard":
+        if adapter_type is None:
+            return {
+                "status": "error",
+                "error": "Parameter 'adapter_type' is required for action='setup_wizard'",
+                "hint": "Use config(action='setup_wizard', adapter_type='linear', credentials={...})",
+            }
+        if credentials is None:
+            return {
+                "status": "error",
+                "error": "Parameter 'credentials' is required for action='setup_wizard'",
+                "hint": "Use config(action='setup_wizard', adapter_type='linear', credentials={...})",
+            }
+        return await config_setup_wizard(
+            adapter_type=adapter_type,
+            credentials=credentials,
+            set_as_default=set_as_default,
+            test_connection=test_connection,
+        )
     else:
         valid_actions = [
             "get",
@@ -165,6 +211,7 @@ async def config(
             "test",
             "list_adapters",
             "get_requirements",
+            "setup_wizard",
         ]
         return {
             "status": "error",
@@ -174,7 +221,6 @@ async def config(
         }
 
 
-@mcp.tool()
 async def config_set(
     key: str,
     value: Any,
@@ -286,7 +332,6 @@ async def config_set(
         }
 
 
-@mcp.tool()
 async def config_set_primary_adapter(adapter: str) -> dict[str, Any]:
     """Set the default adapter for ticket operations.
 
@@ -341,7 +386,6 @@ async def config_set_primary_adapter(adapter: str) -> dict[str, Any]:
         }
 
 
-@mcp.tool()
 async def config_set_default_project(
     project_id: str,
     project_key: str | None = None,
@@ -395,7 +439,6 @@ async def config_set_default_project(
         }
 
 
-@mcp.tool()
 async def config_set_default_user(
     user_id: str,
     user_email: str | None = None,
@@ -447,7 +490,6 @@ async def config_set_default_user(
         }
 
 
-@mcp.tool()
 async def config_get() -> dict[str, Any]:
     """Get current configuration settings.
 
@@ -496,7 +538,6 @@ async def config_get() -> dict[str, Any]:
         }
 
 
-@mcp.tool()
 async def config_set_default_tags(
     tags: list[str],
 ) -> dict[str, Any]:
@@ -556,7 +597,6 @@ async def config_set_default_tags(
         }
 
 
-@mcp.tool()
 async def config_set_default_team(
     team_id: str,
 ) -> dict[str, Any]:
@@ -609,7 +649,6 @@ async def config_set_default_team(
         }
 
 
-@mcp.tool()
 async def config_set_default_cycle(
     cycle_id: str,
 ) -> dict[str, Any]:
@@ -662,7 +701,6 @@ async def config_set_default_cycle(
         }
 
 
-@mcp.tool()
 async def config_set_default_epic(
     epic_id: str,
 ) -> dict[str, Any]:
@@ -712,7 +750,6 @@ async def config_set_default_epic(
         }
 
 
-@mcp.tool()
 async def config_set_assignment_labels(labels: list[str]) -> dict[str, Any]:
     """Set labels that indicate ticket assignment to user.
 
@@ -764,7 +801,6 @@ async def config_set_assignment_labels(labels: list[str]) -> dict[str, Any]:
         }
 
 
-@mcp.tool()
 async def config_validate() -> dict[str, Any]:
     """Validate all adapter configurations (structure only, no connectivity test).
 
@@ -828,7 +864,6 @@ async def config_validate() -> dict[str, Any]:
         }
 
 
-@mcp.tool()
 async def config_test_adapter(adapter_name: str) -> dict[str, Any]:
     """Test connectivity for a specific adapter (actual API call).
 
@@ -882,7 +917,6 @@ async def config_test_adapter(adapter_name: str) -> dict[str, Any]:
         }
 
 
-@mcp.tool()
 async def config_list_adapters() -> dict[str, Any]:
     """List all available adapters with configuration status.
 
@@ -966,7 +1000,6 @@ async def config_list_adapters() -> dict[str, Any]:
         }
 
 
-@mcp.tool()
 async def config_get_adapter_requirements(adapter: str) -> dict[str, Any]:
     """Get configuration requirements for a specific adapter.
 
@@ -1120,7 +1153,6 @@ async def config_get_adapter_requirements(adapter: str) -> dict[str, Any]:
         }
 
 
-@mcp.tool()
 async def config_setup_wizard(
     adapter_type: str,
     credentials: dict[str, Any],
@@ -1129,12 +1161,21 @@ async def config_setup_wizard(
 ) -> dict[str, Any]:
     """Interactive setup wizard for adapter configuration (validates, tests, saves).
 
+    .. deprecated::
+        Use config(action="setup_wizard", adapter_type="...", credentials={...}) instead.
+        This function will be removed in a future version.
+
     Args: adapter_type, credentials dict, set_as_default (default: True), test_connection (default: True)
     Returns: ConfigResponse with adapter, message, tested, connection_healthy, config_path
     Note: Single-call setup - validates format, tests API connectivity, saves config
     See: docs/mcp-api-reference.md#config-response-format
          docs/mcp-api-reference.md#adapter-types
     """
+    warnings.warn(
+        "config_setup_wizard is deprecated. Use config(action='setup_wizard', adapter_type=adapter_type, credentials=credentials) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Step 1: Validate adapter type
         valid_adapters = [adapter_type.value for adapter_type in AdapterType]

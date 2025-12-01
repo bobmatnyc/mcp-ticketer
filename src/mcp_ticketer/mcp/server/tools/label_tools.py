@@ -236,7 +236,6 @@ async def label(
         }
 
 
-@mcp.tool()
 async def label_list(
     adapter_name: str | None = None,
     include_usage_count: bool = False,
@@ -369,7 +368,6 @@ async def label_list(
         return error_response
 
 
-@mcp.tool()
 async def label_normalize(
     label_name: str,
     casing: str = "lowercase",
@@ -419,7 +417,6 @@ async def label_normalize(
         }
 
 
-@mcp.tool()
 async def label_find_duplicates(
     threshold: float = 0.85,
     limit: int = 50,
@@ -508,7 +505,6 @@ async def label_find_duplicates(
         return error_response
 
 
-@mcp.tool()
 async def label_suggest_merge(
     source_label: str,
     target_label: str,
@@ -583,7 +579,6 @@ async def label_suggest_merge(
         return error_response
 
 
-@mcp.tool()
 async def label_merge(
     source_label: str,
     target_label: str,
@@ -720,7 +715,6 @@ async def label_merge(
         return error_response
 
 
-@mcp.tool()
 async def label_rename(
     old_name: str,
     new_name: str,
@@ -759,7 +753,6 @@ async def label_rename(
     return result
 
 
-@mcp.tool()
 async def label_cleanup_report(
     include_spelling: bool = True,
     include_duplicates: bool = True,

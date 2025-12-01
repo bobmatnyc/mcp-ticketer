@@ -10,7 +10,6 @@ from typing import Any
 from ..server_sdk import get_adapter, mcp
 
 
-@mcp.tool()
 async def ticket_create_pr(
     ticket_id: str,
     title: str,
@@ -86,7 +85,6 @@ async def ticket_create_pr(
         }
 
 
-@mcp.tool()
 async def ticket_link_pr(
     ticket_id: str,
     pr_url: str,

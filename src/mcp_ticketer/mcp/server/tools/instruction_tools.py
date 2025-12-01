@@ -16,7 +16,6 @@ from ....core.instructions import (
 from ..server_sdk import mcp
 
 
-@mcp.tool()
 async def instructions_get() -> dict[str, Any]:
     """Get current ticket writing instructions.
 
@@ -76,7 +75,6 @@ async def instructions_get() -> dict[str, Any]:
         }
 
 
-@mcp.tool()
 async def instructions_set(content: str, source: str = "inline") -> dict[str, Any]:
     r"""Set custom ticket writing instructions for the project.
 
@@ -147,7 +145,6 @@ async def instructions_set(content: str, source: str = "inline") -> dict[str, An
         }
 
 
-@mcp.tool()
 async def instructions_reset() -> dict[str, Any]:
     """Reset to default instructions by deleting custom instructions.
 
@@ -211,7 +208,6 @@ async def instructions_reset() -> dict[str, Any]:
         }
 
 
-@mcp.tool()
 async def instructions_validate(content: str) -> dict[str, Any]:
     """Validate ticket instructions content without saving.
 

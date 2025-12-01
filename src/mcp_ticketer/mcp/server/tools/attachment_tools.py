@@ -13,7 +13,6 @@ from ....core.models import Comment, TicketType
 from ..server_sdk import get_adapter, mcp
 
 
-@mcp.tool()
 async def ticket_attach(
     ticket_id: str,
     file_path: str,
@@ -145,7 +144,6 @@ async def ticket_attach(
         }
 
 
-@mcp.tool()
 async def ticket_attachments(
     ticket_id: str,
 ) -> dict[str, Any]:  # Keep as dict for MCP compatibility
