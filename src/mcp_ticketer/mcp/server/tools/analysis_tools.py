@@ -1,9 +1,10 @@
 """MCP tools for ticket analysis and cleanup.
 
 This module provides PM-focused tools to help maintain ticket health:
-- ticket_find_similar: Find duplicate or related tickets
-- ticket_find_stale: Identify old, inactive tickets
-- ticket_find_orphaned: Find tickets without hierarchy
+- ticket_find: Unified interface for finding similar, stale, and orphaned tickets
+- ticket_find_similar: Find duplicate or related tickets (deprecated, use ticket_find)
+- ticket_find_stale: Identify old, inactive tickets (deprecated, use ticket_find)
+- ticket_find_orphaned: Find tickets without hierarchy (deprecated, use ticket_find)
 - ticket_cleanup_report: Generate comprehensive cleanup report
 
 These tools help product managers maintain development practices and
@@ -11,6 +12,7 @@ identify tickets that need attention.
 """
 
 import logging
+import warnings
 from datetime import datetime
 from typing import Any
 
@@ -36,6 +38,84 @@ logger = logging.getLogger(__name__)
 
 
 @mcp.tool()
+async def ticket_find(
+    find_type: str,
+    ticket_id: str | None = None,
+    threshold: float = 0.75,
+    limit: int = 10,
+    internal_limit: int = 100,
+    age_threshold_days: int = 90,
+    activity_threshold_days: int = 30,
+    states: list[str] | None = None,
+) -> dict[str, Any]:
+    """Find tickets by type (unified interface for similar, stale, orphaned).
+
+    This tool consolidates ticket_find_similar, ticket_find_stale, and
+    ticket_find_orphaned into a single interface.
+
+    Args:
+        find_type: Type of search to perform. Valid values:
+            - "similar": Find duplicate or related tickets (uses TF-IDF similarity)
+            - "stale": Find old, inactive tickets that may need closing
+            - "orphaned": Find tickets without proper hierarchy (no parent/epic/project)
+        ticket_id: For "similar" type: find tickets similar to this one (optional)
+        threshold: For "similar" type: similarity threshold 0.0-1.0 (default: 0.75)
+        limit: Maximum number of results to return (default: 10, max: 50)
+        internal_limit: For "similar" type: max tickets to fetch for comparison (default: 100, max: 200)
+        age_threshold_days: For "stale" type: minimum age in days to consider (default: 90)
+        activity_threshold_days: For "stale" type: days without activity (default: 30)
+        states: For "stale" type: ticket states to check (default: ["open", "waiting", "blocked"])
+
+    Returns:
+        Results specific to find_type with status, count, and detailed findings
+
+    Examples:
+        # Find similar tickets
+        ticket_find(find_type="similar", ticket_id="TICKET-123", threshold=0.8)
+
+        # Find stale tickets
+        ticket_find(find_type="stale", age_threshold_days=180, activity_threshold_days=60)
+
+        # Find orphaned tickets
+        ticket_find(find_type="orphaned", limit=200)
+
+    Migration from old tools:
+        - ticket_find_similar(...) → ticket_find(find_type="similar", ...)
+        - ticket_find_stale(...) → ticket_find(find_type="stale", ...)
+        - ticket_find_orphaned(...) → ticket_find(find_type="orphaned", ...)
+
+    See: docs/mcp-api-reference.md for detailed response formats
+    """
+    find_type_lower = find_type.lower()
+
+    # Route to appropriate handler based on find_type
+    if find_type_lower == "similar":
+        return await ticket_find_similar(
+            ticket_id=ticket_id,
+            threshold=threshold,
+            limit=limit,
+            internal_limit=internal_limit,
+        )
+    elif find_type_lower == "stale":
+        return await ticket_find_stale(
+            age_threshold_days=age_threshold_days,
+            activity_threshold_days=activity_threshold_days,
+            states=states,
+            limit=limit,
+        )
+    elif find_type_lower == "orphaned":
+        return await ticket_find_orphaned(limit=limit)
+    else:
+        valid_types = ["similar", "stale", "orphaned"]
+        return {
+            "status": "error",
+            "error": f"Invalid find_type '{find_type}'. Must be one of: {', '.join(valid_types)}",
+            "valid_types": valid_types,
+            "hint": "Use ticket_find(find_type='similar'|'stale'|'orphaned', ...)",
+        }
+
+
+@mcp.tool()
 async def ticket_find_similar(
     ticket_id: str | None = None,
     threshold: float = 0.75,
@@ -43,6 +123,10 @@ async def ticket_find_similar(
     internal_limit: int = 100,
 ) -> dict[str, Any]:
     """Find similar tickets to detect duplicates.
+
+    .. deprecated::
+        Use ticket_find(find_type="similar", ...) instead.
+        This tool will be removed in a future version.
 
     Uses TF-IDF and cosine similarity to find tickets with similar
     titles and descriptions. Useful for identifying duplicate tickets
@@ -76,6 +160,11 @@ async def ticket_find_similar(
         result = await ticket_find_similar(limit=10, internal_limit=200)
 
     """
+    warnings.warn(
+        "ticket_find_similar is deprecated. Use ticket_find(find_type='similar', ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if not ANALYSIS_AVAILABLE:
         return {
             "status": "error",
@@ -194,6 +283,10 @@ async def ticket_find_stale(
 ) -> dict[str, Any]:
     """Find stale tickets that may need closing.
 
+    .. deprecated::
+        Use ticket_find(find_type="stale", ...) instead.
+        This tool will be removed in a future version.
+
     Identifies old tickets with no recent activity that might be
     "won't do" or abandoned work. Uses age, inactivity, state, and
     priority to calculate staleness score.
@@ -218,6 +311,11 @@ async def ticket_find_stale(
         result = await ticket_find_stale(states=["open"], limit=100)
 
     """
+    warnings.warn(
+        "ticket_find_stale is deprecated. Use ticket_find(find_type='stale', ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if not ANALYSIS_AVAILABLE:
         return {
             "status": "error",
@@ -304,6 +402,10 @@ async def ticket_find_orphaned(
 ) -> dict[str, Any]:
     """Find orphaned tickets without parent epic or project.
 
+    .. deprecated::
+        Use ticket_find(find_type="orphaned", ...) instead.
+        This tool will be removed in a future version.
+
     Identifies tickets that aren't properly organized in the hierarchy:
     - Tickets without parent epic/milestone
     - Tickets not assigned to any project/team
@@ -320,6 +422,11 @@ async def ticket_find_orphaned(
         result = await ticket_find_orphaned(limit=200)
 
     """
+    warnings.warn(
+        "ticket_find_orphaned is deprecated. Use ticket_find(find_type='orphaned', ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if not ANALYSIS_AVAILABLE:
         return {
             "status": "error",

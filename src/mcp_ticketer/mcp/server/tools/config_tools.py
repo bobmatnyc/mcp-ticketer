@@ -28,6 +28,7 @@ so repeated reads are fast (O(1) after first load).
 
 from pathlib import Path
 from typing import Any
+import warnings
 
 from ....core.project_config import (
     AdapterType,
@@ -57,14 +58,252 @@ def get_resolver() -> ConfigResolver:
 
 
 @mcp.tool()
+async def config(
+    action: str,
+    key: str | None = None,
+    value: Any | None = None,
+    adapter_name: str | None = None,
+    adapter: str | None = None,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Unified configuration management tool with action-based routing.
+
+    Single tool for all configuration operations. Routes to appropriate
+    implementation based on 'action' parameter.
+
+    Args:
+        action: Operation to perform. Valid values:
+            - "get": Get current configuration
+            - "set": Set a configuration value (requires key and value)
+            - "validate": Validate all adapter configurations
+            - "test": Test adapter connectivity (requires adapter_name)
+            - "list_adapters": List all available adapters
+            - "get_requirements": Get adapter requirements (requires adapter)
+        key: Configuration key (for action="set"). Valid values:
+            - "adapter", "project", "user", "tags", "team", "cycle", "epic", "assignment_labels"
+        value: Value to set (for action="set", type depends on key)
+        adapter_name: Adapter to test (for action="test")
+        adapter: Adapter to get requirements for (for action="get_requirements")
+        **kwargs: Additional parameters passed to underlying functions
+
+    Returns:
+        Response dict with status and action-specific data
+
+    Examples:
+        # Get configuration
+        config(action="get")
+
+        # Set default adapter
+        config(action="set", key="adapter", value="linear")
+
+        # Validate all adapters
+        config(action="validate")
+
+        # Test adapter connection
+        config(action="test", adapter_name="linear")
+
+        # List all adapters
+        config(action="list_adapters")
+
+        # Get adapter requirements
+        config(action="get_requirements", adapter="linear")
+
+    Migration from old tools:
+        - config_get() → config(action="get")
+        - config_validate() → config(action="validate")
+        - config_test_adapter("linear") → config(action="test", adapter_name="linear")
+        - config_list_adapters() → config(action="list_adapters")
+        - config_get_adapter_requirements("linear") → config(action="get_requirements", adapter="linear")
+        - config_set(key="adapter", value="linear") → config(action="set", key="adapter", value="linear")
+
+    See: docs/mcp-api-reference.md#config-response-format
+    """
+    action_lower = action.lower()
+
+    # Route based on action
+    if action_lower == "get":
+        return await config_get()
+    elif action_lower == "set":
+        if key is None:
+            return {
+                "status": "error",
+                "error": "Parameter 'key' is required for action='set'",
+                "hint": "Use config(action='set', key='adapter', value='linear')",
+            }
+        if value is None:
+            return {
+                "status": "error",
+                "error": "Parameter 'value' is required for action='set'",
+                "hint": "Use config(action='set', key='adapter', value='linear')",
+            }
+        return await config_set(key=key, value=value, **kwargs)
+    elif action_lower == "validate":
+        return await config_validate()
+    elif action_lower == "test":
+        if adapter_name is None:
+            return {
+                "status": "error",
+                "error": "Parameter 'adapter_name' is required for action='test'",
+                "hint": "Use config(action='test', adapter_name='linear')",
+            }
+        return await config_test_adapter(adapter_name=adapter_name)
+    elif action_lower == "list_adapters":
+        return await config_list_adapters()
+    elif action_lower == "get_requirements":
+        if adapter is None:
+            return {
+                "status": "error",
+                "error": "Parameter 'adapter' is required for action='get_requirements'",
+                "hint": "Use config(action='get_requirements', adapter='linear')",
+            }
+        return await config_get_adapter_requirements(adapter=adapter)
+    else:
+        valid_actions = [
+            "get",
+            "set",
+            "validate",
+            "test",
+            "list_adapters",
+            "get_requirements",
+        ]
+        return {
+            "status": "error",
+            "error": f"Invalid action '{action}'. Must be one of: {', '.join(valid_actions)}",
+            "valid_actions": valid_actions,
+            "hint": "Use config(action='get') to see current configuration",
+        }
+
+
+@mcp.tool()
+async def config_set(
+    key: str,
+    value: Any,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Set configuration value (unified setter for all config options).
+
+    .. deprecated::
+        Use config(action="set", key="...", value=...) instead.
+        This tool will be removed in a future version.
+
+    This tool consolidates all config_set_* operations into a single interface.
+    Use the 'key' parameter to specify which configuration to set.
+
+    Args:
+        key: Configuration key to set. Valid values:
+            - "adapter": Set default adapter (value: adapter name string)
+            - "project": Set default project/epic (value: project ID string)
+            - "user": Set default user/assignee (value: user ID string)
+            - "tags": Set default tags (value: list of tag strings)
+            - "team": Set default team (value: team ID string)
+            - "cycle": Set default cycle/sprint (value: cycle ID string)
+            - "epic": Set default epic (alias for "project", value: epic ID string)
+            - "assignment_labels": Set assignment labels (value: list of label strings)
+        value: Value to set (type depends on key)
+        **kwargs: Additional key-specific parameters (e.g., project_key, user_email)
+
+    Returns:
+        ConfigResponse with status, message, previous/new values, config_path
+
+    Examples:
+        # Set default adapter
+        config_set(key="adapter", value="linear")
+
+        # Set default project
+        config_set(key="project", value="PROJ-123")
+
+        # Set default tags
+        config_set(key="tags", value=["bug", "high-priority"])
+
+        # Set default user
+        config_set(key="user", value="user@example.com")
+
+    Migration from old tools:
+        - config_set_primary_adapter(adapter="linear") → config_set(key="adapter", value="linear")
+        - config_set_default_project(project_id="PROJ") → config_set(key="project", value="PROJ")
+        - config_set_default_user(user_id="user@ex.com") → config_set(key="user", value="user@ex.com")
+        - config_set_default_tags(tags=["bug"]) → config_set(key="tags", value=["bug"])
+        - config_set_default_team(team_id="ENG") → config_set(key="team", value="ENG")
+        - config_set_default_cycle(cycle_id="S23") → config_set(key="cycle", value="S23")
+        - config_set_default_epic(epic_id="EP-1") → config_set(key="epic", value="EP-1")
+        - config_set_assignment_labels(labels=["my"]) → config_set(key="assignment_labels", value=["my"])
+
+    See: docs/mcp-api-reference.md#config-response-format
+    """
+    warnings.warn(
+        "config_set is deprecated. Use config(action='set', key=key, value=value) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    key_lower = key.lower()
+
+    # Route to appropriate handler based on key
+    if key_lower == "adapter":
+        return await config_set_primary_adapter(adapter=str(value))
+    elif key_lower in ("project", "epic"):
+        project_key = kwargs.get("project_key")
+        return await config_set_default_project(
+            project_id=str(value), project_key=project_key
+        )
+    elif key_lower == "user":
+        user_email = kwargs.get("user_email")
+        return await config_set_default_user(user_id=str(value), user_email=user_email)
+    elif key_lower == "tags":
+        if not isinstance(value, list):
+            return {
+                "status": "error",
+                "error": f"Value for key 'tags' must be a list, got {type(value).__name__}",
+            }
+        return await config_set_default_tags(tags=value)
+    elif key_lower == "team":
+        return await config_set_default_team(team_id=str(value))
+    elif key_lower == "cycle":
+        return await config_set_default_cycle(cycle_id=str(value))
+    elif key_lower == "assignment_labels":
+        if not isinstance(value, list):
+            return {
+                "status": "error",
+                "error": f"Value for key 'assignment_labels' must be a list, got {type(value).__name__}",
+            }
+        return await config_set_assignment_labels(labels=value)
+    else:
+        valid_keys = [
+            "adapter",
+            "project",
+            "epic",
+            "user",
+            "tags",
+            "team",
+            "cycle",
+            "assignment_labels",
+        ]
+        return {
+            "status": "error",
+            "error": f"Invalid configuration key '{key}'. Must be one of: {', '.join(valid_keys)}",
+            "valid_keys": valid_keys,
+            "hint": "Use config_get() to see current configuration",
+        }
+
+
+@mcp.tool()
 async def config_set_primary_adapter(adapter: str) -> dict[str, Any]:
     """Set the default adapter for ticket operations.
+
+    .. deprecated::
+        Use config_set(key="adapter", value="adapter_name") instead.
+        This tool will be removed in a future version.
 
     Args: adapter - Adapter type (aitrackdown, linear, github, jira)
     Returns: ConfigResponse with previous/new adapter, config_path
     See: docs/mcp-api-reference.md#config-response-format
          docs/mcp-api-reference.md#adapter-types
     """
+    warnings.warn(
+        "config_set_primary_adapter is deprecated. Use config_set(key='adapter', value=adapter) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Validate adapter name against registry
         valid_adapters = [adapter_type.value for adapter_type in AdapterType]
@@ -109,11 +348,20 @@ async def config_set_default_project(
 ) -> dict[str, Any]:
     """Set the default project/epic for new tickets.
 
+    .. deprecated::
+        Use config_set(key="project", value="project_id") instead.
+        This tool will be removed in a future version.
+
     Args: project_id (required), project_key (optional for key-based adapters)
     Returns: ConfigResponse with previous/new project
     Note: Sets both default_project and default_epic for backward compatibility
     See: docs/mcp-api-reference.md#config-response-format
     """
+    warnings.warn(
+        "config_set_default_project is deprecated. Use config_set(key='project', value=project_id) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Load current configuration
         resolver = get_resolver()
@@ -154,10 +402,19 @@ async def config_set_default_user(
 ) -> dict[str, Any]:
     """Set the default assignee for new tickets.
 
+    .. deprecated::
+        Use config_set(key="user", value="user_id") instead.
+        This tool will be removed in a future version.
+
     Args: user_id (ID/email/username), user_email (optional for adapters needing both)
     Returns: ConfigResponse with previous/new user
     See: docs/mcp-api-reference.md#user-identifiers
     """
+    warnings.warn(
+        "config_set_default_user is deprecated. Use config_set(key='user', value=user_id) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Load current configuration
         resolver = get_resolver()
@@ -194,10 +451,19 @@ async def config_set_default_user(
 async def config_get() -> dict[str, Any]:
     """Get current configuration settings.
 
+    .. deprecated::
+        Use config(action="get") instead.
+        This tool will be removed in a future version.
+
     Returns: Complete config dict with default_adapter, default_project, default_user, adapters
     Note: Sensitive values (API keys) masked; merges env vars, .env, config.json
     See: docs/mcp-api-reference.md#config-response-format
     """
+    warnings.warn(
+        "config_get is deprecated. Use config(action='get') instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Load current configuration
         resolver = get_resolver()
@@ -236,10 +502,19 @@ async def config_set_default_tags(
 ) -> dict[str, Any]:
     """Set default tags for new ticket creation.
 
+    .. deprecated::
+        Use config_set(key="tags", value=["tag1", "tag2"]) instead.
+        This tool will be removed in a future version.
+
     Args: tags - List of tag names (2-50 chars each, merged with user tags at creation)
     Returns: ConfigResponse with default_tags list
     See: docs/mcp-api-reference.md#config-response-format
     """
+    warnings.warn(
+        "config_set_default_tags is deprecated. Use config_set(key='tags', value=tags) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Validate tags
         if not tags:
@@ -287,11 +562,20 @@ async def config_set_default_team(
 ) -> dict[str, Any]:
     """Set the default team for ticket operations.
 
+    .. deprecated::
+        Use config_set(key="team", value="team_id") instead.
+        This tool will be removed in a future version.
+
     Args: team_id - Team ID/key (e.g., "ENG", UUID for Linear multi-team workspaces)
     Returns: ConfigResponse with previous/new team
     Note: Helps scope ticket_list and ticket_search operations
     See: docs/mcp-api-reference.md#config-response-format
     """
+    warnings.warn(
+        "config_set_default_team is deprecated. Use config_set(key='team', value=team_id) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Validate team ID
         if not team_id or len(team_id.strip()) < 1:
@@ -331,11 +615,20 @@ async def config_set_default_cycle(
 ) -> dict[str, Any]:
     """Set the default cycle/sprint for ticket operations.
 
+    .. deprecated::
+        Use config_set(key="cycle", value="cycle_id") instead.
+        This tool will be removed in a future version.
+
     Args: cycle_id - Sprint/cycle ID (e.g., "Sprint 23", UUID for sprint planning)
     Returns: ConfigResponse with previous/new cycle
     Note: Helps scope ticket_list and ticket_search to active sprint
     See: docs/mcp-api-reference.md#config-response-format
     """
+    warnings.warn(
+        "config_set_default_cycle is deprecated. Use config_set(key='cycle', value=cycle_id) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Validate cycle ID
         if not cycle_id or len(cycle_id.strip()) < 1:
@@ -375,10 +668,19 @@ async def config_set_default_epic(
 ) -> dict[str, Any]:
     """Set default epic/project for new ticket creation.
 
+    .. deprecated::
+        Use config_set(key="epic", value="epic_id") instead.
+        This tool will be removed in a future version.
+
     Args: epic_id - Epic/project ID (alias for config_set_default_project)
     Returns: ConfigResponse with default_epic and default_project (both set for compatibility)
     See: docs/mcp-api-reference.md#config-response-format
     """
+    warnings.warn(
+        "config_set_default_epic is deprecated. Use config_set(key='epic', value=epic_id) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Validate epic ID
         if not epic_id or len(epic_id.strip()) < 2:
@@ -414,11 +716,20 @@ async def config_set_default_epic(
 async def config_set_assignment_labels(labels: list[str]) -> dict[str, Any]:
     """Set labels that indicate ticket assignment to user.
 
+    .. deprecated::
+        Use config_set(key="assignment_labels", value=["label1", "label2"]) instead.
+        This tool will be removed in a future version.
+
     Args: labels - Label names indicating user ownership (e.g., ["my-work", "in-progress"])
     Returns: ConfigResponse with assignment_labels list
     Note: Used by check_open_tickets to find work beyond formal assignment field
     See: docs/mcp-api-reference.md#config-response-format
     """
+    warnings.warn(
+        "config_set_assignment_labels is deprecated. Use config_set(key='assignment_labels', value=labels) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Validate label format
         for label in labels:
@@ -457,10 +768,19 @@ async def config_set_assignment_labels(labels: list[str]) -> dict[str, Any]:
 async def config_validate() -> dict[str, Any]:
     """Validate all adapter configurations (structure only, no connectivity test).
 
+    .. deprecated::
+        Use config(action="validate") instead.
+        This tool will be removed in a future version.
+
     Returns: ValidationResponse with validation_results, all_valid, issues list
     Note: Checks required fields, formats (API keys, URLs, emails). Use config_test_adapter() for connectivity.
     See: docs/mcp-api-reference.md#validation-response-format
     """
+    warnings.warn(
+        "config_validate is deprecated. Use config(action='validate') instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         resolver = get_resolver()
         config = resolver.load_project_config() or TicketerConfig()
@@ -512,11 +832,20 @@ async def config_validate() -> dict[str, Any]:
 async def config_test_adapter(adapter_name: str) -> dict[str, Any]:
     """Test connectivity for a specific adapter (actual API call).
 
+    .. deprecated::
+        Use config(action="test", adapter_name="...") instead.
+        This tool will be removed in a future version.
+
     Args: adapter_name - Adapter to test (linear, github, jira, aitrackdown)
     Returns: ValidationResponse with adapter, healthy status, message, error_type
     Note: Makes real API call (list operation) to verify credentials and connectivity
     See: docs/mcp-api-reference.md#validation-response-format
     """
+    warnings.warn(
+        "config_test_adapter is deprecated. Use config(action='test', adapter_name=adapter_name) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Import diagnostic tool
         from .diagnostic_tools import check_adapter_health
@@ -557,10 +886,19 @@ async def config_test_adapter(adapter_name: str) -> dict[str, Any]:
 async def config_list_adapters() -> dict[str, Any]:
     """List all available adapters with configuration status.
 
+    .. deprecated::
+        Use config(action="list_adapters") instead.
+        This tool will be removed in a future version.
+
     Returns: ListResponse with adapters array (type, name, configured, is_default, description), default_adapter, total_configured
     See: docs/mcp-api-reference.md#list-response-format
          docs/mcp-api-reference.md#adapter-types
     """
+    warnings.warn(
+        "config_list_adapters is deprecated. Use config(action='list_adapters') instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Get all registered adapters from registry
         available_adapters = AdapterRegistry.list_adapters()
@@ -632,10 +970,19 @@ async def config_list_adapters() -> dict[str, Any]:
 async def config_get_adapter_requirements(adapter: str) -> dict[str, Any]:
     """Get configuration requirements for a specific adapter.
 
+    .. deprecated::
+        Use config(action="get_requirements", adapter="...") instead.
+        This tool will be removed in a future version.
+
     Args: adapter - Adapter name (linear, github, jira, aitrackdown, asana)
     Returns: Requirements dict with field specs (type, required, description, env_var, validation pattern)
     See: docs/mcp-api-reference.md#adapter-types for setup instructions
     """
+    warnings.warn(
+        "config_get_adapter_requirements is deprecated. Use config(action='get_requirements', adapter=adapter) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Validate adapter name
         valid_adapters = [adapter_type.value for adapter_type in AdapterType]

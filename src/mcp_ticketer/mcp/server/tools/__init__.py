@@ -12,7 +12,6 @@ Modules:
     comment_tools: Comment management
     pr_tools: Pull request integration
     attachment_tools: File attachment handling
-    instruction_tools: Ticket instructions management
     config_tools: Configuration management (adapter, project, user settings)
     session_tools: Session tracking and ticket association management
     user_ticket_tools: User-specific ticket operations (my tickets, transitions)
@@ -20,6 +19,10 @@ Modules:
     label_tools: Label management, normalization, deduplication, and cleanup
     project_update_tools: Project status update management (1M-238)
     project_status_tools: Project status analysis and work planning (1M-316)
+
+Note:
+    instruction_tools: Removed from MCP server (CLI-only as of Phase 1 consolidation)
+    These tools are available via CLI commands but not exposed through MCP interface.
 
 """
 
@@ -32,7 +35,7 @@ from . import (
     comment_tools,  # noqa: F401
     config_tools,  # noqa: F401
     hierarchy_tools,  # noqa: F401
-    instruction_tools,  # noqa: F401
+    # instruction_tools removed - CLI-only (Phase 1 consolidation)
     label_tools,  # noqa: F401
     pr_tools,  # noqa: F401
     project_status_tools,  # noqa: F401
@@ -50,7 +53,7 @@ __all__ = [
     "comment_tools",
     "config_tools",
     "hierarchy_tools",
-    "instruction_tools",
+    # "instruction_tools" removed - CLI-only (Phase 1 consolidation)
     "label_tools",
     "pr_tools",
     "project_status_tools",

@@ -1,8 +1,20 @@
 """Tests for label management MCP tools."""
 
+import warnings
+
 import pytest
 
 from mcp_ticketer.core.label_manager import LabelDeduplicator, LabelNormalizer
+from mcp_ticketer.mcp.server.tools.label_tools import (
+    label,
+    label_cleanup_report,
+    label_find_duplicates,
+    label_list,
+    label_merge,
+    label_normalize,
+    label_rename,
+    label_suggest_merge,
+)
 
 
 class TestLabelNormalization:
@@ -139,6 +151,186 @@ class TestSpellingCorrection:
         assert normalizer._apply_spelling_correction("bug") == "bug"
         assert normalizer._apply_spelling_correction("feature") == "feature"
         assert normalizer._apply_spelling_correction("performance") == "performance"
+
+
+class TestUnifiedLabelTool:
+    """Test unified label() tool with action-based routing."""
+
+    @pytest.mark.asyncio
+    async def test_label_invalid_action(self) -> None:
+        """Test that invalid action returns error."""
+        result = await label(action="invalid_action")
+
+        assert result["status"] == "error"
+        assert "invalid_action" in result["error"].lower()
+        assert "valid_actions" in result
+        assert len(result["valid_actions"]) == 7
+
+    @pytest.mark.asyncio
+    async def test_label_normalize_missing_params(self) -> None:
+        """Test that normalize action requires label_name."""
+        result = await label(action="normalize")
+
+        assert result["status"] == "error"
+        assert "label_name is required" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_label_suggest_merge_missing_params(self) -> None:
+        """Test that suggest_merge requires source and target."""
+        result = await label(action="suggest_merge", source_label="bug")
+
+        assert result["status"] == "error"
+        assert "target_label are required" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_label_merge_missing_params(self) -> None:
+        """Test that merge requires source and target."""
+        result = await label(action="merge", target_label="bugfix")
+
+        assert result["status"] == "error"
+        assert "source_label and target_label are required" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_label_rename_missing_params(self) -> None:
+        """Test that rename requires old_name and new_name."""
+        result = await label(action="rename", old_name="old")
+
+        assert result["status"] == "error"
+        assert "new_name are required" in result["error"]
+
+
+class TestDeprecationWarnings:
+    """Test that deprecated tools emit warnings."""
+
+    @pytest.mark.asyncio
+    async def test_label_list_deprecation_warning(self, mocker) -> None:
+        """Test label_list emits deprecation warning."""
+        # Mock adapter to prevent actual calls
+        mock_adapter = mocker.MagicMock()
+        mock_adapter.list_labels = mocker.AsyncMock(return_value=[])
+        mocker.patch(
+            "mcp_ticketer.mcp.server.tools.label_tools.get_adapter",
+            return_value=mock_adapter,
+        )
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            await label_list()
+
+            assert len(w) == 1
+            assert issubclass(w[0].category, DeprecationWarning)
+            assert "label_list is deprecated" in str(w[0].message)
+            assert "label(action='list'" in str(w[0].message)
+
+    @pytest.mark.asyncio
+    async def test_label_normalize_deprecation_warning(self) -> None:
+        """Test label_normalize emits deprecation warning."""
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            await label_normalize(label_name="test")
+
+            assert len(w) == 1
+            assert issubclass(w[0].category, DeprecationWarning)
+            assert "label_normalize is deprecated" in str(w[0].message)
+
+    @pytest.mark.asyncio
+    async def test_label_find_duplicates_deprecation_warning(self, mocker) -> None:
+        """Test label_find_duplicates emits deprecation warning."""
+        # Mock adapter to prevent actual calls
+        mock_adapter = mocker.MagicMock()
+        mock_adapter.list_labels = mocker.AsyncMock(return_value=[])
+        mocker.patch(
+            "mcp_ticketer.mcp.server.tools.label_tools.get_adapter",
+            return_value=mock_adapter,
+        )
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            await label_find_duplicates()
+
+            assert len(w) == 1
+            assert issubclass(w[0].category, DeprecationWarning)
+            assert "label_find_duplicates is deprecated" in str(w[0].message)
+
+    @pytest.mark.asyncio
+    async def test_label_suggest_merge_deprecation_warning(self, mocker) -> None:
+        """Test label_suggest_merge emits deprecation warning."""
+        # Mock adapter to prevent actual calls
+        mock_adapter = mocker.MagicMock()
+        mock_adapter.list = mocker.AsyncMock(return_value=[])
+        mocker.patch(
+            "mcp_ticketer.mcp.server.tools.label_tools.get_adapter",
+            return_value=mock_adapter,
+        )
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            await label_suggest_merge(source_label="bug", target_label="bugfix")
+
+            assert len(w) == 1
+            assert issubclass(w[0].category, DeprecationWarning)
+            assert "label_suggest_merge is deprecated" in str(w[0].message)
+
+    @pytest.mark.asyncio
+    async def test_label_merge_deprecation_warning(self, mocker) -> None:
+        """Test label_merge emits deprecation warning."""
+        # Mock adapter to prevent actual calls
+        mock_adapter = mocker.MagicMock()
+        mock_adapter.list = mocker.AsyncMock(return_value=[])
+        mocker.patch(
+            "mcp_ticketer.mcp.server.tools.label_tools.get_adapter",
+            return_value=mock_adapter,
+        )
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            await label_merge(source_label="bug", target_label="bugfix")
+
+            assert len(w) == 1
+            assert issubclass(w[0].category, DeprecationWarning)
+            assert "label_merge is deprecated" in str(w[0].message)
+
+    @pytest.mark.asyncio
+    async def test_label_rename_deprecation_warning(self, mocker) -> None:
+        """Test label_rename emits deprecation warning."""
+        # Mock adapter to prevent actual calls
+        mock_adapter = mocker.MagicMock()
+        mock_adapter.list = mocker.AsyncMock(return_value=[])
+        mocker.patch(
+            "mcp_ticketer.mcp.server.tools.label_tools.get_adapter",
+            return_value=mock_adapter,
+        )
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            # First call to label_rename triggers its deprecation warning
+            # Second call to label_merge (from rename) triggers merge's warning
+            await label_rename(old_name="old", new_name="new")
+
+            # Should have 2 warnings: one from rename, one from merge
+            assert len(w) == 2
+            assert issubclass(w[0].category, DeprecationWarning)
+            assert "label_rename is deprecated" in str(w[0].message)
+
+    @pytest.mark.asyncio
+    async def test_label_cleanup_report_deprecation_warning(self, mocker) -> None:
+        """Test label_cleanup_report emits deprecation warning."""
+        # Mock adapter to prevent actual calls
+        mock_adapter = mocker.MagicMock()
+        mock_adapter.list_labels = mocker.AsyncMock(return_value=[])
+        mock_adapter.list = mocker.AsyncMock(return_value=[])
+        mocker.patch(
+            "mcp_ticketer.mcp.server.tools.label_tools.get_adapter",
+            return_value=mock_adapter,
+        )
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            await label_cleanup_report()
+
+            assert len(w) == 1
+            assert issubclass(w[0].category, DeprecationWarning)
+            assert "label_cleanup_report is deprecated" in str(w[0].message)
 
 
 # Integration tests would require mock adapters

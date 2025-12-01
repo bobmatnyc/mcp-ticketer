@@ -4,11 +4,14 @@ This module provides MCP tools for label normalization, deduplication, merging,
 and cleanup operations across ticket systems.
 
 Features:
-- List labels from adapters with usage statistics
-- Normalize label names with configurable casing
-- Find duplicate labels with similarity scoring
-- Merge and rename labels across tickets
-- Generate comprehensive cleanup reports
+- label: Unified interface for all label operations (list, normalize, merge, etc.)
+- label_list: List labels from adapters (deprecated, use label(action="list"))
+- label_normalize: Normalize label names (deprecated, use label(action="normalize"))
+- label_find_duplicates: Find duplicate labels (deprecated, use label(action="find_duplicates"))
+- label_suggest_merge: Preview merge operation (deprecated, use label(action="suggest_merge"))
+- label_merge: Merge labels (deprecated, use label(action="merge"))
+- label_rename: Rename labels (deprecated, use label(action="rename"))
+- label_cleanup_report: Generate cleanup report (deprecated, use label(action="cleanup_report"))
 
 All tools follow the MCP response pattern:
     {
@@ -21,6 +24,7 @@ All tools follow the MCP response pattern:
 """
 
 import logging
+import warnings
 from typing import Any
 
 from ....core.label_manager import CasingStrategy, LabelDeduplicator, LabelNormalizer
@@ -50,6 +54,189 @@ def _build_adapter_metadata(adapter: Any) -> dict[str, Any]:
 
 
 @mcp.tool()
+async def label(
+    action: str,
+    adapter_name: str | None = None,
+    include_usage_count: bool = False,
+    limit: int = 100,
+    offset: int = 0,
+    label_name: str | None = None,
+    casing: str = "lowercase",
+    threshold: float = 0.85,
+    source_label: str | None = None,
+    target_label: str | None = None,
+    update_tickets: bool = True,
+    dry_run: bool = False,
+    old_name: str | None = None,
+    new_name: str | None = None,
+    include_spelling: bool = True,
+    include_duplicates: bool = True,
+    include_unused: bool = True,
+) -> dict[str, Any]:
+    """Unified label management tool with action-based routing.
+
+    This tool consolidates all label operations into a single interface:
+    - list: List all available labels
+    - normalize: Normalize label name with casing strategy
+    - find_duplicates: Find duplicate/similar labels
+    - suggest_merge: Preview label merge operation
+    - merge: Merge source label into target
+    - rename: Rename label (alias for merge)
+    - cleanup_report: Generate comprehensive cleanup report
+
+    Args:
+        action: Operation to perform. Valid values:
+            - "list": List labels from adapter
+            - "normalize": Normalize label name
+            - "find_duplicates": Find duplicate/similar labels
+            - "suggest_merge": Preview merge operation
+            - "merge": Merge labels across tickets
+            - "rename": Rename label (semantic alias for merge)
+            - "cleanup_report": Generate cleanup report
+
+        # Parameters for "list" action
+        adapter_name: Optional adapter name (for multi-adapter setups)
+        include_usage_count: Include usage statistics (default: False)
+        limit: Maximum results (default: 100, max: 500)
+        offset: Pagination offset (default: 0)
+
+        # Parameters for "normalize" action
+        label_name: Label name to normalize (required for normalize)
+        casing: Casing strategy - lowercase, titlecase, uppercase, kebab-case, snake_case (default: "lowercase")
+
+        # Parameters for "find_duplicates" action
+        threshold: Similarity threshold 0.0-1.0 (default: 0.85)
+        # limit also used here (default: 50)
+
+        # Parameters for "suggest_merge" action
+        source_label: Source label to merge from (required for suggest_merge, merge)
+        target_label: Target label to merge into (required for suggest_merge, merge)
+
+        # Parameters for "merge" action
+        # source_label, target_label (required)
+        update_tickets: Actually update tickets (default: True)
+        dry_run: Preview changes without applying (default: False)
+
+        # Parameters for "rename" action
+        old_name: Current label name (required for rename)
+        new_name: New label name (required for rename)
+        # update_tickets also used here
+
+        # Parameters for "cleanup_report" action
+        include_spelling: Include spelling analysis (default: True)
+        include_duplicates: Include duplicate analysis (default: True)
+        include_unused: Include unused label analysis (default: True)
+
+    Returns:
+        Results specific to action with status and relevant data
+
+    Examples:
+        # List labels
+        label(action="list", limit=50)
+
+        # Normalize label
+        label(action="normalize", label_name="Bug Report", casing="kebab-case")
+
+        # Find duplicates
+        label(action="find_duplicates", threshold=0.9, limit=20)
+
+        # Preview merge
+        label(action="suggest_merge", source_label="bug", target_label="bugfix")
+
+        # Merge labels
+        label(action="merge", source_label="bug", target_label="bugfix")
+
+        # Rename label
+        label(action="rename", old_name="feture", new_name="feature")
+
+        # Generate cleanup report
+        label(action="cleanup_report", include_spelling=True)
+
+    Migration from old tools:
+        - label_list(...) → label(action="list", ...)
+        - label_normalize(...) → label(action="normalize", ...)
+        - label_find_duplicates(...) → label(action="find_duplicates", ...)
+        - label_suggest_merge(...) → label(action="suggest_merge", ...)
+        - label_merge(...) → label(action="merge", ...)
+        - label_rename(...) → label(action="rename", ...)
+        - label_cleanup_report(...) → label(action="cleanup_report", ...)
+
+    See: docs/mcp-api-reference.md for detailed response formats
+    """
+    action_lower = action.lower()
+
+    # Route to appropriate handler based on action
+    if action_lower == "list":
+        return await label_list(
+            adapter_name=adapter_name,
+            include_usage_count=include_usage_count,
+            limit=limit,
+            offset=offset,
+        )
+    elif action_lower == "normalize":
+        if label_name is None:
+            return {
+                "status": "error",
+                "error": "label_name is required for normalize action",
+            }
+        return await label_normalize(label_name=label_name, casing=casing)
+    elif action_lower == "find_duplicates":
+        return await label_find_duplicates(threshold=threshold, limit=limit)
+    elif action_lower == "suggest_merge":
+        if source_label is None or target_label is None:
+            return {
+                "status": "error",
+                "error": "source_label and target_label are required for suggest_merge action",
+            }
+        return await label_suggest_merge(
+            source_label=source_label, target_label=target_label
+        )
+    elif action_lower == "merge":
+        if source_label is None or target_label is None:
+            return {
+                "status": "error",
+                "error": "source_label and target_label are required for merge action",
+            }
+        return await label_merge(
+            source_label=source_label,
+            target_label=target_label,
+            update_tickets=update_tickets,
+            dry_run=dry_run,
+        )
+    elif action_lower == "rename":
+        if old_name is None or new_name is None:
+            return {
+                "status": "error",
+                "error": "old_name and new_name are required for rename action",
+            }
+        return await label_rename(
+            old_name=old_name, new_name=new_name, update_tickets=update_tickets
+        )
+    elif action_lower == "cleanup_report":
+        return await label_cleanup_report(
+            include_spelling=include_spelling,
+            include_duplicates=include_duplicates,
+            include_unused=include_unused,
+        )
+    else:
+        valid_actions = [
+            "list",
+            "normalize",
+            "find_duplicates",
+            "suggest_merge",
+            "merge",
+            "rename",
+            "cleanup_report",
+        ]
+        return {
+            "status": "error",
+            "error": f"Invalid action '{action}'. Must be one of: {', '.join(valid_actions)}",
+            "valid_actions": valid_actions,
+            "hint": "Use label(action='list'|'normalize'|'find_duplicates'|'suggest_merge'|'merge'|'rename'|'cleanup_report', ...)",
+        }
+
+
+@mcp.tool()
 async def label_list(
     adapter_name: str | None = None,
     include_usage_count: bool = False,
@@ -58,10 +245,19 @@ async def label_list(
 ) -> dict[str, Any]:
     """List all available labels/tags from the ticket system.
 
+    .. deprecated::
+        Use label(action="list", ...) instead.
+        This tool will be removed in a future version.
+
     Args: adapter_name (optional adapter), include_usage_count (default: False), limit (max: 500), offset (pagination)
     Returns: LabelListResponse with labels array, count, pagination, estimated_tokens
     See: docs/mcp-api-reference.md#label-response-format
     """
+    warnings.warn(
+        "label_list is deprecated. Use label(action='list', ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Validate and cap limits
         if limit > 500:
@@ -180,10 +376,19 @@ async def label_normalize(
 ) -> dict[str, Any]:
     """Normalize label name using casing strategy (lowercase, titlecase, uppercase, kebab-case, snake_case).
 
+    .. deprecated::
+        Use label(action="normalize", ...) instead.
+        This tool will be removed in a future version.
+
     Args: label_name (required), casing (default: "lowercase")
     Returns: NormalizationResponse with original, normalized, casing, changed
     See: docs/mcp-api-reference.md#label-normalization
     """
+    warnings.warn(
+        "label_normalize is deprecated. Use label(action='normalize', ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         # Validate casing strategy
         try:
@@ -221,10 +426,19 @@ async def label_find_duplicates(
 ) -> dict[str, Any]:
     """Find duplicate/similar labels using fuzzy matching (case, spelling, plurals).
 
+    .. deprecated::
+        Use label(action="find_duplicates", ...) instead.
+        This tool will be removed in a future version.
+
     Args: threshold (0.0-1.0, default: 0.85), limit (default: 50)
     Returns: DuplicateResponse with duplicates array (similarity scores, recommendations), total_duplicates
     See: docs/mcp-api-reference.md#label-similarity-scoring
     """
+    warnings.warn(
+        "label_find_duplicates is deprecated. Use label(action='find_duplicates', ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         adapter = get_adapter()
 
@@ -301,10 +515,19 @@ async def label_suggest_merge(
 ) -> dict[str, Any]:
     """Preview label merge operation (dry run, shows affected tickets).
 
+    .. deprecated::
+        Use label(action="suggest_merge", ...) instead.
+        This tool will be removed in a future version.
+
     Args: source_label (from), target_label (to)
     Returns: MergePreviewResponse with affected_tickets count, preview IDs (up to 10), warnings
     See: docs/mcp-api-reference.md#label-merge-preview
     """
+    warnings.warn(
+        "label_suggest_merge is deprecated. Use label(action='suggest_merge', ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         adapter = get_adapter()
 
@@ -369,10 +592,19 @@ async def label_merge(
 ) -> dict[str, Any]:
     """Merge source label into target across all tickets (does NOT delete source definition).
 
+    .. deprecated::
+        Use label(action="merge", ...) instead.
+        This tool will be removed in a future version.
+
     Args: source_label (from), target_label (to), update_tickets (default: True), dry_run (default: False)
     Returns: MergeResponse with tickets_updated, tickets_skipped, changes array (up to 20)
     See: docs/mcp-api-reference.md#label-merge-behavior
     """
+    warnings.warn(
+        "label_merge is deprecated. Use label(action='merge', ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         adapter = get_adapter()
 
@@ -496,10 +728,19 @@ async def label_rename(
 ) -> dict[str, Any]:
     """Rename label across all tickets (alias for label_merge, semantic variant for typo fixes).
 
+    .. deprecated::
+        Use label(action="rename", ...) instead.
+        This tool will be removed in a future version.
+
     Args: old_name (current), new_name (replacement), update_tickets (default: True)
     Returns: RenameResponse with tickets_updated, old_name, new_name
     See: docs/mcp-api-reference.md#label-merge-behavior
     """
+    warnings.warn(
+        "label_rename is deprecated. Use label(action='rename', ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     # Delegate to label_merge (rename is just a semantic alias)
     result: dict[str, Any] = await label_merge(
         source_label=old_name,
@@ -526,10 +767,19 @@ async def label_cleanup_report(
 ) -> dict[str, Any]:
     """Generate label cleanup report (spelling errors, duplicates, unused labels with recommendations).
 
+    .. deprecated::
+        Use label(action="cleanup_report", ...) instead.
+        This tool will be removed in a future version.
+
     Args: include_spelling (default: True), include_duplicates (default: True), include_unused (default: True)
     Returns: CleanupReportResponse with summary, spelling_issues, duplicate_groups, unused_labels, recommendations (prioritized)
     See: docs/mcp-api-reference.md#label-cleanup-report
     """
+    warnings.warn(
+        "label_cleanup_report is deprecated. Use label(action='cleanup_report', ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         adapter = get_adapter()
 
