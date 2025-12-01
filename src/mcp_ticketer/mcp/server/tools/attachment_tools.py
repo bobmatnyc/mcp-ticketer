@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from ....core.models import Comment, TicketType
-from ..server_sdk import get_adapter, mcp
+from ..server_sdk import get_adapter
 
 
 async def ticket_attach(

@@ -22,7 +22,6 @@ Performance Considerations:
 - State transition validation is O(1) lookup in predefined state machine
 """
 
-from pathlib import Path
 from typing import Any
 
 from ....core.adapter import BaseAdapter

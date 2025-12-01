@@ -13,7 +13,6 @@ from ....core.instructions import (
     InstructionsValidationError,
     TicketInstructionsManager,
 )
-from ..server_sdk import mcp
 
 
 async def instructions_get() -> dict[str, Any]:

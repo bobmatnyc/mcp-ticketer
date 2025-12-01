@@ -7,7 +7,7 @@ in all adapters.
 
 from typing import Any
 
-from ..server_sdk import get_adapter, mcp
+from ..server_sdk import get_adapter
 
 
 async def ticket_create_pr(

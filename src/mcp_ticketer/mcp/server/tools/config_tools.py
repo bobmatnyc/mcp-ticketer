@@ -26,9 +26,9 @@ Performance: Configuration is cached in memory by ConfigResolver,
 so repeated reads are fast (O(1) after first load).
 """
 
+import warnings
 from pathlib import Path
 from typing import Any
-import warnings
 
 from ....core.project_config import (
     AdapterType,

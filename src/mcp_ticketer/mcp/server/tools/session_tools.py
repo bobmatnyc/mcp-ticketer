@@ -81,7 +81,6 @@ async def user_session(
     if action_lower == "get_my_tickets":
         # Inline implementation of get_my_tickets
         try:
-            from ....core.adapter import BaseAdapter
             from ....core.models import TicketState
             from ....core.project_config import ConfigResolver, TicketerConfig
             from ..server_sdk import get_adapter
@@ -307,5 +306,3 @@ async def attach_ticket(
             "success": False,
             "error": str(e),
         }
-
-

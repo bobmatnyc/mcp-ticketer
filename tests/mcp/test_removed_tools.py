@@ -18,12 +18,12 @@ async def test_attachment_tools_not_in_mcp():
     tool_names = [tool.name for tool in tools]
 
     # Verify attachment tools are NOT present
-    assert "ticket_attach" not in tool_names, (
-        "ticket_attach should be removed from MCP (CLI-only as of v1.5.0)"
-    )
-    assert "ticket_attachments" not in tool_names, (
-        "ticket_attachments should be removed from MCP (CLI-only as of v1.5.0)"
-    )
+    assert (
+        "ticket_attach" not in tool_names
+    ), "ticket_attach should be removed from MCP (CLI-only as of v1.5.0)"
+    assert (
+        "ticket_attachments" not in tool_names
+    ), "ticket_attachments should be removed from MCP (CLI-only as of v1.5.0)"
 
 
 @pytest.mark.asyncio
@@ -36,12 +36,12 @@ async def test_pr_tools_not_in_mcp():
     tool_names = [tool.name for tool in tools]
 
     # Verify PR tools are NOT present
-    assert "ticket_create_pr" not in tool_names, (
-        "ticket_create_pr should be removed from MCP (CLI-only as of v1.5.0)"
-    )
-    assert "ticket_link_pr" not in tool_names, (
-        "ticket_link_pr should be removed from MCP (CLI-only as of v1.5.0)"
-    )
+    assert (
+        "ticket_create_pr" not in tool_names
+    ), "ticket_create_pr should be removed from MCP (CLI-only as of v1.5.0)"
+    assert (
+        "ticket_link_pr" not in tool_names
+    ), "ticket_link_pr should be removed from MCP (CLI-only as of v1.5.0)"
 
 
 @pytest.mark.asyncio
@@ -80,9 +80,9 @@ async def test_alternative_tools_still_present():
     tool_names = [tool.name for tool in tools]
 
     # Verify ticket_comment is still present (alternative for linking files/PRs)
-    assert "ticket_comment" in tool_names, (
-        "ticket_comment should be present (used as alternative to removed tools)"
-    )
+    assert (
+        "ticket_comment" in tool_names
+    ), "ticket_comment should be present (used as alternative to removed tools)"
 
 
 @pytest.mark.integration
@@ -111,9 +111,9 @@ def test_migration_guide_exists():
         / "ATTACHMENT_PR_REMOVAL.md"
     )
 
-    assert migration_guide.exists(), (
-        "Migration guide should exist at docs/migrations/ATTACHMENT_PR_REMOVAL.md"
-    )
+    assert (
+        migration_guide.exists()
+    ), "Migration guide should exist at docs/migrations/ATTACHMENT_PR_REMOVAL.md"
 
     # Verify guide has content
     content = migration_guide.read_text()

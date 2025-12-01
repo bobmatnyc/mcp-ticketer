@@ -101,7 +101,9 @@ def mock_adapter() -> MagicMock:
 @pytest.fixture
 def mock_config():
     """Mock configuration resolver."""
-    with patch("mcp_ticketer.mcp.server.tools.ticket_tools.ConfigResolver") as mock_resolver:
+    with patch(
+        "mcp_ticketer.mcp.server.tools.ticket_tools.ConfigResolver"
+    ) as mock_resolver:
         config = MagicMock()
         config.default_project = "TEST-PROJECT"
         config.default_user = None
@@ -114,14 +116,19 @@ def mock_config():
 class TestUnifiedTicketCRUD:
     """Test suite for unified ticket() tool - CRUD operations."""
 
-    async def test_create_action(self, mock_adapter: MagicMock, mock_config: MagicMock) -> None:
+    async def test_create_action(
+        self, mock_adapter: MagicMock, mock_config: MagicMock
+    ) -> None:
         """Test create action with unified tool."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.SessionStateManager"
-        ) as mock_session:
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.SessionStateManager"
+            ) as mock_session,
+        ):
             # Mock session state (opted out)
             session_state = MagicMock()
             session_state.ticket_opted_out = True
@@ -138,10 +145,16 @@ class TestUnifiedTicketCRUD:
 
     async def test_get_action(self, mock_adapter: MagicMock) -> None:
         """Test get action with unified tool."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ),
+        ):
             result = await ticket(action="get", ticket_id="TICKET-123")
 
             assert result["status"] == "completed"
@@ -151,10 +164,16 @@ class TestUnifiedTicketCRUD:
 
     async def test_update_action(self, mock_adapter: MagicMock) -> None:
         """Test update action with unified tool."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ),
+        ):
             result = await ticket(
                 action="update",
                 ticket_id="TICKET-123",
@@ -168,10 +187,16 @@ class TestUnifiedTicketCRUD:
 
     async def test_delete_action(self, mock_adapter: MagicMock) -> None:
         """Test delete action with unified tool."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ),
+        ):
             result = await ticket(action="delete", ticket_id="TICKET-123")
 
             assert result["status"] == "completed"
@@ -183,7 +208,9 @@ class TestUnifiedTicketCRUD:
 class TestUnifiedTicketExtended:
     """Test suite for unified ticket() tool - extended operations."""
 
-    async def test_list_action(self, mock_adapter: MagicMock, mock_config: MagicMock) -> None:
+    async def test_list_action(
+        self, mock_adapter: MagicMock, mock_config: MagicMock
+    ) -> None:
         """Test list action with unified tool."""
         with patch(
             "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
@@ -203,10 +230,16 @@ class TestUnifiedTicketExtended:
 
     async def test_summary_action(self, mock_adapter: MagicMock) -> None:
         """Test summary action with unified tool."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ),
+        ):
             result = await ticket(action="summary", ticket_id="TICKET-123")
 
             assert result["status"] == "completed"
@@ -216,10 +249,16 @@ class TestUnifiedTicketExtended:
 
     async def test_get_activity_action(self, mock_adapter: MagicMock) -> None:
         """Test get_activity action with unified tool."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ),
+        ):
             result = await ticket(
                 action="get_activity",
                 ticket_id="TICKET-123",
@@ -232,10 +271,16 @@ class TestUnifiedTicketExtended:
 
     async def test_assign_action(self, mock_adapter: MagicMock) -> None:
         """Test assign action with unified tool."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ),
+        ):
             result = await ticket(
                 action="assign",
                 ticket_id="TICKET-123",
@@ -318,141 +363,33 @@ class TestUnifiedTicketCaseInsensitive:
 
     async def test_uppercase_action(self, mock_adapter: MagicMock) -> None:
         """Test uppercase action works."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ),
+        ):
             result = await ticket(action="GET", ticket_id="TICKET-123")
             assert result["status"] == "completed"
 
     async def test_mixed_case_action(self, mock_adapter: MagicMock) -> None:
         """Test mixed case action works."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ),
+        ):
             result = await ticket(action="GEt_AcTiViTy", ticket_id="TICKET-123")
             assert result["status"] == "completed"
-
-
-@pytest.mark.asyncio
-class TestDeprecationWarnings:
-    """Test deprecation warnings on all original tools."""
-
-    async def test_create_deprecation(self, mock_adapter: MagicMock, mock_config: MagicMock) -> None:
-        """Test ticket_create shows deprecation warning."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.SessionStateManager"
-        ) as mock_session:
-            session_state = MagicMock()
-            session_state.ticket_opted_out = True
-            mock_session.return_value.load_session.return_value = session_state
-
-            with pytest.warns(DeprecationWarning, match="Use ticket"):
-                result = await ticket_create("Test Ticket")
-
-            assert result["status"] == "completed"
-
-    async def test_read_deprecation(self, mock_adapter: MagicMock) -> None:
-        """Test ticket_read shows deprecation warning."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
-            with pytest.warns(DeprecationWarning, match="Use ticket"):
-                result = await ticket_read("TICKET-123")
-
-            assert result["status"] == "completed"
-
-    async def test_update_deprecation(self, mock_adapter: MagicMock) -> None:
-        """Test ticket_update shows deprecation warning."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
-            with pytest.warns(DeprecationWarning, match="Use ticket"):
-                result = await ticket_update("TICKET-123", state="done")
-
-            assert result["status"] == "completed"
-
-    async def test_delete_deprecation(self, mock_adapter: MagicMock) -> None:
-        """Test ticket_delete shows deprecation warning."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
-            with pytest.warns(DeprecationWarning, match="Use ticket"):
-                result = await ticket_delete("TICKET-123")
-
-            assert result["status"] == "completed"
-
-    async def test_list_deprecation(self, mock_adapter: MagicMock, mock_config: MagicMock) -> None:
-        """Test ticket_list shows deprecation warning."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ):
-            with pytest.warns(DeprecationWarning, match="Use ticket"):
-                result = await ticket_list(project_id="TEST-PROJECT")
-
-            assert result["status"] == "completed"
-
-    async def test_summary_deprecation(self, mock_adapter: MagicMock) -> None:
-        """Test ticket_summary shows deprecation warning."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
-            with pytest.warns(DeprecationWarning, match="Use ticket"):
-                result = await ticket_summary("TICKET-123")
-
-            assert result["status"] == "completed"
-
-    async def test_latest_deprecation(self, mock_adapter: MagicMock) -> None:
-        """Test ticket_latest shows deprecation warning."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
-            with pytest.warns(DeprecationWarning, match="Use ticket"):
-                result = await ticket_latest("TICKET-123")
-
-            assert result["status"] == "completed"
-
-    async def test_assign_deprecation(self, mock_adapter: MagicMock) -> None:
-        """Test ticket_assign shows deprecation warning."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
-            with pytest.warns(DeprecationWarning, match="Use ticket"):
-                result = await ticket_assign("TICKET-123", "user@example.com")
-
-            assert result["status"] == "completed"
-
-    async def test_deprecation_message_content(
-        self, mock_adapter: MagicMock, mock_config: MagicMock
-    ) -> None:
-        """Test deprecation messages contain migration instructions."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.SessionStateManager"
-        ) as mock_session:
-            session_state = MagicMock()
-            session_state.ticket_opted_out = True
-            mock_session.return_value.load_session.return_value = session_state
-
-            with pytest.warns(DeprecationWarning) as warning_list:
-                await ticket_create("Test")
-
-            warning_message = str(warning_list[0].message)
-            assert "ticket(action='create'" in warning_message
-            assert "2.0.0" in warning_message
 
 
 @pytest.mark.asyncio
@@ -463,13 +400,18 @@ class TestUnifiedTicketIntegration:
         self, mock_adapter: MagicMock, mock_config: MagicMock
     ) -> None:
         """Test complete workflow: create → update → assign → delete."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.SessionStateManager"
-        ) as mock_session, patch(
-            "mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.SessionStateManager"
+            ) as mock_session,
+            patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ),
         ):
             session_state = MagicMock()
             session_state.ticket_opted_out = True

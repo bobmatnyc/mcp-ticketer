@@ -256,49 +256,6 @@ class TestUnifiedTicketBulk:
 
 
 @pytest.mark.asyncio
-class TestDeprecationWarnings:
-    """Test deprecation warnings on original tools."""
-
-    async def test_bulk_create_deprecation(self, mock_adapter: MagicMock) -> None:
-        """Test ticket_bulk_create shows deprecation warning."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.bulk_tools.get_adapter",
-            return_value=mock_adapter,
-        ):
-            with pytest.warns(DeprecationWarning, match="Use ticket_bulk"):
-                result = await ticket_bulk_create([{"title": "Test Ticket"}])
-
-            assert result["status"] == "completed"
-
-    async def test_bulk_update_deprecation(self, mock_adapter: MagicMock) -> None:
-        """Test ticket_bulk_update shows deprecation warning."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.bulk_tools.get_adapter",
-            return_value=mock_adapter,
-        ):
-            with pytest.warns(DeprecationWarning, match="Use ticket_bulk"):
-                result = await ticket_bulk_update(
-                    [{"ticket_id": "123", "state": "done"}]
-                )
-
-            assert result["status"] == "completed"
-
-    async def test_deprecation_message_content(self, mock_adapter: MagicMock) -> None:
-        """Test deprecation messages contain migration instructions."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.bulk_tools.get_adapter",
-            return_value=mock_adapter,
-        ):
-            with pytest.warns(DeprecationWarning) as warning_list:
-                await ticket_bulk_create([{"title": "Test"}])
-
-            warning_message = str(warning_list[0].message)
-            assert "ticket_bulk" in warning_message
-            assert "action='create'" in warning_message
-            assert "2.0.0" in warning_message
-
-
-@pytest.mark.asyncio
 class TestBulkOperationsErrorHandling:
     """Test error handling in bulk operations."""
 
@@ -319,9 +276,10 @@ class TestBulkOperationsErrorHandling:
             assert result["status"] == "completed"
             assert result["summary"]["created"] == 1
             assert result["summary"]["failed"] == 1
-            assert "Missing required field: title" in result["results"]["failed"][0][
-                "error"
-            ]
+            assert (
+                "Missing required field: title"
+                in result["results"]["failed"][0]["error"]
+            )
 
     async def test_update_missing_ticket_id(self, mock_adapter: MagicMock) -> None:
         """Test update fails when ticket_id is missing."""
@@ -340,9 +298,10 @@ class TestBulkOperationsErrorHandling:
             assert result["status"] == "completed"
             assert result["summary"]["updated"] == 1
             assert result["summary"]["failed"] == 1
-            assert "Missing required field: ticket_id" in result["results"]["failed"][
-                0
-            ]["error"]
+            assert (
+                "Missing required field: ticket_id"
+                in result["results"]["failed"][0]["error"]
+            )
 
     async def test_update_no_valid_fields(self, mock_adapter: MagicMock) -> None:
         """Test update fails when no valid update fields provided."""
@@ -411,7 +370,9 @@ class TestBulkOperationsIntegration:
             "mcp_ticketer.mcp.server.tools.bulk_tools.get_adapter",
             return_value=mock_adapter,
         ):
-            tickets = [{"title": f"Ticket {i}", "priority": "medium"} for i in range(50)]
+            tickets = [
+                {"title": f"Ticket {i}", "priority": "medium"} for i in range(50)
+            ]
 
             result = await ticket_bulk(action="create", tickets=tickets)
 

@@ -321,7 +321,9 @@ async def hierarchy(
                     # Validate project context (Required for list operations)
                     resolver = ConfigResolver(project_path=Path.cwd())
                     config = resolver.load_project_config()
-                    final_project = project_id or (config.default_project if config else None)
+                    final_project = project_id or (
+                        config.default_project if config else None
+                    )
 
                     if not final_project:
                         return {
@@ -352,10 +354,15 @@ async def hierarchy(
                         epics = await adapter.list_epics(**kwargs)
                     else:
                         # Fallback to generic list method with epic filter and project scoping
-                        filters = {"ticket_type": TicketType.EPIC, "project": final_project}
+                        filters = {
+                            "ticket_type": TicketType.EPIC,
+                            "project": final_project,
+                        }
                         if state is not None:
                             filters["state"] = state
-                        epics = await adapter.list(limit=limit, offset=offset, filters=filters)
+                        epics = await adapter.list(
+                            limit=limit, offset=offset, filters=filters
+                        )
 
                     return {
                         "status": "completed",
@@ -803,7 +810,9 @@ async def hierarchy(
                                         task_state.lower() == state.lower()
                                     )
                                 else:
-                                    should_include = should_include and (task_state == state_enum)
+                                    should_include = should_include and (
+                                        task_state == state_enum
+                                    )
 
                             # Filter by priority
                             if priority is not None:
@@ -931,5 +940,3 @@ async def hierarchy(
             "entity_type": entity_type,
             "action": action,
         }
-
-

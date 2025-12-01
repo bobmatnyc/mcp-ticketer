@@ -159,9 +159,7 @@ class TestProjectUpdateUnifiedTool:
         assert result["update"]["id"] == "update-123"
 
         # Verify adapter was called correctly
-        mock_adapter.get_project_update.assert_called_once_with(
-            update_id="update-123"
-        )
+        mock_adapter.get_project_update.assert_called_once_with(update_id="update-123")
 
     async def test_get_action_missing_update_id(self):
         """Test project_update with action='get' but missing update_id."""
@@ -260,7 +258,9 @@ class TestProjectUpdateUnifiedTool:
             "mcp_ticketer.mcp.server.tools.project_update_tools.get_adapter",
             return_value=mock_adapter,
         ):
-            with pytest.warns(DeprecationWarning, match="project_update_create is deprecated"):
+            with pytest.warns(
+                DeprecationWarning, match="project_update_create is deprecated"
+            ):
                 result = await project_update_create(
                     project_id="project-456",
                     body="Test update",
@@ -278,7 +278,9 @@ class TestProjectUpdateUnifiedTool:
             "mcp_ticketer.mcp.server.tools.project_update_tools.get_adapter",
             return_value=mock_adapter,
         ):
-            with pytest.warns(DeprecationWarning, match="project_update_get is deprecated"):
+            with pytest.warns(
+                DeprecationWarning, match="project_update_get is deprecated"
+            ):
                 result = await project_update_get(update_id="update-123")
 
         assert result["status"] == "completed"
@@ -292,7 +294,9 @@ class TestProjectUpdateUnifiedTool:
             "mcp_ticketer.mcp.server.tools.project_update_tools.get_adapter",
             return_value=mock_adapter,
         ):
-            with pytest.warns(DeprecationWarning, match="project_update_list is deprecated"):
+            with pytest.warns(
+                DeprecationWarning, match="project_update_list is deprecated"
+            ):
                 result = await project_update_list(
                     project_id="project-456",
                     limit=5,

@@ -79,16 +79,21 @@ class TestTicketSearchUnifiedTool:
     # Standard Search Tests (include_hierarchy=False)
     # =============================================================================
 
-    async def test_standard_search_basic(self, mock_adapter, sample_tickets, mock_config_resolver):
+    async def test_standard_search_basic(
+        self, mock_adapter, sample_tickets, mock_config_resolver
+    ):
         """Test basic search without hierarchy."""
         mock_adapter.search.return_value = sample_tickets
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.core.project_config.ConfigResolver",
-            return_value=mock_config_resolver,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.core.project_config.ConfigResolver",
+                return_value=mock_config_resolver,
+            ),
         ):
             result = await ticket_search(
                 query="authentication",
@@ -102,16 +107,21 @@ class TestTicketSearchUnifiedTool:
         assert result["count"] == 2
         assert "hierarchy" not in result["tickets"][0]
 
-    async def test_standard_search_with_filters(self, mock_adapter, sample_tickets, mock_config_resolver):
+    async def test_standard_search_with_filters(
+        self, mock_adapter, sample_tickets, mock_config_resolver
+    ):
         """Test search with multiple filters."""
         mock_adapter.search.return_value = sample_tickets[:1]
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.core.project_config.ConfigResolver",
-            return_value=mock_config_resolver,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.core.project_config.ConfigResolver",
+                return_value=mock_config_resolver,
+            ),
         ):
             result = await ticket_search(
                 query="bug",
@@ -127,16 +137,21 @@ class TestTicketSearchUnifiedTool:
         assert len(result["tickets"]) == 1
         assert result["tickets"][0]["title"] == "Bug in authentication"
 
-    async def test_standard_search_backward_compatible(self, mock_adapter, sample_tickets, mock_config_resolver):
+    async def test_standard_search_backward_compatible(
+        self, mock_adapter, sample_tickets, mock_config_resolver
+    ):
         """Test default behavior is unchanged (backward compatible)."""
         mock_adapter.search.return_value = sample_tickets
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.core.project_config.ConfigResolver",
-            return_value=mock_config_resolver,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.core.project_config.ConfigResolver",
+                return_value=mock_config_resolver,
+            ),
         ):
             # Call without include_hierarchy parameter (defaults to False)
             result = await ticket_search(query="authentication")
@@ -150,7 +165,9 @@ class TestTicketSearchUnifiedTool:
     # Hierarchical Search Tests (include_hierarchy=True)
     # =============================================================================
 
-    async def test_hierarchical_search_basic(self, mock_adapter, sample_tickets, mock_config_resolver):
+    async def test_hierarchical_search_basic(
+        self, mock_adapter, sample_tickets, mock_config_resolver
+    ):
         """Test search with hierarchy enabled."""
         mock_adapter.search.return_value = sample_tickets
         mock_adapter.read.return_value = Task(
@@ -161,12 +178,15 @@ class TestTicketSearchUnifiedTool:
             priority=Priority.HIGH,
         )
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.core.project_config.ConfigResolver",
-            return_value=mock_config_resolver,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.core.project_config.ConfigResolver",
+                return_value=mock_config_resolver,
+            ),
         ):
             result = await ticket_search(
                 query="authentication",
@@ -178,9 +198,13 @@ class TestTicketSearchUnifiedTool:
         assert len(result["results"]) == 2
         assert "hierarchy" in result["results"][0]
 
-    async def test_hierarchical_search_with_parent_epic(self, mock_adapter, sample_tickets, mock_config_resolver):
+    async def test_hierarchical_search_with_parent_epic(
+        self, mock_adapter, sample_tickets, mock_config_resolver
+    ):
         """Test hierarchy includes parent epic."""
-        mock_adapter.search.return_value = [sample_tickets[1]]  # Ticket with parent_epic
+        mock_adapter.search.return_value = [
+            sample_tickets[1]
+        ]  # Ticket with parent_epic
         parent_epic = Task(
             id="EPIC-1",
             title="Authentication Epic",
@@ -190,12 +214,15 @@ class TestTicketSearchUnifiedTool:
         )
         mock_adapter.read.return_value = parent_epic
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.core.project_config.ConfigResolver",
-            return_value=mock_config_resolver,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.core.project_config.ConfigResolver",
+                return_value=mock_config_resolver,
+            ),
         ):
             result = await ticket_search(
                 query="OAuth",
@@ -208,16 +235,21 @@ class TestTicketSearchUnifiedTool:
         assert "parent_epic" in result["results"][0]["hierarchy"]
         assert result["results"][0]["hierarchy"]["parent_epic"]["id"] == "EPIC-1"
 
-    async def test_hierarchical_search_max_depth_validation(self, mock_adapter, mock_config_resolver):
+    async def test_hierarchical_search_max_depth_validation(
+        self, mock_adapter, mock_config_resolver
+    ):
         """Test max_depth validation."""
         mock_adapter.search.return_value = []
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.core.project_config.ConfigResolver",
-            return_value=mock_config_resolver,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.core.project_config.ConfigResolver",
+                return_value=mock_config_resolver,
+            ),
         ):
             # Test max_depth too low
             result = await ticket_search(
@@ -241,16 +273,21 @@ class TestTicketSearchUnifiedTool:
     # Backward Compatibility Tests
     # =============================================================================
 
-    async def test_ticket_search_hierarchy_deprecated(self, mock_adapter, sample_tickets, mock_config_resolver):
+    async def test_ticket_search_hierarchy_deprecated(
+        self, mock_adapter, sample_tickets, mock_config_resolver
+    ):
         """Test deprecated ticket_search_hierarchy still works."""
         mock_adapter.search.return_value = sample_tickets
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.core.project_config.ConfigResolver",
-            return_value=mock_config_resolver,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.core.project_config.ConfigResolver",
+                return_value=mock_config_resolver,
+            ),
         ):
             with pytest.warns(DeprecationWarning, match="Use ticket_search"):
                 result = await ticket_search_hierarchy(
@@ -261,16 +298,21 @@ class TestTicketSearchUnifiedTool:
         assert result["status"] == "completed"
         assert "results" in result
 
-    async def test_ticket_search_hierarchy_deprecation_message(self, mock_adapter, mock_config_resolver):
+    async def test_ticket_search_hierarchy_deprecation_message(
+        self, mock_adapter, mock_config_resolver
+    ):
         """Test deprecation warning includes migration instructions."""
         mock_adapter.search.return_value = []
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.core.project_config.ConfigResolver",
-            return_value=mock_config_resolver,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.core.project_config.ConfigResolver",
+                return_value=mock_config_resolver,
+            ),
         ):
             with pytest.warns(DeprecationWarning) as warning_list:
                 await ticket_search_hierarchy(
@@ -284,19 +326,25 @@ class TestTicketSearchUnifiedTool:
             assert "ticket_search(include_hierarchy=True" in warning_msg
             assert "UPGRADING-v2.0.md" in warning_msg
 
-    async def test_hierarchy_migration_equivalence(self, mock_adapter, sample_tickets, mock_config_resolver):
+    async def test_hierarchy_migration_equivalence(
+        self, mock_adapter, sample_tickets, mock_config_resolver
+    ):
         """Test old ticket_search_hierarchy equals new ticket_search."""
         mock_adapter.search.return_value = sample_tickets
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.core.project_config.ConfigResolver",
-            return_value=mock_config_resolver,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.core.project_config.ConfigResolver",
+                return_value=mock_config_resolver,
+            ),
         ):
             # Old tool (with deprecation warning suppressed)
             import warnings
+
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 result_old = await ticket_search_hierarchy(
@@ -327,12 +375,15 @@ class TestTicketSearchUnifiedTool:
 
     async def test_invalid_state(self, mock_adapter, mock_config_resolver):
         """Test invalid state parameter."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.core.project_config.ConfigResolver",
-            return_value=mock_config_resolver,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.core.project_config.ConfigResolver",
+                return_value=mock_config_resolver,
+            ),
         ):
             result = await ticket_search(
                 query="test",
@@ -344,12 +395,15 @@ class TestTicketSearchUnifiedTool:
 
     async def test_invalid_priority(self, mock_adapter, mock_config_resolver):
         """Test invalid priority parameter."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.core.project_config.ConfigResolver",
-            return_value=mock_config_resolver,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.core.project_config.ConfigResolver",
+                return_value=mock_config_resolver,
+            ),
         ):
             result = await ticket_search(
                 query="test",
@@ -364,12 +418,15 @@ class TestTicketSearchUnifiedTool:
         resolver = MagicMock()
         resolver.load_project_config.return_value = None
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.core.project_config.ConfigResolver",
-            return_value=resolver,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.core.project_config.ConfigResolver",
+                return_value=resolver,
+            ),
         ):
             result = await ticket_search(query="test")
 
@@ -384,12 +441,15 @@ class TestTicketSearchUnifiedTool:
         """Test search returns empty results gracefully."""
         mock_adapter.search.return_value = []
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.core.project_config.ConfigResolver",
-            return_value=mock_config_resolver,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.core.project_config.ConfigResolver",
+                return_value=mock_config_resolver,
+            ),
         ):
             result = await ticket_search(query="nonexistent")
 
@@ -397,17 +457,22 @@ class TestTicketSearchUnifiedTool:
         assert result["count"] == 0
         assert len(result["tickets"]) == 0
 
-    async def test_hierarchy_with_missing_parent(self, mock_adapter, sample_tickets, mock_config_resolver):
+    async def test_hierarchy_with_missing_parent(
+        self, mock_adapter, sample_tickets, mock_config_resolver
+    ):
         """Test hierarchy handles missing parent gracefully."""
         mock_adapter.search.return_value = [sample_tickets[1]]
         mock_adapter.read.side_effect = Exception("Parent not found")
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.core.project_config.ConfigResolver",
-            return_value=mock_config_resolver,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.core.project_config.ConfigResolver",
+                return_value=mock_config_resolver,
+            ),
         ):
             result = await ticket_search(
                 query="OAuth",
@@ -422,12 +487,15 @@ class TestTicketSearchUnifiedTool:
         """Test error handling when adapter fails."""
         mock_adapter.search.side_effect = Exception("Database connection error")
 
-        with patch(
-            "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
-            return_value=mock_adapter,
-        ), patch(
-            "mcp_ticketer.core.project_config.ConfigResolver",
-            return_value=mock_config_resolver,
+        with (
+            patch(
+                "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "mcp_ticketer.core.project_config.ConfigResolver",
+                return_value=mock_config_resolver,
+            ),
         ):
             result = await ticket_search(query="test")
 

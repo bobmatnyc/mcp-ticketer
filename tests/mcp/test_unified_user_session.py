@@ -12,8 +12,6 @@ Tests cover:
 - Backward compatibility
 """
 
-import warnings
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -253,107 +251,6 @@ class TestUnifiedUserSession:
         assert result["success"] is False
         assert "error" in result
         assert "Session load failed" in result["error"]
-
-
-class TestDeprecationWarnings:
-    """Test deprecation warnings on original tools."""
-
-    @pytest.mark.asyncio
-    async def test_get_my_tickets_deprecation_warning(self, mock_adapter, mock_config):
-        """Test get_my_tickets shows deprecation warning."""
-        mock_adapter.list.return_value = []
-
-        with patch(
-            "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ):
-            with patch(
-                "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_config_resolver"
-            ) as mock_resolver:
-                mock_resolver.return_value.load_project_config.return_value = (
-                    mock_config
-                )
-
-                with warnings.catch_warnings(record=True) as w:
-                    warnings.simplefilter("always")
-                    await get_my_tickets()
-
-                    # Check deprecation warning was raised
-                    assert len(w) == 1
-                    assert issubclass(w[0].category, DeprecationWarning)
-                    assert "get_my_tickets is deprecated" in str(w[0].message)
-                    assert "user_session" in str(w[0].message)
-                    assert "2.0.0" in str(w[0].message)
-
-    @pytest.mark.asyncio
-    async def test_get_session_info_deprecation_warning(self, mock_session_state):
-        """Test get_session_info shows deprecation warning."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.session_tools.SessionStateManager"
-        ) as mock_manager_class:
-            mock_manager = MagicMock()
-            mock_manager.load_session.return_value = mock_session_state
-            mock_manager_class.return_value = mock_manager
-
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter("always")
-                await get_session_info()
-
-                # Check deprecation warning was raised
-                assert len(w) == 1
-                assert issubclass(w[0].category, DeprecationWarning)
-                assert "get_session_info is deprecated" in str(w[0].message)
-                assert "user_session" in str(w[0].message)
-                assert "2.0.0" in str(w[0].message)
-
-
-class TestBackwardCompatibility:
-    """Test backward compatibility of original tools."""
-
-    @pytest.mark.asyncio
-    async def test_get_my_tickets_still_works(
-        self, mock_adapter, mock_config, sample_tickets
-    ):
-        """Test get_my_tickets still functions correctly despite deprecation."""
-        mock_adapter.list.return_value = sample_tickets
-
-        with patch(
-            "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_adapter",
-            return_value=mock_adapter,
-        ):
-            with patch(
-                "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_config_resolver"
-            ) as mock_resolver:
-                mock_resolver.return_value.load_project_config.return_value = (
-                    mock_config
-                )
-
-                # Suppress deprecation warning for this test
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    result = await get_my_tickets(state="open", limit=10)
-
-        assert result["status"] == "completed"
-        assert "tickets" in result
-        assert len(result["tickets"]) == 2
-
-    @pytest.mark.asyncio
-    async def test_get_session_info_still_works(self, mock_session_state):
-        """Test get_session_info still functions correctly despite deprecation."""
-        with patch(
-            "mcp_ticketer.mcp.server.tools.session_tools.SessionStateManager"
-        ) as mock_manager_class:
-            mock_manager = MagicMock()
-            mock_manager.load_session.return_value = mock_session_state
-            mock_manager_class.return_value = mock_manager
-
-            # Suppress deprecation warning for this test
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                result = await get_session_info()
-
-        assert result["success"] is True
-        assert result["session_id"] == "test-session-123"
 
 
 class TestIntegration:

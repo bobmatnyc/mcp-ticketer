@@ -20,7 +20,6 @@ from mcp_ticketer.mcp.server.tools.hierarchy_tools import (
     hierarchy,
 )
 
-
 # === EPIC OPERATIONS (12 tests) ===
 
 
@@ -60,9 +59,7 @@ async def test_hierarchy_epic_get():
             "epic": {"id": "EPIC-1"},
         }
 
-        result = await hierarchy(
-            entity_type="epic", action="get", entity_id="EPIC-1"
-        )
+        result = await hierarchy(entity_type="epic", action="get", entity_id="EPIC-1")
 
         mock_epic_get.assert_called_once_with(epic_id="EPIC-1")
         assert result["status"] == "completed"
@@ -257,9 +254,7 @@ async def test_hierarchy_epic_with_epic_id_parameter():
         mock_adapter.return_value = adapter
 
         # Execute - should work with epic_id instead of entity_id
-        result = await hierarchy(
-            entity_type="epic", action="get", epic_id="EPIC-1"
-        )
+        result = await hierarchy(entity_type="epic", action="get", epic_id="EPIC-1")
 
         # Verify
         assert result["status"] == "completed"
@@ -276,9 +271,7 @@ async def test_hierarchy_epic_list_with_filters():
         adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
-        adapter.list_epics = AsyncMock(
-            return_value=[Epic(id="EPIC-1", title="Epic 1")]
-        )
+        adapter.list_epics = AsyncMock(return_value=[Epic(id="EPIC-1", title="Epic 1")])
         mock_adapter.return_value = adapter
 
         # Mock config
@@ -419,9 +412,7 @@ async def test_hierarchy_issue_get_children():
 @pytest.mark.asyncio
 async def test_hierarchy_issue_invalid_action():
     """Test unified hierarchy() tool with invalid issue action."""
-    result = await hierarchy(
-        entity_type="issue", action="delete", entity_id="ISSUE-1"
-    )
+    result = await hierarchy(entity_type="issue", action="delete", entity_id="ISSUE-1")
 
     assert result["status"] == "error"
     assert "Invalid action" in result["error"]
@@ -447,9 +438,7 @@ async def test_hierarchy_issue_with_issue_id_parameter():
         adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
-        issue = Task(
-            id="ISSUE-1", title="Test Issue", ticket_type=TicketType.ISSUE
-        )
+        issue = Task(id="ISSUE-1", title="Test Issue", ticket_type=TicketType.ISSUE)
         adapter.read.return_value = issue
         mock_adapter.return_value = adapter
 
@@ -475,9 +464,7 @@ async def test_hierarchy_task_create():
         adapter = MagicMock()
         adapter.adapter_type = "test"
         adapter.adapter_display_name = "Test Adapter"
-        created_task = Task(
-            id="TASK-1", title="Test Task", ticket_type=TicketType.TASK
-        )
+        created_task = Task(id="TASK-1", title="Test Task", ticket_type=TicketType.TASK)
         adapter.create.return_value = created_task
         adapter.list_labels = AsyncMock(return_value=[])
         mock_adapter.return_value = adapter
@@ -508,9 +495,7 @@ async def test_hierarchy_task_create():
 @pytest.mark.asyncio
 async def test_hierarchy_task_invalid_action():
     """Test unified hierarchy() tool with invalid task action."""
-    result = await hierarchy(
-        entity_type="task", action="get", entity_id="TASK-1"
-    )
+    result = await hierarchy(entity_type="task", action="get", entity_id="TASK-1")
 
     assert result["status"] == "error"
     assert "Invalid action" in result["error"]
@@ -520,9 +505,7 @@ async def test_hierarchy_task_invalid_action():
 @pytest.mark.asyncio
 async def test_hierarchy_task_only_supports_create():
     """Test that tasks only support create action."""
-    result = await hierarchy(
-        entity_type="task", action="delete", entity_id="TASK-1"
-    )
+    result = await hierarchy(entity_type="task", action="delete", entity_id="TASK-1")
 
     assert result["status"] == "error"
     assert "create" in result["valid_actions"]
@@ -629,9 +612,7 @@ async def test_hierarchy_tree_validation():
 @pytest.mark.asyncio
 async def test_hierarchy_invalid_entity_type():
     """Test unified hierarchy() tool with invalid entity_type."""
-    result = await hierarchy(
-        entity_type="invalid", action="create", title="Test"
-    )
+    result = await hierarchy(entity_type="invalid", action="create", title="Test")
 
     assert result["status"] == "error"
     assert "Invalid entity_type" in result["error"]
@@ -653,9 +634,7 @@ async def test_hierarchy_case_insensitive_entity_type():
         mock_adapter.return_value = adapter
 
         # Execute with uppercase entity_type
-        result = await hierarchy(
-            entity_type="EPIC", action="GET", entity_id="EPIC-1"
-        )
+        result = await hierarchy(entity_type="EPIC", action="GET", entity_id="EPIC-1")
 
         # Verify
         assert result["status"] == "completed"
@@ -681,9 +660,7 @@ async def test_hierarchy_exception_handling():
         mock_adapter.return_value = adapter
 
         # Execute
-        result = await hierarchy(
-            entity_type="epic", action="get", entity_id="EPIC-1"
-        )
+        result = await hierarchy(entity_type="epic", action="get", entity_id="EPIC-1")
 
         # Verify error handling
         assert result["status"] == "error"
@@ -699,9 +676,7 @@ async def test_hierarchy_adapter_not_available():
         mock_adapter.side_effect = Exception("No adapter configured")
 
         # Execute
-        result = await hierarchy(
-            entity_type="epic", action="get", entity_id="EPIC-1"
-        )
+        result = await hierarchy(entity_type="epic", action="get", entity_id="EPIC-1")
 
         # Verify
         assert result["status"] == "error"
@@ -740,17 +715,3 @@ async def test_hierarchy_invalid_priority():
             # Verify error
             assert result["status"] == "error"
             assert "priority" in result["error"].lower()
-
-
-
-
-
-
-
-
-
-
-
-
-
-

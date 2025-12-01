@@ -287,7 +287,13 @@ async def ticket(
                 "hint": "Example: ticket(action='create', title='Fix bug', priority='high')",
             }
         return await ticket_create(
-            title, description, priority, tags, assignee, parent_epic, auto_detect_labels
+            title,
+            description,
+            priority,
+            tags,
+            assignee,
+            parent_epic,
+            auto_detect_labels,
         )
 
     elif action_lower == "get":
@@ -306,7 +312,9 @@ async def ticket(
                 "error": "ticket_id parameter required for action='update'",
                 "hint": "Example: ticket(action='update', ticket_id='PROJ-123', state='done')",
             }
-        return await ticket_update(ticket_id, title, description, priority, state, assignee, tags)
+        return await ticket_update(
+            ticket_id, title, description, priority, state, assignee, tags
+        )
 
     elif action_lower == "delete":
         if not ticket_id:
@@ -318,7 +326,9 @@ async def ticket(
         return await ticket_delete(ticket_id)
 
     elif action_lower == "list":
-        return await ticket_list(limit, offset, state, priority, assignee, project_id, compact)
+        return await ticket_list(
+            limit, offset, state, priority, assignee, project_id, compact
+        )
 
     elif action_lower == "summary":
         if not ticket_id:

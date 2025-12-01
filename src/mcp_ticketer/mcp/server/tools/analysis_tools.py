@@ -154,7 +154,12 @@ async def ticket_analyze(
             format=format,
         )
     else:
-        valid_actions = ["find_similar", "find_stale", "find_orphaned", "cleanup_report"]
+        valid_actions = [
+            "find_similar",
+            "find_stale",
+            "find_orphaned",
+            "cleanup_report",
+        ]
         return {
             "status": "error",
             "error": f"Invalid action '{action}'. Must be one of: {', '.join(valid_actions)}",
