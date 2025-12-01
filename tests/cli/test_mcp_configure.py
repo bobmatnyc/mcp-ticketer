@@ -7,8 +7,11 @@ import pytest
 
 from mcp_ticketer.cli.mcp_configure import (
     build_claude_mcp_command,
+    configure_claude_mcp,
     configure_claude_mcp_native,
     is_claude_cli_available,
+    remove_claude_mcp,
+    remove_claude_mcp_native,
 )
 
 
@@ -329,3 +332,321 @@ class TestConfigureClaudeMCPNative:
             # But should contain masked version
             if "--env" in call_str:
                 assert "***" in call_str
+
+
+class TestRemoveClaudeMCPNative:
+    """Test cases for native Claude CLI removal."""
+
+    @patch("subprocess.run")
+    @patch("mcp_ticketer.cli.mcp_configure.console")
+    def test_native_remove_success(
+        self, mock_console: MagicMock, mock_run: MagicMock
+    ) -> None:
+        """Test successful removal using native CLI."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+
+        result = remove_claude_mcp_native(global_config=False, dry_run=False)
+
+        assert result is True
+        mock_run.assert_called_once()
+
+        # Verify command structure
+        cmd = mock_run.call_args[0][0]
+        assert cmd == ["claude", "mcp", "remove", "--scope", "local", "mcp-ticketer"]
+        assert mock_run.call_args[1]["capture_output"] is True
+        assert mock_run.call_args[1]["timeout"] == 30
+
+    @patch("subprocess.run")
+    @patch("mcp_ticketer.cli.mcp_configure.console")
+    def test_native_remove_global_scope(
+        self, mock_console: MagicMock, mock_run: MagicMock
+    ) -> None:
+        """Test removal with global scope uses 'user' scope."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+
+        result = remove_claude_mcp_native(global_config=True, dry_run=False)
+
+        assert result is True
+        cmd = mock_run.call_args[0][0]
+        assert cmd == ["claude", "mcp", "remove", "--scope", "user", "mcp-ticketer"]
+
+    @patch("mcp_ticketer.cli.mcp_configure.remove_claude_mcp_json")
+    @patch("subprocess.run")
+    @patch("mcp_ticketer.cli.mcp_configure.console")
+    def test_native_remove_fallback_on_failure(
+        self,
+        mock_console: MagicMock,
+        mock_run: MagicMock,
+        mock_json_remove: MagicMock,
+    ) -> None:
+        """Test fallback to JSON when native command fails."""
+        mock_run.return_value = MagicMock(
+            returncode=1, stderr="Error: Server 'mcp-ticketer' not found"
+        )
+        mock_json_remove.return_value = True
+
+        result = remove_claude_mcp_native(global_config=False, dry_run=False)
+
+        assert result is True
+        mock_run.assert_called_once()  # Native attempted
+        mock_json_remove.assert_called_once()  # Fallback executed
+
+        # Verify fallback called with same params
+        assert mock_json_remove.call_args[1] == {
+            "global_config": False,
+            "dry_run": False,
+        }
+
+    @patch("mcp_ticketer.cli.mcp_configure.remove_claude_mcp_json")
+    @patch("subprocess.run")
+    @patch("mcp_ticketer.cli.mcp_configure.console")
+    def test_native_remove_timeout_fallback(
+        self,
+        mock_console: MagicMock,
+        mock_run: MagicMock,
+        mock_json_remove: MagicMock,
+    ) -> None:
+        """Test timeout handling with fallback to JSON."""
+        mock_run.side_effect = subprocess.TimeoutExpired(
+            cmd=["claude", "mcp", "remove"], timeout=30
+        )
+        mock_json_remove.return_value = True
+
+        result = remove_claude_mcp_native(global_config=False, dry_run=False)
+
+        assert result is True
+        mock_json_remove.assert_called_once()
+
+    @patch("mcp_ticketer.cli.mcp_configure.remove_claude_mcp_json")
+    @patch("subprocess.run")
+    @patch("mcp_ticketer.cli.mcp_configure.console")
+    def test_native_remove_exception_fallback(
+        self,
+        mock_console: MagicMock,
+        mock_run: MagicMock,
+        mock_json_remove: MagicMock,
+    ) -> None:
+        """Test general exception handling with fallback to JSON."""
+        mock_run.side_effect = Exception("Unexpected error")
+        mock_json_remove.return_value = True
+
+        result = remove_claude_mcp_native(global_config=False, dry_run=False)
+
+        assert result is True
+        mock_json_remove.assert_called_once()
+
+    @patch("subprocess.run")
+    @patch("mcp_ticketer.cli.mcp_configure.console")
+    def test_native_remove_dry_run(
+        self, mock_console: MagicMock, mock_run: MagicMock
+    ) -> None:
+        """Test dry run mode does not execute removal."""
+        result = remove_claude_mcp_native(global_config=False, dry_run=True)
+
+        assert result is True
+        mock_run.assert_not_called()  # Should not execute command
+
+        # Verify console output for dry run
+        assert mock_console.print.called
+
+
+class TestRemoveClaudeMCP:
+    """Test cases for main removal function routing."""
+
+    @patch("mcp_ticketer.cli.mcp_configure.remove_claude_mcp_native")
+    @patch("mcp_ticketer.cli.mcp_configure.is_claude_cli_available")
+    @patch("mcp_ticketer.cli.mcp_configure.console")
+    def test_routes_to_native_when_cli_available(
+        self,
+        mock_console: MagicMock,
+        mock_check: MagicMock,
+        mock_native: MagicMock,
+    ) -> None:
+        """Test main remove function routes to native when CLI available."""
+        mock_check.return_value = True
+        mock_native.return_value = True
+
+        result = remove_claude_mcp(global_config=False, dry_run=False)
+
+        assert result is True
+        mock_check.assert_called_once()
+        mock_native.assert_called_once_with(global_config=False, dry_run=False)
+
+    @patch("mcp_ticketer.cli.mcp_configure.remove_claude_mcp_json")
+    @patch("mcp_ticketer.cli.mcp_configure.is_claude_cli_available")
+    @patch("mcp_ticketer.cli.mcp_configure.console")
+    def test_routes_to_json_when_cli_unavailable(
+        self,
+        mock_console: MagicMock,
+        mock_check: MagicMock,
+        mock_json: MagicMock,
+    ) -> None:
+        """Test main remove function routes to JSON when CLI unavailable."""
+        mock_check.return_value = False
+        mock_json.return_value = True
+
+        result = remove_claude_mcp(global_config=False, dry_run=False)
+
+        assert result is True
+        mock_check.assert_called_once()
+        mock_json.assert_called_once_with(global_config=False, dry_run=False)
+
+
+class TestConfigureWithForce:
+    """Test cases for force parameter in installation functions."""
+
+    @patch("mcp_ticketer.cli.mcp_configure.remove_claude_mcp_native")
+    @patch("subprocess.run")
+    @patch("mcp_ticketer.cli.mcp_configure.console")
+    def test_configure_native_with_force_removes_first(
+        self,
+        mock_console: MagicMock,
+        mock_run: MagicMock,
+        mock_remove: MagicMock,
+    ) -> None:
+        """Test that force=True triggers auto-remove before installation."""
+        mock_remove.return_value = True
+        mock_run.return_value = MagicMock(returncode=0)
+
+        project_config = {"default_adapter": "linear", "adapters": {}}
+
+        configure_claude_mcp_native(
+            project_config=project_config,
+            project_path="/test/path",
+            global_config=False,
+            force=True,
+        )
+
+        # Verify removal called first
+        mock_remove.assert_called_once_with(global_config=False, dry_run=False)
+
+        # Verify installation attempted
+        mock_run.assert_called_once()
+
+    @patch("mcp_ticketer.cli.mcp_configure.remove_claude_mcp_native")
+    @patch("subprocess.run")
+    @patch("mcp_ticketer.cli.mcp_configure.console")
+    def test_configure_native_continues_after_removal_failure(
+        self,
+        mock_console: MagicMock,
+        mock_run: MagicMock,
+        mock_remove: MagicMock,
+    ) -> None:
+        """Test that installation proceeds even if removal fails."""
+        mock_remove.side_effect = Exception("Removal failed")
+        mock_run.return_value = MagicMock(returncode=0)
+
+        project_config = {"default_adapter": "linear", "adapters": {}}
+
+        configure_claude_mcp_native(
+            project_config=project_config,
+            project_path="/test/path",
+            global_config=False,
+            force=True,
+        )
+
+        # Verify removal attempted
+        mock_remove.assert_called_once()
+
+        # Verify installation still executed
+        mock_run.assert_called_once()
+
+    @patch("mcp_ticketer.cli.mcp_configure.remove_claude_mcp_native")
+    @patch("subprocess.run")
+    @patch("mcp_ticketer.cli.mcp_configure.console")
+    def test_configure_native_without_force_skips_removal(
+        self,
+        mock_console: MagicMock,
+        mock_run: MagicMock,
+        mock_remove: MagicMock,
+    ) -> None:
+        """Test that force=False does not trigger removal."""
+        mock_run.return_value = MagicMock(returncode=0)
+
+        project_config = {"default_adapter": "linear", "adapters": {}}
+
+        configure_claude_mcp_native(
+            project_config=project_config,
+            project_path="/test/path",
+            global_config=False,
+            force=False,
+        )
+
+        # Verify removal NOT called
+        mock_remove.assert_not_called()
+
+        # Verify installation attempted
+        mock_run.assert_called_once()
+
+    @patch("mcp_ticketer.cli.mcp_configure.remove_claude_mcp_json")
+    @patch("mcp_ticketer.cli.mcp_configure.load_project_config")
+    @patch("mcp_ticketer.cli.mcp_configure.is_claude_cli_available")
+    @patch("mcp_ticketer.cli.mcp_configure.get_mcp_ticketer_python")
+    @patch("mcp_ticketer.cli.mcp_configure.find_claude_mcp_config")
+    @patch("mcp_ticketer.cli.mcp_configure.load_claude_mcp_config")
+    @patch("mcp_ticketer.cli.mcp_configure.save_claude_mcp_config")
+    @patch("pathlib.Path.cwd")
+    @patch("mcp_ticketer.cli.mcp_configure.console")
+    def test_configure_claude_mcp_with_force_json_mode(
+        self,
+        mock_console: MagicMock,
+        mock_cwd: MagicMock,
+        mock_save: MagicMock,
+        mock_load_mcp: MagicMock,
+        mock_find: MagicMock,
+        mock_get_python: MagicMock,
+        mock_check_cli: MagicMock,
+        mock_load_project: MagicMock,
+        mock_remove_json: MagicMock,
+    ) -> None:
+        """Test that configure_claude_mcp calls JSON removal when force=True and CLI unavailable."""
+        from pathlib import Path
+
+        # Setup mocks
+        mock_check_cli.return_value = False  # CLI not available
+        mock_load_project.return_value = {
+            "default_adapter": "linear",
+            "adapters": {},
+        }
+        mock_get_python.return_value = "/usr/bin/python3"
+        mock_cwd.return_value = Path("/test/path")
+        mock_find.return_value = Path("/home/.claude.json")
+        mock_load_mcp.return_value = {"projects": {}}
+        mock_remove_json.return_value = True
+
+        # Execute
+        configure_claude_mcp(global_config=False, force=True)
+
+        # Verify removal was called
+        mock_remove_json.assert_called_once_with(global_config=False, dry_run=False)
+
+        # Verify configuration was saved
+        mock_save.assert_called()
+
+    @patch("mcp_ticketer.cli.mcp_configure.remove_claude_mcp_native")
+    @patch("subprocess.run")
+    @patch("mcp_ticketer.cli.mcp_configure.console")
+    def test_configure_native_removal_returns_false(
+        self,
+        mock_console: MagicMock,
+        mock_run: MagicMock,
+        mock_remove: MagicMock,
+    ) -> None:
+        """Test that installation proceeds when removal returns False."""
+        mock_remove.return_value = False  # Removal failed but returned False
+        mock_run.return_value = MagicMock(returncode=0)
+
+        project_config = {"default_adapter": "linear", "adapters": {}}
+
+        configure_claude_mcp_native(
+            project_config=project_config,
+            project_path="/test/path",
+            global_config=False,
+            force=True,
+        )
+
+        # Verify removal attempted
+        mock_remove.assert_called_once()
+
+        # Verify installation still executed
+        mock_run.assert_called_once()

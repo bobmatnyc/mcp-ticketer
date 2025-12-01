@@ -122,13 +122,33 @@ def configure_claude_mcp_native(
         project_config: Project configuration dict
         project_path: Path to project directory
         global_config: If True, install globally (--scope user)
-        force: If True, force reinstallation (currently unused, reserved for future)
+        force: If True, force reinstallation by removing existing config first
 
     Raises:
         RuntimeError: If claude mcp add command fails
         subprocess.TimeoutExpired: If command times out
 
     """
+    # Auto-remove before re-adding when force=True
+    if force:
+        console.print("[cyan]🗑️  Force mode: Removing existing configuration...[/cyan]")
+        try:
+            removal_success = remove_claude_mcp_native(
+                global_config=global_config, dry_run=False
+            )
+            if removal_success:
+                console.print("[green]✓[/green] Existing configuration removed")
+            else:
+                console.print(
+                    "[yellow]⚠[/yellow] Could not remove existing configuration"
+                )
+                console.print("[yellow]Proceeding with installation anyway...[/yellow]")
+        except Exception as e:
+            console.print(f"[yellow]⚠[/yellow] Removal error: {e}")
+            console.print("[yellow]Proceeding with installation anyway...[/yellow]")
+
+        console.print()  # Blank line for visual separation
+
     # Build command
     cmd = build_claude_mcp_command(
         project_config=project_config,
@@ -530,12 +550,105 @@ def detect_legacy_claude_config(
     return False, None
 
 
-def remove_claude_mcp(global_config: bool = False, dry_run: bool = False) -> None:
-    """Remove mcp-ticketer from Claude Code/Desktop configuration.
+def remove_claude_mcp_native(
+    global_config: bool = False,
+    dry_run: bool = False,
+) -> bool:
+    """Remove mcp-ticketer using native 'claude mcp remove' command.
+
+    This function attempts to use the Claude CLI's native remove command
+    first, falling back to JSON manipulation if the native command fails.
+
+    Args:
+        global_config: If True, remove from Claude Desktop (--scope user)
+                      If False, remove from Claude Code (--scope local)
+        dry_run: If True, only show what would be removed without making changes
+
+    Returns:
+        bool: True if removal was successful, False if failed or skipped
+
+    Raises:
+        Does not raise exceptions - all errors are caught and handled gracefully
+        with fallback to JSON manipulation
+
+    Example:
+        >>> # Remove from local Claude Code configuration
+        >>> remove_claude_mcp_native(global_config=False, dry_run=False)
+        True
+
+        >>> # Preview removal without making changes
+        >>> remove_claude_mcp_native(global_config=False, dry_run=True)
+        True
+
+    Notes:
+        - Automatically falls back to remove_claude_mcp_json() if native fails
+        - Designed to be non-blocking for auto-remove scenarios
+        - Uses --scope flag for backward compatibility with Claude CLI
+
+    """
+    scope = "user" if global_config else "local"
+    cmd = ["claude", "mcp", "remove", "--scope", scope, "mcp-ticketer"]
+
+    config_type = "Claude Desktop" if global_config else "Claude Code"
+
+    if dry_run:
+        console.print(f"[cyan]DRY RUN - Would execute:[/cyan] {' '.join(cmd)}")
+        console.print(f"[dim]Target: {config_type}[/dim]")
+        return True
+
+    try:
+        # Execute native remove command
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+        if result.returncode == 0:
+            console.print("[green]✓[/green] Removed mcp-ticketer via native CLI")
+            console.print(f"[dim]Target: {config_type}[/dim]")
+            return True
+        else:
+            # Native command failed, fallback to JSON
+            console.print(
+                f"[yellow]⚠[/yellow] Native remove failed: {result.stderr.strip()}"
+            )
+            console.print(
+                "[yellow]Falling back to JSON configuration removal...[/yellow]"
+            )
+            return remove_claude_mcp_json(global_config=global_config, dry_run=dry_run)
+
+    except subprocess.TimeoutExpired:
+        console.print("[yellow]⚠[/yellow] Native remove command timed out")
+        console.print("[yellow]Falling back to JSON configuration removal...[/yellow]")
+        return remove_claude_mcp_json(global_config=global_config, dry_run=dry_run)
+
+    except Exception as e:
+        console.print(f"[yellow]⚠[/yellow] Error executing native remove: {e}")
+        console.print("[yellow]Falling back to JSON configuration removal...[/yellow]")
+        return remove_claude_mcp_json(global_config=global_config, dry_run=dry_run)
+
+
+def remove_claude_mcp_json(global_config: bool = False, dry_run: bool = False) -> bool:
+    """Remove mcp-ticketer from Claude Code/Desktop configuration using JSON.
+
+    This is a fallback method when native 'claude mcp remove' is unavailable
+    or fails. It directly manipulates the JSON configuration files.
 
     Args:
         global_config: Remove from Claude Desktop instead of project-level
         dry_run: Show what would be removed without making changes
+
+    Returns:
+        bool: True if removal was successful (or files not found),
+              False if an error occurred during JSON manipulation
+
+    Notes:
+        - Handles multiple config file locations (new, old, legacy)
+        - Supports both flat and nested configuration structures
+        - Cleans up empty structures after removal
+        - Provides detailed logging of actions taken
 
     """
     # Step 1: Find Claude MCP config location
@@ -659,6 +772,53 @@ def remove_claude_mcp(global_config: bool = False, dry_run: bool = False) -> Non
             "\n[yellow]⚠ mcp-ticketer was not found in any configuration[/yellow]"
         )
 
+    # Return True even if not found (successful removal)
+    return True
+
+
+def remove_claude_mcp(
+    global_config: bool = False,
+    dry_run: bool = False,
+) -> bool:
+    """Remove mcp-ticketer from Claude Code/Desktop configuration.
+
+    Automatically detects if Claude CLI is available and uses the native
+    'claude mcp remove' command if possible, falling back to JSON configuration
+    manipulation when necessary.
+
+    Args:
+        global_config: Remove from Claude Desktop instead of project-level
+        dry_run: Show what would be removed without making changes
+
+    Returns:
+        bool: True if removal was successful, False if failed
+
+    Example:
+        >>> # Remove from Claude Code (project-level)
+        >>> remove_claude_mcp(global_config=False)
+        True
+
+        >>> # Remove from Claude Desktop (global)
+        >>> remove_claude_mcp(global_config=True)
+        True
+
+    Notes:
+        - Uses native CLI when available for better reliability
+        - Automatically falls back to JSON manipulation if needed
+        - Safe to call even if mcp-ticketer is not configured
+
+    """
+    # Check for native CLI availability
+    if is_claude_cli_available():
+        console.print("[green]✓[/green] Claude CLI found - using native remove command")
+        return remove_claude_mcp_native(global_config=global_config, dry_run=dry_run)
+
+    # Fall back to JSON manipulation
+    console.print(
+        "[yellow]⚠[/yellow] Claude CLI not found - using JSON configuration removal"
+    )
+    return remove_claude_mcp_json(global_config=global_config, dry_run=dry_run)
+
 
 def configure_claude_mcp(global_config: bool = False, force: bool = False) -> None:
     """Configure Claude Code to use mcp-ticketer.
@@ -710,6 +870,28 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
     console.print(
         "[dim]For better experience, install Claude CLI: https://docs.claude.ai/cli[/dim]"
     )
+
+    # Auto-remove before re-adding when force=True
+    if force:
+        console.print(
+            "\n[cyan]🗑️  Force mode: Removing existing configuration...[/cyan]"
+        )
+        try:
+            removal_success = remove_claude_mcp_json(
+                global_config=global_config, dry_run=False
+            )
+            if removal_success:
+                console.print("[green]✓[/green] Existing configuration removed")
+            else:
+                console.print(
+                    "[yellow]⚠[/yellow] Could not remove existing configuration"
+                )
+                console.print("[yellow]Proceeding with installation anyway...[/yellow]")
+        except Exception as e:
+            console.print(f"[yellow]⚠[/yellow] Removal error: {e}")
+            console.print("[yellow]Proceeding with installation anyway...[/yellow]")
+
+        console.print()  # Blank line for visual separation
 
     # Determine project path for venv detection
     project_path = Path.cwd() if not global_config else None
