@@ -1057,6 +1057,11 @@ class LinearAdapter(BaseAdapter[Task]):
     ) -> str:
         """Create a new label in Linear.
 
+        Implements race condition recovery: if creation fails due to duplicate,
+        retry lookup from server (Tier 2) to get the existing label ID.
+
+        Related: 1M-398 - Label duplicate error handling
+
         Args:
         ----
             name: Label name
@@ -1065,11 +1070,11 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
         -------
-            Created label ID
+            str: Label ID (either newly created or existing after recovery)
 
         Raises:
         ------
-            ValueError: If label creation fails
+            ValueError: If label creation fails and recovery lookup also fails
 
         """
         logger = logging.getLogger(__name__)
@@ -1099,6 +1104,47 @@ class LinearAdapter(BaseAdapter[Task]):
             return label_id
 
         except Exception as e:
+            """
+            Race condition recovery: Another process may have created this label
+            between our Tier 2 lookup and creation attempt.
+
+            Graceful recovery:
+            1. Check if error is duplicate label error
+            2. Retry Tier 2 lookup (query server)
+            3. Return existing label ID if found
+            4. Raise error if recovery fails
+            """
+            error_str = str(e).lower()
+
+            # Check if this is a duplicate label error
+            if "duplicate" in error_str and "label" in error_str:
+                logger.debug(
+                    f"Duplicate label detected for '{name}', attempting recovery lookup"
+                )
+
+                # Retry Tier 2: Query server for existing label
+                server_label = await self._find_label_by_name(name, team_id)
+
+                if server_label:
+                    label_id = server_label["id"]
+
+                    # Update cache with recovered label
+                    if self._labels_cache is not None:
+                        self._labels_cache.append(server_label)
+
+                    logger.info(
+                        f"Successfully recovered from duplicate label error: '{name}' "
+                        f"(ID: {label_id})"
+                    )
+                    return label_id
+
+                # Recovery failed - label exists but we can't retrieve it
+                raise ValueError(
+                    f"Label '{name}' already exists but could not retrieve ID. "
+                    f"This may indicate a permissions issue or API inconsistency."
+                ) from e
+
+            # Not a duplicate error - re-raise original exception
             logger.error(f"Failed to create label '{name}': {e}")
             raise ValueError(f"Failed to create label '{name}': {e}") from e
 

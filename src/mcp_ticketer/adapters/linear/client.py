@@ -7,7 +7,7 @@ from typing import Any
 
 try:
     from gql import Client, gql
-    from gql.transport.exceptions import TransportError
+    from gql.transport.exceptions import TransportError, TransportQueryError
     from gql.transport.httpx import HTTPXAsyncTransport
 except ImportError:
     # Handle missing gql dependency gracefully
@@ -15,6 +15,7 @@ except ImportError:
     gql = None
     HTTPXAsyncTransport = None
     TransportError = Exception
+    TransportQueryError = Exception
 
 from ...core.exceptions import AdapterError, AuthenticationError, RateLimitError
 
@@ -109,6 +110,32 @@ class LinearGraphQLClient:
                         query, variable_values=variables or {}
                     )
                 return result
+
+            except TransportQueryError as e:
+                """
+                Handle GraphQL validation errors (e.g., duplicate label names).
+                TransportQueryError is a subclass of TransportError with .errors attribute.
+
+                Related: 1M-398 - Label duplicate error handling
+                """
+                if e.errors:
+                    error_msg = e.errors[0].get("message", "Unknown GraphQL error")
+
+                    # Check for duplicate label errors specifically
+                    if "duplicate" in error_msg.lower() and "label" in error_msg.lower():
+                        raise AdapterError(
+                            f"Label already exists: {error_msg}",
+                            "linear"
+                        ) from e
+
+                    # Other validation errors
+                    raise AdapterError(
+                        f"Linear GraphQL validation error: {error_msg}",
+                        "linear"
+                    ) from e
+
+                # Fallback if no errors attribute
+                raise AdapterError(f"Linear GraphQL error: {e}", "linear") from e
 
             except TransportError as e:
                 # Handle HTTP errors

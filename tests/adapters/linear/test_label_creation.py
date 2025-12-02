@@ -1,10 +1,11 @@
 """Unit tests for Linear adapter label creation functionality."""
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from mcp_ticketer.adapters.linear.adapter import LinearAdapter
+from mcp_ticketer.core.exceptions import AdapterError
 
 
 @pytest.mark.unit
@@ -573,6 +574,190 @@ class TestLabelCreation:
         adapter._create_label.assert_called_once_with("New Label", team_id)
         # Cache updated with server label
         assert len(adapter._labels_cache) == 2
+
+    @pytest.mark.asyncio
+    async def test_create_label_duplicate_recovery_success(self, adapter):
+        """Test Priority 2: Successful recovery from duplicate label error (1M-398)."""
+        team_id = "test-team-id"
+        label_name = "Duplicate Label"
+        existing_label_id = "existing-label-id-456"
+
+        # Mock: Creation fails with duplicate error
+        duplicate_error = AdapterError("Label already exists: duplicate label name", "linear")
+        adapter.client.execute_mutation = AsyncMock(side_effect=duplicate_error)
+
+        # Mock: Recovery lookup finds the existing label
+        existing_label = {
+            "id": existing_label_id,
+            "name": label_name,
+            "color": "#0366d6",
+            "description": None,
+        }
+        adapter._find_label_by_name = AsyncMock(return_value=existing_label)
+        adapter._labels_cache = []
+
+        # Execute - should recover gracefully
+        result = await adapter._create_label(label_name, team_id)
+
+        # Verify
+        assert result == existing_label_id
+        adapter._find_label_by_name.assert_called_once_with(label_name, team_id)
+        # Cache should be updated with recovered label
+        assert len(adapter._labels_cache) == 1
+        assert adapter._labels_cache[0] == existing_label
+
+    @pytest.mark.asyncio
+    async def test_create_label_duplicate_recovery_failure(self, adapter):
+        """Test Priority 2: Recovery fails when label exists but can't be retrieved (1M-398)."""
+        team_id = "test-team-id"
+        label_name = "Inaccessible Label"
+
+        # Mock: Creation fails with duplicate error
+        duplicate_error = AdapterError("Label already exists: duplicate label name", "linear")
+        adapter.client.execute_mutation = AsyncMock(side_effect=duplicate_error)
+
+        # Mock: Recovery lookup returns None (permissions issue or API inconsistency)
+        adapter._find_label_by_name = AsyncMock(return_value=None)
+        adapter._labels_cache = []
+
+        # Execute - should raise clear error message
+        with pytest.raises(ValueError) as exc_info:
+            await adapter._create_label(label_name, team_id)
+
+        # Verify error message explains the situation
+        assert "already exists but could not retrieve ID" in str(exc_info.value)
+        assert "permissions issue or API inconsistency" in str(exc_info.value)
+        adapter._find_label_by_name.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_create_label_non_duplicate_error_propagates(self, adapter):
+        """Test that non-duplicate errors are propagated without recovery attempt (1M-398)."""
+        team_id = "test-team-id"
+        label_name = "Test Label"
+
+        # Mock: Creation fails with non-duplicate error
+        network_error = AdapterError("Network timeout", "linear")
+        adapter.client.execute_mutation = AsyncMock(side_effect=network_error)
+        adapter._find_label_by_name = AsyncMock()
+        adapter._labels_cache = []
+
+        # Execute - should raise original error
+        with pytest.raises(ValueError) as exc_info:
+            await adapter._create_label(label_name, team_id)
+
+        # Verify error message contains original error
+        assert "Network timeout" in str(exc_info.value)
+        # Recovery lookup should NOT be called for non-duplicate errors
+        adapter._find_label_by_name.assert_not_called()
+
+
+@pytest.mark.unit
+class TestTransportQueryErrorHandling:
+    """Test Priority 1: TransportQueryError handling in GraphQL client (1M-398)."""
+
+    @pytest.fixture
+    def client(self):
+        """Create a Linear GraphQL client for testing."""
+        from mcp_ticketer.adapters.linear.client import LinearGraphQLClient
+        return LinearGraphQLClient(api_key="test_api_key_12345")
+
+    @pytest.mark.asyncio
+    async def test_transport_query_error_duplicate_label(self, client):
+        """Test TransportQueryError with duplicate label error produces clear message."""
+        # Import TransportQueryError
+        try:
+            from gql.transport.exceptions import TransportQueryError
+        except ImportError:
+            pytest.skip("gql library not installed")
+
+        # Mock TransportQueryError with duplicate label error
+        mock_error = TransportQueryError(
+            "GraphQL validation error",
+            errors=[{"message": "duplicate label name", "path": ["issueLabelCreate"]}]
+        )
+
+        query_string = "mutation { issueLabelCreate(input: {}) { success } }"
+
+        with patch.object(client, 'create_client') as mock_create_client:
+            mock_session = AsyncMock()
+            mock_session.execute = AsyncMock(side_effect=mock_error)
+            mock_client_instance = AsyncMock()
+            mock_client_instance.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+            mock_create_client.return_value = mock_client_instance
+
+            # Execute - should raise AdapterError with clear message
+            with pytest.raises(AdapterError) as exc_info:
+                await client.execute_query(query_string, {})
+
+            # Verify error message is clear (not "transport error")
+            error_msg = str(exc_info.value)
+            assert "Label already exists" in error_msg
+            assert "duplicate label name" in error_msg
+            assert "transport error" not in error_msg.lower()
+
+    @pytest.mark.asyncio
+    async def test_transport_query_error_generic_validation(self, client):
+        """Test TransportQueryError with generic validation error."""
+        try:
+            from gql.transport.exceptions import TransportQueryError
+        except ImportError:
+            pytest.skip("gql library not installed")
+
+        # Mock TransportQueryError with generic validation error
+        mock_error = TransportQueryError(
+            "GraphQL validation error",
+            errors=[{"message": "Invalid input: field 'name' is required", "path": ["issueCreate"]}]
+        )
+
+        query_string = "mutation { issueCreate(input: {}) { success } }"
+
+        with patch.object(client, 'create_client') as mock_create_client:
+            mock_session = AsyncMock()
+            mock_session.execute = AsyncMock(side_effect=mock_error)
+            mock_client_instance = AsyncMock()
+            mock_client_instance.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+            mock_create_client.return_value = mock_client_instance
+
+            # Execute - should raise AdapterError with validation message
+            with pytest.raises(AdapterError) as exc_info:
+                await client.execute_query(query_string, {})
+
+            # Verify error message contains validation details
+            error_msg = str(exc_info.value)
+            assert "GraphQL validation error" in error_msg
+            assert "Invalid input" in error_msg
+
+    @pytest.mark.asyncio
+    async def test_transport_query_error_no_errors_attribute(self, client):
+        """Test TransportQueryError without errors attribute (fallback)."""
+        try:
+            from gql.transport.exceptions import TransportQueryError
+        except ImportError:
+            pytest.skip("gql library not installed")
+
+        # Mock TransportQueryError without errors attribute
+        mock_error = TransportQueryError("Unknown GraphQL error")
+        mock_error.errors = None
+
+        query_string = "query { viewer { id } }"
+
+        with patch.object(client, 'create_client') as mock_create_client:
+            mock_session = AsyncMock()
+            mock_session.execute = AsyncMock(side_effect=mock_error)
+            mock_client_instance = AsyncMock()
+            mock_client_instance.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+            mock_create_client.return_value = mock_client_instance
+
+            # Execute - should raise AdapterError with fallback message
+            with pytest.raises(AdapterError) as exc_info:
+                await client.execute_query(query_string, {})
+
+            # Verify fallback error message
+            error_msg = str(exc_info.value)
+            assert "Linear GraphQL error" in error_msg
 
 
 @pytest.mark.integration
