@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.0.1] - 2025-12-02
+
+### Fixed
+
+#### Label Duplicate Error Handling (1M-398)
+
+**Priority 1: Clear Error Messages**
+- Added proper `TransportQueryError` exception handling for GraphQL validation errors
+- Clear error messages: "Label already exists: duplicate label name"
+- Fail-fast behavior for validation errors (no retries)
+- File: `src/mcp_ticketer/adapters/linear/client.py`
+
+**Priority 2: Automatic Recovery**
+- Automatic recovery from race conditions during label creation
+- Retry Tier 2 lookup when duplicate error detected
+- Cache consistency maintained after recovery
+- Graceful degradation with clear error messages
+- File: `src/mcp_ticketer/adapters/linear/adapter.py`
+
+**Testing**:
+- Added 6 comprehensive unit tests (100% pass rate)
+- All 241 Linear adapter tests pass
+- No regressions detected
+- Performance impact: <200ms overhead for recovery (rare)
+
+**Documentation**:
+- Complete root cause analysis: `docs/research/linear-label-duplicate-error-analysis-1M-398-2025-12-02.md`
+
+**Related**: Ticket [1M-398](https://linear.app/1m-hyperdev/issue/1M-398), Commit a33ba9f
+
 ## [2.0.0] - 2025-12-01
 
 ### ⚠️ BREAKING CHANGES
