@@ -122,16 +122,17 @@ class LinearGraphQLClient:
                     error_msg = e.errors[0].get("message", "Unknown GraphQL error")
 
                     # Check for duplicate label errors specifically
-                    if "duplicate" in error_msg.lower() and "label" in error_msg.lower():
+                    if (
+                        "duplicate" in error_msg.lower()
+                        and "label" in error_msg.lower()
+                    ):
                         raise AdapterError(
-                            f"Label already exists: {error_msg}",
-                            "linear"
+                            f"Label already exists: {error_msg}", "linear"
                         ) from e
 
                     # Other validation errors
                     raise AdapterError(
-                        f"Linear GraphQL validation error: {error_msg}",
-                        "linear"
+                        f"Linear GraphQL validation error: {error_msg}", "linear"
                     ) from e
 
                 # Fallback if no errors attribute
