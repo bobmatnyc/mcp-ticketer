@@ -332,9 +332,9 @@ class TestLinearAdapterInitialization:
             "team": {
                 "states": {
                     "nodes": [
-                        {"id": "state-1", "type": "unstarted", "position": 1},
-                        {"id": "state-2", "type": "started", "position": 1},
-                        {"id": "state-3", "type": "completed", "position": 1},
+                        {"id": "state-1", "name": "Todo", "type": "unstarted", "position": 1},
+                        {"id": "state-2", "name": "In Progress", "type": "started", "position": 1},
+                        {"id": "state-3", "name": "Done", "type": "completed", "position": 1},
                     ]
                 }
             }
@@ -343,10 +343,17 @@ class TestLinearAdapterInitialization:
         with patch.object(adapter.client, "execute_query", return_value=mock_result):
             await adapter._load_workflow_states("team-123")
 
+        # Verify workflow states were loaded with semantic mapping
+        # (Uses universal state names, not Linear type names)
         assert adapter._workflow_states is not None
-        assert "unstarted" in adapter._workflow_states
-        assert "started" in adapter._workflow_states
-        assert "completed" in adapter._workflow_states
+        assert "open" in adapter._workflow_states  # Maps to "Todo" (unstarted type)
+        assert "in_progress" in adapter._workflow_states  # Maps to "In Progress" (started type)
+        assert "done" in adapter._workflow_states  # Maps to "Done" (completed type)
+
+        # Verify mapping correctness
+        assert adapter._workflow_states["open"] == "state-1"
+        assert adapter._workflow_states["in_progress"] == "state-2"
+        assert adapter._workflow_states["done"] == "state-3"
 
 
 @pytest.mark.unit

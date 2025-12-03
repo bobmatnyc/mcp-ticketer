@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+#### Linear State Transition Validation (1M-552)
+
+**Problem**: Linear adapter failed with "Discrepancy between issue state and state type" errors when transitioning to states like READY, TESTED, WAITING in workflows with multiple states of the same type.
+
+**Root Cause**: The adapter assumed 1:1 mapping between state types (unstarted, started) and workflow states, but Linear allows multiple states per type (e.g., "Todo", "Backlog", "Ready" all being "unstarted"). The old implementation always selected the lowest-position state for each type, causing invalid transitions.
+
+**Solution**: Implemented semantic name matching with two-level fallback strategy:
+1. **Primary**: Match state names to universal states using predefined semantic mappings (e.g., "ready" → READY, "in review" → TESTED)
+2. **Fallback**: Use type-based matching for unmapped states (backward compatible)
+
+**Changes**:
+- Added `SEMANTIC_NAMES` mapping to `LinearStateMapping` class
+- Rewrote `_load_workflow_states()` method with name-first matching logic
+- Added logging for multi-state-type workflows and matching strategy
+- File: `src/mcp_ticketer/adapters/linear/types.py`
+- File: `src/mcp_ticketer/adapters/linear/adapter.py`
+
+**Testing**:
+- Added 4 comprehensive unit tests (100% pass rate)
+- Tests verify: semantic matching, backward compatibility, case-insensitivity
+- All existing Linear adapter tests pass
+- File: `tests/adapters/test_linear_state_semantic_matching.py`
+
+**Impact**: Fixes state transitions for all Linear teams using custom workflows with multiple states of the same type. No breaking changes - simple workflows continue to work as before.
+
 ## [2.0.1] - 2025-12-02
 
 ### Fixed

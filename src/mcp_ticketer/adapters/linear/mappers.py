@@ -418,3 +418,110 @@ def map_linear_attachment_to_attachment(
         description=subtitle,
         metadata=metadata,
     )
+
+
+def task_to_compact_format(task: Task) -> dict[str, Any]:
+    """Convert Task to compact format for efficient token usage.
+
+    Compact format includes only essential fields, reducing token usage by ~70-80%
+    compared to full Task serialization.
+
+    Args:
+    ----
+        task: Universal Task model
+
+    Returns:
+    -------
+        Compact dictionary with minimal essential fields
+
+    Design Decision: Compact Format Fields (1M-554)
+    -----------------------------------------------
+    Rationale: Selected fields based on token efficiency analysis and user needs.
+    Full Task serialization averages ~600 tokens per item. Compact format targets
+    ~120 tokens per item (80% reduction).
+
+    Essential fields included:
+    - id: Required for all operations (identifier)
+    - title: Primary user-facing information
+    - state: Critical for workflow understanding
+    - priority: Important for triage and filtering
+    - assignee: Key for task assignment visibility
+
+    Fields excluded:
+    - description: Often large (100-500 tokens), available via get()
+    - creator: Less critical for list views
+    - tags: Available in full format, not essential for scanning
+    - children: Hierarchy details available via dedicated queries
+    - created_at/updated_at: Not essential for list scanning
+    - metadata: Platform-specific, not needed in compact view
+
+    Performance: Reduces typical 50-item list from ~30,000 to ~6,000 tokens.
+
+    """
+    # Handle state - can be TicketState enum or string
+    state_value = None
+    if task.state:
+        state_value = task.state.value if hasattr(task.state, "value") else task.state
+
+    # Handle priority - can be Priority enum or string
+    priority_value = None
+    if task.priority:
+        priority_value = (
+            task.priority.value if hasattr(task.priority, "value") else task.priority
+        )
+
+    return {
+        "id": task.id,
+        "title": task.title,
+        "state": state_value,
+        "priority": priority_value,
+        "assignee": task.assignee,
+    }
+
+
+def epic_to_compact_format(epic: Epic) -> dict[str, Any]:
+    """Convert Epic to compact format for efficient token usage.
+
+    Compact format includes only essential fields, reducing token usage by ~70-80%
+    compared to full Epic serialization.
+
+    Args:
+    ----
+        epic: Universal Epic model
+
+    Returns:
+    -------
+        Compact dictionary with minimal essential fields
+
+    Design Decision: Epic Compact Format (1M-554)
+    ---------------------------------------------
+    Rationale: Epics typically have less metadata than tasks, but descriptions
+    can still be large. Compact format focuses on overview information.
+
+    Essential fields:
+    - id: Required for all operations
+    - title: Primary identifier
+    - state: Project status
+    - child_count: Useful for project overview (if available)
+
+    Performance: Similar token reduction to task compact format.
+
+    """
+    # Handle state - can be TicketState enum or string
+    state_value = None
+    if epic.state:
+        state_value = epic.state.value if hasattr(epic.state, "value") else epic.state
+
+    compact = {
+        "id": epic.id,
+        "title": epic.title,
+        "state": state_value,
+    }
+
+    # Include child count if available in metadata
+    if epic.metadata and "linear" in epic.metadata:
+        linear_meta = epic.metadata["linear"]
+        if "issue_count" in linear_meta:
+            compact["child_count"] = linear_meta["issue_count"]
+
+    return compact

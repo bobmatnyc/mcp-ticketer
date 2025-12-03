@@ -51,6 +51,34 @@ class LinearStateMapping:
         "canceled": TicketState.CLOSED,
     }
 
+    # Semantic state name mappings for flexible workflow matching (1M-552)
+    # Maps universal states to common Linear state names (case-insensitive)
+    SEMANTIC_NAMES: dict[TicketState, list[str]] = {
+        TicketState.OPEN: ["todo", "to do", "open", "new", "backlog"],
+        TicketState.READY: ["ready", "triage", "ready for dev", "ready to start"],
+        TicketState.TESTED: [
+            "tested",
+            "in review",
+            "review",
+            "qa",
+            "testing",
+            "ready for review",
+        ],
+        TicketState.WAITING: ["waiting", "on hold", "paused"],
+        TicketState.BLOCKED: ["blocked"],
+        TicketState.IN_PROGRESS: [
+            "in progress",
+            "in-progress",
+            "started",
+            "doing",
+            "active",
+            "in development",
+            "in dev",
+        ],
+        TicketState.DONE: ["done", "completed", "finished"],
+        TicketState.CLOSED: ["closed", "canceled", "cancelled", "won't do", "wont do"],
+    }
+
 
 class LinearWorkflowStateType(Enum):
     """Linear workflow state types."""

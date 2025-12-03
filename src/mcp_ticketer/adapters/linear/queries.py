@@ -354,10 +354,14 @@ LIST_PROJECTS_QUERY = (
     TEAM_FRAGMENT  # Required by PROJECT_FRAGMENT which uses ...TeamFields
     + PROJECT_FRAGMENT
     + """
-    query ListProjects($filter: ProjectFilter, $first: Int!) {
-        projects(filter: $filter, first: $first, orderBy: updatedAt) {
+    query ListProjects($filter: ProjectFilter, $first: Int!, $after: String) {
+        projects(filter: $filter, first: $first, after: $after, orderBy: updatedAt) {
             nodes {
                 ...ProjectFields
+            }
+            pageInfo {
+                hasNextPage
+                endCursor
             }
         }
     }

@@ -230,16 +230,22 @@ class TestGraphQLQueries:
         assert "identifier" in SEARCH_ISSUE_BY_IDENTIFIER_QUERY
 
     def test_list_projects_query_structure(self) -> None:
-        """Test LIST_PROJECTS_QUERY structure."""
+        """Test LIST_PROJECTS_QUERY structure with pagination support (1M-553)."""
+        # Verify query signature includes pagination parameter
         assert (
-            "query ListProjects($filter: ProjectFilter, $first: Int!)"
+            "query ListProjects($filter: ProjectFilter, $first: Int!, $after: String)"
             in LIST_PROJECTS_QUERY
         )
+        # Verify pagination parameters in query call
         assert (
-            "projects(filter: $filter, first: $first, orderBy: updatedAt)"
+            "projects(filter: $filter, first: $first, after: $after, orderBy: updatedAt)"
             in LIST_PROJECTS_QUERY
         )
         assert "...ProjectFields" in LIST_PROJECTS_QUERY
+        # Verify pageInfo for pagination support
+        assert "pageInfo" in LIST_PROJECTS_QUERY
+        assert "hasNextPage" in LIST_PROJECTS_QUERY
+        assert "endCursor" in LIST_PROJECTS_QUERY
 
     def test_list_projects_query_has_required_fragments(self) -> None:
         """Test LIST_PROJECTS_QUERY includes all fragment dependencies."""
