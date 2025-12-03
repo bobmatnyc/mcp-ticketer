@@ -1721,6 +1721,22 @@ class LinearAdapter(BaseAdapter[Task]):
                 )
                 issue_input.pop("labelIds")
 
+        # Debug logging: Log mutation input before execution for troubleshooting
+        logger.debug(
+            "Creating Linear issue with input: %s",
+            {
+                "title": task.title,
+                "teamId": team_id,
+                "projectId": issue_input.get("projectId"),
+                "parentId": issue_input.get("parentId"),
+                "stateId": issue_input.get("stateId"),
+                "priority": issue_input.get("priority"),
+                "labelIds": issue_input.get("labelIds"),
+                "assigneeId": issue_input.get("assigneeId"),
+                "hasDescription": bool(task.description),
+            },
+        )
+
         try:
             result = await self.client.execute_mutation(
                 CREATE_ISSUE_MUTATION, {"input": issue_input}
@@ -1779,6 +1795,17 @@ class LinearAdapter(BaseAdapter[Task]):
                     f"Linear projects have a 255 character limit for descriptions. "
                     f"Current length: {len(epic.description)} characters."
                 ) from e
+
+        # Debug logging: Log mutation input before execution for troubleshooting
+        logging.getLogger(__name__).debug(
+            "Creating Linear project with input: %s",
+            {
+                "name": epic.title,
+                "teamIds": [team_id],
+                "hasDescription": bool(project_input.get("description")),
+                "leadId": project_input.get("leadId"),
+            },
+        )
 
         # Create project mutation
         create_query = """
@@ -1889,6 +1916,20 @@ class LinearAdapter(BaseAdapter[Task]):
             update_input["color"] = updates["color"]
         if "icon" in updates:
             update_input["icon"] = updates["icon"]
+
+        # Debug logging: Log mutation input before execution for troubleshooting
+        logging.getLogger(__name__).debug(
+            "Updating Linear project %s with input: %s",
+            epic_id,
+            {
+                "name": update_input.get("name"),
+                "hasDescription": bool(update_input.get("description")),
+                "state": update_input.get("state"),
+                "targetDate": update_input.get("targetDate"),
+                "color": update_input.get("color"),
+                "icon": update_input.get("icon"),
+            },
+        )
 
         # ProjectUpdate mutation
         update_query = """
