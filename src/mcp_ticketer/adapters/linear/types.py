@@ -166,8 +166,9 @@ def get_universal_state(
     2. Try synonym matching on state name (ToDo, In Review, Testing, etc.)
     3. Default to OPEN for unknown states
 
-    Synonym Matching Rules (ticket 1M-164):
-    - "Done", "Closed", "Cancelled", "Completed", "Won't Do" → CLOSED
+    Synonym Matching Rules (ticket 1M-164, fixed in v2.0.4):
+    - "done", "completed", "finished", "resolved" → DONE
+    - "closed", "canceled", "cancelled", "won't do" → CLOSED
     - Everything else → OPEN
 
     Args:
@@ -186,24 +187,35 @@ def get_universal_state(
     if state_name:
         state_name_lower = state_name.lower().strip()
 
-        # Check for "done/closed" synonyms - these become CLOSED
-        closed_synonyms = [
+        # DONE states: Work successfully completed
+        # - User finished the work
+        # - Requirements met
+        # - Quality verified
+        done_synonyms = [
             "done",
+            "completed",
+            "finished",
+            "resolved",
+        ]
+
+        if any(synonym in state_name_lower for synonym in done_synonyms):
+            return TicketState.DONE
+
+        # CLOSED states: Work terminated without completion
+        # - User decided not to do it
+        # - Requirements changed
+        # - Duplicate/invalid ticket
+        closed_synonyms = [
             "closed",
             "cancelled",
             "canceled",
-            "completed",
             "won't do",
             "wont do",
             "rejected",
-            "resolved",
-            "finished",
         ]
 
         if any(synonym in state_name_lower for synonym in closed_synonyms):
-            return (
-                TicketState.DONE if state_name_lower == "done" else TicketState.CLOSED
-            )
+            return TicketState.CLOSED
 
         # Check for "in progress" synonyms
         in_progress_synonyms = [
