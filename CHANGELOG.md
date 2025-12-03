@@ -33,6 +33,132 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 **Impact**: Fixes state transitions for all Linear teams using custom workflows with multiple states of the same type. No breaking changes - simple workflows continue to work as before.
 
+**Related**: Ticket [1M-552](https://linear.app/1m-hyperdev/issue/1M-552), Commit 3f62881
+
+#### Linear Epic Listing GraphQL Pagination (1M-553)
+
+**Problem**: Epic listing operations failed with GraphQL validation error: "Variable $filter of type ProjectFilter was not provided".
+
+**Root Cause**: The `LIST_PROJECTS_QUERY` GraphQL query was missing the `$after` cursor parameter and `pageInfo` fields required for proper cursor-based pagination. The query structure didn't support iterating through multiple pages of results.
+
+**Solution**: Added complete pagination support to the GraphQL query:
+- Added `$after: String` parameter to query signature
+- Included `pageInfo { hasNextPage, endCursor }` in response
+- Updated query to accept and use the `after` cursor parameter
+- Aligned with Linear's standard pagination pattern
+
+**Changes**:
+- Updated `LIST_PROJECTS_QUERY` in `src/mcp_ticketer/adapters/linear/queries.py`
+- Modified query structure tests to verify pagination fields
+- File: `src/mcp_ticketer/adapters/linear/queries.py`
+- File: `tests/adapters/linear/test_queries.py`
+
+**Testing**:
+- Updated existing query structure tests (all passing)
+- Verified pagination parameters in GraphQL query
+- No regressions in epic listing functionality
+
+**Impact**: Epic listing operations now work correctly with cursor-based pagination. Resolves validation errors for teams with large numbers of epics/projects.
+
+**Related**: Ticket [1M-553](https://linear.app/1m-hyperdev/issue/1M-553), Commit 3f62881
+
+#### MCP Installer PATH Detection (1M-579)
+
+**Problem**: pipx users without pipx bin directory in PATH experienced `spawn mcp-ticketer ENOENT` errors when Claude Desktop attempted to launch the MCP server.
+
+**Root Cause**: Native Claude CLI mode writes bare command names (`"command": "mcp-ticketer"`) which fail when the command is not in PATH. Users saw misleading error messages because the installer didn't validate PATH accessibility before choosing native CLI mode.
+
+**Solution**: Added intelligent PATH detection with automatic fallback:
+1. Check if `mcp-ticketer` is accessible in PATH using `shutil.which()`
+2. Require BOTH Claude CLI availability AND PATH accessibility for native mode
+3. Fall back to legacy JSON mode with full paths when PATH check fails
+4. Provide clear user guidance about PATH configuration options
+
+**Decision Matrix**:
+| Claude CLI | PATH Check | Mode Selected | Command Format          |
+|------------|-----------|---------------|-------------------------|
+| ✅ Yes     | ✅ Yes    | Native CLI    | "mcp-ticketer"          |
+| ✅ Yes     | ❌ No     | Legacy JSON   | "/full/path/..."        |
+| ❌ No      | N/A       | Legacy JSON   | "/full/path/..."        |
+
+**Changes**:
+- Added `is_mcp_ticketer_in_path()` function using `shutil.which()`
+- Updated `configure_claude_mcp()` decision logic to validate PATH
+- Added helpful warning messages with PATH configuration instructions
+- Enhanced logging to show mode selection reasoning
+- File: `src/mcp_ticketer/cli/mcp_configure.py`
+
+**Testing**:
+- Added 9 comprehensive unit tests (100% pass rate)
+- All 28 existing tests pass (no regressions)
+- Verified all 4 decision matrix branches
+- Cross-platform compatibility validated
+- File: `tests/cli/test_mcp_configure_path_detection.py`
+
+**Impact**: All installation methods (pipx, uv, pip, poetry) now work reliably regardless of PATH configuration. Users with PATH configured get native CLI mode for better UX. Users without PATH automatically fall back to legacy mode with full paths.
+
+**Related**: Ticket [1M-579](https://linear.app/1m-hyperdev/issue/1M-579), Commit 513d3b5
+
+### Added
+
+#### Smart List Pagination & Compact Output (1M-554)
+
+**Feature**: Intelligent pagination with compact output format for list operations, delivering 77.5% token reduction while maintaining full functionality.
+
+**Problem**: List operations consumed excessive tokens, limiting the number of tickets AI agents could process within token budgets. A 50-item query consumed 31,082 characters.
+
+**Solution**: Implemented opt-in compact mode with smart pagination defaults:
+- New `compact` parameter for `list()` and `list_epics()` methods
+- Compact format reduces output by 77.5% (50 items: 31,082 chars → 6,982 chars)
+- Changed default page size to 20 items (consistent across methods)
+- Maximum page size enforced at 100 items
+- Pagination metadata included in compact mode responses
+
+**Performance Comparison**:
+```
+Format    | Items | Characters | Tokens (est) | Per Item
+----------|-------|------------|--------------|----------
+Full      | 50    | 31,082     | ~7,770       | ~155
+Compact   | 50    | 6,982      | ~1,745       | ~35
+Reduction | -     | 77.5%      | 77.5%        | 77.5%
+```
+
+**Changes**:
+- Added `compact` parameter to `LinearAdapter.list()` method (default: False)
+- Added `compact` parameter to `LinearAdapter.list_epics()` method (default: False)
+- Implemented `to_compact_dict()` method in `LinearMappers` class
+- Updated pagination defaults (20 items/page, max 100)
+- File: `src/mcp_ticketer/adapters/linear/adapter.py`
+- File: `src/mcp_ticketer/adapters/linear/mappers.py`
+
+**Testing**:
+- Added 13 comprehensive pagination tests (100% pass rate)
+- Tests verify: compact format, pagination defaults, token reduction
+- Backward compatibility confirmed (default: `compact=False`)
+- File: `tests/adapters/test_linear_compact_pagination.py`
+
+**Impact**: Enables AI agents to work with 4x more tickets within the same token budget. Backward compatible - existing code works unchanged. Opt-in feature requires explicit `compact=True` parameter.
+
+**Related**: Ticket [1M-554](https://linear.app/1m-hyperdev/issue/1M-554), Commit 3f62881
+
+### Technical Details
+
+**Test Coverage**:
+- 346 total tests passing (26 new tests added)
+- 0 regressions introduced
+- 100% success rate across all changes
+
+**Files Changed**:
+- 21 files modified
+- 5,363 insertions, 37 deletions
+- 11 new documentation files
+
+**Commits**:
+- 3f62881: Runtime bug fixes (1M-552, 1M-553, 1M-554)
+- 513d3b5: Installer PATH detection (1M-579)
+
+**Deployment**: All fixes tested and ready for production
+
 ## [2.0.1] - 2025-12-02
 
 ### Fixed

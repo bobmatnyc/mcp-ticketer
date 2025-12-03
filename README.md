@@ -70,6 +70,34 @@ pip install -e .
 - Python 3.9+
 - Virtual environment (recommended)
 
+### PATH Configuration (Optional but Recommended)
+
+For optimal Claude Desktop MCP integration, ensure `mcp-ticketer` is in your PATH:
+
+**pipx users**:
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+# Add to ~/.bashrc or ~/.zshrc to make permanent
+```
+
+**uv users**:
+```bash
+export PATH="$HOME/.local/bin:$PATH"  # Linux/macOS
+# Add to ~/.bashrc or ~/.zshrc to make permanent
+```
+
+**Why configure PATH?**
+- ✅ **With PATH**: Native Claude CLI integration for better UX
+- ⚠️ **Without PATH**: mcp-ticketer still works using full paths (legacy mode)
+
+**Verify PATH configuration**:
+```bash
+which mcp-ticketer
+# Should show: /Users/username/.local/bin/mcp-ticketer (or similar)
+```
+
+**Note (v2.0.2+)**: The installer automatically detects if `mcp-ticketer` is in PATH and configures Claude Desktop appropriately. See [1M-579](https://linear.app/1m-hyperdev/issue/1M-579) for technical details.
+
 ## 🤖 Supported AI Clients
 
 MCP Ticketer integrates with multiple AI clients via the Model Context Protocol (MCP):
