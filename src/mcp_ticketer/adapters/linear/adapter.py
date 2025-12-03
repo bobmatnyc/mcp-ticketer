@@ -219,6 +219,13 @@ class LinearAdapter(BaseAdapter[Task]):
             logger.debug("Loading team data and workflow states...")
             team_id = await self._ensure_team_id()
 
+            # Validate team_id before initialization
+            if not team_id:
+                raise ValueError(
+                    "Cannot initialize Linear adapter without team_id. "
+                    "Ensure LINEAR_TEAM_KEY is configured correctly."
+                )
+
             # Load workflow states and labels for the team
             await self._load_workflow_states(team_id)
             await self._load_team_labels(team_id)
@@ -1271,6 +1278,12 @@ class LinearAdapter(BaseAdapter[Task]):
         # Ensure labels are loaded
         if self._labels_cache is None:
             team_id = await self._ensure_team_id()
+            # Validate team_id before loading labels
+            if not team_id:
+                raise ValueError(
+                    "Cannot resolve Linear labels without team_id. "
+                    "Ensure LINEAR_TEAM_KEY is configured correctly."
+                )
             await self._load_team_labels(team_id)
 
         if self._labels_cache is None:
@@ -1281,6 +1294,13 @@ class LinearAdapter(BaseAdapter[Task]):
 
         # Get team ID for creating new labels
         team_id = await self._ensure_team_id()
+
+        # Validate team_id before creating labels
+        if not team_id:
+            raise ValueError(
+                "Cannot create Linear labels without team_id. "
+                "Ensure LINEAR_TEAM_KEY is configured correctly."
+            )
 
         # Create name -> ID mapping (case-insensitive)
         label_map = {
@@ -1493,6 +1513,13 @@ class LinearAdapter(BaseAdapter[Task]):
         logger = logging.getLogger(__name__)
         team_id = await self._ensure_team_id()
 
+        # Validate team_id before creating issue
+        if not team_id:
+            raise ValueError(
+                "Cannot create Linear issue without team_id. "
+                "Ensure LINEAR_TEAM_KEY is configured correctly."
+            )
+
         # Build issue input using mapper
         issue_input = build_linear_issue_input(task, team_id)
 
@@ -1632,6 +1659,13 @@ class LinearAdapter(BaseAdapter[Task]):
 
         """
         team_id = await self._ensure_team_id()
+
+        # Validate team_id before creating teamIds array
+        if not team_id:
+            raise ValueError(
+                "Cannot create Linear project without team_id. "
+                "Ensure LINEAR_TEAM_KEY is configured correctly."
+            )
 
         project_input = {
             "name": epic.title,
@@ -2085,6 +2119,13 @@ class LinearAdapter(BaseAdapter[Task]):
         await self.initialize()
         team_id = await self._ensure_team_id()
 
+        # Validate team_id before filtering
+        if not team_id:
+            raise ValueError(
+                "Cannot list Linear issues without team_id. "
+                "Ensure LINEAR_TEAM_KEY is configured correctly."
+            )
+
         # Enforce maximum limit to prevent excessive responses
         if limit > 100:
             limit = 100
@@ -2170,6 +2211,13 @@ class LinearAdapter(BaseAdapter[Task]):
 
         await self.initialize()
         team_id = await self._ensure_team_id()
+
+        # Validate team_id before searching
+        if not team_id:
+            raise ValueError(
+                "Cannot search Linear issues without team_id. "
+                "Ensure LINEAR_TEAM_KEY is configured correctly."
+            )
 
         # Build comprehensive issue filter
         issue_filter = {"team": {"id": {"eq": team_id}}}
@@ -2417,6 +2465,12 @@ class LinearAdapter(BaseAdapter[Task]):
         # Ensure labels are loaded
         if self._labels_cache is None:
             team_id = await self._ensure_team_id()
+            # Validate team_id before loading labels
+            if not team_id:
+                raise ValueError(
+                    "Cannot list Linear labels without team_id. "
+                    "Ensure LINEAR_TEAM_KEY is configured correctly."
+                )
             await self._load_team_labels(team_id)
 
         # Return cached labels or empty list if not available
@@ -2874,6 +2928,13 @@ class LinearAdapter(BaseAdapter[Task]):
         if team_id is None:
             team_id = await self._ensure_team_id()
 
+        # Validate team_id before listing cycles
+        if not team_id:
+            raise ValueError(
+                "Cannot list Linear cycles without team_id. "
+                "Ensure LINEAR_TEAM_KEY is configured correctly."
+            )
+
         try:
             # Fetch all cycles with pagination
             all_cycles: list[dict[str, Any]] = []
@@ -2988,6 +3049,13 @@ class LinearAdapter(BaseAdapter[Task]):
         if team_id is None:
             team_id = await self._ensure_team_id()
 
+        # Validate team_id before listing statuses
+        if not team_id:
+            raise ValueError(
+                "Cannot list Linear issue statuses without team_id. "
+                "Ensure LINEAR_TEAM_KEY is configured correctly."
+            )
+
         try:
             result = await self.client.execute_query(
                 LIST_ISSUE_STATUSES_QUERY, {"teamId": team_id}
@@ -3048,6 +3116,13 @@ class LinearAdapter(BaseAdapter[Task]):
 
         await self.initialize()
         team_id = await self._ensure_team_id()
+
+        # Validate team_id before listing projects
+        if not team_id:
+            raise ValueError(
+                "Cannot list Linear projects without team_id. "
+                "Ensure LINEAR_TEAM_KEY is configured correctly."
+            )
 
         # Enforce maximum limit to prevent excessive responses
         if limit > 100:
