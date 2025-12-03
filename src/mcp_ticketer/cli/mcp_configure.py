@@ -2,6 +2,7 @@
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -11,6 +12,36 @@ from rich.console import Console
 from .python_detection import get_mcp_ticketer_python
 
 console = Console()
+
+
+def is_mcp_ticketer_in_path() -> bool:
+    """Check if mcp-ticketer command is accessible via PATH.
+
+    This is critical for native Claude CLI mode, which writes bare
+    command names like "mcp-ticketer" instead of full paths.
+
+    Returns:
+        True if mcp-ticketer can be found in PATH, False otherwise.
+
+    Examples:
+        >>> # pipx with PATH configured
+        >>> is_mcp_ticketer_in_path()
+        True
+
+        >>> # pipx without PATH configured
+        >>> is_mcp_ticketer_in_path()
+        False
+
+    """
+    result = shutil.which("mcp-ticketer") is not None
+    if result:
+        console.print("[dim]✓ mcp-ticketer found in PATH[/dim]", highlight=False)
+    else:
+        console.print(
+            "[dim]⚠ mcp-ticketer not in PATH (will use legacy JSON mode)[/dim]",
+            highlight=False,
+        )
+    return result
 
 
 def is_claude_cli_available() -> bool:
@@ -118,6 +149,10 @@ def configure_claude_mcp_native(
 ) -> None:
     """Configure Claude Code using native 'claude mcp add' command.
 
+    This method is preferred when both Claude CLI and mcp-ticketer
+    are available in PATH. It provides better integration and
+    automatic updates.
+
     Args:
         project_config: Project configuration dict
         project_path: Path to project directory
@@ -129,6 +164,9 @@ def configure_claude_mcp_native(
         subprocess.TimeoutExpired: If command times out
 
     """
+    console.print("[cyan]⚙️  Configuring MCP via native Claude CLI[/cyan]")
+    console.print("[dim]Command will be: mcp-ticketer (resolved from PATH)[/dim]")
+
     # Auto-remove before re-adding when force=True
     if force:
         console.print("[cyan]🗑️  Force mode: Removing existing configuration...[/cyan]")
@@ -845,9 +883,16 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
         console.print(f"[red]✗[/red] {e}")
         raise
 
-    # Check for native CLI availability
+    # Check for native CLI availability AND PATH configuration
     console.print("\n[cyan]🔍 Checking for Claude CLI...[/cyan]")
-    if is_claude_cli_available():
+
+    # Native CLI requires both claude command AND mcp-ticketer in PATH
+    claude_cli_available = is_claude_cli_available()
+    mcp_ticketer_in_path = is_mcp_ticketer_in_path()
+
+    use_native_cli = claude_cli_available and mcp_ticketer_in_path
+
+    if use_native_cli:
         console.print("[green]✓[/green] Claude CLI found - using native command")
         console.print(
             "[dim]This provides better integration and automatic updates[/dim]"
@@ -863,13 +908,25 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
             force=force,
         )
 
-    # Fall back to JSON manipulation
-    console.print(
-        "[yellow]⚠[/yellow] Claude CLI not found - using legacy JSON configuration"
-    )
-    console.print(
-        "[dim]For better experience, install Claude CLI: https://docs.claude.ai/cli[/dim]"
-    )
+    # Fall back to reliable JSON manipulation with full paths
+    if claude_cli_available and not mcp_ticketer_in_path:
+        console.print(
+            "[yellow]⚠[/yellow] mcp-ticketer not found in PATH - using legacy JSON mode"
+        )
+        console.print(
+            "[dim]Native CLI writes bare command names that fail when not in PATH[/dim]"
+        )
+        console.print(
+            "[dim]To enable native CLI, add pipx bin directory to your PATH:[/dim]"
+        )
+        console.print('[dim]  export PATH="$HOME/.local/bin:$PATH"[/dim]')
+    elif not claude_cli_available:
+        console.print(
+            "[yellow]⚠[/yellow] Claude CLI not found - using legacy JSON configuration"
+        )
+        console.print(
+            "[dim]For better experience, install Claude CLI: https://docs.claude.ai/cli[/dim]"
+        )
 
     # Auto-remove before re-adding when force=True
     if force:
@@ -893,6 +950,10 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
 
         console.print()  # Blank line for visual separation
 
+    # Show that we're using legacy JSON mode with full paths
+    console.print("\n[cyan]⚙️  Configuring MCP via legacy JSON mode[/cyan]")
+    console.print("[dim]This mode uses full paths for reliable operation[/dim]")
+
     # Determine project path for venv detection
     project_path = Path.cwd() if not global_config else None
 
@@ -907,6 +968,11 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
             console.print("[dim]Using project-specific venv[/dim]")
         else:
             console.print("[dim]Using pipx/system Python[/dim]")
+
+        # Derive CLI path from Python path
+        python_dir = Path(python_path).parent
+        cli_path = str(python_dir / "mcp-ticketer")
+        console.print(f"[dim]CLI command will be: {cli_path}[/dim]")
     except Exception as e:
         console.print(f"[red]✗[/red] Could not find Python executable: {e}")
         raise FileNotFoundError(
