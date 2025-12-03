@@ -6,6 +6,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.0.3] - 2025-12-03
+
+### Fixed
+
+#### Linear stateId UUID Validation Error (1M-584)
+
+**Problem**: Issue and task creation failed with GraphQL validation error: "Variable `$stateId` of type `UUID` was provided invalid value".
+
+**Root Cause**: The `_get_state_mapping()` method was accessing `_workflow_states` dictionary with Linear state types ("unstarted", "started") instead of universal state values ("open", "in_progress"). This caused it to return state type strings instead of UUID values, resulting in GraphQL validation errors.
+
+**Solution**:
+- Fixed `_get_state_mapping()` to correctly access workflow state UUIDs using universal state values ("open", "in_progress", etc.)
+- Verified state mapping returns proper UUID strings for all state transitions
+- Added comprehensive team_id validation across 11 adapter methods for better error messages
+
+**Changes**:
+- Fixed state UUID resolution in `_get_state_mapping()` method
+- Added team_id validation to: initialize(), _create_task(), _create_epic(), list_tasks(), search(), list_labels(), list_cycles(), list_epics(), list_issue_statuses(), _resolve_label_ids()
+- Enhanced GraphQL debug logging in Linear client for easier troubleshooting
+- File: `src/mcp_ticketer/adapters/linear/adapter.py`
+- File: `src/mcp_ticketer/adapters/linear/client.py`
+
+**Testing**:
+- Verified issue creation with ticket 1M-584
+- Verified task creation works correctly
+- All existing tests pass with updated state mapping logic
+- File: `tests/adapters/linear/test_adapter.py`
+
+**Impact**:
+- ✅ Issue creation now works correctly
+- ✅ Task creation now works correctly
+- ✅ Epic creation continues to work
+- ✅ State transitions fixed across all entity types
+- ✅ Better error messages when LINEAR_TEAM_KEY misconfigured
+
+**Related**: Ticket [1M-584](https://linear.app/1m-hyperdev/issue/1M-584), Commits 60a89e8, 10a8e22
+
+### Added
+
+#### Developer Tools
+
+**mcp-ticketer-dev Script**: Added development CLI wrapper script for running mcp-ticketer from source without reinstallation. Useful for testing changes during development.
+
 ### Fixed
 
 #### Linear State Transition Validation (1M-552)
