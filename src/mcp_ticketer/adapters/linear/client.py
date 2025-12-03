@@ -112,9 +112,13 @@ class LinearGraphQLClient:
             # Simple extraction - look for 'query' or 'mutation' keyword
             query_lower = query_string.strip().lower()
             if query_lower.startswith("mutation"):
-                operation_name = query_string.split("{")[0].strip().replace("mutation", "").strip()
+                operation_name = (
+                    query_string.split("{")[0].strip().replace("mutation", "").strip()
+                )
             elif query_lower.startswith("query"):
-                operation_name = query_string.split("{")[0].strip().replace("query", "").strip()
+                operation_name = (
+                    query_string.split("{")[0].strip().replace("query", "").strip()
+                )
         except Exception:
             pass  # Use default 'unknown' if extraction fails
 
@@ -227,7 +231,7 @@ class LinearGraphQLClient:
                     f"Variables:\n{json.dumps(variables or {}, indent=2, default=str)}\n"
                     f"Error type: {type(e).__name__}\n"
                     f"Error: {e}",
-                    exc_info=True
+                    exc_info=True,
                 )
 
                 # GraphQL or other errors
