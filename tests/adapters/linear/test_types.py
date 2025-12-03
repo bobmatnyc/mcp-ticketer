@@ -89,6 +89,73 @@ class TestLinearStateMapping:
         """Test get_universal_state with unknown value."""
         assert get_universal_state("unknown") == TicketState.OPEN  # Default
 
+    def test_get_universal_state_done_synonyms(self) -> None:
+        """Test that done/completed synonyms map to DONE (v2.0.4 bug fix)."""
+        # Exact matches
+        assert get_universal_state("unknown", "done") == TicketState.DONE
+        assert get_universal_state("unknown", "completed") == TicketState.DONE
+        assert get_universal_state("unknown", "finished") == TicketState.DONE
+        assert get_universal_state("unknown", "resolved") == TicketState.DONE
+
+        # Case insensitive
+        assert get_universal_state("unknown", "DONE") == TicketState.DONE
+        assert get_universal_state("unknown", "Completed") == TicketState.DONE
+        assert get_universal_state("unknown", "FINISHED") == TicketState.DONE
+
+        # Partial matches (substring)
+        assert get_universal_state("unknown", "Completed ✓") == TicketState.DONE
+        assert get_universal_state("unknown", "Work Finished") == TicketState.DONE
+
+    def test_get_universal_state_closed_synonyms(self) -> None:
+        """Test that closed/canceled synonyms map to CLOSED."""
+        # Exact matches
+        assert get_universal_state("unknown", "closed") == TicketState.CLOSED
+        assert get_universal_state("unknown", "canceled") == TicketState.CLOSED
+        assert get_universal_state("unknown", "cancelled") == TicketState.CLOSED
+        assert get_universal_state("unknown", "won't do") == TicketState.CLOSED
+        assert get_universal_state("unknown", "wont do") == TicketState.CLOSED
+        assert get_universal_state("unknown", "rejected") == TicketState.CLOSED
+
+        # Case insensitive
+        assert get_universal_state("unknown", "CLOSED") == TicketState.CLOSED
+        assert get_universal_state("unknown", "Canceled") == TicketState.CLOSED
+        assert get_universal_state("unknown", "CANCELLED") == TicketState.CLOSED
+
+        # Partial matches
+        assert get_universal_state("unknown", "Won't Do") == TicketState.CLOSED
+
+    def test_get_universal_state_linear_integration(self) -> None:
+        """Test with actual Linear state names from default workflows."""
+        # Linear's default "Done" state (type: completed)
+        assert get_universal_state("completed", "Done") == TicketState.DONE
+
+        # Linear's default "Canceled" state (type: canceled)
+        assert get_universal_state("canceled", "Canceled") == TicketState.CLOSED
+
+        # Custom states with semantic names
+        assert get_universal_state("unknown", "Completed ✓") == TicketState.DONE
+        assert get_universal_state("unknown", "Won't Do") == TicketState.CLOSED
+        assert get_universal_state("unknown", "Finished") == TicketState.DONE
+
+    def test_get_universal_state_synonym_separation(self) -> None:
+        """Test that DONE and CLOSED synonyms are properly separated (regression test)."""
+        # This test prevents the bug where "completed" was in closed_synonyms
+        # Verify DONE synonyms don't return CLOSED
+        done_states = ["done", "completed", "finished", "resolved"]
+        for state_name in done_states:
+            result = get_universal_state("unknown", state_name)
+            assert (
+                result == TicketState.DONE
+            ), f"{state_name} should map to DONE, not {result}"
+
+        # Verify CLOSED synonyms don't return DONE
+        closed_states = ["closed", "canceled", "cancelled", "won't do", "rejected"]
+        for state_name in closed_states:
+            result = get_universal_state("unknown", state_name)
+            assert (
+                result == TicketState.CLOSED
+            ), f"{state_name} should map to CLOSED, not {result}"
+
 
 @pytest.mark.unit
 class TestFilterBuilders:

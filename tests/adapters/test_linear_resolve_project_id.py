@@ -48,7 +48,7 @@ class TestResolveProjectIdURLParsing:
             "projects": {
                 "nodes": [
                     {
-                        "id": "project-uuid-123",
+                        "id": "12345678-1234-1234-1234-123456789123",
                         "name": "Matsuoka.com",
                         "slugId": "matsuokacom-1dc4f2881467",
                     }
@@ -62,7 +62,7 @@ class TestResolveProjectIdURLParsing:
         result = await linear_adapter._resolve_project_id(url)
 
         # Should extract "matsuokacom-1dc4f2881467" and find matching project
-        assert result == "project-uuid-123"
+        assert result == "12345678-1234-1234-1234-123456789123"
 
     @pytest.mark.asyncio
     async def test_full_url_without_suffix(self, linear_adapter, mock_client):
@@ -71,7 +71,7 @@ class TestResolveProjectIdURLParsing:
             "projects": {
                 "nodes": [
                     {
-                        "id": "project-uuid-456",
+                        "id": "12345678-1234-1234-1234-123456789456",
                         "name": "Test Project",
                         "slugId": "test-project-abc123def456",
                     }
@@ -83,7 +83,7 @@ class TestResolveProjectIdURLParsing:
         url = "https://linear.app/team/project/test-project-abc123def456"
         result = await linear_adapter._resolve_project_id(url)
 
-        assert result == "project-uuid-456"
+        assert result == "12345678-1234-1234-1234-123456789456"
 
     @pytest.mark.asyncio
     async def test_slug_id_format(self, linear_adapter, mock_client):
@@ -92,7 +92,7 @@ class TestResolveProjectIdURLParsing:
             "projects": {
                 "nodes": [
                     {
-                        "id": "project-uuid-789",
+                        "id": "12345678-1234-1234-1234-123456789789",
                         "name": "Another Project",
                         "slugId": "another-project-123456789abc",
                     }
@@ -104,7 +104,7 @@ class TestResolveProjectIdURLParsing:
         slug_id = "another-project-123456789abc"
         result = await linear_adapter._resolve_project_id(slug_id)
 
-        assert result == "project-uuid-789"
+        assert result == "12345678-1234-1234-1234-123456789789"
 
     @pytest.mark.asyncio
     async def test_short_id_format(self, linear_adapter, mock_client):
@@ -113,7 +113,7 @@ class TestResolveProjectIdURLParsing:
             "projects": {
                 "nodes": [
                     {
-                        "id": "project-uuid-abc",
+                        "id": "12345678-1234-1234-1234-123456789abc",
                         "name": "Short ID Project",
                         "slugId": "short-id-project-abc123def456",
                     }
@@ -125,7 +125,7 @@ class TestResolveProjectIdURLParsing:
         short_id = "abc123def456"
         result = await linear_adapter._resolve_project_id(short_id)
 
-        assert result == "project-uuid-abc"
+        assert result == "12345678-1234-1234-1234-123456789abc"
 
     @pytest.mark.asyncio
     async def test_full_uuid_format(self, linear_adapter, mock_client):
@@ -144,7 +144,7 @@ class TestResolveProjectIdURLParsing:
             "projects": {
                 "nodes": [
                     {
-                        "id": "project-uuid-long",
+                        "id": "12345678-1234-1234-1234-123456789lng",
                         "name": "MCP Skills",
                         "slugId": "mcp-skills-dynamic-rag-skills-for-code-assistants-0000af8da9b0",
                     }
@@ -157,7 +157,7 @@ class TestResolveProjectIdURLParsing:
         result = await linear_adapter._resolve_project_id(url)
 
         # Should correctly extract the full slug-id
-        assert result == "project-uuid-long"
+        assert result == "12345678-1234-1234-1234-123456789lng"
 
     @pytest.mark.asyncio
     async def test_project_name_fallback(self, linear_adapter, mock_client):
@@ -166,7 +166,7 @@ class TestResolveProjectIdURLParsing:
             "projects": {
                 "nodes": [
                     {
-                        "id": "project-uuid-name",
+                        "id": "12345678-1234-1234-1234-123456789nam",
                         "name": "My Project Name",
                         "slugId": "my-project-name-123456789abc",
                     }
@@ -179,7 +179,7 @@ class TestResolveProjectIdURLParsing:
         result = await linear_adapter._resolve_project_id(project_name)
 
         # Should find by name
-        assert result == "project-uuid-name"
+        assert result == "12345678-1234-1234-1234-123456789nam"
 
     @pytest.mark.asyncio
     async def test_invalid_url_format(self, linear_adapter, mock_client):
@@ -215,7 +215,7 @@ class TestResolveProjectIdURLParsing:
             "projects": {
                 "nodes": [
                     {
-                        "id": "project-uuid-mcp-ticketer",
+                        "id": "12345678-1234-1234-1234-123456789mct",
                         "name": "mcp-ticketer",
                         "slugId": "mcp-ticketer-eac28953c267",
                     }
@@ -229,7 +229,7 @@ class TestResolveProjectIdURLParsing:
         result = await linear_adapter._resolve_project_id(url)
 
         # Should extract "mcp-ticketer-eac28953c267" and find matching project
-        assert result == "project-uuid-mcp-ticketer"
+        assert result == "12345678-1234-1234-1234-123456789mct"
 
     @pytest.mark.asyncio
     async def test_url_parser_integration(self, linear_adapter, mock_client):
@@ -238,7 +238,7 @@ class TestResolveProjectIdURLParsing:
             "projects": {
                 "nodes": [
                     {
-                        "id": "project-uuid-integration",
+                        "id": "12345678-1234-1234-1234-123456789int",
                         "name": "Integration Test",
                         "slugId": "integration-test-abc123456789",
                     }
@@ -257,7 +257,7 @@ class TestResolveProjectIdURLParsing:
 
         for url in test_cases:
             result = await linear_adapter._resolve_project_id(url)
-            assert result == "project-uuid-integration", f"Failed for URL: {url}"
+            assert result == "12345678-1234-1234-1234-123456789int", f"Failed for URL: {url}"
 
 
 class TestResolveProjectIdEdgeCases:
@@ -277,7 +277,7 @@ class TestResolveProjectIdEdgeCases:
                     "projects": {
                         "nodes": [
                             {
-                                "id": "project-1",
+                                "id": "12345678-1234-1234-1234-000000000001",
                                 "name": "Project 1",
                                 "slugId": "project-1-aaa111bbb222",
                             }
@@ -294,7 +294,7 @@ class TestResolveProjectIdEdgeCases:
                     "projects": {
                         "nodes": [
                             {
-                                "id": "project-2",
+                                "id": "12345678-1234-1234-1234-000000000002",
                                 "name": "Target Project",
                                 "slugId": "target-project-abc123def456",
                             }
@@ -308,7 +308,7 @@ class TestResolveProjectIdEdgeCases:
         result = await linear_adapter._resolve_project_id("target-project-abc123def456")
 
         # Should find project on second page
-        assert result == "project-2"
+        assert result == "12345678-1234-1234-1234-000000000002"
         assert call_count[0] == 2
 
     @pytest.mark.asyncio
@@ -318,7 +318,7 @@ class TestResolveProjectIdEdgeCases:
             "projects": {
                 "nodes": [
                     {
-                        "id": "project-uuid-case",
+                        "id": "12345678-1234-1234-1234-123456789cas",
                         "name": "CamelCase Project",
                         "slugId": "CamelCase-Project-ABC123DEF456",
                     }
@@ -336,4 +336,4 @@ class TestResolveProjectIdEdgeCases:
 
         for test_input in test_inputs:
             result = await linear_adapter._resolve_project_id(test_input)
-            assert result == "project-uuid-case", f"Failed for input: {test_input}"
+            assert result == "12345678-1234-1234-1234-123456789cas", f"Failed for input: {test_input}"

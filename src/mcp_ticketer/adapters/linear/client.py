@@ -161,7 +161,34 @@ class LinearGraphQLClient:
                 )
 
                 if e.errors:
-                    error_msg = e.errors[0].get("message", "Unknown GraphQL error")
+                    error = e.errors[0]
+                    error_msg = error.get("message", "Unknown GraphQL error")
+
+                    # Parse extensions for field-specific details (enhanced debugging)
+                    extensions = error.get("extensions", {})
+
+                    # Check for user-presentable message (clearer error for users)
+                    user_message = extensions.get("userPresentableMessage")
+                    if user_message:
+                        error_msg = user_message
+
+                    # Check for argument path (which field failed validation)
+                    arg_path = extensions.get("argumentPath")
+                    if arg_path:
+                        field_path = ".".join(str(p) for p in arg_path)
+                        error_msg = f"{error_msg} (field: {field_path})"
+
+                    # Check for validation errors (additional context)
+                    validation_errors = extensions.get("validationErrors")
+                    if validation_errors:
+                        error_msg = f"{error_msg}\nValidation errors: {validation_errors}"
+
+                    # Log full error context for debugging
+                    logger.error(
+                        "Linear GraphQL error: %s (extensions: %s)",
+                        error_msg,
+                        extensions,
+                    )
 
                     # Check for duplicate label errors specifically
                     if (

@@ -973,7 +973,8 @@ async def ticket_list(
         else:
             ticket_data = [ticket.model_dump() for ticket in tickets]
 
-        return {
+        # Build response
+        response_data = {
             "status": "completed",
             **_build_adapter_metadata(adapter),
             "tickets": ticket_data,
@@ -982,6 +983,41 @@ async def ticket_list(
             "offset": offset,
             "compact": compact,
         }
+
+        # Estimate and validate token count to prevent MCP limit violations
+        # MCP has a 25k token limit per response; we use 20k as safety margin
+        from ....utils.token_utils import estimate_json_tokens
+
+        estimated_tokens = estimate_json_tokens(response_data)
+
+        # If exceeds 20k tokens (safety margin below 25k MCP limit)
+        if estimated_tokens > 20_000:
+            # Calculate recommended limit based on current token-per-ticket ratio
+            if len(tickets) > 0:
+                tokens_per_ticket = estimated_tokens / len(tickets)
+                recommended_limit = int(20_000 / tokens_per_ticket)
+            else:
+                recommended_limit = 20
+
+            return {
+                "status": "error",
+                "error": f"Response would exceed MCP token limit ({estimated_tokens:,} tokens)",
+                "recommendation": (
+                    f"Use smaller limit (try limit={recommended_limit}), "
+                    "add filters (state=open, project_id=...), or enable compact mode"
+                ),
+                "current_settings": {
+                    "limit": limit,
+                    "compact": compact,
+                    "estimated_tokens": estimated_tokens,
+                    "max_allowed": 25_000,
+                },
+            }
+
+        # Add token estimate to successful response for monitoring
+        response_data["estimated_tokens"] = estimated_tokens
+
+        return response_data
     except Exception as e:
         error_response = {
             "status": "error",

@@ -538,6 +538,53 @@ class LinearAdapter(BaseAdapter[Task]):
 
         return epic
 
+    def _validate_linear_uuid(self, uuid_value: str, field_name: str = "UUID") -> bool:
+        """Validate Linear UUID format (36 chars, 8-4-4-4-12 pattern).
+
+        Linear UUIDs follow standard UUID v4 format:
+        - Total length: 36 characters
+        - Pattern: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        - Contains exactly 4 hyphens at positions 8, 13, 18, 23
+
+        Args:
+        ----
+            uuid_value: UUID string to validate
+            field_name: Name of field for error messages (default: "UUID")
+
+        Returns:
+        -------
+            True if valid UUID format, False otherwise
+
+        Examples:
+        --------
+            >>> _validate_linear_uuid("12345678-1234-1234-1234-123456789012", "projectId")
+            True
+            >>> _validate_linear_uuid("invalid-uuid", "projectId")
+            False
+        """
+        logger = logging.getLogger(__name__)
+
+        if not isinstance(uuid_value, str):
+            logger.warning(
+                f"{field_name} is not a string: {type(uuid_value).__name__}"
+            )
+            return False
+
+        if len(uuid_value) != 36:
+            logger.warning(
+                f"{field_name} has invalid length {len(uuid_value)}, expected 36 characters"
+            )
+            return False
+
+        if uuid_value.count("-") != 4:
+            logger.warning(
+                f"{field_name} has invalid format: {uuid_value}. "
+                f"Expected xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx pattern"
+            )
+            return False
+
+        return True
+
     async def _resolve_project_id(self, project_identifier: str) -> str | None:
         """Resolve project identifier (slug, name, short ID, or URL) to full UUID.
 
@@ -685,11 +732,29 @@ class LinearAdapter(BaseAdapter[Task]):
                             or slug_part.lower() == project_lower
                             or short_id.lower() == project_lower
                         ):
-                            return project["id"]
+                            project_uuid = project["id"]
+                            # Validate UUID format before returning
+                            if not self._validate_linear_uuid(project_uuid, "projectId"):
+                                logging.getLogger(__name__).error(
+                                    f"Project '{project_identifier}' resolved to invalid UUID format: '{project_uuid}'. "
+                                    f"Expected 36-character UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx). "
+                                    f"This indicates a data inconsistency in Linear API response."
+                                )
+                                return None
+                            return project_uuid
 
                 # Also check exact name match (case-insensitive)
                 if project["name"].lower() == project_lower:
-                    return project["id"]
+                    project_uuid = project["id"]
+                    # Validate UUID format before returning
+                    if not self._validate_linear_uuid(project_uuid, "projectId"):
+                        logging.getLogger(__name__).error(
+                            f"Project '{project_identifier}' resolved to invalid UUID format: '{project_uuid}'. "
+                            f"Expected 36-character UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx). "
+                            f"This indicates a data inconsistency in Linear API response."
+                        )
+                        return None
+                    return project_uuid
 
             # No match found
             return None
@@ -1203,26 +1268,47 @@ class LinearAdapter(BaseAdapter[Task]):
                     f"Duplicate label detected for '{name}', attempting recovery lookup"
                 )
 
-                # Retry Tier 2: Query server for existing label
-                server_label = await self._find_label_by_name(name, team_id)
+                # Retry Tier 2 with backoff: API eventual consistency requires delay
+                # Linear API has 100-500ms propagation delay between write and read
+                max_recovery_attempts = 3
+                backoff_delays = [0.2, 0.5, 1.0]  # 200ms, 500ms, 1s
 
-                if server_label:
-                    label_id = server_label["id"]
+                for attempt in range(max_recovery_attempts):
+                    if attempt > 0:
+                        # Wait before retry (skip delay on first attempt)
+                        delay = backoff_delays[min(attempt - 1, len(backoff_delays) - 1)]
+                        logger.debug(
+                            f"Label '{name}' duplicate detected. "
+                            f"Retrying retrieval (attempt {attempt + 1}/{max_recovery_attempts}) "
+                            f"after {delay}s delay for API propagation..."
+                        )
+                        await asyncio.sleep(delay)
 
-                    # Update cache with recovered label
-                    if self._labels_cache is not None:
-                        self._labels_cache.append(server_label)
+                    # Query server for existing label
+                    server_label = await self._find_label_by_name(name, team_id)
 
-                    logger.info(
-                        f"Successfully recovered from duplicate label error: '{name}' "
-                        f"(ID: {label_id})"
-                    )
-                    return label_id
+                    if server_label:
+                        label_id = server_label["id"]
 
-                # Recovery failed - label exists but we can't retrieve it
+                        # Update cache with recovered label
+                        if self._labels_cache is not None:
+                            self._labels_cache.append(server_label)
+
+                        logger.info(
+                            f"Successfully recovered existing label '{name}' (ID: {label_id}) "
+                            f"after {attempt + 1} attempt(s)"
+                        )
+                        return label_id
+
+                # Recovery failed after all retries
                 raise ValueError(
-                    f"Label '{name}' already exists but could not retrieve ID. "
-                    f"This may indicate a permissions issue or API inconsistency."
+                    f"Label '{name}' already exists but could not retrieve ID after "
+                    f"{max_recovery_attempts} attempts. This may indicate:\n"
+                    f"  1. API propagation delay >1s (unusual)\n"
+                    f"  2. Label exists beyond first 250 labels in team\n"
+                    f"  3. Permissions issue preventing label query\n"
+                    f"  4. Team ID mismatch\n"
+                    f"Please retry the operation or check Linear workspace permissions."
                 ) from e
 
             # Not a duplicate error - re-raise original exception
@@ -1635,6 +1721,22 @@ class LinearAdapter(BaseAdapter[Task]):
                 )
                 issue_input.pop("labelIds")
 
+        # Debug logging: Log mutation input before execution for troubleshooting
+        logger.debug(
+            "Creating Linear issue with input: %s",
+            {
+                "title": task.title,
+                "teamId": team_id,
+                "projectId": issue_input.get("projectId"),
+                "parentId": issue_input.get("parentId"),
+                "stateId": issue_input.get("stateId"),
+                "priority": issue_input.get("priority"),
+                "labelIds": issue_input.get("labelIds"),
+                "assigneeId": issue_input.get("assigneeId"),
+                "hasDescription": bool(task.description),
+            },
+        )
+
         try:
             result = await self.client.execute_mutation(
                 CREATE_ISSUE_MUTATION, {"input": issue_input}
@@ -1678,7 +1780,32 @@ class LinearAdapter(BaseAdapter[Task]):
         }
 
         if epic.description:
-            project_input["description"] = epic.description
+            # Validate description length (Linear limit: 255 chars for project description)
+            # Matches validation in update_epic() for consistency
+            from mcp_ticketer.core.validators import FieldValidator, ValidationError
+
+            try:
+                validated_description = FieldValidator.validate_field(
+                    "linear", "epic_description", epic.description, truncate=False
+                )
+                project_input["description"] = validated_description
+            except ValidationError as e:
+                raise ValueError(
+                    f"Epic description validation failed: {e}. "
+                    f"Linear projects have a 255 character limit for descriptions. "
+                    f"Current length: {len(epic.description)} characters."
+                ) from e
+
+        # Debug logging: Log mutation input before execution for troubleshooting
+        logging.getLogger(__name__).debug(
+            "Creating Linear project with input: %s",
+            {
+                "name": epic.title,
+                "teamIds": [team_id],
+                "hasDescription": bool(project_input.get("description")),
+                "leadId": project_input.get("leadId"),
+            },
+        )
 
         # Create project mutation
         create_query = """
@@ -1789,6 +1916,20 @@ class LinearAdapter(BaseAdapter[Task]):
             update_input["color"] = updates["color"]
         if "icon" in updates:
             update_input["icon"] = updates["icon"]
+
+        # Debug logging: Log mutation input before execution for troubleshooting
+        logging.getLogger(__name__).debug(
+            "Updating Linear project %s with input: %s",
+            epic_id,
+            {
+                "name": update_input.get("name"),
+                "hasDescription": bool(update_input.get("description")),
+                "state": update_input.get("state"),
+                "targetDate": update_input.get("targetDate"),
+                "color": update_input.get("color"),
+                "icon": update_input.get("icon"),
+            },
+        )
 
         # ProjectUpdate mutation
         update_query = """

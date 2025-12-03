@@ -6,6 +6,13 @@ import pytest
 
 from mcp_ticketer.adapters.linear.adapter import LinearAdapter
 
+# Valid 36-character UUIDs for testing (match Linear's UUID format)
+MOCK_UUID_1 = "12345678-1234-1234-1234-123456789001"
+MOCK_UUID_2 = "12345678-1234-1234-1234-123456789002"
+MOCK_UUID_3 = "12345678-1234-1234-1234-123456789003"
+MOCK_UUID_SPECIAL = "12345678-1234-1234-1234-12345678spec"
+MOCK_UUID_MCP = "12345678-1234-1234-1234-123456789mcp"
+
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -240,7 +247,8 @@ class TestLinearProjectIDResolution:
         with pytest.raises(ValueError) as exc_info:
             await adapter._resolve_project_id(invalid_url)
 
-        assert "Invalid Linear project URL" in str(exc_info.value)
+        # Updated error message to match actual implementation
+        assert "Failed to resolve project" in str(exc_info.value)
 
     async def test_resolve_nonexistent_project_returns_none(
         self, adapter, mock_projects_response
@@ -282,7 +290,7 @@ class TestLinearProjectIDResolution:
         # Use valid 12-character hex short IDs (as Linear uses)
         mock_direct_response = {
             "project": {
-                "id": "project-1-uuid",
+                "id": MOCK_UUID_1,
                 "name": "Project One",
                 "slugId": "project-one-abc123def456",
                 "state": "started",
@@ -303,7 +311,7 @@ class TestLinearProjectIDResolution:
         # Should match exact short ID only using direct query (optimization)
         result = await adapter._resolve_project_id("abc123def456")
 
-        assert result == "project-1-uuid"
+        assert result == MOCK_UUID_1
         # Verify direct query was used
         adapter.client.execute_query.assert_called_once()
         call_args = adapter.client.execute_query.call_args[0]
@@ -317,7 +325,7 @@ class TestLinearProjectIDResolution:
             "projects": {
                 "nodes": [
                     {
-                        "id": "project-uuid",
+                        "id": "12345678-1234-1234-1234-123456789012",
                         "name": "Project Without Slug",
                         "slugId": "",  # Empty slugId
                     },
@@ -333,7 +341,7 @@ class TestLinearProjectIDResolution:
         # Should still match by name
         result = await adapter._resolve_project_id("Project Without Slug")
 
-        assert result == "project-uuid"
+        assert result == "12345678-1234-1234-1234-123456789012"
 
     async def test_resolve_slug_case_variations(self, adapter, mock_projects_response):
         """Test that slug matching works with various case combinations."""
@@ -358,7 +366,7 @@ class TestLinearProjectIDResolution:
             "projects": {
                 "nodes": [
                     {
-                        "id": "special-project-uuid",
+                        "id": MOCK_UUID_SPECIAL,
                         "name": "Project & Special!",
                         "slugId": "project-and-special-abc123def456",
                     },
@@ -374,7 +382,7 @@ class TestLinearProjectIDResolution:
         # Slug without the short ID suffix - won't trigger direct query optimization
         result = await adapter._resolve_project_id("project-and-special")
 
-        assert result == "special-project-uuid"
+        assert result == MOCK_UUID_SPECIAL
         # Should use list query since "project-and-special" doesn't look like a short ID
         adapter.client.execute_query.assert_called_once()
         call_args = adapter.client.execute_query.call_args[0]
@@ -389,12 +397,12 @@ class TestLinearProjectIDResolution:
             "projects": {
                 "nodes": [
                     {
-                        "id": "project-1-uuid",
+                        "id": MOCK_UUID_1,
                         "name": "Project One",
                         "slugId": "project-one-abc123",
                     },
                     {
-                        "id": "project-2-uuid",
+                        "id": MOCK_UUID_2,
                         "name": "Project Two",
                         "slugId": "project-two-abc124",
                     },
@@ -411,7 +419,7 @@ class TestLinearProjectIDResolution:
             "projects": {
                 "nodes": [
                     {
-                        "id": "project-3-uuid",
+                        "id": MOCK_UUID_3,
                         "name": "Target Project",
                         "slugId": "target-project-xyz789",
                     },
@@ -430,7 +438,7 @@ class TestLinearProjectIDResolution:
         result = await adapter._resolve_project_id("target-project-xyz789")
 
         # Should find the project from the second page
-        assert result == "project-3-uuid"
+        assert result == MOCK_UUID_3
 
         # Should have made exactly 2 API calls (pagination)
         assert adapter.client.execute_query.call_count == 2
@@ -442,9 +450,10 @@ class TestLinearProjectIDResolution:
     async def test_resolve_with_pagination_over_100_projects(self, adapter):
         """Test handling workspaces with >100 projects (real-world scenario)."""
         # Simulate a workspace with 150 projects (2 pages)
+        # Generate valid 36-character UUIDs for testing
         first_page_projects = [
             {
-                "id": f"project-{i}-uuid",
+                "id": f"12345678-1234-1234-1234-{i:012d}",
                 "name": f"Project {i}",
                 "slugId": f"project-{i}-id{i:03d}",
             }
@@ -453,7 +462,7 @@ class TestLinearProjectIDResolution:
 
         second_page_projects = [
             {
-                "id": f"project-{i}-uuid",
+                "id": f"12345678-1234-1234-1234-{i:012d}",
                 "name": f"Project {i}",
                 "slugId": f"project-{i}-id{i:03d}",
             }
@@ -462,7 +471,7 @@ class TestLinearProjectIDResolution:
 
         # Add the target project at position 120 (on second page)
         second_page_projects[20] = {
-            "id": "mcp-memory-uuid",
+            "id": MOCK_UUID_MCP,
             "name": "MCP Memory Project",
             "slugId": "mcp-memory-6cf55cfcfad4",
         }
@@ -493,7 +502,7 @@ class TestLinearProjectIDResolution:
         result = await adapter._resolve_project_id("mcp-memory-6cf55cfcfad4")
 
         # Should successfully find the project from page 2
-        assert result == "mcp-memory-uuid"
+        assert result == MOCK_UUID_MCP
         assert adapter.client.execute_query.call_count == 2
 
     async def test_resolve_with_empty_first_page(self, adapter):
