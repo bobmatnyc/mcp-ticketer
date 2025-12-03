@@ -51,7 +51,7 @@ safe-release-build: pre-publish build ## Build release with quality gate
 	@echo "✅ Safe release build complete"
 
 .PHONY: publish-test
-publish-test: check-release format lint test test-e2e build ## Build and publish to TestPyPI
+publish-test: check-release format lint test test-e2e build verify-dist ## Build and publish to TestPyPI
 	@echo "Publishing to TestPyPI..."
 	@if [ -f .env.local ]; then \
 		echo "Loading PyPI credentials from .env.local..."; \
@@ -64,7 +64,7 @@ publish-test: check-release format lint test test-e2e build ## Build and publish
 	@echo "Published to TestPyPI!"
 
 .PHONY: publish-prod
-publish-prod: check-release format lint test test-e2e build ## Build and publish to PyPI
+publish-prod: check-release format lint test test-e2e build verify-dist ## Build and publish to PyPI
 	@echo "Publishing to PyPI..."
 	@if [ -f .env.local ]; then \
 		echo "Loading PyPI credentials from .env.local..."; \

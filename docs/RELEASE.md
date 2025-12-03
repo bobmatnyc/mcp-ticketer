@@ -54,9 +54,21 @@ make publish-prod
    ```
 
 2. **Build Tools**
+
+   Build and publishing tools are included in dev dependencies:
+
+   ```bash
+   # Install all dev dependencies (includes build, twine, pytest, ruff, etc.)
+   pip install -e ".[dev]"
+   ```
+
+   Or install individually if needed:
    ```bash
    pip install build twine
    ```
+
+   **Note**: As of v2.0.4, `build` and `twine` are declared in `pyproject.toml`
+   dev dependencies for consistency across the team.
 
 3. **Development Environment**
    ```bash
@@ -181,6 +193,26 @@ Automatically called during `make build` to track:
 - Git branch
 - Build timestamp
 - Release notes
+
+#### Verifying the Package
+
+Before publishing, verify the distribution packages are valid:
+
+```bash
+# Verify package metadata and structure
+make verify-dist
+
+# Or manually
+twine check dist/*
+```
+
+This checks for:
+- Valid package metadata
+- Proper long_description rendering
+- Required fields present
+- No malformed distributions
+
+**Always run this before uploading to PyPI!**
 
 ---
 
