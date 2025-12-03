@@ -1,7 +1,7 @@
 """Unit tests for PATH detection in MCP configuration."""
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from mcp_ticketer.cli.mcp_configure import is_mcp_ticketer_in_path
 
@@ -115,7 +115,9 @@ class TestPathDetectionIntegration(unittest.TestCase):
     @patch("mcp_ticketer.cli.mcp_configure.console")
     @patch("mcp_ticketer.cli.mcp_configure.is_claude_cli_available")
     @patch("mcp_ticketer.cli.mcp_configure.is_mcp_ticketer_in_path")
-    def test_decision_matrix_no_path(self, mock_mcp_path, mock_claude_cli, mock_console):
+    def test_decision_matrix_no_path(
+        self, mock_mcp_path, mock_claude_cli, mock_console
+    ):
         """Test decision logic: Claude CLI available but PATH missing -> Legacy JSON."""
         # Arrange
         mock_claude_cli.return_value = True
