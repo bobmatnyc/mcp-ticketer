@@ -1386,7 +1386,7 @@ class LinearAdapter(BaseAdapter[Task]):
 
         Returns:
         -------
-            Dictionary mapping TicketState to Linear state ID
+            Dictionary mapping TicketState to Linear state ID (UUID)
 
         """
         if not self._workflow_states:
@@ -1403,13 +1403,18 @@ class LinearAdapter(BaseAdapter[Task]):
             }
 
         # Return ID-based mapping using cached workflow states
+        # _workflow_states is keyed by universal_state.value (e.g., "open")
+        # and contains state UUIDs directly
         mapping = {}
-        for universal_state, linear_type in LinearStateMapping.TO_LINEAR.items():
-            if linear_type in self._workflow_states:
-                mapping[universal_state] = self._workflow_states[linear_type]["id"]
+        for universal_state in TicketState:
+            state_uuid = self._workflow_states.get(universal_state.value)
+            if state_uuid:
+                mapping[universal_state] = state_uuid
             else:
-                # Fallback to type name
-                mapping[universal_state] = linear_type
+                # Fallback to type name if state not found in cache
+                linear_type = LinearStateMapping.TO_LINEAR.get(universal_state)
+                if linear_type:
+                    mapping[universal_state] = linear_type
 
         return mapping
 

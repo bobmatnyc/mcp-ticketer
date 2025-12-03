@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import logging
 from typing import Any
 
 try:
@@ -18,6 +20,8 @@ except ImportError:
     TransportQueryError = Exception
 
 from ...core.exceptions import AdapterError, AuthenticationError, RateLimitError
+
+logger = logging.getLogger(__name__)
 
 
 class LinearGraphQLClient:
@@ -102,13 +106,38 @@ class LinearGraphQLClient:
         """
         query = gql(query_string)
 
+        # Extract operation name from query for logging
+        operation_name = "unknown"
+        try:
+            # Simple extraction - look for 'query' or 'mutation' keyword
+            query_lower = query_string.strip().lower()
+            if query_lower.startswith("mutation"):
+                operation_name = query_string.split("{")[0].strip().replace("mutation", "").strip()
+            elif query_lower.startswith("query"):
+                operation_name = query_string.split("{")[0].strip().replace("query", "").strip()
+        except Exception:
+            pass  # Use default 'unknown' if extraction fails
+
         for attempt in range(retries + 1):
             try:
+                # Log request details before execution
+                logger.debug(
+                    f"[Linear GraphQL] Executing operation: {operation_name}\n"
+                    f"Variables:\n{json.dumps(variables or {}, indent=2, default=str)}"
+                )
+
                 client = self.create_client()
                 async with client as session:
                     result = await session.execute(
                         query, variable_values=variables or {}
                     )
+
+                # Log successful response
+                logger.debug(
+                    f"[Linear GraphQL] Operation successful: {operation_name}\n"
+                    f"Response:\n{json.dumps(result, indent=2, default=str)}"
+                )
+
                 return result
 
             except TransportQueryError as e:
@@ -118,6 +147,15 @@ class LinearGraphQLClient:
 
                 Related: 1M-398 - Label duplicate error handling
                 """
+                # Log detailed error information
+                logger.error(
+                    f"[Linear GraphQL] TransportQueryError occurred\n"
+                    f"Operation: {operation_name}\n"
+                    f"Variables:\n{json.dumps(variables or {}, indent=2, default=str)}\n"
+                    f"Error: {e}\n"
+                    f"Error details: {e.errors if hasattr(e, 'errors') else 'No error details'}"
+                )
+
                 if e.errors:
                     error_msg = e.errors[0].get("message", "Unknown GraphQL error")
 
@@ -139,6 +177,15 @@ class LinearGraphQLClient:
                 raise AdapterError(f"Linear GraphQL error: {e}", "linear") from e
 
             except TransportError as e:
+                # Log transport error details
+                logger.error(
+                    f"[Linear GraphQL] TransportError occurred\n"
+                    f"Operation: {operation_name}\n"
+                    f"Variables:\n{json.dumps(variables or {}, indent=2, default=str)}\n"
+                    f"Error: {e}\n"
+                    f"Status code: {e.response.status if hasattr(e, 'response') and e.response else 'N/A'}"
+                )
+
                 # Handle HTTP errors
                 if hasattr(e, "response") and e.response:
                     status_code = e.response.status
@@ -173,6 +220,16 @@ class LinearGraphQLClient:
                 raise AdapterError(f"Linear API transport error: {e}", "linear") from e
 
             except Exception as e:
+                # Log generic error details
+                logger.error(
+                    f"[Linear GraphQL] Unexpected error occurred\n"
+                    f"Operation: {operation_name}\n"
+                    f"Variables:\n{json.dumps(variables or {}, indent=2, default=str)}\n"
+                    f"Error type: {type(e).__name__}\n"
+                    f"Error: {e}",
+                    exc_info=True
+                )
+
                 # GraphQL or other errors
                 error_msg = str(e)
 

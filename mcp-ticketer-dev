@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Development wrapper for mcp-ticketer CLI
+# Runs from source using local virtual environment
+
+set -e
+
+# Get the directory where this script lives
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_DIR="$SCRIPT_DIR/.venv"
+VENV_PYTHON="$VENV_DIR/bin/python"
+
+# Check if virtual environment exists
+if [ ! -d "$VENV_DIR" ]; then
+    echo "Error: Virtual environment not found at $VENV_DIR"
+    echo "Please create it first:"
+    echo "  python3 -m venv .venv"
+    echo "  source .venv/bin/activate"
+    echo "  pip install -e ."
+    exit 1
+fi
+
+# Check if Python exists in venv
+if [ ! -f "$VENV_PYTHON" ]; then
+    echo "Error: Python not found in virtual environment"
+    echo "Please recreate the virtual environment"
+    exit 1
+fi
+
+# Run mcp-ticketer CLI from source using venv Python
+exec "$VENV_PYTHON" -m mcp_ticketer.cli.main "$@"

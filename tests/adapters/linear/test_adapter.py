@@ -150,20 +150,30 @@ class TestLinearAdapterStateMapping:
         adapter = LinearAdapter(config)
 
         # Mock loaded workflow states
+        # _workflow_states is keyed by universal_state.value (e.g., "open")
+        # and contains state UUIDs directly (not dict with "id" key)
         adapter._workflow_states = {
-            "unstarted": {"id": "state-1", "name": "To Do"},
-            "started": {"id": "state-2", "name": "In Progress"},
-            "completed": {"id": "state-3", "name": "Done"},
-            "canceled": {"id": "state-4", "name": "Canceled"},
+            "open": "state-uuid-1",
+            "in_progress": "state-uuid-2",
+            "done": "state-uuid-3",
+            "closed": "state-uuid-4",
+            "ready": "state-uuid-5",
+            "tested": "state-uuid-6",
+            "waiting": "state-uuid-7",
+            "blocked": "state-uuid-8",
         }
 
         mapping = adapter._get_state_mapping()
 
-        # Should return ID-based mapping
-        assert mapping[TicketState.OPEN] == "state-1"
-        assert mapping[TicketState.IN_PROGRESS] == "state-2"
-        assert mapping[TicketState.DONE] == "state-3"
-        assert mapping[TicketState.CLOSED] == "state-4"
+        # Should return UUID-based mapping
+        assert mapping[TicketState.OPEN] == "state-uuid-1"
+        assert mapping[TicketState.IN_PROGRESS] == "state-uuid-2"
+        assert mapping[TicketState.DONE] == "state-uuid-3"
+        assert mapping[TicketState.CLOSED] == "state-uuid-4"
+        assert mapping[TicketState.READY] == "state-uuid-5"
+        assert mapping[TicketState.TESTED] == "state-uuid-6"
+        assert mapping[TicketState.WAITING] == "state-uuid-7"
+        assert mapping[TicketState.BLOCKED] == "state-uuid-8"
 
 
 @pytest.mark.unit
