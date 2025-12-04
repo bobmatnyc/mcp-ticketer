@@ -4,7 +4,7 @@ This test suite verifies that project issues are fetched correctly
 with proper project ID resolution (bug fix for empty epic_issues).
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -185,7 +185,7 @@ class TestGetProjectIssues:
                 "issues": {"nodes": mock_issues_data}
             }
 
-            issues = await adapter._get_project_issues(project_id, limit=custom_limit)
+            await adapter._get_project_issues(project_id, limit=custom_limit)
 
             # Verify limit was passed to query
             call_args = mock_query.call_args
