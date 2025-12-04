@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.1.2] - 2025-12-04
+
+### Added
+- **GitHub REST API Skill**: Comprehensive skill for GitHub API integration with hybrid REST/GraphQL patterns, label-based state management, and PR automation (1,260 lines)
+- **Jira REST API Skill**: Complete skill for Jira API v3 with JQL optimization, 2025 rate limiting updates, and 50+ query examples (2,093 lines)
+- **Linear GraphQL API Skill**: Production-ready skill for Linear GraphQL API with fragment composition, team-scoped architecture, and cycle management (1,361 lines)
+- **PM Adapter Detection Guide**: Documentation to prevent adapter configuration detection issues
+
+### Documentation
+- Added comprehensive research documents for GitHub, Jira, and Linear API patterns
+- Added code review findings for core functionality and adapter architecture
+
 ## [2.1.1] - 2025-12-04
 
 ### Fixed
