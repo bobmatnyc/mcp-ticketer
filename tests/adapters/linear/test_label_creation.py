@@ -627,8 +627,8 @@ class TestLabelCreation:
         # Verify error message explains the situation
         assert "already exists but could not retrieve ID" in str(exc_info.value)
         assert "Permissions issue" in str(exc_info.value)
-        # Should have tried 3 times with retry logic (initial + 2 retries)
-        assert adapter._find_label_by_name.call_count == 3
+        # Should have tried 5 times with retry logic (initial + 4 retries)
+        assert adapter._find_label_by_name.call_count == 5
 
     @pytest.mark.asyncio
     async def test_create_label_non_duplicate_error_propagates(self, adapter):
