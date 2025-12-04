@@ -11,6 +11,7 @@ from typing import Any
 
 import httpx
 
+from ..cache.memory import MemoryCache
 from ..core.adapter import BaseAdapter
 from ..core.env_loader import load_adapter_config, validate_adapter_config
 from ..core.models import (
@@ -183,6 +184,7 @@ class GitHubAdapter(BaseAdapter[Task]):
                 - api_url: Optional API URL for GitHub Enterprise
                 - use_projects_v2: Enable Projects v2 (default: False)
                 - custom_priority_scheme: Custom priority label mapping
+                - labels_ttl: Label cache TTL in seconds (default: 300.0)
 
         """
         super().__init__(config)
@@ -234,8 +236,9 @@ class GitHubAdapter(BaseAdapter[Task]):
             timeout=30.0,
         )
 
-        # Cache for labels and milestones
-        self._labels_cache: list[dict[str, Any]] | None = None
+        # Initialize TTL-based cache
+        self._labels_ttl = config.get("labels_ttl", 300.0)  # 5 min default
+        self._labels_cache = MemoryCache(default_ttl=self._labels_ttl)
         self._milestones_cache: list[dict[str, Any]] | None = None
         self._rate_limit: dict[str, Any] = {}
 
@@ -481,13 +484,17 @@ class GitHubAdapter(BaseAdapter[Task]):
         self, label_name: str, color: str = "0366d6"
     ) -> None:
         """Ensure a label exists in the repository."""
-        if not self._labels_cache:
+        cache_key = "github_labels"
+        cached_labels = await self._labels_cache.get(cache_key)
+
+        if cached_labels is None:
             response = await self.client.get(f"/repos/{self.owner}/{self.repo}/labels")
             response.raise_for_status()
-            self._labels_cache = response.json()
+            cached_labels = response.json()
+            await self._labels_cache.set(cache_key, cached_labels)
 
         # Check if label exists
-        existing_labels = [label["name"].lower() for label in self._labels_cache]
+        existing_labels = [label["name"].lower() for label in cached_labels]
         if label_name.lower() not in existing_labels:
             # Create the label
             response = await self.client.post(
@@ -495,7 +502,8 @@ class GitHubAdapter(BaseAdapter[Task]):
                 json={"name": label_name, "color": color},
             )
             if response.status_code == 201:
-                self._labels_cache.append(response.json())
+                cached_labels.append(response.json())
+                await self._labels_cache.set(cache_key, cached_labels)
 
     async def _graphql_request(
         self, query: str, variables: dict[str, Any]
@@ -1459,8 +1467,10 @@ Fixes #{issue_number}
             List of label dictionaries with 'id', 'name', and 'color' fields
 
         """
-        if self._labels_cache:
-            return self._labels_cache
+        cache_key = "github_labels"
+        cached = await self._labels_cache.get(cache_key)
+        if cached is not None:
+            return cached
 
         response = await self.client.get(f"/repos/{self.owner}/{self.repo}/labels")
         response.raise_for_status()
@@ -1472,7 +1482,7 @@ Fixes #{issue_number}
             for label in labels
         ]
 
-        self._labels_cache = standardized_labels
+        await self._labels_cache.set(cache_key, standardized_labels)
         return standardized_labels
 
     async def update_milestone(
@@ -2557,6 +2567,14 @@ Fixes #{issue_number}
                 }
             },
         )
+
+    async def invalidate_label_cache(self) -> None:
+        """Manually invalidate the label cache.
+
+        Useful when labels are modified externally or when you need
+        to force a refresh of cached label data.
+        """
+        await self._labels_cache.clear()
 
     async def close(self) -> None:
         """Close the HTTP client connection."""
