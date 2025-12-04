@@ -352,7 +352,7 @@ def setup(
 
     # Detect available platforms
     detector = PlatformDetector()
-    detected = detector.detect_all(project_path=proj_path)
+    detected = detector.detect_all(project_path=proj_path, exclude_desktop=True)
 
     if not detected:
         console.print("[yellow]No AI platforms detected on this system.[/yellow]")
