@@ -68,7 +68,9 @@ async def config(
     credentials: dict[str, Any] | None = None,
     set_as_default: bool = True,
     test_connection: bool = True,
-    **kwargs: Any,
+    # Explicitly define optional parameters (previously in **kwargs)
+    project_key: str | None = None,
+    user_email: str | None = None,
 ) -> dict[str, Any]:
     """Unified configuration management tool with action-based routing (v2.0.0).
 
@@ -93,7 +95,8 @@ async def config(
         credentials: Adapter credentials dict (for action="setup_wizard")
         set_as_default: Set adapter as default (for action="setup_wizard", default: True)
         test_connection: Test connection during setup (for action="setup_wizard", default: True)
-        **kwargs: Additional parameters passed to underlying functions
+        project_key: Project key for JIRA adapter (for action="set" with key="project")
+        user_email: User email for adapter-specific user identification (for action="set" with key="user")
 
     Returns:
         Response dict with status and action-specific data
@@ -163,7 +166,15 @@ async def config(
                 "error": "Parameter 'value' is required for action='set'",
                 "hint": "Use config(action='set', key='adapter', value='linear')",
             }
-        return await config_set(key=key, value=value, **kwargs)
+
+        # Build extra params dict from non-None values
+        extra_params = {}
+        if project_key is not None:
+            extra_params['project_key'] = project_key
+        if user_email is not None:
+            extra_params['user_email'] = user_email
+
+        return await config_set(key=key, value=value, **extra_params)
     elif action_lower == "validate":
         return await config_validate()
     elif action_lower == "test":
