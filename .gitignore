@@ -175,6 +175,7 @@ Thumbs.db
 *.whl
 src/*.egg-info/
 .build_metadata.json
+src/mcp_ticketer/_version_scm.py
 
 # Documentation build (Sphinx artifacts)
 docs/_build/
