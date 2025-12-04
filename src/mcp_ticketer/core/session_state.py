@@ -74,6 +74,9 @@ class SessionStateManager:
     def load_session(self) -> SessionState:
         """Load session state from file.
 
+        Automatically updates last_activity timestamp on every load to prevent
+        session expiration during active use.
+
         Returns:
             SessionState instance (creates new if expired or not found)
 
@@ -96,8 +99,10 @@ class SessionStateManager:
                 )
                 return SessionState()
 
-            # Touch to update activity
+            # Auto-renew: Update last_activity and persist on every load
             state.touch()
+            self.save_session(state)
+
             return state
 
         except (json.JSONDecodeError, FileNotFoundError, KeyError) as e:
