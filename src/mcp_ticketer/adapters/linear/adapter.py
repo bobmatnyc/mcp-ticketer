@@ -21,6 +21,7 @@ except ImportError:
 
 import builtins
 
+from ...cache.memory import MemoryCache
 from ...core.adapter import BaseAdapter
 from ...core.models import (
     Attachment,
@@ -104,6 +105,7 @@ class LinearAdapter(BaseAdapter[Task]):
                 - team_key: Linear team key (e.g., 'BTA') OR
                 - team_id: Linear team UUID (e.g., '02d15669-7351-4451-9719-807576c16049')
                 - api_url: Optional Linear API URL (defaults to https://api.linear.app/graphql)
+                - labels_ttl: TTL for label cache in seconds (default: 300)
 
         Raises:
         ------
@@ -114,7 +116,8 @@ class LinearAdapter(BaseAdapter[Task]):
         # because parent constructor calls _get_state_mapping()
         self._team_data: dict[str, Any] | None = None
         self._workflow_states: dict[str, dict[str, Any]] | None = None
-        self._labels_cache: list[dict[str, Any]] | None = None
+        self._labels_ttl = config.get("labels_ttl", 300.0)  # 5 min default
+        self._labels_cache = MemoryCache(default_ttl=self._labels_ttl)
         self._users_cache: dict[str, dict[str, Any]] | None = None
         self._initialized = False
 
@@ -1089,7 +1092,10 @@ class LinearAdapter(BaseAdapter[Task]):
             try:
                 result = await self.client.execute_query(query, {"teamId": team_id})
                 labels = result.get("team", {}).get("labels", {}).get("nodes", [])
-                self._labels_cache = labels
+
+                # Store in TTL-based cache
+                cache_key = f"linear_labels:{team_id}"
+                await self._labels_cache.set(cache_key, labels)
                 logger.info(f"Loaded {len(labels)} labels for team {team_id}")
                 return  # Success
 
@@ -1106,7 +1112,9 @@ class LinearAdapter(BaseAdapter[Task]):
                         f"Failed to load team labels after {max_retries} attempts: {e}",
                         exc_info=True,
                     )
-                    self._labels_cache = []  # Explicitly empty on failure
+                    # Store empty list in cache on failure
+                    cache_key = f"linear_labels:{team_id}"
+                    await self._labels_cache.set(cache_key, [])
 
     async def _find_label_by_name(
         self, name: str, team_id: str, max_retries: int = 3
@@ -1248,9 +1256,8 @@ class LinearAdapter(BaseAdapter[Task]):
             created_label = result["issueLabelCreate"]["issueLabel"]
             label_id = created_label["id"]
 
-            # Update cache with new label
-            if self._labels_cache is not None:
-                self._labels_cache.append(created_label)
+            # Invalidate cache to force refresh on next access
+            await self._labels_cache.clear()
 
             logger.info(f"Created new label '{name}' with ID: {label_id}")
             return label_id
@@ -1299,9 +1306,8 @@ class LinearAdapter(BaseAdapter[Task]):
                         if server_label:
                             label_id = server_label["id"]
 
-                            # Update cache with recovered label
-                            if self._labels_cache is not None:
-                                self._labels_cache.append(server_label)
+                            # Invalidate cache to force refresh on next access
+                            await self._labels_cache.clear()
 
                             logger.info(
                                 f"Successfully recovered existing label '{name}' (ID: {label_id}) "
@@ -1396,36 +1402,34 @@ class LinearAdapter(BaseAdapter[Task]):
         if not label_names:
             return []
 
-        # Ensure labels are loaded
-        if self._labels_cache is None:
-            team_id = await self._ensure_team_id()
-            # Validate team_id before loading labels
-            if not team_id:
-                raise ValueError(
-                    "Cannot resolve Linear labels without team_id. "
-                    "Ensure LINEAR_TEAM_KEY is configured correctly."
-                )
-            await self._load_team_labels(team_id)
-
-        if self._labels_cache is None:
-            logger.error(
-                "Label cache is None after load attempt. Tags will be skipped."
-            )
-            return []
-
-        # Get team ID for creating new labels
+        # Get team ID for label operations
         team_id = await self._ensure_team_id()
 
-        # Validate team_id before creating labels
+        # Validate team_id before loading labels
         if not team_id:
             raise ValueError(
-                "Cannot create Linear labels without team_id. "
+                "Cannot resolve Linear labels without team_id. "
                 "Ensure LINEAR_TEAM_KEY is configured correctly."
             )
 
+        # Check cache for labels
+        cache_key = f"linear_labels:{team_id}"
+        cached_labels = await self._labels_cache.get(cache_key)
+
+        # Load labels if not cached
+        if cached_labels is None:
+            await self._load_team_labels(team_id)
+            cached_labels = await self._labels_cache.get(cache_key)
+
+        if not cached_labels:
+            logger.error(
+                "Label cache is empty after load attempt. Tags will be skipped."
+            )
+            return []
+
         # Create name -> ID mapping (case-insensitive)
         label_map = {
-            label["name"].lower(): label["id"] for label in (self._labels_cache or [])
+            label["name"].lower(): label["id"] for label in cached_labels
         }
 
         logger.debug(f"Available labels in team: {list(label_map.keys())}")
@@ -1460,18 +1464,17 @@ class LinearAdapter(BaseAdapter[Task]):
                     ) from e
 
                 if server_label:
-                    # Label exists on server but not in cache - update cache
+                    # Label exists on server but not in cache - invalidate cache
                     label_id = server_label["id"]
                     label_ids.append(label_id)
                     label_map[name_lower] = label_id
 
-                    # Update cache to prevent future misses
-                    if self._labels_cache is not None:
-                        self._labels_cache.append(server_label)
+                    # Invalidate cache to force refresh on next access
+                    await self._labels_cache.clear()
 
                     logger.info(
                         f"[Tier 2] Found stale label '{name}' on server (ID: {label_id}), "
-                        "updated cache"
+                        "invalidated cache for refresh"
                     )
                 else:
                     # Tier 3: Label truly doesn't exist - create it
@@ -2643,19 +2646,26 @@ class LinearAdapter(BaseAdapter[Task]):
             List of label dictionaries with 'id', 'name', and 'color' fields
 
         """
-        # Ensure labels are loaded
-        if self._labels_cache is None:
-            team_id = await self._ensure_team_id()
-            # Validate team_id before loading labels
-            if not team_id:
-                raise ValueError(
-                    "Cannot list Linear labels without team_id. "
-                    "Ensure LINEAR_TEAM_KEY is configured correctly."
-                )
+        # Get team ID for label operations
+        team_id = await self._ensure_team_id()
+        # Validate team_id before loading labels
+        if not team_id:
+            raise ValueError(
+                "Cannot list Linear labels without team_id. "
+                "Ensure LINEAR_TEAM_KEY is configured correctly."
+            )
+
+        # Check cache for labels
+        cache_key = f"linear_labels:{team_id}"
+        cached_labels = await self._labels_cache.get(cache_key)
+
+        # Load labels if not cached
+        if cached_labels is None:
             await self._load_team_labels(team_id)
+            cached_labels = await self._labels_cache.get(cache_key)
 
         # Return cached labels or empty list if not available
-        if not self._labels_cache:
+        if not cached_labels:
             return []
 
         # Transform to standardized format
@@ -2665,8 +2675,17 @@ class LinearAdapter(BaseAdapter[Task]):
                 "name": label["name"],
                 "color": label.get("color", ""),
             }
-            for label in self._labels_cache
+            for label in cached_labels
         ]
+
+    async def invalidate_label_cache(self) -> None:
+        """Manually invalidate the label cache.
+
+        Useful when labels are modified externally or after creating new labels.
+        The cache will be automatically refreshed on the next label operation.
+
+        """
+        await self._labels_cache.clear()
 
     async def upload_file(self, file_path: str, mime_type: str | None = None) -> str:
         """Upload a file to Linear's storage and return the asset URL.
