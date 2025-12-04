@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.0.7] - 2025-12-04
+
+### Fixed
+- **Setup Platform Selection**: Removed Claude Desktop from CLI setup wizard (closes #1M-609)
+  - Added `exclude_desktop=True` parameter to platform detection in setup_command.py
+  - Claude Desktop should only be configured via MCP server, not through CLI setup
+  - Prevents confusion where Claude Desktop appears as a platform option but cannot be configured via CLI
+
+### Technical Details
+- **File**: `src/mcp_ticketer/cli/setup_command.py:355`
+- **Change**: `detector.detect_all(project_path=proj_path, exclude_desktop=True)`
+- **Commit**: f23ded0
+
 ## [2.0.6] - 2025-12-03
 
 ### Fixed
