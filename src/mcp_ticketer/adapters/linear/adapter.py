@@ -1270,41 +1270,68 @@ class LinearAdapter(BaseAdapter[Task]):
 
                 # Retry Tier 2 with backoff: API eventual consistency requires delay
                 # Linear API has 100-500ms propagation delay between write and read
-                max_recovery_attempts = 3
-                backoff_delays = [0.2, 0.5, 1.0]  # 200ms, 500ms, 1s
+                max_recovery_attempts = 5
+                backoff_delays = [0.1, 0.2, 0.5, 1.0, 1.5]  # Total: 3.3s max
 
                 for attempt in range(max_recovery_attempts):
-                    if attempt > 0:
-                        # Wait before retry (skip delay on first attempt)
-                        delay = backoff_delays[min(attempt - 1, len(backoff_delays) - 1)]
+                    try:
+                        if attempt > 0:
+                            # Wait before retry (skip delay on first attempt)
+                            delay = backoff_delays[min(attempt - 1, len(backoff_delays) - 1)]
+                            logger.debug(
+                                f"Label '{name}' duplicate detected. "
+                                f"Retrying retrieval (attempt {attempt + 1}/{max_recovery_attempts}) "
+                                f"after {delay}s delay for API propagation..."
+                            )
+                            await asyncio.sleep(delay)
+
+                        # Query server for existing label
+                        server_label = await self._find_label_by_name(name, team_id)
+
+                        if server_label:
+                            label_id = server_label["id"]
+
+                            # Update cache with recovered label
+                            if self._labels_cache is not None:
+                                self._labels_cache.append(server_label)
+
+                            logger.info(
+                                f"Successfully recovered existing label '{name}' (ID: {label_id}) "
+                                f"after {attempt + 1} attempt(s)"
+                            )
+                            return label_id
+
+                        # Label still not found, log and continue to next retry
                         logger.debug(
-                            f"Label '{name}' duplicate detected. "
-                            f"Retrying retrieval (attempt {attempt + 1}/{max_recovery_attempts}) "
-                            f"after {delay}s delay for API propagation..."
+                            f"Label '{name}' not found in recovery attempt {attempt + 1}/{max_recovery_attempts}"
                         )
-                        await asyncio.sleep(delay)
 
-                    # Query server for existing label
-                    server_label = await self._find_label_by_name(name, team_id)
-
-                    if server_label:
-                        label_id = server_label["id"]
-
-                        # Update cache with recovered label
-                        if self._labels_cache is not None:
-                            self._labels_cache.append(server_label)
-
-                        logger.info(
-                            f"Successfully recovered existing label '{name}' (ID: {label_id}) "
-                            f"after {attempt + 1} attempt(s)"
+                    except Exception as lookup_error:
+                        logger.warning(
+                            f"Recovery lookup failed on attempt {attempt + 1}/{max_recovery_attempts}: {lookup_error}"
                         )
-                        return label_id
 
-                # Recovery failed after all retries
+                        # If this is the last attempt, raise with context
+                        if attempt == max_recovery_attempts - 1:
+                            raise ValueError(
+                                f"Failed to recover label '{name}' after {max_recovery_attempts} attempts. "
+                                f"Last error: {lookup_error}. This may indicate:\n"
+                                f"  1. Network connectivity issues\n"
+                                f"  2. API propagation delay >{sum(backoff_delays):.1f}s (very unusual)\n"
+                                f"  3. Label exists beyond first 250 labels in team\n"
+                                f"  4. Permissions issue preventing label query\n"
+                                f"Please retry the operation or check Linear workspace status."
+                            ) from lookup_error
+
+                        # Not the last attempt, continue to next retry
+                        continue
+
+                # If we get here, all recovery attempts failed (label never found, no exceptions)
                 raise ValueError(
                     f"Label '{name}' already exists but could not retrieve ID after "
-                    f"{max_recovery_attempts} attempts. This may indicate:\n"
-                    f"  1. API propagation delay >1s (unusual)\n"
+                    f"{max_recovery_attempts} attempts. The label query succeeded but returned no results.\n"
+                    f"This may indicate:\n"
+                    f"  1. API propagation delay >{sum(backoff_delays):.1f}s (very unusual)\n"
                     f"  2. Label exists beyond first 250 labels in team\n"
                     f"  3. Permissions issue preventing label query\n"
                     f"  4. Team ID mismatch\n"
