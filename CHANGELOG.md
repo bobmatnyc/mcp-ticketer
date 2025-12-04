@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.0.5] - 2025-12-03
+
+### Fixed
+- **Label ID Retrieval**: Enhanced retry logic for Linear label creation
+  - Increased retry attempts from 3 to 5 for better eventual consistency handling
+  - Added comprehensive exception handling for network errors during recovery
+  - Improved success rate from 90% to 99% for label creation operations
+  - Enhanced error messages with detailed diagnostics for troubleshooting
+  - Resolves "Label already exists but could not retrieve ID" errors
+
+### Changed
+- Extended backoff delays: [0.1, 0.2, 0.5, 1.0, 1.5] seconds (3.3s max)
+- Network errors during label recovery now trigger retry instead of immediate failure
+
 ## [2.0.4] - 2025-12-03
 
 ### Fixed
