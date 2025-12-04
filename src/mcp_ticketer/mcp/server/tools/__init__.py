@@ -17,6 +17,7 @@ Modules:
     label_tools: Label management, normalization, deduplication, and cleanup
     project_update_tools: Project status update management (1M-238)
     project_status_tools: Project status analysis and work planning (1M-316)
+    milestone_tools: Milestone management and progress tracking (1M-607)
 
 Note:
     instruction_tools: Removed from MCP server (CLI-only as of Phase 2 Sprint 2.3)
@@ -38,6 +39,7 @@ from . import (
     hierarchy_tools,  # noqa: F401
     # instruction_tools removed - CLI-only (Phase 2 Sprint 2.3)
     label_tools,  # noqa: F401
+    milestone_tools,  # noqa: F401
     # pr_tools removed - CLI-only (Phase 2 Sprint 1.3 - use GitHub MCP)
     project_status_tools,  # noqa: F401
     project_update_tools,  # noqa: F401
@@ -56,6 +58,7 @@ __all__ = [
     "hierarchy_tools",
     # "instruction_tools" removed - CLI-only (Phase 2 Sprint 2.3)
     "label_tools",
+    "milestone_tools",
     # "pr_tools" removed - CLI-only (Phase 2 Sprint 1.3)
     "project_status_tools",
     "project_update_tools",

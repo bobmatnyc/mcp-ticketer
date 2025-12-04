@@ -519,6 +519,87 @@ class ProjectUpdate(BaseModel):
     )
 
 
+class Milestone(BaseModel):
+    """Universal milestone model for cross-platform support.
+
+    A milestone is a collection of issues grouped by labels with a target date.
+    Progress is calculated by counting closed vs total issues matching the labels.
+
+    Platform Mappings:
+    - Linear: Milestones (with labels and target dates)
+    - GitHub: Milestones (native support with due dates)
+    - JIRA: Versions/Releases (with target dates)
+    - Asana: Projects with dates (workaround via filtering)
+
+    The model follows the user's definition: "A milestone is a list of labels
+    with target dates, into which issues can be grouped."
+
+    Attributes:
+        id: Unique milestone identifier
+        name: Milestone name
+        target_date: Target completion date (ISO format: YYYY-MM-DD)
+        state: Milestone state (open, active, completed, closed)
+        description: Milestone description
+        labels: Labels that define this milestone's scope
+        total_issues: Total issues in milestone (calculated)
+        closed_issues: Closed issues in milestone (calculated)
+        progress_pct: Progress percentage 0-100 (calculated)
+        project_id: Associated project/epic ID
+        created_at: Creation timestamp
+        updated_at: Last update timestamp
+        platform_data: Platform-specific metadata
+
+    Example:
+        >>> milestone = Milestone(
+        ...     name="v2.1.0 Release",
+        ...     target_date=date(2025, 12, 31),
+        ...     labels=["v2.1", "release"],
+        ...     project_id="proj-123"
+        ... )
+        >>> milestone.total_issues = 15
+        >>> milestone.closed_issues = 8
+        >>> milestone.progress_pct = 53.3
+
+    Note:
+        Related to ticket 1M-607: Add milestone support (Phase 1 - Core Infrastructure)
+
+    """
+
+    model_config = ConfigDict(use_enum_values=True)
+
+    id: str | None = Field(None, description="Unique milestone identifier")
+    name: str = Field(..., min_length=1, description="Milestone name")
+    target_date: datetime | None = Field(
+        None, description="Target completion date (ISO format: YYYY-MM-DD)"
+    )
+    state: str = Field(
+        "open", description="Milestone state: open, active, completed, closed"
+    )
+    description: str = Field("", description="Milestone description")
+
+    # Label-based grouping (user's definition)
+    labels: list[str] = Field(
+        default_factory=list, description="Labels that define this milestone"
+    )
+
+    # Progress tracking (calculated fields)
+    total_issues: int = Field(0, ge=0, description="Total issues in milestone")
+    closed_issues: int = Field(0, ge=0, description="Closed issues in milestone")
+    progress_pct: float = Field(
+        0.0, ge=0.0, le=100.0, description="Progress percentage (0-100)"
+    )
+
+    # Metadata
+    project_id: str | None = Field(None, description="Associated project ID")
+    created_at: datetime | None = Field(None, description="Creation timestamp")
+    updated_at: datetime | None = Field(None, description="Last update timestamp")
+
+    # Platform-specific data
+    platform_data: dict[str, Any] = Field(
+        default_factory=dict, description="Platform-specific metadata"
+    )
+
+
 class SearchQuery(BaseModel):
     """Search query parameters."""
 

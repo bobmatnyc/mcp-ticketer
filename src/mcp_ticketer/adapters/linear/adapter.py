@@ -26,6 +26,7 @@ from ...core.models import (
     Attachment,
     Comment,
     Epic,
+    Milestone,
     ProjectUpdate,
     ProjectUpdateHealth,
     SearchQuery,
@@ -45,10 +46,14 @@ from .mappers import (
 )
 from .queries import (
     ALL_FRAGMENTS,
+    ARCHIVE_CYCLE_MUTATION,
+    CREATE_CYCLE_MUTATION,
     CREATE_ISSUE_MUTATION,
     CREATE_LABEL_MUTATION,
     CREATE_PROJECT_UPDATE_MUTATION,
     GET_CUSTOM_VIEW_QUERY,
+    GET_CYCLE_ISSUES_QUERY,
+    GET_CYCLE_QUERY,
     GET_ISSUE_STATUS_QUERY,
     GET_PROJECT_UPDATE_QUERY,
     LIST_CYCLES_QUERY,
@@ -57,6 +62,7 @@ from .queries import (
     LIST_PROJECT_UPDATES_QUERY,
     LIST_PROJECTS_QUERY,
     SEARCH_ISSUES_QUERY,
+    UPDATE_CYCLE_MUTATION,
     UPDATE_ISSUE_MUTATION,
     WORKFLOW_STATES_QUERY,
 )
@@ -3636,6 +3642,430 @@ class LinearAdapter(BaseAdapter[Task]):
         except Exception as e:
             logger.error(f"Failed to get project update {update_id}: {e}")
             raise ValueError(f"Failed to get project update '{update_id}': {e}") from e
+
+    # Milestone Operations (1M-607 Phase 2: Linear Adapter Integration)
+
+    async def milestone_create(
+        self,
+        name: str,
+        target_date: datetime | None = None,
+        labels: list[str] | None = None,
+        description: str = "",
+        project_id: str | None = None,
+    ) -> Milestone:
+        """Create milestone using Linear Cycles.
+
+        Linear Cycles require start and end dates. If target_date is provided,
+        set startsAt to today and endsAt to target_date. If no target_date,
+        defaults to a 2-week cycle.
+
+        Args:
+        ----
+            name: Milestone name
+            target_date: Target completion date (optional)
+            labels: Labels for milestone grouping (optional, stored in metadata)
+            description: Milestone description
+            project_id: Associated project ID (optional)
+
+        Returns:
+        -------
+            Created Milestone object
+
+        Raises:
+        ------
+            ValueError: If credentials invalid or creation fails
+
+        """
+        logger = logging.getLogger(__name__)
+
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        await self.initialize()
+        team_id = await self._ensure_team_id()
+
+        # Linear requires both start and end dates for cycles
+        from datetime import timedelta, timezone
+
+        starts_at = datetime.now(timezone.utc)
+        if target_date:
+            ends_at = target_date
+            # Ensure ends_at has timezone info
+            if ends_at.tzinfo is None:
+                ends_at = ends_at.replace(tzinfo=timezone.utc)
+        else:
+            # Default to 2 weeks from now
+            ends_at = starts_at + timedelta(days=14)
+
+        try:
+            result = await self.client.execute_query(
+                CREATE_CYCLE_MUTATION,
+                {
+                    "input": {
+                        "name": name,
+                        "description": description,
+                        "startsAt": starts_at.isoformat(),
+                        "endsAt": ends_at.isoformat(),
+                        "teamId": team_id,
+                    }
+                },
+            )
+
+            if not result.get("cycleCreate", {}).get("success"):
+                raise ValueError("Failed to create cycle")
+
+            cycle_data = result["cycleCreate"]["cycle"]
+            logger.info(
+                f"Created Linear cycle {cycle_data['id']} for milestone '{name}'"
+            )
+
+            # Convert Linear Cycle to Milestone model
+            return self._cycle_to_milestone(cycle_data, labels)
+
+        except Exception as e:
+            logger.error(f"Failed to create milestone '{name}': {e}")
+            raise ValueError(f"Failed to create milestone: {e}") from e
+
+    async def milestone_get(self, milestone_id: str) -> Milestone | None:
+        """Get milestone by ID with progress calculation.
+
+        Args:
+        ----
+            milestone_id: Milestone/Cycle identifier
+
+        Returns:
+        -------
+            Milestone object with calculated progress, None if not found
+
+        """
+        logger = logging.getLogger(__name__)
+
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        await self.initialize()
+
+        try:
+            result = await self.client.execute_query(
+                GET_CYCLE_QUERY, {"id": milestone_id}
+            )
+
+            cycle_data = result.get("cycle")
+            if not cycle_data:
+                logger.debug(f"Cycle {milestone_id} not found")
+                return None
+
+            return self._cycle_to_milestone(cycle_data)
+
+        except Exception as e:
+            logger.warning(f"Failed to get milestone {milestone_id}: {e}")
+            return None
+
+    async def milestone_list(
+        self,
+        project_id: str | None = None,
+        state: str | None = None,
+    ) -> list[Milestone]:
+        """List milestones using Linear Cycles.
+
+        Args:
+        ----
+            project_id: Filter by project (not used by Linear Cycles)
+            state: Filter by state (open, active, completed, closed)
+
+        Returns:
+        -------
+            List of Milestone objects
+
+        """
+        logger = logging.getLogger(__name__)
+
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        await self.initialize()
+        team_id = await self._ensure_team_id()
+
+        try:
+            result = await self.client.execute_query(
+                LIST_CYCLES_QUERY,
+                {"teamId": team_id, "first": 50, "after": None},
+            )
+
+            cycles = result.get("team", {}).get("cycles", {}).get("nodes", [])
+            milestones = [self._cycle_to_milestone(cycle) for cycle in cycles]
+
+            # Apply state filter if provided
+            if state:
+                milestones = [m for m in milestones if m.state == state]
+
+            logger.debug(f"Listed {len(milestones)} milestones (state={state})")
+            return milestones
+
+        except Exception as e:
+            logger.error(f"Failed to list milestones: {e}")
+            return []
+
+    async def milestone_update(
+        self,
+        milestone_id: str,
+        name: str | None = None,
+        target_date: datetime | None = None,
+        state: str | None = None,
+        labels: list[str] | None = None,
+        description: str | None = None,
+    ) -> Milestone | None:
+        """Update milestone properties.
+
+        Args:
+        ----
+            milestone_id: Milestone identifier
+            name: New name (optional)
+            target_date: New target date (optional)
+            state: New state (optional)
+            labels: New labels (optional, stored in metadata)
+            description: New description (optional)
+
+        Returns:
+        -------
+            Updated Milestone object, None if not found
+
+        """
+        logger = logging.getLogger(__name__)
+
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        await self.initialize()
+
+        # Build update input
+        update_input = {}
+        if name:
+            update_input["name"] = name
+        if description is not None:
+            update_input["description"] = description
+        if target_date:
+            from datetime import timezone
+
+            # Ensure target_date has timezone
+            if target_date.tzinfo is None:
+                target_date = target_date.replace(tzinfo=timezone.utc)
+            update_input["endsAt"] = target_date.isoformat()
+        if state == "completed":
+            # Mark cycle as completed
+            from datetime import datetime, timezone
+
+            update_input["completedAt"] = datetime.now(timezone.utc).isoformat()
+
+        if not update_input:
+            # No updates provided, just return current milestone
+            return await self.milestone_get(milestone_id)
+
+        try:
+            result = await self.client.execute_query(
+                UPDATE_CYCLE_MUTATION,
+                {"id": milestone_id, "input": update_input},
+            )
+
+            if not result.get("cycleUpdate", {}).get("success"):
+                logger.warning(f"Failed to update cycle {milestone_id}")
+                return None
+
+            cycle_data = result["cycleUpdate"]["cycle"]
+            logger.info(f"Updated Linear cycle {milestone_id}")
+
+            return self._cycle_to_milestone(cycle_data, labels)
+
+        except Exception as e:
+            logger.error(f"Failed to update milestone {milestone_id}: {e}")
+            return None
+
+    async def milestone_delete(self, milestone_id: str) -> bool:
+        """Delete (archive) milestone.
+
+        Linear doesn't support permanent cycle deletion, so this archives the cycle.
+
+        Args:
+        ----
+            milestone_id: Milestone identifier
+
+        Returns:
+        -------
+            True if deleted successfully, False otherwise
+
+        """
+        logger = logging.getLogger(__name__)
+
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        await self.initialize()
+
+        try:
+            result = await self.client.execute_query(
+                ARCHIVE_CYCLE_MUTATION, {"id": milestone_id}
+            )
+
+            success = result.get("cycleArchive", {}).get("success", False)
+            if success:
+                logger.info(f"Archived Linear cycle {milestone_id}")
+            else:
+                logger.warning(f"Failed to archive cycle {milestone_id}")
+
+            return success
+
+        except Exception as e:
+            logger.error(f"Failed to delete milestone {milestone_id}: {e}")
+            return False
+
+    async def milestone_get_issues(
+        self,
+        milestone_id: str,
+        state: str | None = None,
+    ) -> list[Task]:
+        """Get issues associated with milestone (cycle).
+
+        Args:
+        ----
+            milestone_id: Milestone identifier
+            state: Filter by issue state (optional)
+
+        Returns:
+        -------
+            List of Task objects in the milestone
+
+        """
+        logger = logging.getLogger(__name__)
+
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        await self.initialize()
+
+        try:
+            result = await self.client.execute_query(
+                GET_CYCLE_ISSUES_QUERY, {"cycleId": milestone_id, "first": 100}
+            )
+
+            cycle_data = result.get("cycle")
+            if not cycle_data:
+                logger.warning(f"Cycle {milestone_id} not found")
+                return []
+
+            issues = cycle_data.get("issues", {}).get("nodes", [])
+
+            # Convert Linear issues to Task objects
+            tasks = [map_linear_issue_to_task(issue) for issue in issues]
+
+            # Filter by state if provided
+            if state:
+                state_filter = TicketState(state) if state else None
+                tasks = [t for t in tasks if t.state == state_filter]
+
+            logger.debug(f"Retrieved {len(tasks)} issues from milestone {milestone_id}")
+            return tasks
+
+        except Exception as e:
+            logger.error(f"Failed to get milestone issues {milestone_id}: {e}")
+            return []
+
+    def _cycle_to_milestone(
+        self,
+        cycle_data: dict[str, Any],
+        labels: list[str] | None = None,
+    ) -> Milestone:
+        """Convert Linear Cycle to universal Milestone model.
+
+        Determines state based on dates:
+        - completed: Has completedAt timestamp
+        - closed: Past end date without completion
+        - active: Current date between start and end
+        - open: Before start date
+
+        Args:
+        ----
+            cycle_data: Linear Cycle data from GraphQL
+            labels: Optional labels to associate with milestone
+
+        Returns:
+        -------
+            Milestone object
+
+        """
+        from datetime import datetime, timezone
+
+        # Determine state from dates
+        now = datetime.now(timezone.utc)
+
+        # Parse dates
+        starts_at_str = cycle_data.get("startsAt")
+        ends_at_str = cycle_data.get("endsAt")
+        completed_at_str = cycle_data.get("completedAt")
+
+        starts_at = (
+            datetime.fromisoformat(starts_at_str.replace("Z", "+00:00"))
+            if starts_at_str
+            else None
+        )
+        ends_at = (
+            datetime.fromisoformat(ends_at_str.replace("Z", "+00:00"))
+            if ends_at_str
+            else None
+        )
+        completed_at = (
+            datetime.fromisoformat(completed_at_str.replace("Z", "+00:00"))
+            if completed_at_str
+            else None
+        )
+
+        # Determine state
+        if completed_at:
+            state = "completed"
+        elif ends_at and now > ends_at:
+            state = "closed"  # Past due without completion
+        elif starts_at and ends_at and starts_at <= now <= ends_at:
+            state = "active"
+        else:
+            state = "open"  # Before start date
+
+        # Parse progress (Linear uses 0.0-1.0, we use 0-100)
+        progress = cycle_data.get("progress", 0.0)
+        progress_pct = progress * 100.0
+
+        return Milestone(
+            id=cycle_data["id"],
+            name=cycle_data["name"],
+            description=cycle_data.get("description", ""),
+            target_date=ends_at,
+            state=state,
+            labels=labels or [],
+            total_issues=cycle_data.get("issueCount", 0),
+            closed_issues=cycle_data.get("completedIssueCount", 0),
+            progress_pct=progress_pct,
+            created_at=None,  # Linear doesn't provide creation timestamp for cycles
+            updated_at=None,
+            platform_data={
+                "linear": {
+                    "cycle_id": cycle_data["id"],
+                    "starts_at": starts_at_str,
+                    "ends_at": ends_at_str,
+                    "completed_at": completed_at_str,
+                    "team": cycle_data.get("team"),
+                }
+            },
+        )
 
     async def close(self) -> None:
         """Close the adapter and clean up resources."""

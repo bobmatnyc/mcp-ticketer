@@ -6,6 +6,56 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.1.0] - 2025-12-04
+
+### Added - Milestone Support (1M-607)
+
+**Cross-Platform Milestone Management**
+- Universal milestone model with label-based grouping and target dates
+- Progress tracking (closed/total issues) with percentage calculation
+- 6 milestone operations: create, get, list, update, delete, get_issues
+
+**Platform Support**
+- ✅ **GitHub**: Native milestone API integration with repository-scoped milestones
+- ✅ **Linear**: Cycles API mapping with date-based state transitions
+- ⏳ **Jira/Asana/AITrackdown**: NotImplementedError stubs (coming soon)
+
+**MCP Tools**
+- Unified `milestone()` tool with action-based interface
+- Milestone filtering in `ticket_search()` tool
+- ISO date format support (YYYY-MM-DD)
+- Comprehensive error handling and validation
+
+**Core Infrastructure**
+- Milestone data model (Pydantic-based validation)
+- Local milestone storage (`.mcp-ticketer/milestones.json`)
+- BaseAdapter milestone methods (all adapters)
+- MilestoneManager for CRUD operations
+
+**Documentation**
+- Complete API reference for milestone operations
+- Platform-specific guides (GitHub, Linear)
+- MCP tool usage examples with real-world scenarios
+- QA reports with 96.58% test coverage
+
+**Technical Details**
+- Files modified: 12 (adapters, tools, models)
+- Files created: 15 (tests, docs, tools)
+- Lines added: ~5,000 (production code, tests, docs)
+- Test coverage: 96.58% for new code
+- Tests added: 80+ comprehensive tests
+
+### Fixed
+- Legacy adapter compatibility (NotImplementedError stubs for milestone methods)
+- Type annotation issues for Python 3.9+ compatibility
+- GitHub adapter date parsing and state mapping
+- Security: Redacted real API keys from documentation
+
+### Changed
+- Enhanced BaseAdapter with milestone method signatures
+- Updated ticket search to support milestone filtering
+- Improved error messages for unsupported adapter operations
+
 ## [2.0.7] - 2025-12-04
 
 ### Fixed

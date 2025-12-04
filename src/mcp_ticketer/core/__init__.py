@@ -8,10 +8,12 @@ from .instructions import (
     TicketInstructionsManager,
     get_instructions,
 )
+from .milestone_manager import MilestoneManager
 from .models import (
     Attachment,
     Comment,
     Epic,
+    Milestone,
     Priority,
     ProjectUpdate,
     ProjectUpdateHealth,
@@ -32,6 +34,7 @@ __all__ = [
     "Task",
     "Comment",
     "Attachment",
+    "Milestone",
     "ProjectUpdate",
     "ProjectUpdateHealth",
     "TicketState",
@@ -39,6 +42,7 @@ __all__ = [
     "TicketType",
     "BaseAdapter",
     "AdapterRegistry",
+    "MilestoneManager",
     "TicketInstructionsManager",
     "InstructionsError",
     "InstructionsNotFoundError",

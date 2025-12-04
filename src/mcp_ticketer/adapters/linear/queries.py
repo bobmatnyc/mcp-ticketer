@@ -558,3 +558,109 @@ GET_PROJECT_UPDATE_QUERY = (
     }
 """
 )
+
+# Milestone/Cycle Operations (1M-607 Phase 2)
+
+CREATE_CYCLE_MUTATION = """
+    mutation CycleCreate($input: CycleCreateInput!) {
+        cycleCreate(input: $input) {
+            success
+            cycle {
+                id
+                name
+                description
+                startsAt
+                endsAt
+                completedAt
+                progress
+                completedIssueCount
+                issueCount
+                team {
+                    id
+                    name
+                }
+            }
+        }
+    }
+"""
+
+GET_CYCLE_QUERY = """
+    query Cycle($id: String!) {
+        cycle(id: $id) {
+            id
+            name
+            description
+            startsAt
+            endsAt
+            completedAt
+            progress
+            completedIssueCount
+            issueCount
+            team {
+                id
+                name
+            }
+        }
+    }
+"""
+
+UPDATE_CYCLE_MUTATION = """
+    mutation CycleUpdate($id: String!, $input: CycleUpdateInput!) {
+        cycleUpdate(id: $id, input: $input) {
+            success
+            cycle {
+                id
+                name
+                description
+                startsAt
+                endsAt
+                completedAt
+                progress
+                completedIssueCount
+                issueCount
+            }
+        }
+    }
+"""
+
+ARCHIVE_CYCLE_MUTATION = """
+    mutation CycleArchive($id: String!) {
+        cycleArchive(id: $id) {
+            success
+        }
+    }
+"""
+
+GET_CYCLE_ISSUES_QUERY = """
+    query CycleIssues($cycleId: String!, $first: Int!) {
+        cycle(id: $cycleId) {
+            issues(first: $first) {
+                nodes {
+                    id
+                    identifier
+                    title
+                    description
+                    state {
+                        id
+                        name
+                        type
+                    }
+                    priority
+                    assignee {
+                        id
+                        email
+                        name
+                    }
+                    labels {
+                        nodes {
+                            id
+                            name
+                        }
+                    }
+                    createdAt
+                    updatedAt
+                }
+            }
+        }
+    }
+"""

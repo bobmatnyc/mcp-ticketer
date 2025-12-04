@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import builtins
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
-from .models import Comment, Epic, SearchQuery, Task, TicketState, TicketType
+from .models import Comment, Epic, Milestone, SearchQuery, Task, TicketState, TicketType
 from .state_matcher import get_state_matcher
 
 if TYPE_CHECKING:
@@ -611,4 +612,130 @@ class BaseAdapter(ABC, Generic[T]):
 
     async def close(self) -> None:
         """Close adapter and cleanup resources."""
+        pass
+
+    # Milestone Operations (Phase 1 - Abstract methods)
+
+    @abstractmethod
+    async def milestone_create(
+        self,
+        name: str,
+        target_date: datetime | None = None,
+        labels: list[str] | None = None,
+        description: str = "",
+        project_id: str | None = None,
+    ) -> Milestone:
+        """Create a new milestone.
+
+        Args:
+        ----
+            name: Milestone name
+            target_date: Target completion date (ISO format: YYYY-MM-DD)
+            labels: Labels that define this milestone
+            description: Milestone description
+            project_id: Associated project ID
+
+        Returns:
+        -------
+            Created Milestone object
+
+        """
+        pass
+
+    @abstractmethod
+    async def milestone_get(self, milestone_id: str) -> Milestone | None:
+        """Get milestone by ID with progress calculation.
+
+        Args:
+        ----
+            milestone_id: Milestone identifier
+
+        Returns:
+        -------
+            Milestone object with calculated progress, None if not found
+
+        """
+        pass
+
+    @abstractmethod
+    async def milestone_list(
+        self,
+        project_id: str | None = None,
+        state: str | None = None,
+    ) -> builtins.list[Milestone]:
+        """List milestones with optional filters.
+
+        Args:
+        ----
+            project_id: Filter by project
+            state: Filter by state (open, active, completed, closed)
+
+        Returns:
+        -------
+            List of Milestone objects
+
+        """
+        pass
+
+    @abstractmethod
+    async def milestone_update(
+        self,
+        milestone_id: str,
+        name: str | None = None,
+        target_date: datetime | None = None,
+        state: str | None = None,
+        labels: list[str] | None = None,
+        description: str | None = None,
+    ) -> Milestone | None:
+        """Update milestone properties.
+
+        Args:
+        ----
+            milestone_id: Milestone identifier
+            name: New name (optional)
+            target_date: New target date (optional)
+            state: New state (optional)
+            labels: New labels (optional)
+            description: New description (optional)
+
+        Returns:
+        -------
+            Updated Milestone object, None if not found
+
+        """
+        pass
+
+    @abstractmethod
+    async def milestone_delete(self, milestone_id: str) -> bool:
+        """Delete milestone.
+
+        Args:
+        ----
+            milestone_id: Milestone identifier
+
+        Returns:
+        -------
+            True if deleted successfully, False otherwise
+
+        """
+        pass
+
+    @abstractmethod
+    async def milestone_get_issues(
+        self,
+        milestone_id: str,
+        state: str | None = None,
+    ) -> builtins.list[Task]:
+        """Get issues associated with milestone.
+
+        Args:
+        ----
+            milestone_id: Milestone identifier
+            state: Filter by issue state (optional)
+
+        Returns:
+        -------
+            List of Task objects (issues)
+
+        """
         pass

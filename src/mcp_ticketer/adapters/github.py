@@ -1,9 +1,11 @@
 """GitHub adapter implementation using REST API v3 and GraphQL API v4."""
 
+from __future__ import annotations
+
 import builtins
 import logging
 import re
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -11,7 +13,15 @@ import httpx
 
 from ..core.adapter import BaseAdapter
 from ..core.env_loader import load_adapter_config, validate_adapter_config
-from ..core.models import Comment, Epic, Priority, SearchQuery, Task, TicketState
+from ..core.models import (
+    Comment,
+    Epic,
+    Milestone,
+    Priority,
+    SearchQuery,
+    Task,
+    TicketState,
+)
 from ..core.registry import AdapterRegistry
 
 logger = logging.getLogger(__name__)
@@ -2078,6 +2088,475 @@ Fixes #{issue_number}
 
         except httpx.HTTPError as e:
             raise ValueError(f"Failed to list project labels: {e}") from e
+
+    # ========================================================================
+    # New Milestone Methods (Phase 2 - GitHub Native Support)
+    # ========================================================================
+
+    async def milestone_create(
+        self,
+        name: str,
+        target_date: date | None = None,
+        labels: list[str] | None = None,
+        description: str = "",
+        project_id: str | None = None,
+    ) -> Milestone:
+        """Create milestone using GitHub Milestones API.
+
+        GitHub milestones are repository-scoped and natively supported.
+
+        Args:
+        ----
+            name: Milestone name/title
+            target_date: Target completion date (optional)
+            labels: Labels for local storage (GitHub doesn't store labels on milestones)
+            description: Milestone description
+            project_id: Project ID (ignored for GitHub, repo-scoped)
+
+        Returns:
+        -------
+            Created Milestone object
+
+        Raises:
+        ------
+            ValueError: If repository is not configured
+            httpx.HTTPError: If API request fails
+
+        """
+        from datetime import datetime as dt
+
+        if not self.repo:
+            raise ValueError("Repository required for GitHub milestone operations")
+
+        # GitHub API expects ISO 8601 datetime for due_on
+        due_on = None
+        if target_date:
+            due_on = dt.combine(target_date, dt.min.time()).isoformat() + "Z"
+
+        milestone_data = {
+            "title": name,
+            "description": description,
+            "state": "open",
+        }
+
+        if due_on:
+            milestone_data["due_on"] = due_on
+
+        # Create milestone via GitHub API
+        response = await self.client.post(
+            f"/repos/{self.owner}/{self.repo}/milestones",
+            json=milestone_data,
+        )
+        response.raise_for_status()
+
+        gh_milestone = response.json()
+
+        # Convert to Milestone model
+        milestone = self._github_milestone_to_milestone(gh_milestone, labels)
+
+        # Save to local storage for label tracking
+        from pathlib import Path
+
+        from ..core.milestone_manager import MilestoneManager
+
+        config_dir = Path.home() / ".mcp-ticketer"
+        manager = MilestoneManager(config_dir)
+        manager.save_milestone(milestone)
+
+        logger.info(f"Created GitHub milestone: {milestone.id} ({milestone.name})")
+        return milestone
+
+    async def milestone_get(self, milestone_id: str) -> Milestone | None:
+        """Get milestone by ID (milestone number in GitHub).
+
+        Args:
+        ----
+            milestone_id: Milestone number as string
+
+        Returns:
+        -------
+            Milestone object or None if not found
+
+        Raises:
+        ------
+            ValueError: If repository is not configured
+
+        """
+        from pathlib import Path
+
+        from ..core.milestone_manager import MilestoneManager
+
+        if not self.repo:
+            raise ValueError("Repository required for GitHub milestone operations")
+
+        try:
+            # milestone_id is the milestone number in GitHub
+            response = await self.client.get(
+                f"/repos/{self.owner}/{self.repo}/milestones/{milestone_id}"
+            )
+
+            if response.status_code == 404:
+                return None
+
+            response.raise_for_status()
+            gh_milestone = response.json()
+
+            # Load labels from local storage
+            config_dir = Path.home() / ".mcp-ticketer"
+            manager = MilestoneManager(config_dir)
+            local_milestone = manager.get_milestone(milestone_id)
+            labels = local_milestone.labels if local_milestone else []
+
+            return self._github_milestone_to_milestone(gh_milestone, labels)
+
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to get milestone {milestone_id}: {e}")
+            return None
+
+    async def milestone_list(
+        self,
+        project_id: str | None = None,
+        state: str | None = None,
+    ) -> list[Milestone]:
+        """List milestones from GitHub repository.
+
+        Note: project_id is ignored for GitHub (repo-scoped).
+
+        Args:
+        ----
+            project_id: Project ID (ignored, GitHub is repo-scoped)
+            state: Filter by state (open, active, closed, completed)
+
+        Returns:
+        -------
+            List of Milestone objects
+
+        Raises:
+        ------
+            ValueError: If repository is not configured
+
+        """
+        from pathlib import Path
+
+        from ..core.milestone_manager import MilestoneManager
+
+        if not self.repo:
+            raise ValueError("Repository required for GitHub milestone operations")
+
+        # Map our states to GitHub states
+        github_state = "all"
+        if state in ["open", "active"]:
+            github_state = "open"
+        elif state in ["completed", "closed"]:
+            github_state = "closed"
+
+        params = {
+            "state": github_state,
+            "sort": "due_on",
+            "direction": "asc",
+            "per_page": 100,
+        }
+
+        response = await self.client.get(
+            f"/repos/{self.owner}/{self.repo}/milestones",
+            params=params,
+        )
+        response.raise_for_status()
+
+        # Load labels from local storage
+        config_dir = Path.home() / ".mcp-ticketer"
+        manager = MilestoneManager(config_dir)
+
+        milestones = []
+        for gh_milestone in response.json():
+            milestone_id = str(gh_milestone["number"])
+            local_milestone = manager.get_milestone(milestone_id)
+            labels = local_milestone.labels if local_milestone else []
+
+            milestone = self._github_milestone_to_milestone(gh_milestone, labels)
+            milestones.append(milestone)
+
+        logger.info(
+            f"Listed {len(milestones)} GitHub milestones (state={github_state})"
+        )
+        return milestones
+
+    async def milestone_update(
+        self,
+        milestone_id: str,
+        name: str | None = None,
+        target_date: date | None = None,
+        state: str | None = None,
+        labels: list[str] | None = None,
+        description: str | None = None,
+    ) -> Milestone | None:
+        """Update milestone properties.
+
+        Args:
+        ----
+            milestone_id: Milestone number as string
+            name: New milestone name
+            target_date: New target date
+            state: New state (open, closed)
+            labels: New labels (stored locally)
+            description: New description
+
+        Returns:
+        -------
+            Updated Milestone object or None if not found
+
+        Raises:
+        ------
+            ValueError: If repository is not configured
+
+        """
+        from datetime import datetime as dt
+        from pathlib import Path
+
+        from ..core.milestone_manager import MilestoneManager
+
+        if not self.repo:
+            raise ValueError("Repository required for GitHub milestone operations")
+
+        update_data = {}
+
+        if name:
+            update_data["title"] = name
+        if description is not None:
+            update_data["description"] = description
+        if target_date:
+            due_on = dt.combine(target_date, dt.min.time()).isoformat() + "Z"
+            update_data["due_on"] = due_on
+        if state:
+            # Map our states to GitHub states
+            if state in ["completed", "closed"]:
+                update_data["state"] = "closed"
+            elif state in ["open", "active"]:
+                update_data["state"] = "open"
+
+        if not update_data and labels is None:
+            raise ValueError("At least one field must be updated")
+
+        # Update milestone via GitHub API
+        if update_data:
+            response = await self.client.patch(
+                f"/repos/{self.owner}/{self.repo}/milestones/{milestone_id}",
+                json=update_data,
+            )
+            response.raise_for_status()
+            gh_milestone = response.json()
+        else:
+            # Only labels updated, fetch current milestone
+            response = await self.client.get(
+                f"/repos/{self.owner}/{self.repo}/milestones/{milestone_id}"
+            )
+            response.raise_for_status()
+            gh_milestone = response.json()
+
+        # Update labels in local storage
+        config_dir = Path.home() / ".mcp-ticketer"
+        manager = MilestoneManager(config_dir)
+
+        if labels is not None:
+            milestone = self._github_milestone_to_milestone(gh_milestone, labels)
+            manager.save_milestone(milestone)
+            logger.info(f"Updated GitHub milestone: {milestone_id} (including labels)")
+            return milestone
+
+        # Load existing labels
+        local_milestone = manager.get_milestone(milestone_id)
+        existing_labels = local_milestone.labels if local_milestone else []
+
+        milestone = self._github_milestone_to_milestone(gh_milestone, existing_labels)
+        logger.info(f"Updated GitHub milestone: {milestone_id}")
+        return milestone
+
+    async def milestone_delete(self, milestone_id: str) -> bool:
+        """Delete milestone from GitHub repository.
+
+        Args:
+        ----
+            milestone_id: Milestone number as string
+
+        Returns:
+        -------
+            True if deleted, False if not found
+
+        Raises:
+        ------
+            ValueError: If repository is not configured
+
+        """
+        from pathlib import Path
+
+        from ..core.milestone_manager import MilestoneManager
+
+        if not self.repo:
+            raise ValueError("Repository required for GitHub milestone operations")
+
+        try:
+            response = await self.client.delete(
+                f"/repos/{self.owner}/{self.repo}/milestones/{milestone_id}"
+            )
+
+            # GitHub returns 204 No Content on successful deletion
+            if response.status_code == 204:
+                # Remove from local storage
+                config_dir = Path.home() / ".mcp-ticketer"
+                manager = MilestoneManager(config_dir)
+                manager.delete_milestone(milestone_id)
+
+                logger.info(f"Deleted GitHub milestone: {milestone_id}")
+                return True
+
+            # Handle 404 errors gracefully
+            if response.status_code == 404:
+                logger.warning(f"Milestone {milestone_id} not found for deletion")
+                return False
+
+            response.raise_for_status()
+            return True
+
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to delete milestone {milestone_id}: {e}")
+            return False
+
+    async def milestone_get_issues(
+        self,
+        milestone_id: str,
+        state: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Get issues in milestone.
+
+        Args:
+        ----
+            milestone_id: Milestone number as string
+            state: Filter by state (open, closed, all)
+
+        Returns:
+        -------
+            List of issue dictionaries
+
+        Raises:
+        ------
+            ValueError: If repository is not configured
+
+        """
+        if not self.repo:
+            raise ValueError("Repository required for GitHub milestone operations")
+
+        params = {
+            "milestone": milestone_id,
+            "state": state or "all",
+            "per_page": 100,
+        }
+
+        response = await self.client.get(
+            f"/repos/{self.owner}/{self.repo}/issues",
+            params=params,
+        )
+        response.raise_for_status()
+
+        # Convert GitHub issues to our format
+        issues = []
+        for gh_issue in response.json():
+            # Skip pull requests (GitHub includes them in issues endpoint)
+            if "pull_request" in gh_issue:
+                continue
+
+            issues.append(
+                {
+                    "id": str(gh_issue["number"]),
+                    "identifier": f"#{gh_issue['number']}",
+                    "title": gh_issue["title"],
+                    "state": gh_issue["state"],
+                    "labels": [label["name"] for label in gh_issue.get("labels", [])],
+                    "created_at": gh_issue["created_at"],
+                    "updated_at": gh_issue["updated_at"],
+                }
+            )
+
+        logger.info(f"Retrieved {len(issues)} issues from milestone {milestone_id}")
+        return issues
+
+    def _github_milestone_to_milestone(
+        self,
+        gh_milestone: dict[str, Any],
+        labels: list[str] | None = None,
+    ) -> Milestone:
+        """Convert GitHub Milestone to universal Milestone model.
+
+        Args:
+        ----
+            gh_milestone: GitHub milestone data from API
+            labels: Optional labels from local storage
+
+        Returns:
+        -------
+            Milestone object
+
+        """
+        from datetime import datetime as dt
+
+        from ..core.models import Milestone
+
+        # Parse target date
+        target_date = None
+        if gh_milestone.get("due_on"):
+            target_date = dt.fromisoformat(
+                gh_milestone["due_on"].replace("Z", "+00:00")
+            ).date()
+
+        # Determine state
+        state = "closed" if gh_milestone["state"] == "closed" else "open"
+        if state == "open" and target_date:
+
+            if target_date < date.today():
+                state = "closed"  # Past due
+            else:
+                state = "active"
+
+        # Calculate progress
+        total = gh_milestone.get("open_issues", 0) + gh_milestone.get(
+            "closed_issues", 0
+        )
+        closed = gh_milestone.get("closed_issues", 0)
+        progress_pct = (closed / total * 100) if total > 0 else 0.0
+
+        return Milestone(
+            id=str(gh_milestone["number"]),
+            name=gh_milestone["title"],
+            description=gh_milestone.get("description", ""),
+            target_date=target_date,
+            state=state,
+            labels=labels or [],
+            total_issues=total,
+            closed_issues=closed,
+            progress_pct=progress_pct,
+            project_id=self.repo,  # Repository name as project
+            created_at=(
+                dt.fromisoformat(
+                    gh_milestone.get("created_at", "").replace("Z", "+00:00")
+                )
+                if gh_milestone.get("created_at")
+                else None
+            ),
+            updated_at=(
+                dt.fromisoformat(
+                    gh_milestone.get("updated_at", "").replace("Z", "+00:00")
+                )
+                if gh_milestone.get("updated_at")
+                else None
+            ),
+            platform_data={
+                "github": {
+                    "milestone_number": gh_milestone["number"],
+                    "url": gh_milestone.get("html_url"),
+                    "created_at": gh_milestone.get("created_at"),
+                    "updated_at": gh_milestone.get("updated_at"),
+                }
+            },
+        )
 
     async def close(self) -> None:
         """Close the HTTP client connection."""

@@ -10,6 +10,8 @@ from typing import Any
 from ....core.models import Priority, SearchQuery, TicketState
 from ..server_sdk import get_adapter, mcp
 
+logger = logging.getLogger(__name__)
+
 
 @mcp.tool()
 async def ticket_search(
@@ -19,12 +21,13 @@ async def ticket_search(
     tags: list[str] | None = None,
     assignee: str | None = None,
     project_id: str | None = None,
+    milestone_id: str | None = None,
     limit: int = 10,
     include_hierarchy: bool = False,
     include_children: bool = True,
     max_depth: int = 3,
 ) -> dict[str, Any]:
-    """Search tickets with optional hierarchy information.
+    """Search tickets with optional hierarchy information and milestone filtering.
 
     **Consolidates:**
     - ticket_search() → Default behavior (include_hierarchy=False)
@@ -44,6 +47,7 @@ async def ticket_search(
     - tags: Filter by tags (AND logic)
     - assignee: Filter by assigned user
     - project_id: Scope to specific project
+    - milestone_id: Filter by milestone (NEW in 1M-607)
 
     **Hierarchy Options:**
     - include_hierarchy: Include parent/child relationships (default: False)
@@ -57,6 +61,7 @@ async def ticket_search(
         tags: Filter by tags - tickets must have all specified tags
         assignee: Filter by assigned user ID or email
         project_id: Project/epic ID (required unless default_project configured)
+        milestone_id: Filter by milestone ID (NEW in 1M-607)
         limit: Maximum number of results to return (default: 10, max: 100)
         include_hierarchy: Include parent/child relationships (default: False)
         include_children: Include child tickets in hierarchy (default: True)
@@ -75,6 +80,13 @@ async def ticket_search(
             project_id="proj-123",
             include_hierarchy=True,
             max_depth=2
+        )
+
+        # Search within milestone
+        await ticket_search(
+            milestone_id="milestone-123",
+            state="open",
+            limit=20
         )
 
     """
@@ -140,6 +152,23 @@ async def ticket_search(
 
         # Execute search via adapter
         results = await adapter.search(search_query)
+
+        # Filter by milestone if requested (NEW in 1M-607)
+        if milestone_id:
+            try:
+                # Get issues in milestone
+                milestone_issues = await adapter.milestone_get_issues(
+                    milestone_id, state=state
+                )
+                milestone_issue_ids = {issue.id for issue in milestone_issues}
+
+                # Filter search results to only include milestone issues
+                results = [
+                    ticket for ticket in results if ticket.id in milestone_issue_ids
+                ]
+            except Exception as e:
+                logger.warning(f"Failed to filter by milestone {milestone_id}: {e}")
+                # Continue with unfiltered results if milestone filtering fails
 
         # Add hierarchy if requested
         if include_hierarchy:

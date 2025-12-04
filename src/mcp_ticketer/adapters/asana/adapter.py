@@ -6,6 +6,7 @@ import builtins
 import logging
 import mimetypes
 import os
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -1410,6 +1411,126 @@ class AsanaAdapter(BaseAdapter[Task]):
     async def close(self) -> None:
         """Close adapter and cleanup resources."""
         await self.client.close()
+
+    # Milestone Methods (Not yet implemented)
+
+    async def milestone_create(
+        self,
+        name: str,
+        target_date: datetime | None = None,
+        labels: list[str] | None = None,
+        description: str = "",
+        project_id: str | None = None,
+    ) -> Any:
+        """Create milestone - not yet implemented for Asana.
+
+        Args:
+        ----
+            name: Milestone name
+            target_date: Target completion date
+            labels: Labels that define this milestone
+            description: Milestone description
+            project_id: Associated project ID
+
+        Raises:
+        ------
+            NotImplementedError: Milestone support coming in v2.1.0
+
+        """
+        raise NotImplementedError("Milestone support for Asana coming in v2.1.0")
+
+    async def milestone_get(self, milestone_id: str) -> Any:
+        """Get milestone - not yet implemented for Asana.
+
+        Args:
+        ----
+            milestone_id: Milestone identifier
+
+        Raises:
+        ------
+            NotImplementedError: Milestone support coming in v2.1.0
+
+        """
+        raise NotImplementedError("Milestone support for Asana coming in v2.1.0")
+
+    async def milestone_list(
+        self,
+        project_id: str | None = None,
+        state: str | None = None,
+    ) -> list[Any]:
+        """List milestones - not yet implemented for Asana.
+
+        Args:
+        ----
+            project_id: Filter by project
+            state: Filter by state
+
+        Raises:
+        ------
+            NotImplementedError: Milestone support coming in v2.1.0
+
+        """
+        raise NotImplementedError("Milestone support for Asana coming in v2.1.0")
+
+    async def milestone_update(
+        self,
+        milestone_id: str,
+        name: str | None = None,
+        target_date: datetime | None = None,
+        state: str | None = None,
+        labels: list[str] | None = None,
+        description: str | None = None,
+    ) -> Any:
+        """Update milestone - not yet implemented for Asana.
+
+        Args:
+        ----
+            milestone_id: Milestone identifier
+            name: New name
+            target_date: New target date
+            state: New state
+            labels: New labels
+            description: New description
+
+        Raises:
+        ------
+            NotImplementedError: Milestone support coming in v2.1.0
+
+        """
+        raise NotImplementedError("Milestone support for Asana coming in v2.1.0")
+
+    async def milestone_delete(self, milestone_id: str) -> bool:
+        """Delete milestone - not yet implemented for Asana.
+
+        Args:
+        ----
+            milestone_id: Milestone identifier
+
+        Raises:
+        ------
+            NotImplementedError: Milestone support coming in v2.1.0
+
+        """
+        raise NotImplementedError("Milestone support for Asana coming in v2.1.0")
+
+    async def milestone_get_issues(
+        self,
+        milestone_id: str,
+        state: str | None = None,
+    ) -> list[Any]:
+        """Get milestone issues - not yet implemented for Asana.
+
+        Args:
+        ----
+            milestone_id: Milestone identifier
+            state: Filter by issue state
+
+        Raises:
+        ------
+            NotImplementedError: Milestone support coming in v2.1.0
+
+        """
+        raise NotImplementedError("Milestone support for Asana coming in v2.1.0")
 
 
 # Register the adapter
