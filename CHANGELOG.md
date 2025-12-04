@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.0.6] - 2025-12-03
+
+### Fixed
+- **Setuptools Warnings**: Resolved deprecation warnings for setuptools 77.0+ compatibility
+  - Removed setuptools-scm from build dependencies (uses manual versioning)
+  - Added [tool.setuptools_scm] section to satisfy missing section warning
+  - Converted project.license to SPDX string format ("MIT")
+  - Removed deprecated license classifier
+  - Meets 2026-Feb-18 deprecation deadline
+
+- **Session Auto-Renewal**: Fixed session expiration during active use
+  - Session now auto-renews on every MCP tool call
+  - Session timeout is now "30 minutes of inactivity" (correct behavior)
+  - Prevents "requires_ticket_association" errors during active sessions
+  - Users can work for hours without session reset
+
+### Technical Details
+- Session state persists to disk on every load
+- Build completes without setuptools warnings
+- Backward compatible, no breaking changes
+
 ## [2.0.5] - 2025-12-03
 
 ### Fixed
