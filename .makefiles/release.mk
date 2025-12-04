@@ -1,5 +1,36 @@
-# release.mk - Release automation
+# release.mk - Release automation with Twine
 # Part of mcp-ticketer modular Makefile architecture
+#
+# PUBLISHING TOOLCHAIN:
+# This module uses the modern Python publishing stack:
+#   - build (PEP 517): Creates wheel and source distributions
+#   - twine (PyPI upload): Securely uploads packages with validation
+#
+# PREREQUISITES:
+# Ensure pyproject.toml includes in [project.optional-dependencies]:
+#   dev = [
+#       "build>=1.0.0",   # PEP 517 build tool
+#       "twine>=5.0.0",   # PyPI publishing tool
+#   ]
+#
+# CREDENTIALS:
+# Twine supports multiple authentication methods:
+#   1. .env.local file (loaded automatically):
+#      TWINE_USERNAME=__token__
+#      TWINE_PASSWORD=pypi-AgE...
+#   2. ~/.pypirc file (standard)
+#   3. Environment variables (CI/CD)
+#
+# WORKFLOW:
+#   make release-patch  - Bump patch version, build, and publish
+#   make release-minor  - Bump minor version, build, and publish
+#   make release-major  - Bump major version, build, and publish
+#
+# For manual control:
+#   make build         - Build packages only
+#   make verify-dist   - Verify with Twine check
+#   make publish-test  - Publish to TestPyPI
+#   make publish-prod  - Publish to production PyPI
 
 ##@ Version Management
 
@@ -99,14 +130,41 @@ release-major: version-bump-major build publish-prod ## Release new major versio
 ##@ Release Verification
 
 .PHONY: verify-dist
-verify-dist: ## Verify distribution packages
+verify-dist: ## Verify distribution packages with Twine
 	@echo "Verifying distribution packages..."
 	@if [ ! -d dist ]; then echo "Error: dist/ directory not found. Run 'make build' first."; exit 1; fi
 	@echo "Packages in dist/:"
 	@ls -lh dist/
-	@echo "Checking package integrity..."
+	@echo "Running Twine validation checks..."
+	@echo "  - Checking package metadata"
+	@echo "  - Validating long_description rendering"
+	@echo "  - Verifying required fields"
 	@twine check dist/*
-	@echo "✅ Distribution packages verified"
+	@echo "✅ Distribution packages verified by Twine"
+
+##@ Publishing Best Practices
+
+.PHONY: publish-help
+publish-help: ## Show Twine publishing best practices
+	@echo "PyPI Publishing Best Practices with Twine:"
+	@echo ""
+	@echo "1. ALWAYS run verify-dist before publishing"
+	@echo "   This catches common issues like broken long_description"
+	@echo ""
+	@echo "2. TEST on TestPyPI first"
+	@echo "   make publish-test"
+	@echo "   pip install --index-url https://test.pypi.org/simple/ mcp-ticketer"
+	@echo ""
+	@echo "3. Use API tokens (not passwords)"
+	@echo "   Username: __token__"
+	@echo "   Password: pypi-AgE... (from PyPI account settings)"
+	@echo ""
+	@echo "4. Store credentials securely"
+	@echo "   - .env.local (git-ignored, project-specific)"
+	@echo "   - ~/.pypirc (user-level, multiple projects)"
+	@echo ""
+	@echo "5. Never commit credentials to version control"
+	@echo "   Add .env.local to .gitignore"
 
 ##@ Homebrew Tap Management
 
