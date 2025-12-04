@@ -565,9 +565,7 @@ class LinearAdapter(BaseAdapter[Task]):
         logger = logging.getLogger(__name__)
 
         if not isinstance(uuid_value, str):
-            logger.warning(
-                f"{field_name} is not a string: {type(uuid_value).__name__}"
-            )
+            logger.warning(f"{field_name} is not a string: {type(uuid_value).__name__}")
             return False
 
         if len(uuid_value) != 36:
@@ -734,7 +732,9 @@ class LinearAdapter(BaseAdapter[Task]):
                         ):
                             project_uuid = project["id"]
                             # Validate UUID format before returning
-                            if not self._validate_linear_uuid(project_uuid, "projectId"):
+                            if not self._validate_linear_uuid(
+                                project_uuid, "projectId"
+                            ):
                                 logging.getLogger(__name__).error(
                                     f"Project '{project_identifier}' resolved to invalid UUID format: '{project_uuid}'. "
                                     f"Expected 36-character UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx). "
@@ -1277,7 +1277,9 @@ class LinearAdapter(BaseAdapter[Task]):
                     try:
                         if attempt > 0:
                             # Wait before retry (skip delay on first attempt)
-                            delay = backoff_delays[min(attempt - 1, len(backoff_delays) - 1)]
+                            delay = backoff_delays[
+                                min(attempt - 1, len(backoff_delays) - 1)
+                            ]
                             logger.debug(
                                 f"Label '{name}' duplicate detected. "
                                 f"Retrying retrieval (attempt {attempt + 1}/{max_recovery_attempts}) "

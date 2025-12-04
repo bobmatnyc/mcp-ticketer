@@ -181,7 +181,9 @@ class LinearGraphQLClient:
                     # Check for validation errors (additional context)
                     validation_errors = extensions.get("validationErrors")
                     if validation_errors:
-                        error_msg = f"{error_msg}\nValidation errors: {validation_errors}"
+                        error_msg = (
+                            f"{error_msg}\nValidation errors: {validation_errors}"
+                        )
 
                     # Log full error context for debugging
                     logger.error(
