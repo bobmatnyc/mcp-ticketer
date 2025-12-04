@@ -11,10 +11,10 @@ from typing import Any
 
 import httpx
 
-from ..cache.memory import MemoryCache
-from ..core.adapter import BaseAdapter
-from ..core.env_loader import load_adapter_config, validate_adapter_config
-from ..core.models import (
+from ...cache.memory import MemoryCache
+from ...core.adapter import BaseAdapter
+from ...core.env_loader import load_adapter_config, validate_adapter_config
+from ...core.models import (
     Comment,
     Epic,
     Milestone,
@@ -23,150 +23,42 @@ from ..core.models import (
     Task,
     TicketState,
 )
-from ..core.registry import AdapterRegistry
+from ...core.registry import AdapterRegistry
+from .client import GitHubClient
+from .mappers import (
+    build_github_issue_input,
+    build_github_issue_update_input,
+    epic_to_compact_format,
+    map_github_comment_to_comment,
+    map_github_issue_to_task,
+    map_github_milestone_to_epic,
+    map_github_milestone_to_milestone,
+    task_to_compact_format,
+)
+from .queries import (
+    GET_ISSUE,
+    GET_ISSUE_COMMENTS,
+    GET_MILESTONE,
+    GET_PROJECT_ITERATIONS,
+    GET_REPOSITORY_COLLABORATORS,
+    GET_VIEWER,
+    LIST_LABELS,
+    LIST_MILESTONES,
+    LIST_REPOSITORY_ISSUES,
+    SEARCH_ISSUES,
+    SEARCH_ISSUES_COMPACT,
+)
+from .types import (
+    GitHubStateMapping,
+    extract_state_from_issue,
+    get_github_state,
+    get_priority_from_labels,
+    get_priority_label,
+    get_state_label,
+    get_universal_state,
+)
 
 logger = logging.getLogger(__name__)
-
-
-class GitHubStateMapping:
-    """GitHub issue states and label-based extended states."""
-
-    # GitHub native states
-    OPEN = "open"
-    CLOSED = "closed"
-
-    # Extended states via labels
-    STATE_LABELS = {
-        TicketState.IN_PROGRESS: "in-progress",
-        TicketState.READY: "ready",
-        TicketState.TESTED: "tested",
-        TicketState.WAITING: "waiting",
-        TicketState.BLOCKED: "blocked",
-    }
-
-    # Priority labels
-    PRIORITY_LABELS = {
-        Priority.CRITICAL: ["P0", "critical", "urgent"],
-        Priority.HIGH: ["P1", "high"],
-        Priority.MEDIUM: ["P2", "medium"],
-        Priority.LOW: ["P3", "low"],
-    }
-
-
-class GitHubGraphQLQueries:
-    """GraphQL queries for GitHub API v4."""
-
-    ISSUE_FRAGMENT = """
-        fragment IssueFields on Issue {
-            id
-            number
-            title
-            body
-            state
-            createdAt
-            updatedAt
-            url
-            author {
-                login
-            }
-            assignees(first: 10) {
-                nodes {
-                    login
-                    email
-                }
-            }
-            labels(first: 20) {
-                nodes {
-                    name
-                    color
-                }
-            }
-            milestone {
-                id
-                number
-                title
-                state
-                description
-            }
-            projectCards(first: 10) {
-                nodes {
-                    project {
-                        name
-                        url
-                    }
-                    column {
-                        name
-                    }
-                }
-            }
-            comments(first: 100) {
-                nodes {
-                    id
-                    body
-                    author {
-                        login
-                    }
-                    createdAt
-                }
-            }
-            reactions(first: 10) {
-                nodes {
-                    content
-                    user {
-                        login
-                    }
-                }
-            }
-        }
-    """
-
-    GET_ISSUE = """
-        query GetIssue($owner: String!, $repo: String!, $number: Int!) {
-            repository(owner: $owner, name: $repo) {
-                issue(number: $number) {
-                    ...IssueFields
-                }
-            }
-        }
-    """
-
-    SEARCH_ISSUES = """
-        query SearchIssues($query: String!, $first: Int!, $after: String) {
-            search(query: $query, type: ISSUE, first: $first, after: $after) {
-                issueCount
-                pageInfo {
-                    hasNextPage
-                    endCursor
-                }
-                nodes {
-                    ... on Issue {
-                        ...IssueFields
-                    }
-                }
-            }
-        }
-    """
-
-    GET_PROJECT_ITERATIONS = """
-        query GetProjectIterations($projectId: ID!, $first: Int!, $after: String) {
-            node(id: $projectId) {
-                ... on ProjectV2 {
-                    iterations(first: $first, after: $after) {
-                        nodes {
-                            id
-                            title
-                            startDate
-                            duration
-                        }
-                        pageInfo {
-                            hasNextPage
-                            endCursor
-                        }
-                    }
-                }
-            }
-        }
-    """
 
 
 class GitHubAdapter(BaseAdapter[Task]):
@@ -223,24 +115,25 @@ class GitHubAdapter(BaseAdapter[Task]):
         self.use_projects_v2 = config.get("use_projects_v2", False)
         self.custom_priority_scheme = config.get("custom_priority_scheme", {})
 
-        # HTTP client with authentication
-        self.headers = {
-            "Authorization": f"Bearer {self.token}",
-            "Accept": "application/vnd.github.v3+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        }
-
-        self.client = httpx.AsyncClient(
-            base_url=self.api_url,
-            headers=self.headers,
+        # Initialize GitHub API client
+        self.gh_client = GitHubClient(
+            token=self.token,
+            owner=self.owner,
+            repo=self.repo,
+            api_url=self.api_url,
             timeout=30.0,
         )
+
+        # Keep legacy client reference for backward compatibility
+        # TODO: Gradually migrate all direct self.client usage to self.gh_client
+        self.client = self.gh_client.client
+        self.headers = self.gh_client.headers
+        self.graphql_url = self.gh_client.graphql_url
 
         # Initialize TTL-based cache
         self._labels_ttl = config.get("labels_ttl", 300.0)  # 5 min default
         self._labels_cache = MemoryCache(default_ttl=self._labels_ttl)
         self._milestones_cache: list[dict[str, Any]] | None = None
-        self._rate_limit: dict[str, Any] = {}
 
     def validate_credentials(self) -> tuple[bool, str]:
         """Validate that required credentials are present.
@@ -272,213 +165,35 @@ class GitHubAdapter(BaseAdapter[Task]):
         return True, ""
 
     def _get_state_mapping(self) -> dict[TicketState, str]:
-        """Map universal states to GitHub states."""
+        """Map universal states to GitHub states (delegated to types module)."""
         return {
-            TicketState.OPEN: GitHubStateMapping.OPEN,
-            TicketState.IN_PROGRESS: GitHubStateMapping.OPEN,  # with label
-            TicketState.READY: GitHubStateMapping.OPEN,  # with label
-            TicketState.TESTED: GitHubStateMapping.OPEN,  # with label
-            TicketState.DONE: GitHubStateMapping.CLOSED,
-            TicketState.WAITING: GitHubStateMapping.OPEN,  # with label
-            TicketState.BLOCKED: GitHubStateMapping.OPEN,  # with label
-            TicketState.CLOSED: GitHubStateMapping.CLOSED,
+            state: get_github_state(state)
+            for state in TicketState
         }
 
     def _get_state_label(self, state: TicketState) -> str | None:
-        """Get the label name for extended states."""
-        return GitHubStateMapping.STATE_LABELS.get(state)
+        """Get the label name for extended states (delegated to types module)."""
+        return get_state_label(state)
 
     def _get_priority_from_labels(self, labels: list[str]) -> Priority:
-        """Extract priority from issue labels."""
-        label_names = [label.lower() for label in labels]
-
-        # Check custom priority scheme first
-        if self.custom_priority_scheme:
-            for priority_str, label_patterns in self.custom_priority_scheme.items():
-                for pattern in label_patterns:
-                    if any(pattern.lower() in label for label in label_names):
-                        return Priority(priority_str)
-
-        # Check default priority labels
-        for priority, priority_labels in GitHubStateMapping.PRIORITY_LABELS.items():
-            for priority_label in priority_labels:
-                if priority_label.lower() in label_names:
-                    return priority
-
-        return Priority.MEDIUM
+        """Extract priority from issue labels (delegated to types module)."""
+        return get_priority_from_labels(labels, self.custom_priority_scheme)
 
     def _get_priority_label(self, priority: Priority) -> str:
-        """Get label name for a priority level."""
-        # Check custom scheme first
-        if self.custom_priority_scheme:
-            labels = self.custom_priority_scheme.get(priority.value, [])
-            if labels:
-                return labels[0]
-
-        # Use default labels
-        labels = GitHubStateMapping.PRIORITY_LABELS.get(priority, [])
-        return (
-            labels[0]
-            if labels
-            else f"P{['0', '1', '2', '3'][list(Priority).index(priority)]}"
-        )
+        """Get label name for a priority level (delegated to types module)."""
+        return get_priority_label(priority, self.custom_priority_scheme)
 
     def _milestone_to_epic(self, milestone: dict[str, Any]) -> Epic:
-        """Convert GitHub milestone to Epic model.
-
-        Args:
-        ----
-            milestone: GitHub milestone data
-
-        Returns:
-        -------
-            Epic instance
-
-        """
-        return Epic(
-            id=str(milestone["number"]),
-            title=milestone["title"],
-            description=milestone.get("description", ""),
-            state=(
-                TicketState.OPEN if milestone["state"] == "open" else TicketState.CLOSED
-            ),
-            created_at=datetime.fromisoformat(
-                milestone["created_at"].replace("Z", "+00:00")
-            ),
-            updated_at=datetime.fromisoformat(
-                milestone["updated_at"].replace("Z", "+00:00")
-            ),
-            metadata={
-                "github": {
-                    "number": milestone["number"],
-                    "url": milestone.get("html_url"),
-                    "open_issues": milestone.get("open_issues", 0),
-                    "closed_issues": milestone.get("closed_issues", 0),
-                }
-            },
-        )
+        """Convert GitHub milestone to Epic model (delegated to mappers module)."""
+        return map_github_milestone_to_epic(milestone)
 
     def _extract_state_from_issue(self, issue: dict[str, Any]) -> TicketState:
-        """Extract ticket state from GitHub issue data."""
-        # Check if closed
-        if issue["state"] == "closed":
-            return TicketState.CLOSED
-
-        # Check labels for extended states
-        labels = []
-        if "labels" in issue:
-            if isinstance(issue["labels"], list):
-                labels = [
-                    label.get("name", "") if isinstance(label, dict) else str(label)
-                    for label in issue["labels"]
-                ]
-            elif isinstance(issue["labels"], dict) and "nodes" in issue["labels"]:
-                labels = [label["name"] for label in issue["labels"]["nodes"]]
-
-        label_names = [label.lower() for label in labels]
-
-        # Check for extended state labels
-        for state, label_name in GitHubStateMapping.STATE_LABELS.items():
-            if label_name.lower() in label_names:
-                return state
-
-        return TicketState.OPEN
+        """Extract ticket state from GitHub issue data (delegated to types module)."""
+        return extract_state_from_issue(issue)
 
     def _task_from_github_issue(self, issue: dict[str, Any]) -> Task:
-        """Convert GitHub issue to universal Task."""
-        # Extract labels
-        labels = []
-        if "labels" in issue:
-            if isinstance(issue["labels"], list):
-                labels = [
-                    label.get("name", "") if isinstance(label, dict) else str(label)
-                    for label in issue["labels"]
-                ]
-            elif isinstance(issue["labels"], dict) and "nodes" in issue["labels"]:
-                labels = [label["name"] for label in issue["labels"]["nodes"]]
-
-        # Extract state
-        state = self._extract_state_from_issue(issue)
-
-        # Extract priority
-        priority = self._get_priority_from_labels(labels)
-
-        # Extract assignee
-        assignee = None
-        if "assignees" in issue:
-            if isinstance(issue["assignees"], list) and issue["assignees"]:
-                assignee = issue["assignees"][0].get("login")
-            elif isinstance(issue["assignees"], dict) and "nodes" in issue["assignees"]:
-                nodes = issue["assignees"]["nodes"]
-                if nodes:
-                    assignee = nodes[0].get("login")
-        elif "assignee" in issue and issue["assignee"]:
-            assignee = issue["assignee"].get("login")
-
-        # Extract parent epic (milestone)
-        parent_epic = None
-        if issue.get("milestone"):
-            parent_epic = str(issue["milestone"]["number"])
-
-        # Parse dates
-        created_at = None
-        if issue.get("created_at"):
-            created_at = datetime.fromisoformat(
-                issue["created_at"].replace("Z", "+00:00")
-            )
-        elif issue.get("createdAt"):
-            created_at = datetime.fromisoformat(
-                issue["createdAt"].replace("Z", "+00:00")
-            )
-
-        updated_at = None
-        if issue.get("updated_at"):
-            updated_at = datetime.fromisoformat(
-                issue["updated_at"].replace("Z", "+00:00")
-            )
-        elif issue.get("updatedAt"):
-            updated_at = datetime.fromisoformat(
-                issue["updatedAt"].replace("Z", "+00:00")
-            )
-
-        # Build metadata
-        metadata = {
-            "github": {
-                "number": issue.get("number"),
-                "url": issue.get("url") or issue.get("html_url"),
-                "author": (
-                    issue.get("user", {}).get("login")
-                    if "user" in issue
-                    else issue.get("author", {}).get("login")
-                ),
-                "labels": labels,
-            }
-        }
-
-        # Add projects v2 info if available
-        if "projectCards" in issue and issue["projectCards"].get("nodes"):
-            metadata["github"]["projects"] = [
-                {
-                    "name": card["project"]["name"],
-                    "column": card["column"]["name"],
-                    "url": card["project"]["url"],
-                }
-                for card in issue["projectCards"]["nodes"]
-            ]
-
-        return Task(
-            id=str(issue["number"]),
-            title=issue["title"],
-            description=issue.get("body") or issue.get("bodyText"),
-            state=state,
-            priority=priority,
-            tags=labels,
-            parent_epic=parent_epic,
-            assignee=assignee,
-            created_at=created_at,
-            updated_at=updated_at,
-            metadata=metadata,
-        )
+        """Convert GitHub issue to universal Task (delegated to mappers module)."""
+        return map_github_issue_to_task(issue, self.custom_priority_scheme)
 
     async def _ensure_label_exists(
         self, label_name: str, color: str = "0366d6"
@@ -2494,79 +2209,8 @@ Fixes #{issue_number}
         gh_milestone: dict[str, Any],
         labels: list[str] | None = None,
     ) -> Milestone:
-        """Convert GitHub Milestone to universal Milestone model.
-
-        Args:
-        ----
-            gh_milestone: GitHub milestone data from API
-            labels: Optional labels from local storage
-
-        Returns:
-        -------
-            Milestone object
-
-        """
-        from datetime import datetime as dt
-
-        from ..core.models import Milestone
-
-        # Parse target date
-        target_date = None
-        if gh_milestone.get("due_on"):
-            target_date = dt.fromisoformat(
-                gh_milestone["due_on"].replace("Z", "+00:00")
-            ).date()
-
-        # Determine state
-        state = "closed" if gh_milestone["state"] == "closed" else "open"
-        if state == "open" and target_date:
-
-            if target_date < date.today():
-                state = "closed"  # Past due
-            else:
-                state = "active"
-
-        # Calculate progress
-        total = gh_milestone.get("open_issues", 0) + gh_milestone.get(
-            "closed_issues", 0
-        )
-        closed = gh_milestone.get("closed_issues", 0)
-        progress_pct = (closed / total * 100) if total > 0 else 0.0
-
-        return Milestone(
-            id=str(gh_milestone["number"]),
-            name=gh_milestone["title"],
-            description=gh_milestone.get("description", ""),
-            target_date=target_date,
-            state=state,
-            labels=labels or [],
-            total_issues=total,
-            closed_issues=closed,
-            progress_pct=progress_pct,
-            project_id=self.repo,  # Repository name as project
-            created_at=(
-                dt.fromisoformat(
-                    gh_milestone.get("created_at", "").replace("Z", "+00:00")
-                )
-                if gh_milestone.get("created_at")
-                else None
-            ),
-            updated_at=(
-                dt.fromisoformat(
-                    gh_milestone.get("updated_at", "").replace("Z", "+00:00")
-                )
-                if gh_milestone.get("updated_at")
-                else None
-            ),
-            platform_data={
-                "github": {
-                    "milestone_number": gh_milestone["number"],
-                    "url": gh_milestone.get("html_url"),
-                    "created_at": gh_milestone.get("created_at"),
-                    "updated_at": gh_milestone.get("updated_at"),
-                }
-            },
-        )
+        """Convert GitHub Milestone to universal Milestone model (delegated to mappers module)."""
+        return map_github_milestone_to_milestone(gh_milestone, self.repo, labels)
 
     async def invalidate_label_cache(self) -> None:
         """Manually invalidate the label cache.
