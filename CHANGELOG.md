@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.1.1] - 2025-12-04
+
+### Fixed
+- **config tool validation error**: Fixed FastMCP validation error where `config(action="get")` failed with "kwargs field required". Replaced `**kwargs: Any` with explicit optional parameters (`project_key`, `user_email`) for better type safety and to resolve FastMCP schema generation issue. [#2b68fb4]
+- **Linear API key length validation**: Fixed test failures by correcting Linear API key length requirement in setup wizard tests. API keys must be exactly 40 characters after `lin_api_` prefix. [#8f22a27]
+
 ## [2.1.0] - 2025-12-04
 
 ### Added - Milestone Support (1M-607)

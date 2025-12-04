@@ -170,9 +170,9 @@ async def config(
         # Build extra params dict from non-None values
         extra_params = {}
         if project_key is not None:
-            extra_params['project_key'] = project_key
+            extra_params["project_key"] = project_key
         if user_email is not None:
-            extra_params['user_email'] = user_email
+            extra_params["user_email"] = user_email
 
         return await config_set(key=key, value=value, **extra_params)
     elif action_lower == "validate":
