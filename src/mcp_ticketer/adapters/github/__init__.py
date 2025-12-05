@@ -21,5 +21,6 @@ Usage:
 """
 
 from .adapter import GitHubAdapter
+from .types import GitHubStateMapping
 
-__all__ = ["GitHubAdapter"]
+__all__ = ["GitHubAdapter", "GitHubStateMapping"]

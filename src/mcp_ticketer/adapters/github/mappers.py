@@ -462,8 +462,8 @@ def task_to_compact_format(task: Task) -> dict[str, Any]:
     return {
         "id": task.id,
         "title": task.title,
-        "state": task.state.value if task.state else None,
-        "priority": task.priority.value if task.priority else None,
+        "state": task.state if isinstance(task.state, str) else (task.state.value if task.state else None),
+        "priority": task.priority if isinstance(task.priority, str) else (task.priority.value if task.priority else None),
         "assignee": task.assignee,
     }
 
@@ -482,5 +482,5 @@ def epic_to_compact_format(epic: Epic) -> dict[str, Any]:
     return {
         "id": epic.id,
         "title": epic.title,
-        "state": epic.state.value if epic.state else None,
+        "state": epic.state if isinstance(epic.state, str) else (epic.state.value if epic.state else None),
     }
