@@ -3061,6 +3061,161 @@ Fixes #{issue_number}
                 f"Failed to get project issues: {e}"
             ) from e
 
+    async def project_get_statistics(
+        self,
+        project_id: str,
+    ) -> "ProjectStatistics":
+        """Get comprehensive statistics for a GitHub Projects V2 project.
+
+        Calculates issue state breakdown, priority distribution, and health status
+        by analyzing all issues in the project. Priority is determined from issue
+        labels (priority:low, priority/medium, etc.), and blocked status is detected
+        from "blocked" or "blocker" labels.
+
+        Health Scoring Logic:
+            - on_track: >70% complete AND <10% blocked
+            - at_risk: >40% complete AND <30% blocked
+            - off_track: Otherwise (low completion or high blocked rate)
+
+        Args:
+        ----
+            project_id: Project node ID (PVT_kwDOABCD...)
+
+        Returns:
+        -------
+            ProjectStatistics with metrics and health scoring
+
+        Raises:
+        ------
+            ValueError: If project_id is invalid format
+            RuntimeError: If statistics calculation fails
+
+        Example:
+        -------
+            stats = await adapter.project_get_statistics("PVT_kwDOABCD1234")
+            print(f"Health: {stats.health}, Progress: {stats.progress_percentage}%")
+            print(f"Priority breakdown: H={stats.priority_high_count}, "
+                  f"M={stats.priority_medium_count}")
+
+        Note:
+        ----
+            Fetches up to 1000 issues for reasonable performance. For projects
+            with >1000 issues, statistics may be based on a sample.
+
+        """
+        from ...core.models import ProjectStatistics
+
+        # Validate project_id format
+        if not project_id or not project_id.startswith("PVT_"):
+            raise ValueError(
+                f"Invalid project_id: {project_id}. "
+                "Project ID must start with 'PVT_' (e.g., PVT_kwDOABCD1234)"
+            )
+
+        logger.debug(f"Calculating statistics for project {project_id}")
+
+        try:
+            # Fetch all issues (limit 1000 for reasonable performance)
+            issues = await self.project_get_issues(
+                project_id=project_id,
+                limit=1000
+            )
+        except Exception as e:
+            logger.error(f"Failed to fetch issues for statistics: {e}")
+            raise RuntimeError(
+                f"Failed to calculate project statistics: {e}"
+            ) from e
+
+        # Calculate basic counts
+        total = len(issues)
+        open_count = 0
+        closed_count = 0
+        in_progress_count = 0
+
+        # Count by priority (from labels)
+        priority_counts = {"low": 0, "medium": 0, "high": 0, "critical": 0}
+        blocked_count = 0
+
+        for issue in issues:
+            # Count by state (GitHub only has OPEN/CLOSED)
+            # We map based on state enum value
+            state_value = issue.state.value if hasattr(issue.state, 'value') else str(issue.state)
+
+            if state_value in ["open", "in_progress", "blocked", "waiting"]:
+                if state_value == "in_progress":
+                    in_progress_count += 1
+                else:
+                    open_count += 1
+            elif state_value in ["done", "closed"]:
+                closed_count += 1
+            else:
+                # Default unrecognized states to open
+                open_count += 1
+
+            # Check tags (labels) for priority and blocked status
+            for tag in issue.tags:
+                tag_lower = tag.lower()
+
+                # Priority detection (priority:high, priority/low, etc.)
+                if "priority:" in tag_lower or "priority/" in tag_lower:
+                    # Extract priority level
+                    priority = tag_lower.replace("priority:", "").replace("priority/", "").strip()
+                    if priority in priority_counts:
+                        priority_counts[priority] += 1
+                    elif "crit" in priority or "p0" in priority:
+                        priority_counts["critical"] += 1
+                    elif "high" in priority or "p1" in priority:
+                        priority_counts["high"] += 1
+                    elif "med" in priority or "p2" in priority:
+                        priority_counts["medium"] += 1
+                    elif "low" in priority or "p3" in priority:
+                        priority_counts["low"] += 1
+
+                # Blocked detection
+                if "blocked" in tag_lower or "blocker" in tag_lower:
+                    blocked_count += 1
+
+        # Calculate health and progress
+        if total == 0:
+            health = "on_track"
+            progress_pct = 0.0
+        else:
+            completed_pct = (closed_count / total) * 100
+            blocked_pct = (blocked_count / total) * 100
+
+            # Health scoring logic
+            if completed_pct > 70 and blocked_pct < 10:
+                health = "on_track"
+            elif completed_pct > 40 and blocked_pct < 30:
+                health = "at_risk"
+            else:
+                health = "off_track"
+
+            progress_pct = completed_pct
+
+        # Create statistics object
+        stats = ProjectStatistics(
+            total_count=total,
+            open_count=open_count,
+            in_progress_count=in_progress_count,
+            completed_count=closed_count,
+            blocked_count=blocked_count,
+            priority_low_count=priority_counts["low"],
+            priority_medium_count=priority_counts["medium"],
+            priority_high_count=priority_counts["high"],
+            priority_critical_count=priority_counts["critical"],
+            health=health,
+            progress_percentage=round(progress_pct, 1)
+        )
+
+        logger.info(
+            f"Statistics for {project_id}: {total} issues, "
+            f"{health} health, {progress_pct:.1f}% complete, "
+            f"{blocked_count} blocked"
+        )
+
+        return stats
+
     async def close(self) -> None:
         """Close the HTTP client connection."""
         await self.client.aclose()
