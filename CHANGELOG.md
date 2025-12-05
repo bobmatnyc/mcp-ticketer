@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.1.3] - 2025-12-04
+
 ### Changed
 - **Adapter Refactoring (1M-621)**: Refactored GitHub and Jira adapters to modular structure
   - GitHub adapter split into 6 modules (client, mappers, queries, types, adapter, __init__)
