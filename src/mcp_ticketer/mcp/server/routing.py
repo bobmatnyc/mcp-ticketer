@@ -637,6 +637,74 @@ class TicketRouter:
                 f"Failed to route list_tasks_by_issue operation: {str(e)}"
             ) from e
 
+    async def validate_project_access(
+        self, project_url: str, test_connection: bool = True
+    ) -> dict[str, Any]:
+        """Validate project URL and test accessibility.
+
+        This method provides comprehensive validation for project URLs:
+        1. Parses URL to extract platform and project ID
+        2. Validates adapter configuration exists
+        3. Validates adapter credentials
+        4. Optionally tests project accessibility via API
+
+        Args:
+            project_url: Project URL to validate
+            test_connection: If True, test actual API connectivity (default: True)
+
+        Returns:
+            Validation result dictionary with:
+            - valid (bool): Whether validation passed
+            - platform (str): Detected platform
+            - project_id (str): Extracted project ID
+            - adapter_configured (bool): Whether adapter is configured
+            - error (str): Error message if validation failed
+            - suggestions (list): Suggested actions to resolve error
+
+        Examples:
+            >>> router = TicketRouter(...)
+            >>> result = await router.validate_project_access("https://linear.app/team/project/abc-123")
+            >>> if result["valid"]:
+            ...     print(f"Project {result['project_id']} is accessible")
+            ... else:
+            ...     print(f"Error: {result['error']}")
+
+        """
+        try:
+            # Import project validator
+            from ...core.project_validator import ProjectValidator
+
+            # Create validator (use router's config for consistency)
+            from pathlib import Path
+
+            validator = ProjectValidator(project_path=Path.cwd())
+
+            # Validate project URL
+            validation_result = validator.validate_project_url(
+                url=project_url, test_connection=test_connection
+            )
+
+            # Convert dataclass to dictionary
+            return {
+                "valid": validation_result.valid,
+                "platform": validation_result.platform,
+                "project_id": validation_result.project_id,
+                "adapter_configured": validation_result.adapter_configured,
+                "adapter_valid": validation_result.adapter_valid,
+                "error": validation_result.error,
+                "error_type": validation_result.error_type,
+                "suggestions": validation_result.suggestions,
+                "credential_errors": validation_result.credential_errors,
+            }
+
+        except Exception as e:
+            logger.error(f"Project validation failed: {e}")
+            return {
+                "valid": False,
+                "error": f"Validation failed with exception: {str(e)}",
+                "error_type": "validation_error",
+            }
+
     async def close(self) -> None:
         """Close all cached adapter connections.
 

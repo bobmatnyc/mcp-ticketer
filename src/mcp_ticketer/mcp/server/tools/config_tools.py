@@ -81,6 +81,7 @@ async def config(
         action: Operation to perform. Valid values:
             - "get": Get current configuration
             - "set": Set a configuration value (requires key and value)
+            - "set_project_from_url": Set default project from URL with validation (requires value=URL)
             - "validate": Validate all adapter configurations
             - "test": Test adapter connectivity (requires adapter_name)
             - "list_adapters": List all available adapters
@@ -153,6 +154,16 @@ async def config(
     # Route based on action
     if action_lower == "get":
         return await config_get()
+    elif action_lower == "set_project_from_url":
+        if value is None:
+            return {
+                "status": "error",
+                "error": "Parameter 'value' (project URL) is required for action='set_project_from_url'",
+                "hint": "Use config(action='set_project_from_url', value='https://linear.app/...')",
+            }
+        return await config_set_project_from_url(
+            project_url=str(value), test_connection=test_connection
+        )
     elif action_lower == "set":
         if key is None:
             return {
@@ -218,6 +229,7 @@ async def config(
         valid_actions = [
             "get",
             "set",
+            "set_project_from_url",
             "validate",
             "test",
             "list_adapters",
@@ -1405,6 +1417,115 @@ async def config_setup_wizard(
         return {
             "status": "error",
             "error": f"Setup wizard failed: {str(e)}",
+            "traceback": traceback.format_exc(),
+        }
+
+
+async def config_set_project_from_url(
+    project_url: str,
+    test_connection: bool = True,
+) -> dict[str, Any]:
+    """Set default project from URL with comprehensive validation.
+
+    This function provides enhanced project URL handling:
+    1. Parses project URL to detect platform
+    2. Validates adapter configuration and credentials
+    3. Optionally tests project accessibility
+    4. Sets as default project if all validations pass
+
+    Args:
+        project_url: Project URL from any supported platform
+        test_connection: Test project accessibility (default: True)
+
+    Returns:
+        ConfigResponse with status, platform, project_id, validation details
+
+    Examples:
+        # Set Linear project with validation
+        config_set_project_from_url("https://linear.app/team/project/abc-123")
+
+        # Set GitHub project without connectivity test
+        config_set_project_from_url("https://github.com/owner/repo/projects/1", test_connection=False)
+
+    Error Scenarios:
+        - Invalid URL format: Returns parsing error with format examples
+        - Adapter not configured: Returns setup instructions for platform
+        - Invalid credentials: Returns credential validation errors
+        - Project not accessible: Returns accessibility error with troubleshooting
+
+    """
+    try:
+        # Import project validator
+        from ....core.project_validator import ProjectValidator
+
+        # Create validator
+        validator = ProjectValidator(project_path=Path.cwd())
+
+        # Validate project URL
+        result = validator.validate_project_url(
+            url=project_url, test_connection=test_connection
+        )
+
+        # Check validation result
+        if not result.valid:
+            return {
+                "status": "error",
+                "error": result.error,
+                "error_type": result.error_type,
+                "platform": result.platform,
+                "project_id": result.project_id,
+                "adapter_configured": result.adapter_configured,
+                "adapter_valid": result.adapter_valid,
+                "suggestions": result.suggestions,
+                "credential_errors": result.credential_errors,
+                "adapter_config": result.adapter_config,
+            }
+
+        # Validation passed - set as default project
+        project_id = result.project_id
+        platform = result.platform
+
+        # Load current configuration
+        resolver = get_resolver()
+        config = resolver.load_project_config() or TicketerConfig()
+
+        # Store previous project for response
+        previous_project = config.default_project or config.default_epic
+
+        # Update default project (and epic for backward compat)
+        config.default_project = project_id
+        config.default_epic = project_id
+
+        # Also update default adapter to match the project's platform
+        previous_adapter = config.default_adapter
+        config.default_adapter = platform
+
+        # Save configuration
+        resolver.save_project_config(config)
+
+        return {
+            "status": "completed",
+            "message": f"Default project set to '{project_id}' from {platform.title()}",
+            "platform": platform,
+            "project_id": project_id,
+            "project_url": project_url,
+            "previous_project": previous_project,
+            "new_project": project_id,
+            "adapter_changed": previous_adapter != platform,
+            "previous_adapter": previous_adapter,
+            "new_adapter": platform,
+            "validated": True,
+            "connection_tested": test_connection,
+            "config_path": str(resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH),
+        }
+
+    except Exception as e:
+        import traceback
+
+        logger.error(f"Failed to set project from URL: {e}", exc_info=True)
+        return {
+            "status": "error",
+            "error": f"Failed to set project from URL: {str(e)}",
             "traceback": traceback.format_exc(),
         }
 
