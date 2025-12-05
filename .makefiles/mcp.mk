@@ -87,6 +87,33 @@ test-mcp-tools: ## Test MCP tool definitions
 	@echo "Testing MCP tools..."
 	pytest tests/mcp/test_tools.py -v
 
+##@ MCP Server Installation
+
+.PHONY: install-mcp-server
+install-mcp-server: ## Install mcp-ticketer as MCP server (auto-detect platform)
+	@echo "Installing mcp-ticketer as MCP server..."
+	mcp-ticketer install-mcp-server
+
+.PHONY: install-mcp-server-global
+install-mcp-server-global: ## Install mcp-ticketer as MCP server globally
+	@echo "Installing mcp-ticketer globally..."
+	mcp-ticketer install-mcp-server --scope global
+
+.PHONY: install-mcp-server-dry-run
+install-mcp-server-dry-run: ## Preview MCP server installation without applying
+	@echo "Previewing MCP server installation..."
+	mcp-ticketer install-mcp-server --dry-run
+
+.PHONY: list-mcp-servers
+list-mcp-servers: ## List installed MCP servers on detected platform
+	@echo "Listing MCP servers..."
+	mcp-ticketer list-mcp-servers
+
+.PHONY: uninstall-mcp-server
+uninstall-mcp-server: ## Uninstall mcp-ticketer MCP server
+	@echo "Uninstalling mcp-ticketer MCP server..."
+	mcp-ticketer uninstall-mcp-server
+
 ##@ Quick Operations
 
 .PHONY: create

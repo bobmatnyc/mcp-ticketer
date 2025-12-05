@@ -20,6 +20,11 @@ from .configure import configure_wizard, set_adapter_config, show_current_config
 from .diagnostics import run_diagnostics
 from .discover import app as discover_app
 from .init_command import init
+from .install_mcp_server import (
+    install_mcp_server,
+    list_mcp_servers,
+    uninstall_mcp_server,
+)
 from .instruction_commands import app as instruction_app
 from .mcp_server_commands import mcp_app
 from .migrate_config import migrate_config_command
@@ -531,6 +536,11 @@ app.command()(init)
 app.command()(install)
 app.command()(remove)
 app.command()(uninstall)
+
+# Add MCP server installer commands
+app.command(name="install-mcp-server")(install_mcp_server)
+app.command(name="list-mcp-servers")(list_mcp_servers)
+app.command(name="uninstall-mcp-server")(uninstall_mcp_server)
 
 
 # Add diagnostics command
