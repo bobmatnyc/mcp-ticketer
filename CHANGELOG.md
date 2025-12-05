@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Changed
+- **Adapter Refactoring (1M-621)**: Refactored GitHub and Jira adapters to modular structure
+  - GitHub adapter split into 6 modules (client, mappers, queries, types, adapter, __init__)
+  - Jira adapter split into 6 modules (client, mappers, queries, types, adapter, __init__)
+  - Improved maintainability with clear separation of concerns
+  - Reduced main adapter files by 14-29% in size
+  - All three major adapters (Linear, GitHub, Jira) now follow consistent architecture
+
+### Added
+- **Label Caching (1M-622)**: TTL-based label caching for GitHub and Linear adapters
+  - 5-minute default cache TTL with configurable duration
+  - Automatic cache invalidation on expiration
+  - Thread-safe implementation using MemoryCache
+  - Reduces redundant API calls for label operations
+
+### Fixed
+- Fixed runtime errors in GitHub adapter compact format functions (1M-621)
+  - `task_to_compact_format()` now handles both string and enum state/priority values
+  - `epic_to_compact_format()` now handles both string and enum state/priority values
+  - Resolved AttributeError when Pydantic converts enums to strings
+- Fixed missing GitHubStateMapping export in GitHub adapter __init__.py (1M-621)
+
+### Documentation
+- Added README.md files for GitHub and Jira API skills
+- Added YAML frontmatter to all three API skills (GitHub, Jira, Linear)
+- Created PR submission guide for contributing skills to awesome-claude-skills
+- Added adapter modular structure analysis research document (1,612 lines)
+- Added API skills contribution strategy research document
+
 ## [2.1.2] - 2025-12-04
 
 ### Added
