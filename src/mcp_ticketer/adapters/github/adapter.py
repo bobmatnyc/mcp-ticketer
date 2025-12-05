@@ -26,28 +26,11 @@ from ...core.models import (
 from ...core.registry import AdapterRegistry
 from .client import GitHubClient
 from .mappers import (
-    build_github_issue_input,
-    build_github_issue_update_input,
-    epic_to_compact_format,
-    map_github_comment_to_comment,
     map_github_issue_to_task,
     map_github_milestone_to_epic,
     map_github_milestone_to_milestone,
-    task_to_compact_format,
 )
-from .queries import (
-    GET_ISSUE,
-    GET_ISSUE_COMMENTS,
-    GET_MILESTONE,
-    GET_PROJECT_ITERATIONS,
-    GET_REPOSITORY_COLLABORATORS,
-    GET_VIEWER,
-    LIST_LABELS,
-    LIST_MILESTONES,
-    LIST_REPOSITORY_ISSUES,
-    SEARCH_ISSUES,
-    SEARCH_ISSUES_COMPACT,
-)
+from .queries import GET_PROJECT_ITERATIONS, ISSUE_FRAGMENT, SEARCH_ISSUES
 from .types import (
     GitHubStateMapping,
     extract_state_from_issue,
@@ -55,7 +38,6 @@ from .types import (
     get_priority_from_labels,
     get_priority_label,
     get_state_label,
-    get_universal_state,
 )
 
 logger = logging.getLogger(__name__)
@@ -166,10 +148,7 @@ class GitHubAdapter(BaseAdapter[Task]):
 
     def _get_state_mapping(self) -> dict[TicketState, str]:
         """Map universal states to GitHub states (delegated to types module)."""
-        return {
-            state: get_github_state(state)
-            for state in TicketState
-        }
+        return {state: get_github_state(state) for state in TicketState}
 
     def _get_state_label(self, state: TicketState) -> str | None:
         """Get the label name for extended states (delegated to types module)."""
@@ -631,9 +610,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         github_query = " ".join(search_parts)
 
         # Use GraphQL for better search capabilities
-        full_query = (
-            GitHubGraphQLQueries.ISSUE_FRAGMENT + GitHubGraphQLQueries.SEARCH_ISSUES
-        )
+        full_query = ISSUE_FRAGMENT + SEARCH_ISSUES
 
         variables = {
             "query": github_query,
@@ -1504,7 +1481,7 @@ Fixes #{issue_number}
             )
 
         # Execute GraphQL query to fetch iterations
-        query = GitHubGraphQLQueries.GET_PROJECT_ITERATIONS
+        query = GET_PROJECT_ITERATIONS
         variables = {"projectId": project_id, "first": min(limit, 100), "after": None}
 
         try:

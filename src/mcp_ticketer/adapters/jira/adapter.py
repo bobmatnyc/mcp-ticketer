@@ -38,8 +38,6 @@ from .queries import (
     get_search_params,
 )
 from .types import (
-    JiraIssueType,
-    convert_to_adf,
     extract_text_from_adf,
     get_state_mapping,
     parse_jira_datetime,

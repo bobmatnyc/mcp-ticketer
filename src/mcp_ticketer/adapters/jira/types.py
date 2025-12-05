@@ -38,7 +38,7 @@ class JiraPriority(str, Enum):
 def get_state_mapping() -> dict[TicketState, str]:
     """Map universal states to common JIRA workflow states.
 
-    Returns
+    Returns:
     -------
         Dictionary mapping TicketState enum values to JIRA status names
 

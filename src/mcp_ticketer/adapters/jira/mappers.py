@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Union
+from typing import Any
 
-from ...core.models import Epic, Priority, Task, TicketState
+from ...core.models import Epic, Priority, Task
 from .types import (
     JiraIssueType,
     convert_from_adf,

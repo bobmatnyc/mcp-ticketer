@@ -245,7 +245,9 @@ class GitHubClient:
 
             # Check for GraphQL-level errors
             if "errors" in data:
-                error_messages = [err.get("message", str(err)) for err in data["errors"]]
+                error_messages = [
+                    err.get("message", str(err)) for err in data["errors"]
+                ]
                 raise ValueError(f"GraphQL errors: {', '.join(error_messages)}")
 
             return data.get("data", {})

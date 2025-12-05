@@ -1428,9 +1428,7 @@ class LinearAdapter(BaseAdapter[Task]):
             return []
 
         # Create name -> ID mapping (case-insensitive)
-        label_map = {
-            label["name"].lower(): label["id"] for label in cached_labels
-        }
+        label_map = {label["name"].lower(): label["id"] for label in cached_labels}
 
         logger.debug(f"Available labels in team: {list(label_map.keys())}")
 

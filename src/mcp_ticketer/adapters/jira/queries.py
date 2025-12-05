@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ...core.models import Priority, SearchQuery, TicketState
+from ...core.models import SearchQuery
 from .types import map_priority_to_jira
 
 

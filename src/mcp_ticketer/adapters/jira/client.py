@@ -63,7 +63,7 @@ class JiraClient:
     async def _get_client(self) -> AsyncClient:
         """Get configured async HTTP client.
 
-        Returns
+        Returns:
         -------
             Configured AsyncClient instance
 
