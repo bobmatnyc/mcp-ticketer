@@ -1,3 +1,8 @@
+---
+name: platforms-github-api
+description: GitHub REST API v3 and GraphQL v4 integration patterns for ticket management and automation
+---
+
 # platforms-github-api
 
 GitHub REST API v3 and GraphQL v4 integration patterns for ticket management and automation.

@@ -1,3 +1,8 @@
+---
+name: platforms-jira-api
+description: Jira REST API v3 integration patterns for issue tracking, sprint management, and JQL query optimization. Production-ready patterns for 2025 rate limiting.
+---
+
 # platforms-jira-api
 
 Jira REST API v3 integration patterns for issue tracking, sprint management, and JQL query optimization. Production-ready patterns for 2025 rate limiting, field expansion, and workflow management.

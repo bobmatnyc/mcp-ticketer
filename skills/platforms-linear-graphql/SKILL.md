@@ -1,3 +1,8 @@
+---
+name: platforms-linear-graphql
+description: Linear GraphQL API integration patterns for modern issue tracking with cycles, projects, and team-scoped workflows
+---
+
 # platforms-linear-graphql
 
 Linear GraphQL API integration patterns for modern issue tracking with cycles, projects, and team-scoped workflows.
