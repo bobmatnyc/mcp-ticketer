@@ -1321,7 +1321,8 @@ class LinearAdapter(BaseAdapter[Task]):
             label_id = created_label["id"]
 
             # Invalidate cache to force refresh on next access
-            await self._labels_cache.clear()
+            if self._labels_cache is not None:
+                await self._labels_cache.clear()
 
             logger.info(f"Created new label '{name}' with ID: {label_id}")
             return label_id
@@ -1371,7 +1372,8 @@ class LinearAdapter(BaseAdapter[Task]):
                             label_id = server_label["id"]
 
                             # Invalidate cache to force refresh on next access
-                            await self._labels_cache.clear()
+                            if self._labels_cache is not None:
+                                await self._labels_cache.clear()
 
                             logger.info(
                                 f"Successfully recovered existing label '{name}' (ID: {label_id}) "
@@ -1532,7 +1534,8 @@ class LinearAdapter(BaseAdapter[Task]):
                     label_map[name_lower] = label_id
 
                     # Invalidate cache to force refresh on next access
-                    await self._labels_cache.clear()
+                    if self._labels_cache is not None:
+                        await self._labels_cache.clear()
 
                     logger.info(
                         f"[Tier 2] Found stale label '{name}' on server (ID: {label_id}), "
@@ -2747,7 +2750,8 @@ class LinearAdapter(BaseAdapter[Task]):
         The cache will be automatically refreshed on the next label operation.
 
         """
-        await self._labels_cache.clear()
+        if self._labels_cache is not None:
+            await self._labels_cache.clear()
 
     async def upload_file(self, file_path: str, mime_type: str | None = None) -> str:
         """Upload a file to Linear's storage and return the asset URL.

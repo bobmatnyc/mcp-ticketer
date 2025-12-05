@@ -1874,7 +1874,7 @@ Fixes #{issue_number}
         # Save to local storage for label tracking
         from pathlib import Path
 
-        from ..core.milestone_manager import MilestoneManager
+        from ...core.milestone_manager import MilestoneManager
 
         config_dir = Path.home() / ".mcp-ticketer"
         manager = MilestoneManager(config_dir)
@@ -1901,7 +1901,7 @@ Fixes #{issue_number}
         """
         from pathlib import Path
 
-        from ..core.milestone_manager import MilestoneManager
+        from ...core.milestone_manager import MilestoneManager
 
         if not self.repo:
             raise ValueError("Repository required for GitHub milestone operations")
@@ -1955,7 +1955,7 @@ Fixes #{issue_number}
         """
         from pathlib import Path
 
-        from ..core.milestone_manager import MilestoneManager
+        from ...core.milestone_manager import MilestoneManager
 
         if not self.repo:
             raise ValueError("Repository required for GitHub milestone operations")
@@ -2030,7 +2030,7 @@ Fixes #{issue_number}
         from datetime import datetime as dt
         from pathlib import Path
 
-        from ..core.milestone_manager import MilestoneManager
+        from ...core.milestone_manager import MilestoneManager
 
         if not self.repo:
             raise ValueError("Repository required for GitHub milestone operations")
@@ -2106,7 +2106,7 @@ Fixes #{issue_number}
         """
         from pathlib import Path
 
-        from ..core.milestone_manager import MilestoneManager
+        from ...core.milestone_manager import MilestoneManager
 
         if not self.repo:
             raise ValueError("Repository required for GitHub milestone operations")
