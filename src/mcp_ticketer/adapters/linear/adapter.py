@@ -1063,7 +1063,10 @@ class LinearAdapter(BaseAdapter[Task]):
             raise ValueError(f"Failed to load workflow states: {e}") from e
 
     async def _load_team_labels(self, team_id: str) -> None:
-        """Load and cache labels for the team with retry logic.
+        """Load and cache labels for the team with retry logic and pagination.
+
+        Fetches ALL labels for the team using cursor-based pagination.
+        Handles teams with >250 labels (Linear's default page size).
 
         Args:
         ----
@@ -1073,14 +1076,18 @@ class LinearAdapter(BaseAdapter[Task]):
         logger = logging.getLogger(__name__)
 
         query = """
-            query GetTeamLabels($teamId: String!) {
+            query GetTeamLabels($teamId: String!, $first: Int!, $after: String) {
                 team(id: $teamId) {
-                    labels {
+                    labels(first: $first, after: $after) {
                         nodes {
                             id
                             name
                             color
                             description
+                        }
+                        pageInfo {
+                            hasNextPage
+                            endCursor
                         }
                     }
                 }
@@ -1090,13 +1097,38 @@ class LinearAdapter(BaseAdapter[Task]):
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                result = await self.client.execute_query(query, {"teamId": team_id})
-                labels = result.get("team", {}).get("labels", {}).get("nodes", [])
+                # Fetch all labels with pagination
+                all_labels: list[dict] = []
+                has_next_page = True
+                after_cursor = None
+                page_count = 0
+                max_pages = 10  # Safety limit: 10 pages * 250 labels = 2500 labels max
+
+                while has_next_page and page_count < max_pages:
+                    page_count += 1
+                    variables = {"teamId": team_id, "first": 250}
+                    if after_cursor:
+                        variables["after"] = after_cursor
+
+                    result = await self.client.execute_query(query, variables)
+                    labels_data = result.get("team", {}).get("labels", {})
+                    page_labels = labels_data.get("nodes", [])
+                    page_info = labels_data.get("pageInfo", {})
+
+                    all_labels.extend(page_labels)
+                    has_next_page = page_info.get("hasNextPage", False)
+                    after_cursor = page_info.get("endCursor")
+
+                if page_count >= max_pages and has_next_page:
+                    logger.warning(
+                        f"Reached max page limit ({max_pages}) for team {team_id}. "
+                        f"Loaded {len(all_labels)} labels, but more may exist."
+                    )
 
                 # Store in TTL-based cache
                 cache_key = f"linear_labels:{team_id}"
-                await self._labels_cache.set(cache_key, labels)
-                logger.info(f"Loaded {len(labels)} labels for team {team_id}")
+                await self._labels_cache.set(cache_key, all_labels)
+                logger.info(f"Loaded {len(all_labels)} labels for team {team_id} ({page_count} page(s))")
                 return  # Success
 
             except Exception as e:
@@ -1119,7 +1151,7 @@ class LinearAdapter(BaseAdapter[Task]):
     async def _find_label_by_name(
         self, name: str, team_id: str, max_retries: int = 3
     ) -> dict | None:
-        """Find a label by name using Linear API (server-side check) with retry logic.
+        """Find a label by name using Linear API (server-side check) with retry logic and pagination.
 
         Handles cache staleness by checking Linear's server-side state.
         This method is used when cache lookup misses to prevent duplicate
@@ -1128,6 +1160,10 @@ class LinearAdapter(BaseAdapter[Task]):
         Implements retry logic with exponential backoff to handle transient
         network failures and distinguish between "label not found" (None) and
         "check failed" (exception).
+
+        Uses cursor-based pagination with early exit optimization to handle
+        teams with >250 labels efficiently. Stops searching as soon as the
+        label is found.
 
         Args:
         ----
@@ -1146,11 +1182,6 @@ class LinearAdapter(BaseAdapter[Task]):
                       (network/API failure). Caller must handle to prevent
                       duplicate label creation.
 
-        Note:
-        ----
-            This method queries Linear's API and returns the first 250 labels.
-            For teams with >250 labels, pagination would be needed (future enhancement).
-
         Related:
         -------
             1M-443: Fix duplicate label error when setting existing labels
@@ -1160,14 +1191,18 @@ class LinearAdapter(BaseAdapter[Task]):
         logger = logging.getLogger(__name__)
 
         query = """
-            query GetTeamLabels($teamId: String!) {
+            query GetTeamLabels($teamId: String!, $first: Int!, $after: String) {
                 team(id: $teamId) {
-                    labels(first: 250) {
+                    labels(first: $first, after: $after) {
                         nodes {
                             id
                             name
                             color
                             description
+                        }
+                        pageInfo {
+                            hasNextPage
+                            endCursor
                         }
                     }
                 }
@@ -1176,20 +1211,47 @@ class LinearAdapter(BaseAdapter[Task]):
 
         for attempt in range(max_retries):
             try:
-                result = await self.client.execute_query(query, {"teamId": team_id})
-                labels = result.get("team", {}).get("labels", {}).get("nodes", [])
-
-                # Case-insensitive search
+                # Search with pagination and early exit
                 name_lower = name.lower()
-                for label in labels:
-                    if label["name"].lower() == name_lower:
-                        logger.debug(
-                            f"Found label '{name}' via server-side search (ID: {label['id']})"
-                        )
-                        return label
+                has_next_page = True
+                after_cursor = None
+                page_count = 0
+                max_pages = 10  # Safety limit: 10 pages * 250 labels = 2500 labels max
+                total_checked = 0
+
+                while has_next_page and page_count < max_pages:
+                    page_count += 1
+                    variables = {"teamId": team_id, "first": 250}
+                    if after_cursor:
+                        variables["after"] = after_cursor
+
+                    result = await self.client.execute_query(query, variables)
+                    labels_data = result.get("team", {}).get("labels", {})
+                    page_labels = labels_data.get("nodes", [])
+                    page_info = labels_data.get("pageInfo", {})
+
+                    total_checked += len(page_labels)
+
+                    # Case-insensitive search in current page
+                    for label in page_labels:
+                        if label["name"].lower() == name_lower:
+                            logger.debug(
+                                f"Found label '{name}' via server-side search "
+                                f"(ID: {label['id']}, checked {total_checked} labels)"
+                            )
+                            return label
+
+                    has_next_page = page_info.get("hasNextPage", False)
+                    after_cursor = page_info.get("endCursor")
+
+                if page_count >= max_pages and has_next_page:
+                    logger.warning(
+                        f"Reached max page limit ({max_pages}) searching for label '{name}'. "
+                        f"Checked {total_checked} labels, but more exist."
+                    )
 
                 # Label definitively doesn't exist (successful check)
-                logger.debug(f"Label '{name}' not found in {len(labels)} team labels")
+                logger.debug(f"Label '{name}' not found in {total_checked} team labels")
                 return None
 
             except Exception as e:
