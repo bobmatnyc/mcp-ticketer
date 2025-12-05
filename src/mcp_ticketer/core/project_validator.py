@@ -235,7 +235,7 @@ class ProjectValidator:
                 error_type="credentials_invalid",
                 suggestions=[
                     f"Review {platform} adapter configuration",
-                    f"Run: config(action='get') to see current settings",
+                    "Run: config(action='get') to see current settings",
                     f"Fix missing/invalid fields: {validation_error}",
                     f"Or reconfigure: config(action='setup_wizard', adapter_type='{platform}', credentials={{...}})",
                 ],
@@ -328,7 +328,9 @@ class ProjectValidator:
         for key in masked:
             if any(sensitive in key.lower() for sensitive in sensitive_keys):
                 if masked[key]:
-                    masked[key] = "***" + masked[key][-4:] if len(masked[key]) > 4 else "***"
+                    masked[key] = (
+                        "***" + masked[key][-4:] if len(masked[key]) > 4 else "***"
+                    )
 
         return masked
 
@@ -357,7 +359,7 @@ class ProjectValidator:
         """
         try:
             # Get adapter instance
-            adapter = AdapterRegistry.get_adapter(platform, adapter_config)
+            _ = AdapterRegistry.get_adapter(platform, adapter_config)
 
             # Test project access (adapter-specific)
             # This will raise an exception if project is not accessible

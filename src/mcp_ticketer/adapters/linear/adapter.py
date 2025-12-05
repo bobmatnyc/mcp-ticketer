@@ -1128,7 +1128,9 @@ class LinearAdapter(BaseAdapter[Task]):
                 # Store in TTL-based cache
                 cache_key = f"linear_labels:{team_id}"
                 await self._labels_cache.set(cache_key, all_labels)
-                logger.info(f"Loaded {len(all_labels)} labels for team {team_id} ({page_count} page(s))")
+                logger.info(
+                    f"Loaded {len(all_labels)} labels for team {team_id} ({page_count} page(s))"
+                )
                 return  # Success
 
             except Exception as e:

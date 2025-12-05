@@ -26,6 +26,7 @@ Performance: Configuration is cached in memory by ConfigResolver,
 so repeated reads are fast (O(1) after first load).
 """
 
+import logging
 import warnings
 from pathlib import Path
 from typing import Any
@@ -38,6 +39,8 @@ from ....core.project_config import (
 )
 from ....core.registry import AdapterRegistry
 from ..server_sdk import mcp
+
+logger = logging.getLogger(__name__)
 
 
 def get_resolver() -> ConfigResolver:

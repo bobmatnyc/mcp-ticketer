@@ -672,10 +672,10 @@ class TicketRouter:
         """
         try:
             # Import project validator
-            from ...core.project_validator import ProjectValidator
-
             # Create validator (use router's config for consistency)
             from pathlib import Path
+
+            from ...core.project_validator import ProjectValidator
 
             validator = ProjectValidator(project_path=Path.cwd())
 

@@ -14,12 +14,15 @@ Test Coverage:
 - Error message clarity and suggestions
 """
 
-import pytest
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-from mcp_ticketer.core.project_validator import ProjectValidator, ProjectValidationResult
-from mcp_ticketer.core.project_config import TicketerConfig, AdapterConfig
+import pytest
+
+from mcp_ticketer.core.project_config import AdapterConfig, TicketerConfig
+from mcp_ticketer.core.project_validator import (
+    ProjectValidationResult,
+    ProjectValidator,
+)
 
 
 class TestProjectValidator:
@@ -42,7 +45,10 @@ class TestProjectValidator:
         """Mock configuration with GitHub adapter configured."""
         config = TicketerConfig()
         config.adapters["github"] = AdapterConfig(
-            adapter="github", token="ghp_test1234567890", owner="testorg", repo="testrepo"
+            adapter="github",
+            token="ghp_test1234567890",
+            owner="testorg",
+            repo="testrepo",
         )
         config.default_adapter = "github"
         return config
@@ -131,7 +137,9 @@ class TestProjectValidator:
         validator = ProjectValidator(project_path=tmp_path)
 
         # Execute
-        result = validator.validate_project_url("not-a-valid-url", test_connection=False)
+        result = validator.validate_project_url(
+            "not-a-valid-url", test_connection=False
+        )
 
         # Verify
         assert result.valid is False
@@ -253,7 +261,9 @@ class TestProjectValidator:
         """Test platform detection for GitHub URLs."""
         validator = ProjectValidator(project_path=tmp_path)
 
-        platform = validator._detect_platform("https://github.com/owner/repo/projects/1")
+        platform = validator._detect_platform(
+            "https://github.com/owner/repo/projects/1"
+        )
         assert platform == "github"
 
     def test_platform_detection_jira(self, tmp_path):
@@ -273,9 +283,7 @@ class TestProjectValidator:
         """Test platform detection for Asana URLs."""
         validator = ProjectValidator(project_path=tmp_path)
 
-        platform = validator._detect_platform(
-            "https://app.asana.com/0/123456/987654"
-        )
+        platform = validator._detect_platform("https://app.asana.com/0/123456/987654")
         assert platform == "asana"
 
     def test_sensitive_config_masking(self, tmp_path):
