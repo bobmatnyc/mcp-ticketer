@@ -137,8 +137,8 @@ zip-safe = false
 version = {attr = "mcp_ticketer.__version__.__version__"}
 
 [tool.setuptools.packages.find]
-where = ["src"]
-include = ["mcp_ticketer*"]
+where = ["src", "src/services"]
+include = ["mcp_ticketer*", "py_mcp_installer*"]
 exclude = ["tests*"]
 
 [tool.setuptools.package-data]
