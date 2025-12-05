@@ -1,0 +1,3 @@
+[submodule "src/services/py_mcp_installer"]
+	path = src/services/py_mcp_installer
+	url = https://github.com/bobmatnyc/py-mcp-installer-service.git
