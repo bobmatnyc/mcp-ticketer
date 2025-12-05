@@ -246,6 +246,228 @@ LIST_REPOSITORY_ISSUES = (
 # Project Queries (Projects V2)
 # =============================================================================
 
+# --- ProjectV2 Fragment (Reusable Fields) ---
+
+PROJECT_V2_FRAGMENT = """
+    fragment ProjectV2Fields on ProjectV2 {
+        id
+        number
+        title
+        shortDescription
+        readme
+        public
+        closed
+        url
+        createdAt
+        updatedAt
+        closedAt
+        owner {
+            __typename
+            ... on Organization {
+                login
+                id
+            }
+            ... on User {
+                login
+                id
+            }
+        }
+    }
+"""
+
+# --- Core ProjectV2 Queries ---
+
+GET_PROJECT_QUERY = (
+    PROJECT_V2_FRAGMENT
+    + """
+    query GetProjectByNumber($owner: String!, $number: Int!) {
+        organization(login: $owner) {
+            projectV2(number: $number) {
+                ...ProjectV2Fields
+                items {
+                    totalCount
+                }
+            }
+        }
+    }
+"""
+)
+
+GET_PROJECT_BY_ID_QUERY = (
+    PROJECT_V2_FRAGMENT
+    + """
+    query GetProjectById($projectId: ID!) {
+        node(id: $projectId) {
+            ... on ProjectV2 {
+                ...ProjectV2Fields
+                items {
+                    totalCount
+                }
+            }
+        }
+    }
+"""
+)
+
+LIST_PROJECTS_QUERY = (
+    PROJECT_V2_FRAGMENT
+    + """
+    query ListProjects($owner: String!, $first: Int!, $after: String) {
+        organization(login: $owner) {
+            projectsV2(first: $first, after: $after, orderBy: {field: UPDATED_AT, direction: DESC}) {
+                totalCount
+                pageInfo {
+                    hasNextPage
+                    endCursor
+                }
+                nodes {
+                    ...ProjectV2Fields
+                }
+            }
+        }
+    }
+"""
+)
+
+PROJECT_ITEMS_QUERY = """
+    query GetProjectItems($projectId: ID!, $first: Int!, $after: String) {
+        node(id: $projectId) {
+            ... on ProjectV2 {
+                items(first: $first, after: $after) {
+                    totalCount
+                    pageInfo {
+                        hasNextPage
+                        endCursor
+                    }
+                    nodes {
+                        id
+                        content {
+                            __typename
+                            ... on Issue {
+                                id
+                                number
+                                title
+                                state
+                                labels(first: 20) {
+                                    nodes {
+                                        name
+                                    }
+                                }
+                            }
+                            ... on PullRequest {
+                                id
+                                number
+                                title
+                                state
+                            }
+                            ... on DraftIssue {
+                                id
+                                title
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+"""
+
+# --- ProjectV2 Mutations ---
+
+CREATE_PROJECT_MUTATION = """
+    mutation CreateProject($ownerId: ID!, $title: String!) {
+        createProjectV2(input: {
+            ownerId: $ownerId
+            title: $title
+        }) {
+            projectV2 {
+                id
+                number
+                title
+                url
+                createdAt
+            }
+        }
+    }
+"""
+
+UPDATE_PROJECT_MUTATION = """
+    mutation UpdateProject(
+        $projectId: ID!,
+        $title: String,
+        $shortDescription: String,
+        $readme: String,
+        $public: Boolean,
+        $closed: Boolean
+    ) {
+        updateProjectV2(input: {
+            projectId: $projectId
+            title: $title
+            shortDescription: $shortDescription
+            readme: $readme
+            public: $public
+            closed: $closed
+        }) {
+            projectV2 {
+                id
+                number
+                title
+                shortDescription
+                readme
+                public
+                closed
+                updatedAt
+            }
+        }
+    }
+"""
+
+DELETE_PROJECT_MUTATION = """
+    mutation DeleteProject($projectId: ID!) {
+        deleteProjectV2(input: {
+            projectId: $projectId
+        }) {
+            projectV2 {
+                id
+                number
+            }
+        }
+    }
+"""
+
+ADD_PROJECT_ITEM_MUTATION = """
+    mutation AddIssueToProject($projectId: ID!, $contentId: ID!) {
+        addProjectV2ItemById(input: {
+            projectId: $projectId
+            contentId: $contentId
+        }) {
+            item {
+                id
+                content {
+                    ... on Issue {
+                        id
+                        number
+                        title
+                    }
+                }
+            }
+        }
+    }
+"""
+
+REMOVE_PROJECT_ITEM_MUTATION = """
+    mutation RemoveIssueFromProject($projectId: ID!, $itemId: ID!) {
+        deleteProjectV2Item(input: {
+            projectId: $projectId
+            itemId: $itemId
+        }) {
+            deletedItemId
+        }
+    }
+"""
+
+# --- Legacy ProjectV2 Queries (Deprecated - use above instead) ---
+
 GET_PROJECT_ITERATIONS = """
     query GetProjectIterations($projectId: ID!, $first: Int!, $after: String) {
         node(id: $projectId) {

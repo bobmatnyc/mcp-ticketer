@@ -4,11 +4,12 @@ This module contains:
 - State and priority mappings between GitHub and universal models
 - Type conversion helper functions
 - GitHub-specific constants and enums
+- TypedDict definitions for GitHub API responses
 """
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TypedDict
 
 from ...core.models import Priority, TicketState
 
@@ -277,3 +278,183 @@ def get_github_state(state: TicketState) -> str:
     if state in (TicketState.DONE, TicketState.CLOSED):
         return GitHubStateMapping.CLOSED
     return GitHubStateMapping.OPEN
+
+
+# =============================================================================
+# GitHub Projects V2 Type Definitions
+# =============================================================================
+
+
+class ProjectV2Owner(TypedDict, total=False):
+    """GitHub ProjectV2 owner (Organization or User).
+
+    Attributes:
+        __typename: Type discriminator ("Organization" or "User")
+        login: Owner login name
+        id: Owner node ID
+    """
+
+    __typename: str
+    login: str
+    id: str
+
+
+class ProjectV2PageInfo(TypedDict, total=False):
+    """GraphQL pagination info for ProjectV2 queries.
+
+    Attributes:
+        hasNextPage: Whether more results exist
+        endCursor: Cursor for next page
+    """
+
+    hasNextPage: bool
+    endCursor: str | None
+
+
+class ProjectV2ItemsConnection(TypedDict, total=False):
+    """ProjectV2 items connection.
+
+    Attributes:
+        totalCount: Total number of items in project
+    """
+
+    totalCount: int
+
+
+class ProjectV2Node(TypedDict, total=False):
+    """GitHub ProjectV2 GraphQL node.
+
+    Represents a single GitHub Projects V2 project from the GraphQL API.
+    This type matches the structure returned by PROJECT_V2_FRAGMENT.
+
+    Design Decision: Total vs Required Fields
+    -----------------------------------------
+    Using total=False allows optional fields to be omitted, matching the
+    GraphQL API where many fields are nullable or may not be queried.
+
+    Required fields (id, number, title) are still enforced at the Pydantic
+    model level in map_github_projectv2_to_project().
+
+    Attributes:
+        id: GitHub node ID (e.g., "PVT_kwDOABcdefgh")
+        number: Project number (e.g., 5)
+        title: Project title
+        shortDescription: Brief description (max 256 chars)
+        readme: Markdown readme content
+        public: Whether project is publicly visible
+        closed: Whether project is closed
+        url: Direct URL to project
+        createdAt: ISO timestamp of creation
+        updatedAt: ISO timestamp of last update
+        closedAt: ISO timestamp of closure (if closed)
+        owner: Owner (Organization or User)
+        items: Items connection with totalCount
+    """
+
+    id: str
+    number: int
+    title: str
+    shortDescription: str | None
+    readme: str | None
+    public: bool
+    closed: bool
+    url: str
+    createdAt: str
+    updatedAt: str
+    closedAt: str | None
+    owner: ProjectV2Owner
+    items: ProjectV2ItemsConnection | None
+
+
+class ProjectV2Response(TypedDict, total=False):
+    """Response from GET_PROJECT_QUERY or GET_PROJECT_BY_ID_QUERY.
+
+    Single project query response wrapping the project node.
+
+    Attributes:
+        organization: Organization containing projectV2 field
+        node: Direct node lookup result
+    """
+
+    organization: dict[str, ProjectV2Node | None]
+    node: ProjectV2Node | None
+
+
+class ProjectV2Connection(TypedDict, total=False):
+    """Connection of ProjectV2 nodes with pagination.
+
+    Attributes:
+        totalCount: Total number of projects
+        pageInfo: Pagination information
+        nodes: List of project nodes
+    """
+
+    totalCount: int
+    pageInfo: ProjectV2PageInfo
+    nodes: list[ProjectV2Node]
+
+
+class ProjectListResponse(TypedDict, total=False):
+    """Response from LIST_PROJECTS_QUERY.
+
+    Attributes:
+        organization: Organization containing projectsV2 connection
+    """
+
+    organization: dict[str, ProjectV2Connection]
+
+
+class ProjectItemContent(TypedDict, total=False):
+    """Content of a project item (Issue, PR, or DraftIssue).
+
+    Attributes:
+        __typename: Content type discriminator
+        id: Content node ID
+        number: Issue/PR number (not present for DraftIssue)
+        title: Content title
+        state: Content state (OPEN/CLOSED for issues, etc.)
+        labels: Labels connection (issues only)
+    """
+
+    __typename: str
+    id: str
+    number: int | None
+    title: str
+    state: str | None
+    labels: dict[str, list[dict[str, str]]] | None
+
+
+class ProjectItemNode(TypedDict, total=False):
+    """Single project item node.
+
+    Attributes:
+        id: Project item ID (not the same as content ID)
+        content: The actual content (Issue, PR, or DraftIssue)
+    """
+
+    id: str
+    content: ProjectItemContent
+
+
+class ProjectItemsConnection(TypedDict, total=False):
+    """Connection of project items with pagination.
+
+    Attributes:
+        totalCount: Total items in project
+        pageInfo: Pagination info
+        nodes: List of project item nodes
+    """
+
+    totalCount: int
+    pageInfo: ProjectV2PageInfo
+    nodes: list[ProjectItemNode]
+
+
+class ProjectItemsResponse(TypedDict, total=False):
+    """Response from PROJECT_ITEMS_QUERY.
+
+    Attributes:
+        node: ProjectV2 node containing items connection
+    """
+
+    node: dict[str, ProjectItemsConnection]
