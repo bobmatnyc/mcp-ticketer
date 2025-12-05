@@ -600,6 +600,226 @@ class Milestone(BaseModel):
     )
 
 
+class ProjectState(str, Enum):
+    """Project state across platforms.
+
+    Maps to different platform concepts:
+    - Linear: planned, started, completed, paused, canceled
+    - GitHub V2: OPEN, CLOSED (with status field for more granular states)
+    - JIRA: Not directly supported (use project status or custom fields)
+
+    Attributes:
+        PLANNED: Project is planned but not yet started
+        ACTIVE: Project is actively being worked on
+        COMPLETED: Project is finished successfully
+        ARCHIVED: Project is archived (no longer active)
+        CANCELLED: Project was cancelled before completion
+
+    """
+
+    PLANNED = "planned"
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    ARCHIVED = "archived"
+    CANCELLED = "cancelled"
+
+
+class ProjectVisibility(str, Enum):
+    """Project visibility setting.
+
+    Controls who can view the project across platforms.
+
+    Attributes:
+        PUBLIC: Visible to everyone
+        PRIVATE: Visible only to members
+        TEAM: Visible to team members
+
+    """
+
+    PUBLIC = "public"
+    PRIVATE = "private"
+    TEAM = "team"
+
+
+class ProjectScope(str, Enum):
+    """Project organizational scope.
+
+    Defines the level at which a project exists in the organization hierarchy.
+
+    Platform Mappings:
+    - Linear: TEAM (projects belong to teams) or ORGANIZATION
+    - GitHub: REPOSITORY, USER, or ORGANIZATION
+    - JIRA: PROJECT (inherent) or ORGANIZATION (via project hierarchy)
+
+    Attributes:
+        USER: User-level project (GitHub Projects V2)
+        TEAM: Team-level project (Linear, GitHub org teams)
+        ORGANIZATION: Organization-level project (cross-team)
+        REPOSITORY: Repository-scoped project (GitHub)
+
+    """
+
+    USER = "user"
+    TEAM = "team"
+    ORGANIZATION = "organization"
+    REPOSITORY = "repository"
+
+
+class Project(BaseModel):
+    """Unified project model across platforms.
+
+    Projects represent strategic-level containers for issues, superseding the
+    Epic model with a more comprehensive structure that maps cleanly to:
+    - Linear Projects
+    - GitHub Projects V2
+    - JIRA Projects/Epics
+
+    This model provides backward compatibility through conversion utilities
+    (see project_utils.py) while enabling richer project management features.
+
+    Attributes:
+        id: Unique identifier in MCP Ticketer namespace
+        platform: Platform identifier ("linear", "github", "jira")
+        platform_id: Original platform-specific identifier
+        scope: Organizational scope of the project
+        name: Project name (required)
+        description: Detailed project description
+        state: Current project state
+        visibility: Who can view the project
+        url: Direct URL to project in platform
+        created_at: When project was created
+        updated_at: When project was last modified
+        start_date: Planned or actual start date
+        target_date: Target completion date
+        completed_at: Actual completion date
+        owner_id: Project owner/lead user ID
+        owner_name: Project owner/lead display name
+        team_id: Team this project belongs to
+        team_name: Team display name
+        child_issues: List of issue IDs in this project
+        issue_count: Total number of issues
+        completed_count: Number of completed issues
+        in_progress_count: Number of in-progress issues
+        progress_percentage: Overall completion percentage
+        extra_data: Platform-specific additional data
+
+    Example:
+        >>> project = Project(
+        ...     id="proj-123",
+        ...     platform="linear",
+        ...     platform_id="eac28953c267",
+        ...     scope=ProjectScope.TEAM,
+        ...     name="MCP Ticketer v2.0",
+        ...     state=ProjectState.ACTIVE,
+        ...     visibility=ProjectVisibility.TEAM
+        ... )
+
+    """
+
+    model_config = ConfigDict(use_enum_values=True)
+
+    # Core identification
+    id: str = Field(..., description="Unique identifier")
+    platform: str = Field(..., description="Platform name (linear, github, jira)")
+    platform_id: str = Field(..., description="Original platform ID")
+    scope: ProjectScope = Field(..., description="Organizational scope")
+
+    # Basic information
+    name: str = Field(..., min_length=1, description="Project name")
+    description: str | None = Field(None, description="Project description")
+    state: ProjectState = Field(ProjectState.PLANNED, description="Current state")
+    visibility: ProjectVisibility = Field(ProjectVisibility.TEAM, description="Visibility")
+
+    # URLs and references
+    url: str | None = Field(None, description="Direct URL to project")
+
+    # Dates
+    created_at: datetime | None = Field(None, description="Creation timestamp")
+    updated_at: datetime | None = Field(None, description="Last update timestamp")
+    start_date: datetime | None = Field(None, description="Start date")
+    target_date: datetime | None = Field(None, description="Target completion date")
+    completed_at: datetime | None = Field(None, description="Completion timestamp")
+
+    # Ownership
+    owner_id: str | None = Field(None, description="Owner user ID")
+    owner_name: str | None = Field(None, description="Owner display name")
+    team_id: str | None = Field(None, description="Team ID")
+    team_name: str | None = Field(None, description="Team display name")
+
+    # Issue relationships
+    child_issues: list[str] = Field(default_factory=list, description="Child issue IDs")
+    issue_count: int | None = Field(None, ge=0, description="Total issue count")
+    completed_count: int | None = Field(None, ge=0, description="Completed issues")
+    in_progress_count: int | None = Field(None, ge=0, description="In-progress issues")
+    progress_percentage: float | None = Field(
+        None, ge=0.0, le=100.0, description="Completion percentage"
+    )
+
+    # Platform-specific data
+    extra_data: dict[str, Any] = Field(
+        default_factory=dict, description="Platform-specific metadata"
+    )
+
+    def calculate_progress(self) -> float:
+        """Calculate progress percentage from issue counts.
+
+        Returns:
+            Progress percentage (0-100), or 0 if no issues
+
+        """
+        if not self.issue_count or self.issue_count == 0:
+            return 0.0
+
+        completed = self.completed_count or 0
+        return (completed / self.issue_count) * 100.0
+
+
+class ProjectStatistics(BaseModel):
+    """Statistics and metrics for a project.
+
+    Provides calculated metrics for project health and progress tracking.
+    These statistics are typically computed from current project state
+    rather than stored directly.
+
+    Attributes:
+        project_id: ID of the project these stats belong to
+        total_issues: Total number of issues
+        completed_issues: Count of completed issues
+        in_progress_issues: Count of in-progress issues
+        open_issues: Count of open/backlog issues
+        blocked_issues: Count of blocked issues
+        progress_percentage: Overall completion percentage
+        velocity: Issues completed per week (if available)
+        estimated_completion: Projected completion date
+
+    Example:
+        >>> stats = ProjectStatistics(
+        ...     project_id="proj-123",
+        ...     total_issues=50,
+        ...     completed_issues=30,
+        ...     in_progress_issues=15,
+        ...     open_issues=5,
+        ...     blocked_issues=0,
+        ...     progress_percentage=60.0
+        ... )
+
+    """
+
+    model_config = ConfigDict(use_enum_values=True)
+
+    project_id: str = Field(..., description="Project identifier")
+    total_issues: int = Field(0, ge=0, description="Total issue count")
+    completed_issues: int = Field(0, ge=0, description="Completed issues")
+    in_progress_issues: int = Field(0, ge=0, description="In-progress issues")
+    open_issues: int = Field(0, ge=0, description="Open/backlog issues")
+    blocked_issues: int = Field(0, ge=0, description="Blocked issues")
+    progress_percentage: float = Field(0.0, ge=0.0, le=100.0, description="Progress %")
+    velocity: float | None = Field(None, description="Issues/week completion rate")
+    estimated_completion: datetime | None = Field(
+        None, description="Projected completion date"
+    )
+
+
 class SearchQuery(BaseModel):
     """Search query parameters."""
 

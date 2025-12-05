@@ -15,11 +15,20 @@ from .models import (
     Epic,
     Milestone,
     Priority,
+    Project,
+    ProjectScope,
+    ProjectState,
+    ProjectStatistics,
     ProjectUpdate,
     ProjectUpdateHealth,
+    ProjectVisibility,
     Task,
     TicketState,
     TicketType,
+)
+from .project_utils import (
+    epic_to_project,
+    project_to_epic,
 )
 from .registry import AdapterRegistry
 from .state_matcher import (
@@ -30,24 +39,39 @@ from .state_matcher import (
 )
 
 __all__ = [
+    # Core ticket models
     "Epic",
     "Task",
     "Comment",
     "Attachment",
     "Milestone",
+    # Project models
+    "Project",
+    "ProjectScope",
+    "ProjectState",
+    "ProjectStatistics",
+    "ProjectVisibility",
     "ProjectUpdate",
     "ProjectUpdateHealth",
+    # Project utilities
+    "epic_to_project",
+    "project_to_epic",
+    # Enums
     "TicketState",
     "Priority",
     "TicketType",
+    # Adapters
     "BaseAdapter",
     "AdapterRegistry",
+    # Managers
     "MilestoneManager",
     "TicketInstructionsManager",
+    # Instructions
     "InstructionsError",
     "InstructionsNotFoundError",
     "InstructionsValidationError",
     "get_instructions",
+    # State matching
     "SemanticStateMatcher",
     "StateMatchResult",
     "ValidationResult",

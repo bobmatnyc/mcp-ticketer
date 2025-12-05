@@ -7,7 +7,19 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
-from .models import Comment, Epic, Milestone, SearchQuery, Task, TicketState, TicketType
+from .models import (
+    Comment,
+    Epic,
+    Milestone,
+    Project,
+    ProjectScope,
+    ProjectState,
+    ProjectStatistics,
+    SearchQuery,
+    Task,
+    TicketState,
+    TicketType,
+)
 from .state_matcher import get_state_matcher
 
 if TYPE_CHECKING:
@@ -739,3 +751,230 @@ class BaseAdapter(ABC, Generic[T]):
 
         """
         pass
+
+    # Project Operations (Phase 1 - Abstract methods)
+    # These methods are optional - adapters that don't support projects
+    # can raise NotImplementedError with a helpful message
+
+    async def project_list(
+        self,
+        scope: ProjectScope | None = None,
+        state: ProjectState | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> builtins.list[Project]:
+        """List projects with optional filters.
+
+        Args:
+        ----
+            scope: Filter by project scope (user, team, org, repo)
+            state: Filter by project state
+            limit: Maximum results (default: 50)
+            offset: Pagination offset (default: 0)
+
+        Returns:
+        -------
+            List of Project objects
+
+        Raises:
+        ------
+            NotImplementedError: If adapter doesn't support projects
+
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support project operations. "
+            "Use Epic operations for this adapter."
+        )
+
+    async def project_get(self, project_id: str) -> Project | None:
+        """Get project by ID.
+
+        Args:
+        ----
+            project_id: Project identifier (platform-specific or unified)
+
+        Returns:
+        -------
+            Project object if found, None otherwise
+
+        Raises:
+        ------
+            NotImplementedError: If adapter doesn't support projects
+
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support project operations. "
+            "Use get_epic() for this adapter."
+        )
+
+    async def project_create(
+        self,
+        name: str,
+        description: str | None = None,
+        state: ProjectState = ProjectState.PLANNED,
+        target_date: datetime | None = None,
+        **kwargs: Any,
+    ) -> Project:
+        """Create new project.
+
+        Args:
+        ----
+            name: Project name (required)
+            description: Project description
+            state: Initial project state (default: PLANNED)
+            target_date: Target completion date
+            **kwargs: Platform-specific additional fields
+
+        Returns:
+        -------
+            Created Project object
+
+        Raises:
+        ------
+            NotImplementedError: If adapter doesn't support projects
+
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support project operations. "
+            "Use create_epic() for this adapter."
+        )
+
+    async def project_update(
+        self,
+        project_id: str,
+        name: str | None = None,
+        description: str | None = None,
+        state: ProjectState | None = None,
+        **kwargs: Any,
+    ) -> Project | None:
+        """Update project properties.
+
+        Args:
+        ----
+            project_id: Project identifier
+            name: New name (optional)
+            description: New description (optional)
+            state: New state (optional)
+            **kwargs: Platform-specific fields to update
+
+        Returns:
+        -------
+            Updated Project object, None if not found
+
+        Raises:
+        ------
+            NotImplementedError: If adapter doesn't support projects
+
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support project operations."
+        )
+
+    async def project_delete(self, project_id: str) -> bool:
+        """Delete or archive project.
+
+        Args:
+        ----
+            project_id: Project identifier
+
+        Returns:
+        -------
+            True if deleted successfully, False otherwise
+
+        Raises:
+        ------
+            NotImplementedError: If adapter doesn't support projects
+
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support project operations."
+        )
+
+    async def project_get_issues(
+        self, project_id: str, state: TicketState | None = None
+    ) -> builtins.list[Task]:
+        """Get all issues in project.
+
+        Args:
+        ----
+            project_id: Project identifier
+            state: Filter by issue state (optional)
+
+        Returns:
+        -------
+            List of Task objects (issues in project)
+
+        Raises:
+        ------
+            NotImplementedError: If adapter doesn't support projects
+
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support project operations. "
+            "Use list_issues_by_epic() for this adapter."
+        )
+
+    async def project_add_issue(self, project_id: str, issue_id: str) -> bool:
+        """Add issue to project.
+
+        Args:
+        ----
+            project_id: Project identifier
+            issue_id: Issue identifier to add
+
+        Returns:
+        -------
+            True if added successfully, False otherwise
+
+        Raises:
+        ------
+            NotImplementedError: If adapter doesn't support projects
+
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support project operations."
+        )
+
+    async def project_remove_issue(self, project_id: str, issue_id: str) -> bool:
+        """Remove issue from project.
+
+        Args:
+        ----
+            project_id: Project identifier
+            issue_id: Issue identifier to remove
+
+        Returns:
+        -------
+            True if removed successfully, False otherwise
+
+        Raises:
+        ------
+            NotImplementedError: If adapter doesn't support projects
+
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support project operations."
+        )
+
+    async def project_get_statistics(self, project_id: str) -> ProjectStatistics:
+        """Get project statistics and metrics.
+
+        Calculates or retrieves statistics including issue counts by state,
+        progress percentage, and velocity metrics.
+
+        Args:
+        ----
+            project_id: Project identifier
+
+        Returns:
+        -------
+            ProjectStatistics object with calculated metrics
+
+        Raises:
+        ------
+            NotImplementedError: If adapter doesn't support projects
+
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support project statistics."
+        )
