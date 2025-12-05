@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.2.1] - 2025-12-05
+
+### Fixed
+- Quality gate violations: removed unused imports and variables
+- Line length violations in config_manager.py
+- Missing milestone methods in test MockAdapter
+- All linting and type-checking issues resolved
+
+### Changed
+- Reorganized integration test documentation into docs/integration-testing/
+- Updated py_mcp_installer submodule with quality improvements
+
+### Documentation
+- Moved integration test files to proper docs/ structure
+- Enhanced organization of test documentation and examples
+
 ## [2.2.0] - 2025-12-05
 
 ### Added
