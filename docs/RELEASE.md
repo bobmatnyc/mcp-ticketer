@@ -1023,6 +1023,61 @@ make help
 
 ---
 
+## Submodule Releases
+
+mcp-ticketer includes submodules that may need independent releases:
+
+### py-mcp-installer-service
+
+Located at `src/services/py_mcp_installer/`, this submodule has its own versioning.
+
+#### Automatic Submodule Release
+
+Use the full-release commands to automatically:
+1. Check submodule for changes
+2. Release submodule if needed
+3. Update parent's submodule pointer
+4. Continue with parent release
+
+```bash
+# Patch release with submodule check
+make release-patch-full
+
+# Minor release with submodule check
+make release-minor-full
+
+# Major release with submodule check
+make release-major-full
+```
+
+#### Manual Submodule Release
+
+Enter submodule and release independently:
+
+```bash
+cd src/services/py_mcp_installer
+make release-patch  # or release-minor, release-major
+cd ../../..
+git add src/services/py_mcp_installer
+git commit -m "chore: update py-mcp-installer-service"
+```
+
+#### Version Compatibility
+
+| mcp-ticketer | py-mcp-installer |
+|--------------|------------------|
+| 2.1.x        | 0.0.3+           |
+| 2.2.x        | 0.1.x+           |
+
+#### Submodule Release Notes
+
+- Submodule releases create GitHub releases only (no PyPI)
+- Submodule changes are detected automatically by `release-*-full` commands
+- Parent's submodule pointer is updated automatically
+- See submodule's `RELEASING.md` for more details
+
+---
+
 ## Summary
 
 This release process ensures:
@@ -1038,7 +1093,7 @@ For most releases, you'll simply run:
 ```bash
 # Update CHANGELOG.md
 # Commit changes
-make release-patch  # or release-minor, release-major
+make release-patch-full  # or release-minor-full, release-major-full
 # Push tags
 # Create GitHub release
 ```

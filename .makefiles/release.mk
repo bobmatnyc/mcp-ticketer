@@ -166,6 +166,36 @@ publish-help: ## Show Twine publishing best practices
 	@echo "5. Never commit credentials to version control"
 	@echo "   Add .env.local to .gitignore"
 
+##@ Submodule Management
+
+.PHONY: release-submodules
+release-submodules: ## Check and release submodules with changes
+	@echo "🔍 Checking submodules for changes..."
+	@$(PYTHON) scripts/release_submodules.py $(TYPE)
+
+##@ Full Release with Submodules
+
+.PHONY: release-patch-full
+release-patch-full: ## Release patch version with submodule check
+	@echo "🚀 Releasing patch version with submodule check..."
+	@$(MAKE) release-submodules TYPE=patch
+	@echo "Proceeding with main release..."
+	@$(MAKE) release-patch
+
+.PHONY: release-minor-full
+release-minor-full: ## Release minor version with submodule check
+	@echo "🚀 Releasing minor version with submodule check..."
+	@$(MAKE) release-submodules TYPE=minor
+	@echo "Proceeding with main release..."
+	@$(MAKE) release-minor
+
+.PHONY: release-major-full
+release-major-full: ## Release major version with submodule check
+	@echo "🚀 Releasing major version with submodule check..."
+	@$(MAKE) release-submodules TYPE=major
+	@echo "Proceeding with main release..."
+	@$(MAKE) release-major
+
 ##@ Homebrew Tap Management
 
 .PHONY: update-homebrew-tap
