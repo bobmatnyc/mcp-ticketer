@@ -2651,6 +2651,416 @@ Fixes #{issue_number}
         """
         await self._labels_cache.clear()
 
+    # =============================================================================
+    # GitHub Projects V2 Issue Operations (Week 3)
+    # =============================================================================
+
+    async def project_add_issue(
+        self,
+        project_id: str,
+        issue_id: str,
+    ) -> bool:
+        """Add an issue to a GitHub Projects V2 project.
+
+        Args:
+        ----
+            project_id: Project node ID (PVT_kwDOABCD...)
+            issue_id: Issue node ID (I_kwDOABCD...) or issue number with owner/repo
+
+        Returns:
+        -------
+            True if issue was added successfully
+
+        Raises:
+        ------
+            ValueError: If project_id or issue_id is invalid
+            RuntimeError: If GraphQL mutation fails
+
+        Example:
+        -------
+            # Add by issue node ID
+            success = await adapter.project_add_issue(
+                project_id="PVT_kwDOABCD1234",
+                issue_id="I_kwDOABCD5678"
+            )
+
+            # Add by issue number (requires owner/repo context)
+            success = await adapter.project_add_issue(
+                project_id="PVT_kwDOABCD1234",
+                issue_id="owner/repo#123"
+            )
+
+        Note:
+        ----
+            GitHub's addProjectV2ItemById mutation requires:
+            - projectId: Project node ID
+            - contentId: Issue/PR node ID (not item ID)
+
+        """
+        # Validate project_id format
+        if not project_id or not project_id.startswith("PVT_"):
+            raise ValueError(
+                f"Invalid project_id: {project_id}. "
+                "Project ID must start with 'PVT_' (e.g., PVT_kwDOABCD1234)"
+            )
+
+        # Validate issue_id is provided
+        if not issue_id:
+            raise ValueError("issue_id is required")
+
+        # If issue_id is in "owner/repo#number" format, resolve to node ID
+        content_id = issue_id
+        if "#" in issue_id and "/" in issue_id:
+            # Parse owner/repo#number format
+            try:
+                repo_part, number_str = issue_id.rsplit("#", 1)
+                owner, repo = repo_part.split("/")
+                issue_number = int(number_str)
+
+                # Query GitHub to get issue node ID
+                issue_query = """
+                    query GetIssueNodeId($owner: String!, $repo: String!, $number: Int!) {
+                        repository(owner: $owner, name: $repo) {
+                            issue(number: $number) {
+                                id
+                            }
+                        }
+                    }
+                """
+
+                result = await self._graphql_request(
+                    issue_query,
+                    {"owner": owner, "repo": repo, "number": issue_number},
+                )
+
+                repo_data = result.get("repository")
+                if not repo_data:
+                    raise ValueError(f"Repository {owner}/{repo} not found")
+
+                issue_data = repo_data.get("issue")
+                if not issue_data:
+                    raise ValueError(f"Issue #{issue_number} not found in {owner}/{repo}")
+
+                content_id = issue_data["id"]
+                logger.debug(
+                    f"Resolved issue {issue_id} to node ID {content_id}"
+                )
+
+            except ValueError:
+                # Re-raise ValueError as-is (already has good message)
+                raise
+            except (KeyError, TypeError) as e:
+                raise ValueError(
+                    f"Invalid issue_id format: {issue_id}. "
+                    "Expected 'owner/repo#number' or issue node ID (I_kwDO...)"
+                ) from e
+
+        # Validate issue node ID format
+        if not content_id.startswith("I_") and not content_id.startswith("PR_"):
+            raise ValueError(
+                f"Invalid issue_id: {content_id}. "
+                "Issue ID must start with 'I_' or 'PR_' (e.g., I_kwDOABCD5678)"
+            )
+
+        try:
+            # Execute ADD_PROJECT_ITEM_MUTATION
+            from .queries import ADD_PROJECT_ITEM_MUTATION
+
+            data = await self.gh_client.execute_graphql(
+                query=ADD_PROJECT_ITEM_MUTATION,
+                variables={
+                    "projectId": project_id,
+                    "contentId": content_id,
+                },
+            )
+
+            # Check for successful addition
+            add_result = data.get("addProjectV2ItemById", {})
+            item_data = add_result.get("item")
+
+            if item_data:
+                logger.info(
+                    f"Successfully added issue {issue_id} to project {project_id}"
+                )
+                return True
+            else:
+                logger.warning(
+                    f"Failed to add issue {issue_id} to project {project_id}: No item returned"
+                )
+                return False
+
+        except Exception as e:
+            error_msg = str(e).lower()
+
+            # Handle "already exists" errors gracefully
+            if "already exists" in error_msg or "duplicate" in error_msg:
+                logger.info(
+                    f"Issue {issue_id} already exists in project {project_id}"
+                )
+                return True
+
+            # Log and re-raise other errors
+            logger.error(
+                f"Failed to add issue {issue_id} to project {project_id}: {e}"
+            )
+            raise RuntimeError(
+                f"Failed to add issue to project: {e}"
+            ) from e
+
+    async def project_remove_issue(
+        self,
+        project_id: str,
+        item_id: str,
+    ) -> bool:
+        """Remove an issue from a GitHub Projects V2 project.
+
+        Args:
+        ----
+            project_id: Project node ID (PVT_kwDOABCD...)
+            item_id: Project item ID (PVTI_kwDOABCD...) NOT issue ID
+
+        Returns:
+        -------
+            True if issue was removed successfully
+
+        Raises:
+        ------
+            ValueError: If project_id or item_id is invalid
+            RuntimeError: If GraphQL mutation fails
+
+        Example:
+        -------
+            success = await adapter.project_remove_issue(
+                project_id="PVT_kwDOABCD1234",
+                item_id="PVTI_kwDOABCD5678"
+            )
+
+        Note:
+        ----
+            Requires the project ITEM ID (PVTI_*), not the issue ID (I_*).
+            Use project_get_issues() to find the item ID for an issue.
+
+        """
+        # Validate project_id format
+        if not project_id or not project_id.startswith("PVT_"):
+            raise ValueError(
+                f"Invalid project_id: {project_id}. "
+                "Project ID must start with 'PVT_' (e.g., PVT_kwDOABCD1234)"
+            )
+
+        # Validate item_id format
+        if not item_id or not item_id.startswith("PVTI_"):
+            raise ValueError(
+                f"Invalid item_id: {item_id}. "
+                "Item ID must start with 'PVTI_' (e.g., PVTI_kwDOABCD5678). "
+                "Note: This is the project item ID, not the issue ID. "
+                "Use project_get_issues() to get the item ID for an issue."
+            )
+
+        try:
+            # Execute REMOVE_PROJECT_ITEM_MUTATION
+            from .queries import REMOVE_PROJECT_ITEM_MUTATION
+
+            data = await self.gh_client.execute_graphql(
+                query=REMOVE_PROJECT_ITEM_MUTATION,
+                variables={
+                    "projectId": project_id,
+                    "itemId": item_id,
+                },
+            )
+
+            # Check for successful removal
+            delete_result = data.get("deleteProjectV2Item", {})
+            deleted_item_id = delete_result.get("deletedItemId")
+
+            if deleted_item_id:
+                logger.info(
+                    f"Successfully removed item {item_id} from project {project_id}"
+                )
+                return True
+            else:
+                logger.warning(
+                    f"Failed to remove item {item_id} from project {project_id}: "
+                    "No deleted item ID returned"
+                )
+                return False
+
+        except Exception as e:
+            error_msg = str(e).lower()
+
+            # Handle "not found" errors gracefully
+            if "not found" in error_msg or "does not exist" in error_msg:
+                logger.warning(
+                    f"Item {item_id} not found in project {project_id} "
+                    "(may have been already removed)"
+                )
+                return False
+
+            # Log and re-raise other errors
+            logger.error(
+                f"Failed to remove item {item_id} from project {project_id}: {e}"
+            )
+            raise RuntimeError(
+                f"Failed to remove issue from project: {e}"
+            ) from e
+
+    async def project_get_issues(
+        self,
+        project_id: str,
+        state: str | None = None,
+        limit: int = 10,
+        cursor: str | None = None,
+    ) -> list[Task]:
+        """Get issues in a GitHub Projects V2 project.
+
+        Args:
+        ----
+            project_id: Project node ID (PVT_kwDOABCD...)
+            state: Filter by issue state ("OPEN", "CLOSED", None for all)
+            limit: Maximum number of issues to return (default 10)
+            cursor: Pagination cursor for next page
+
+        Returns:
+        -------
+            List of Task objects representing issues in the project
+
+        Raises:
+        ------
+            ValueError: If project_id is invalid
+            RuntimeError: If GraphQL query fails
+
+        Example:
+        -------
+            # Get all open issues
+            issues = await adapter.project_get_issues(
+                project_id="PVT_kwDOABCD1234",
+                state="OPEN",
+                limit=20
+            )
+
+            # Get next page
+            issues = await adapter.project_get_issues(
+                project_id="PVT_kwDOABCD1234",
+                cursor=last_cursor
+            )
+
+        Note:
+        ----
+            Returns Task objects with additional project context:
+            - task.metadata["project_item_id"]: ID for removal operations
+            - task.metadata["project_number"]: Project number
+
+        """
+        # Validate project_id format
+        if not project_id or not project_id.startswith("PVT_"):
+            raise ValueError(
+                f"Invalid project_id: {project_id}. "
+                "Project ID must start with 'PVT_' (e.g., PVT_kwDOABCD1234)"
+            )
+
+        try:
+            # Execute PROJECT_ITEMS_QUERY
+            from .queries import PROJECT_ITEMS_QUERY
+
+            data = await self.gh_client.execute_graphql(
+                query=PROJECT_ITEMS_QUERY,
+                variables={
+                    "projectId": project_id,
+                    "first": limit,
+                    "after": cursor,
+                },
+            )
+
+            # Parse response and extract items array
+            project_node = data.get("node")
+            if not project_node:
+                logger.warning(f"Project {project_id} not found")
+                return []
+
+            items_data = project_node.get("items", {})
+            item_nodes = items_data.get("nodes", [])
+
+            # Filter items by content type (only "Issue", skip "PullRequest", "DraftIssue")
+            tasks = []
+            for item in item_nodes:
+                content = item.get("content")
+                if not content:
+                    # Skip archived items without content
+                    logger.debug(f"Skipping item {item.get('id')} without content")
+                    continue
+
+                content_type = content.get("__typename")
+
+                # Only process Issues
+                if content_type != "Issue":
+                    logger.debug(
+                        f"Skipping {content_type} item {item.get('id')}"
+                    )
+                    continue
+
+                # Map GitHub issue to Task using existing mapper
+                from .mappers import map_github_issue_to_task
+
+                # Convert GraphQL format to format expected by mapper
+                issue_dict = {
+                    "number": content.get("number"),
+                    "title": content.get("title"),
+                    "state": content.get("state", "").lower(),
+                    "labels": content.get("labels", {}),
+                    # Note: PROJECT_ITEMS_QUERY doesn't include all issue fields
+                    # Only basic fields are available
+                }
+
+                task = map_github_issue_to_task(
+                    issue_dict,
+                    self.custom_priority_scheme
+                )
+
+                # Add project context to metadata
+                if "github" not in task.metadata:
+                    task.metadata["github"] = {}
+
+                task.metadata["github"]["project_item_id"] = item["id"]
+                task.metadata["github"]["project_id"] = project_id
+
+                # Extract project number from project_id if needed
+                # Project node ID format: PVT_kwDO... but we don't have number here
+                # We'll need to query the project separately or store it
+
+                tasks.append(task)
+
+            # Filter by state if provided (post-query filtering)
+            if state:
+                state_lower = state.lower()
+                tasks = [
+                    task for task in tasks
+                    if (isinstance(task.state, str) and task.state == state_lower) or
+                    (hasattr(task.state, 'value') and task.state.value == state_lower) or
+                    (state_lower == "open" and (
+                        (isinstance(task.state, str) and task.state in ["open", "in_progress", "blocked", "waiting"]) or
+                        (hasattr(task.state, 'value') and task.state.value in ["open", "in_progress", "blocked", "waiting"])
+                    )) or
+                    (state_lower == "closed" and (
+                        (isinstance(task.state, str) and task.state in ["done", "closed"]) or
+                        (hasattr(task.state, 'value') and task.state.value in ["done", "closed"])
+                    ))
+                ]
+
+            logger.info(
+                f"Retrieved {len(tasks)} issues from project {project_id} "
+                f"(filtered by state={state})"
+            )
+
+            return tasks
+
+        except Exception as e:
+            logger.error(
+                f"Failed to get issues from project {project_id}: {e}"
+            )
+            raise RuntimeError(
+                f"Failed to get project issues: {e}"
+            ) from e
+
     async def close(self) -> None:
         """Close the HTTP client connection."""
         await self.client.aclose()
