@@ -6,6 +6,99 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.2.0] - 2025-12-05
+
+### Added
+- **GitHub Projects V2 Support**: Complete implementation of GitHub Projects V2 adapter (Phase 2)
+  - 9 new project management methods for full CRUD operations
+  - `project_list()` - List projects with pagination and filtering
+  - `project_get()` - Get project by ID with smart auto-detection (node ID or number)
+  - `project_create()` - Create new GitHub Projects V2 projects
+  - `project_update()` - Update project metadata (title, description, state)
+  - `project_delete()` - Delete projects (soft delete default, hard delete optional)
+  - `project_add_issue()` - Add issues/PRs to projects with flexible ID formats
+  - `project_remove_issue()` - Remove issues from projects
+  - `project_get_issues()` - List project issues with state filtering and pagination
+  - `project_get_statistics()` - Calculate comprehensive health metrics
+- **Health Metrics System**: Advanced project analytics
+  - 3-tier health scoring (on_track, at_risk, off_track)
+  - Dual-factor assessment (completion percentage + blocked rate)
+  - Priority distribution analysis (low, medium, high, critical)
+  - Blocked issue detection with configurable thresholds
+  - Progress percentage tracking
+- **Enhanced Core Models**: Extended ProjectStatistics with priority fields
+  - Added priority distribution counters
+  - Added health status field
+  - Maintained backward compatibility with legacy field names
+- **Flexible ID System**: Smart ID handling across all operations
+  - Auto-detection of ID formats (PVT_ node IDs vs numeric project numbers)
+  - Support for multiple ID types (I_kwDO, PR_kwDO, PVTI_kwDO)
+  - Support for owner/repo#number format with auto-resolution
+- **Comprehensive Test Suite**: 82 unit tests with 100% pass rate
+  - 14 tests for GraphQL queries and mappers
+  - 26 tests for core CRUD operations
+  - 29 tests for issue operations
+  - 13 tests for statistics and health metrics
+- **Integration Test Infrastructure**: Production-ready integration testing
+  - Async/await support for all adapter methods
+  - Comprehensive test coverage for all 9 methods
+  - Colored output with progress indicators
+  - Ready for live API testing
+
+### Changed
+- **State Mapping**: Unified ProjectState to GitHub's closed boolean
+  - Maps ACTIVE, COMPLETED, ARCHIVED states intelligently
+  - Differentiates COMPLETED vs ARCHIVED based on closure time (<30 days)
+- **Error Handling**: Enhanced validation and error messages
+  - Input validation at method entry points
+  - Clear, actionable error messages with troubleshooting hints
+  - Graceful degradation for non-critical errors
+  - Comprehensive logging (debug, info, warning, error levels)
+
+### Fixed
+- **Async/Await Integration**: Fixed coroutine handling in integration tests
+  - All 9 adapter methods properly awaited
+  - asyncio.run() invocation for main test function
+
+### Documentation
+- **Phase 2 Complete**: Comprehensive completion summary (411 lines)
+  - Implementation timeline and metrics
+  - Technical architecture decisions
+  - Known limitations and future work
+  - Impact assessment and benefits delivered
+- **Weekly Summaries**: 4 detailed implementation summaries
+  - Week 1: GraphQL queries and mappers
+  - Week 2: Core CRUD operations
+  - Week 3: Issue operations
+  - Week 4: Statistics and health metrics
+- **Research Documents**: Technical analysis and design decisions
+  - GitHub Projects V2 API analysis
+  - Unified Projects design specification
+  - Phase 2 adapter analysis
+  - Implementation strategy
+
+### Known Limitations
+- **USER Scope Projects**: `project_create()` currently only supports organization-level projects
+  - Workaround: Use organization projects or create user projects manually via GitHub UI
+  - Planned fix in future release (estimated 2 hours)
+- **Pagination**: Large projects (>1000 issues) may not retrieve all items in statistics
+  - Impact: Edge case for very large projects only
+  - Workaround: Statistics are calculated on first 1000 issues
+- **Custom Fields**: GitHub Projects V2 custom fields not yet supported
+  - Planned for Phase 3 enhancement
+
+### Performance
+- **Time Complexity**: O(n) for list operations with pagination, O(1) for CRUD
+- **Space Complexity**: O(n) with pagination support to limit memory usage
+- **Optimization**: 1000 issue limit in statistics calculation for reasonable performance
+- **Test Execution**: ~5 seconds for full GitHub adapter test suite (82 tests)
+
+### Migration Notes
+- All new methods are additions - no breaking changes to existing APIs
+- Backward compatible with existing GitHub adapter usage
+- ProjectStatistics model enhanced with priority fields (backward compatible)
+- To enable GitHub Projects V2 support, set `use_projects_v2: True` in adapter config
+
 ## [2.1.3] - 2025-12-04
 
 ### Changed
