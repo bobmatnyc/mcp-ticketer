@@ -6,6 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.2.2] - 2025-12-05
+
+### Fixed
+- Linear adapter: Fixed 'already exists' error for teams with >250 labels
+- Implemented cursor-based pagination for Linear label queries
+- Added full pagination support to _load_team_labels() (10 page limit)
+- Added early exit optimization to _find_label_by_name() with pagination
+
+### Added
+- Project URL validation with auto-configuration via config() MCP tool
+- New 'set_project_from_url' action for intelligent project setup
+- ProjectValidator for comprehensive URL-based project configuration
+- Auto-detection of platform from project URLs (Linear, GitHub, Jira, Asana)
+- validate_project_access() method to TicketRouter
+- Optional connectivity testing to verify project access before setup
+
+### Changed
+- Organized 68 documentation files into proper subdirectories
+- Moved documentation from root to: implementation, testing, analysis, demos, consolidation
+- Root directory now contains only core docs (README, CHANGELOG, CLAUDE, LICENSE)
+- Enhanced error messages with actionable suggestions for project setup
+- Improved security with credential masking in error responses
+
+### Documentation
+- Added comprehensive project URL validation user guide
+- Added 5 detailed error scenario walkthroughs
+- Added API reference for project validation
+- Added performance characteristics and security considerations
+- Moved test reports to docs/testing/ directory
+- Improved project documentation organization (96% cleaner root directory)
+
+### Performance
+- Fast validation (no network): <100ms
+- Deep validation (with connectivity test): 200ms-2s
+- Improved cache efficiency for all teams with label pagination
+
 ## [2.2.1] - 2025-12-05
 
 ### Fixed
