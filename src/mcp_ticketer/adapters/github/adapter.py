@@ -19,6 +19,9 @@ from ...core.models import (
     Epic,
     Milestone,
     Priority,
+    Project,
+    ProjectScope,
+    ProjectState,
     SearchQuery,
     Task,
     TicketState,
@@ -29,8 +32,19 @@ from .mappers import (
     map_github_issue_to_task,
     map_github_milestone_to_epic,
     map_github_milestone_to_milestone,
+    map_github_projectv2_to_project,
 )
-from .queries import GET_PROJECT_ITERATIONS, ISSUE_FRAGMENT, SEARCH_ISSUES
+from .queries import (
+    CREATE_PROJECT_MUTATION,
+    DELETE_PROJECT_MUTATION,
+    GET_PROJECT_BY_ID_QUERY,
+    GET_PROJECT_ITERATIONS,
+    GET_PROJECT_QUERY,
+    ISSUE_FRAGMENT,
+    LIST_PROJECTS_QUERY,
+    SEARCH_ISSUES,
+    UPDATE_PROJECT_MUTATION,
+)
 from .types import (
     GitHubStateMapping,
     extract_state_from_issue,
@@ -2188,6 +2202,446 @@ Fixes #{issue_number}
     ) -> Milestone:
         """Convert GitHub Milestone to universal Milestone model (delegated to mappers module)."""
         return map_github_milestone_to_milestone(gh_milestone, self.repo, labels)
+
+    # =============================================================================
+    # GitHub Projects V2 Operations (Week 2: Core CRUD)
+    # =============================================================================
+
+    async def project_list(
+        self,
+        owner: str | None = None,
+        scope: ProjectScope = ProjectScope.ORGANIZATION,
+        state: ProjectState | None = None,
+        limit: int = 10,
+        cursor: str | None = None,
+    ) -> list[Project]:
+        """List projects for an organization or user.
+
+        Args:
+        ----
+            owner: Organization or user login (defaults to configured owner)
+            scope: Project scope (ORGANIZATION or USER)
+            state: Filter by project state (ACTIVE, COMPLETED, ARCHIVED)
+            limit: Maximum number of projects to return (default: 10)
+            cursor: Pagination cursor for next page
+
+        Returns:
+        -------
+            List of Project objects
+
+        Raises:
+        ------
+            ValueError: If owner not provided and not configured
+            RuntimeError: If GraphQL query fails
+
+        Example:
+        -------
+            projects = await adapter.project_list(owner="myorg", limit=20)
+
+        """
+        # Validate owner (use self.owner if not provided)
+        owner = owner or self.owner
+        if not owner:
+            raise ValueError("Owner required for GitHub project operations")
+
+        # Build GraphQL variables
+        variables = {
+            "owner": owner,
+            "first": limit,
+            "after": cursor,
+        }
+
+        try:
+            # Execute LIST_PROJECTS_QUERY
+            data = await self.gh_client.execute_graphql(
+                query=LIST_PROJECTS_QUERY,
+                variables=variables,
+            )
+
+            # Parse response and extract projects array
+            org_data = data.get("organization")
+            if not org_data:
+                logger.warning(f"Organization {owner} not found")
+                return []
+
+            projects_data = org_data.get("projectsV2", {})
+            project_nodes = projects_data.get("nodes", [])
+
+            # Map each project using mapper
+            projects = []
+            for project_data in project_nodes:
+                project = map_github_projectv2_to_project(project_data, owner)
+
+                # Filter by state if provided (post-query filtering)
+                if state is None or project.state == state:
+                    projects.append(project)
+
+            logger.info(f"Retrieved {len(projects)} projects for {owner}")
+            return projects
+
+        except Exception as e:
+            logger.error(f"Failed to list projects for {owner}: {e}")
+            raise RuntimeError(f"Failed to list projects: {e}") from e
+
+    async def project_get(
+        self,
+        project_id: str,
+        owner: str | None = None,
+    ) -> Project | None:
+        """Get a single project by ID or number.
+
+        Automatically detects ID format:
+        - Node ID format: "PVT_kwDOABCD..." (starts with PVT_)
+        - Number format: "123" (numeric string)
+
+        Args:
+        ----
+            project_id: Project node ID or number
+            owner: Organization or user login (defaults to configured owner)
+
+        Returns:
+        -------
+            Project object if found, None otherwise
+
+        Raises:
+        ------
+            ValueError: If owner not provided for number-based lookup
+            RuntimeError: If GraphQL query fails
+
+        Example:
+        -------
+            # By number
+            project = await adapter.project_get("42", owner="myorg")
+
+            # By node ID
+            project = await adapter.project_get("PVT_kwDOABCD1234")
+
+        """
+        try:
+            # Auto-detect ID format
+            if project_id.startswith("PVT_"):
+                # Use GET_PROJECT_BY_ID_QUERY for node IDs
+                data = await self.gh_client.execute_graphql(
+                    query=GET_PROJECT_BY_ID_QUERY,
+                    variables={"projectId": project_id},
+                )
+
+                project_data = data.get("node")
+                if not project_data:
+                    logger.warning(f"Project {project_id} not found")
+                    return None
+
+                # Extract owner from project data
+                owner_data = project_data.get("owner", {})
+                owner_login = owner_data.get("login", owner or self.owner)
+
+                project = map_github_projectv2_to_project(project_data, owner_login)
+                logger.info(f"Retrieved project {project_id} by node ID")
+                return project
+
+            else:
+                # Numeric ID - requires owner
+                owner = owner or self.owner
+                if not owner:
+                    raise ValueError(
+                        "Owner required for number-based project lookup"
+                    )
+
+                # Convert to integer
+                try:
+                    project_number = int(project_id)
+                except ValueError as e:
+                    raise ValueError(
+                        f"Invalid project ID format: {project_id}"
+                    ) from e
+
+                # Use GET_PROJECT_QUERY for number-based lookup
+                data = await self.gh_client.execute_graphql(
+                    query=GET_PROJECT_QUERY,
+                    variables={"owner": owner, "number": project_number},
+                )
+
+                org_data = data.get("organization")
+                if not org_data:
+                    logger.warning(f"Organization {owner} not found")
+                    return None
+
+                project_data = org_data.get("projectV2")
+                if not project_data:
+                    logger.warning(f"Project {project_id} not found for {owner}")
+                    return None
+
+                project = map_github_projectv2_to_project(project_data, owner)
+                logger.info(f"Retrieved project {project_id} by number")
+                return project
+
+        except Exception as e:
+            logger.error(f"Failed to get project {project_id}: {e}")
+            raise RuntimeError(f"Failed to get project: {e}") from e
+
+    async def project_create(
+        self,
+        title: str,
+        description: str | None = None,
+        owner: str | None = None,
+        scope: ProjectScope = ProjectScope.ORGANIZATION,
+    ) -> Project:
+        """Create a new GitHub Projects V2 project.
+
+        Args:
+        ----
+            title: Project title (required)
+            description: Project description (optional)
+            owner: Organization or user login (defaults to configured owner)
+            scope: Project scope (ORGANIZATION or USER)
+
+        Returns:
+        -------
+            Newly created Project object
+
+        Raises:
+        ------
+            ValueError: If owner not provided
+            RuntimeError: If creation fails (permissions, etc.)
+
+        Example:
+        -------
+            project = await adapter.project_create(
+                title="Q4 Features",
+                description="New features for Q4 2025",
+                owner="myorg"
+            )
+
+        """
+        # Validate owner
+        owner = owner or self.owner
+        if not owner:
+            raise ValueError("Owner required for GitHub project creation")
+
+        try:
+            # Get owner node ID (query organization)
+            # We need to fetch the organization/user to get its node ID
+            org_query = """
+                query GetOrgId($login: String!) {
+                    organization(login: $login) {
+                        id
+                    }
+                }
+            """
+
+            org_data = await self.gh_client.execute_graphql(
+                query=org_query,
+                variables={"login": owner},
+            )
+
+            org = org_data.get("organization")
+            if not org:
+                raise ValueError(f"Organization {owner} not found")
+
+            owner_id = org.get("id")
+
+            # Execute CREATE_PROJECT_MUTATION
+            data = await self.gh_client.execute_graphql(
+                query=CREATE_PROJECT_MUTATION,
+                variables={
+                    "ownerId": owner_id,
+                    "title": title,
+                },
+            )
+
+            # Parse response and extract created project
+            create_result = data.get("createProjectV2", {})
+            project_data = create_result.get("projectV2")
+
+            if not project_data:
+                raise RuntimeError("Project creation returned no data")
+
+            # Map using mapper
+            project = map_github_projectv2_to_project(project_data, owner)
+
+            # Update description if provided (requires separate mutation)
+            if description:
+                await self.project_update(
+                    project_id=project.id,
+                    description=description,
+                )
+
+            logger.info(f"Created project: {project.id} ({title})")
+            return project
+
+        except Exception as e:
+            logger.error(f"Failed to create project '{title}': {e}")
+            raise RuntimeError(f"Failed to create project: {e}") from e
+
+    async def project_update(
+        self,
+        project_id: str,
+        title: str | None = None,
+        description: str | None = None,
+        readme: str | None = None,
+        state: ProjectState | None = None,
+    ) -> Project | None:
+        """Update project metadata.
+
+        Supports partial updates - only provided fields are updated.
+
+        Args:
+        ----
+            project_id: Project node ID (PVT_...)
+            title: New project title (optional)
+            description: New project description (optional)
+            readme: New project readme (optional)
+            state: New project state (optional)
+
+        Returns:
+        -------
+            Updated Project object
+
+        Raises:
+        ------
+            ValueError: If project_id invalid or no fields to update
+            RuntimeError: If update fails
+
+        Example:
+        -------
+            project = await adapter.project_update(
+                project_id="PVT_kwDOABCD1234",
+                title="Updated Title",
+                state=ProjectState.COMPLETED
+            )
+
+        """
+        # Validate at least one field is provided
+        if not any([title, description, readme, state]):
+            raise ValueError("At least one field must be provided for update")
+
+        try:
+            # Build mutation variables (only include provided fields)
+            variables: dict[str, Any] = {"projectId": project_id}
+
+            if title is not None:
+                variables["title"] = title
+
+            if description is not None:
+                variables["shortDescription"] = description
+
+            if readme is not None:
+                variables["readme"] = readme
+
+            # Convert ProjectState to GitHub boolean
+            if state is not None:
+                # GitHub only has open/closed via the 'closed' boolean
+                if state in (ProjectState.COMPLETED, ProjectState.ARCHIVED):
+                    variables["closed"] = True
+                elif state == ProjectState.ACTIVE:
+                    variables["closed"] = False
+                # PLANNED and CANCELLED don't have direct mappings
+                # We'll keep the project open for PLANNED
+
+            # Execute UPDATE_PROJECT_MUTATION
+            data = await self.gh_client.execute_graphql(
+                query=UPDATE_PROJECT_MUTATION,
+                variables=variables,
+            )
+
+            # Parse response
+            update_result = data.get("updateProjectV2", {})
+            project_data = update_result.get("projectV2")
+
+            if not project_data:
+                logger.warning(f"Project {project_id} not found for update")
+                return None
+
+            # Extract owner from project data
+            owner_data = project_data.get("owner", {})
+            owner = owner_data.get("login", self.owner)
+
+            # Map using mapper
+            project = map_github_projectv2_to_project(project_data, owner)
+
+            logger.info(f"Updated project: {project_id}")
+            return project
+
+        except Exception as e:
+            logger.error(f"Failed to update project {project_id}: {e}")
+            raise RuntimeError(f"Failed to update project: {e}") from e
+
+    async def project_delete(
+        self,
+        project_id: str,
+        hard_delete: bool = False,
+    ) -> bool:
+        """Delete a project.
+
+        By default performs soft delete (closes project).
+        Set hard_delete=True to permanently delete.
+
+        Args:
+        ----
+            project_id: Project node ID (PVT_...)
+            hard_delete: If True, permanently delete; if False, soft delete (close)
+
+        Returns:
+        -------
+            True if successful, False otherwise
+
+        Raises:
+        ------
+            RuntimeError: If deletion fails
+
+        Example:
+        -------
+            # Soft delete (close)
+            await adapter.project_delete("PVT_kwDOABCD1234")
+
+            # Hard delete (permanent)
+            await adapter.project_delete("PVT_kwDOABCD1234", hard_delete=True)
+
+        """
+        try:
+            if hard_delete:
+                # Hard delete using DELETE_PROJECT_MUTATION
+                logger.warning(f"Permanently deleting project {project_id}")
+
+                data = await self.gh_client.execute_graphql(
+                    query=DELETE_PROJECT_MUTATION,
+                    variables={"projectId": project_id},
+                )
+
+                delete_result = data.get("deleteProjectV2", {})
+                deleted_project = delete_result.get("projectV2")
+
+                if deleted_project:
+                    logger.info(f"Permanently deleted project: {project_id}")
+                    return True
+                else:
+                    logger.warning(f"Failed to delete project {project_id}")
+                    return False
+
+            else:
+                # Soft delete by setting public=false and closed=true
+                data = await self.gh_client.execute_graphql(
+                    query=UPDATE_PROJECT_MUTATION,
+                    variables={
+                        "projectId": project_id,
+                        "public": False,
+                        "closed": True,
+                    },
+                )
+
+                update_result = data.get("updateProjectV2", {})
+                updated_project = update_result.get("projectV2")
+
+                if updated_project:
+                    logger.info(f"Soft deleted (closed) project: {project_id}")
+                    return True
+                else:
+                    logger.warning(f"Failed to close project {project_id}")
+                    return False
+
+        except Exception as e:
+            logger.error(f"Failed to delete project {project_id}: {e}")
+            raise RuntimeError(f"Failed to delete project: {e}") from e
 
     async def invalidate_label_cache(self) -> None:
         """Manually invalidate the label cache.
