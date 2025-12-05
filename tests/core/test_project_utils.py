@@ -467,7 +467,9 @@ class TestStateMappingEdgeCases:
         """Test _map_project_state_to_epic handles enum inputs."""
         from mcp_ticketer.core.project_utils import _map_project_state_to_epic
 
-        assert _map_project_state_to_epic(ProjectState.ACTIVE) == TicketState.IN_PROGRESS
+        assert (
+            _map_project_state_to_epic(ProjectState.ACTIVE) == TicketState.IN_PROGRESS
+        )
         assert _map_project_state_to_epic(ProjectState.COMPLETED) == TicketState.DONE
         assert _map_project_state_to_epic(ProjectState.PLANNED) == TicketState.OPEN
         assert _map_project_state_to_epic(ProjectState.ARCHIVED) == TicketState.CLOSED

@@ -78,11 +78,16 @@ def install_mcp_server(
     try:
         # Import py_mcp_installer from services submodule
         # Add services path to sys.path if not already there
-        services_path = Path(__file__).parent.parent.parent / "services" / "py_mcp_installer" / "src"
+        services_path = (
+            Path(__file__).parent.parent.parent
+            / "services"
+            / "py_mcp_installer"
+            / "src"
+        )
         if str(services_path) not in sys.path:
             sys.path.insert(0, str(services_path))
 
-        from py_mcp_installer import MCPInstaller, InstallMethod, Platform, Scope
+        from py_mcp_installer import InstallMethod, MCPInstaller, Platform, Scope
         from py_mcp_installer.exceptions import PyMCPInstallerError
     except ImportError as e:
         console.print(
@@ -191,9 +196,7 @@ def install_mcp_server(
             table.add_row("Method", result.method.value)
             table.add_row("Scope", scope)
             table.add_row("Config Path", str(result.config_path))
-            table.add_row(
-                "Command", f"{result.command} {' '.join(result.args or [])}"
-            )
+            table.add_row("Command", f"{result.command} {' '.join(result.args or [])}")
 
             if dry_run:
                 table.add_row("Mode", "[yellow]DRY RUN - No changes made[/yellow]")
@@ -226,7 +229,7 @@ def install_mcp_server(
             raise typer.Exit(1)
 
     except PyMCPInstallerError as e:
-        console.print(f"[bold red]❌ Installation Error[/bold red]\n")
+        console.print("[bold red]❌ Installation Error[/bold red]\n")
         console.print(f"[red]{e}[/red]")
         if verbose:
             import traceback
@@ -234,7 +237,7 @@ def install_mcp_server(
             console.print(f"\n[dim]{traceback.format_exc()}[/dim]")
         raise typer.Exit(1) from None
     except Exception as e:
-        console.print(f"[bold red]❌ Unexpected Error[/bold red]\n")
+        console.print("[bold red]❌ Unexpected Error[/bold red]\n")
         console.print(f"[red]{e}[/red]")
         if verbose:
             import traceback
@@ -272,7 +275,12 @@ def list_mcp_servers(
     """
     try:
         # Import py_mcp_installer from services submodule
-        services_path = Path(__file__).parent.parent.parent / "services" / "py_mcp_installer" / "src"
+        services_path = (
+            Path(__file__).parent.parent.parent
+            / "services"
+            / "py_mcp_installer"
+            / "src"
+        )
         if str(services_path) not in sys.path:
             sys.path.insert(0, str(services_path))
 
@@ -352,7 +360,12 @@ def uninstall_mcp_server(
     """
     try:
         # Import py_mcp_installer from services submodule
-        services_path = Path(__file__).parent.parent.parent / "services" / "py_mcp_installer" / "src"
+        services_path = (
+            Path(__file__).parent.parent.parent
+            / "services"
+            / "py_mcp_installer"
+            / "src"
+        )
         if str(services_path) not in sys.path:
             sys.path.insert(0, str(services_path))
 
@@ -386,9 +399,7 @@ def uninstall_mcp_server(
 
         if success:
             if dry_run:
-                console.print(
-                    "[yellow]DRY RUN: Would uninstall mcp-ticketer[/yellow]"
-                )
+                console.print("[yellow]DRY RUN: Would uninstall mcp-ticketer[/yellow]")
             else:
                 console.print("[green]✅ Successfully uninstalled mcp-ticketer[/green]")
                 console.print(

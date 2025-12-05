@@ -22,6 +22,7 @@ from ...core.models import (
     Project,
     ProjectScope,
     ProjectState,
+    ProjectStatistics,
     SearchQuery,
     Task,
     TicketState,
@@ -2343,17 +2344,13 @@ Fixes #{issue_number}
                 # Numeric ID - requires owner
                 owner = owner or self.owner
                 if not owner:
-                    raise ValueError(
-                        "Owner required for number-based project lookup"
-                    )
+                    raise ValueError("Owner required for number-based project lookup")
 
                 # Convert to integer
                 try:
                     project_number = int(project_id)
                 except ValueError as e:
-                    raise ValueError(
-                        f"Invalid project ID format: {project_id}"
-                    ) from e
+                    raise ValueError(f"Invalid project ID format: {project_id}") from e
 
                 # Use GET_PROJECT_QUERY for number-based lookup
                 data = await self.gh_client.execute_graphql(
@@ -2739,12 +2736,12 @@ Fixes #{issue_number}
 
                 issue_data = repo_data.get("issue")
                 if not issue_data:
-                    raise ValueError(f"Issue #{issue_number} not found in {owner}/{repo}")
+                    raise ValueError(
+                        f"Issue #{issue_number} not found in {owner}/{repo}"
+                    )
 
                 content_id = issue_data["id"]
-                logger.debug(
-                    f"Resolved issue {issue_id} to node ID {content_id}"
-                )
+                logger.debug(f"Resolved issue {issue_id} to node ID {content_id}")
 
             except ValueError:
                 # Re-raise ValueError as-is (already has good message)
@@ -2794,18 +2791,12 @@ Fixes #{issue_number}
 
             # Handle "already exists" errors gracefully
             if "already exists" in error_msg or "duplicate" in error_msg:
-                logger.info(
-                    f"Issue {issue_id} already exists in project {project_id}"
-                )
+                logger.info(f"Issue {issue_id} already exists in project {project_id}")
                 return True
 
             # Log and re-raise other errors
-            logger.error(
-                f"Failed to add issue {issue_id} to project {project_id}: {e}"
-            )
-            raise RuntimeError(
-                f"Failed to add issue to project: {e}"
-            ) from e
+            logger.error(f"Failed to add issue {issue_id} to project {project_id}: {e}")
+            raise RuntimeError(f"Failed to add issue to project: {e}") from e
 
     async def project_remove_issue(
         self,
@@ -2900,9 +2891,7 @@ Fixes #{issue_number}
             logger.error(
                 f"Failed to remove item {item_id} from project {project_id}: {e}"
             )
-            raise RuntimeError(
-                f"Failed to remove issue from project: {e}"
-            ) from e
+            raise RuntimeError(f"Failed to remove issue from project: {e}") from e
 
     async def project_get_issues(
         self,
@@ -2993,9 +2982,7 @@ Fixes #{issue_number}
 
                 # Only process Issues
                 if content_type != "Issue":
-                    logger.debug(
-                        f"Skipping {content_type} item {item.get('id')}"
-                    )
+                    logger.debug(f"Skipping {content_type} item {item.get('id')}")
                     continue
 
                 # Map GitHub issue to Task using existing mapper
@@ -3011,10 +2998,7 @@ Fixes #{issue_number}
                     # Only basic fields are available
                 }
 
-                task = map_github_issue_to_task(
-                    issue_dict,
-                    self.custom_priority_scheme
-                )
+                task = map_github_issue_to_task(issue_dict, self.custom_priority_scheme)
 
                 # Add project context to metadata
                 if "github" not in task.metadata:
@@ -3033,17 +3017,40 @@ Fixes #{issue_number}
             if state:
                 state_lower = state.lower()
                 tasks = [
-                    task for task in tasks
-                    if (isinstance(task.state, str) and task.state == state_lower) or
-                    (hasattr(task.state, 'value') and task.state.value == state_lower) or
-                    (state_lower == "open" and (
-                        (isinstance(task.state, str) and task.state in ["open", "in_progress", "blocked", "waiting"]) or
-                        (hasattr(task.state, 'value') and task.state.value in ["open", "in_progress", "blocked", "waiting"])
-                    )) or
-                    (state_lower == "closed" and (
-                        (isinstance(task.state, str) and task.state in ["done", "closed"]) or
-                        (hasattr(task.state, 'value') and task.state.value in ["done", "closed"])
-                    ))
+                    task
+                    for task in tasks
+                    if (isinstance(task.state, str) and task.state == state_lower)
+                    or (
+                        hasattr(task.state, "value") and task.state.value == state_lower
+                    )
+                    or (
+                        state_lower == "open"
+                        and (
+                            (
+                                isinstance(task.state, str)
+                                and task.state
+                                in ["open", "in_progress", "blocked", "waiting"]
+                            )
+                            or (
+                                hasattr(task.state, "value")
+                                and task.state.value
+                                in ["open", "in_progress", "blocked", "waiting"]
+                            )
+                        )
+                    )
+                    or (
+                        state_lower == "closed"
+                        and (
+                            (
+                                isinstance(task.state, str)
+                                and task.state in ["done", "closed"]
+                            )
+                            or (
+                                hasattr(task.state, "value")
+                                and task.state.value in ["done", "closed"]
+                            )
+                        )
+                    )
                 ]
 
             logger.info(
@@ -3054,17 +3061,13 @@ Fixes #{issue_number}
             return tasks
 
         except Exception as e:
-            logger.error(
-                f"Failed to get issues from project {project_id}: {e}"
-            )
-            raise RuntimeError(
-                f"Failed to get project issues: {e}"
-            ) from e
+            logger.error(f"Failed to get issues from project {project_id}: {e}")
+            raise RuntimeError(f"Failed to get project issues: {e}") from e
 
     async def project_get_statistics(
         self,
         project_id: str,
-    ) -> "ProjectStatistics":
+    ) -> ProjectStatistics:
         """Get comprehensive statistics for a GitHub Projects V2 project.
 
         Calculates issue state breakdown, priority distribution, and health status
@@ -3116,15 +3119,10 @@ Fixes #{issue_number}
 
         try:
             # Fetch all issues (limit 1000 for reasonable performance)
-            issues = await self.project_get_issues(
-                project_id=project_id,
-                limit=1000
-            )
+            issues = await self.project_get_issues(project_id=project_id, limit=1000)
         except Exception as e:
             logger.error(f"Failed to fetch issues for statistics: {e}")
-            raise RuntimeError(
-                f"Failed to calculate project statistics: {e}"
-            ) from e
+            raise RuntimeError(f"Failed to calculate project statistics: {e}") from e
 
         # Calculate basic counts
         total = len(issues)
@@ -3139,7 +3137,9 @@ Fixes #{issue_number}
         for issue in issues:
             # Count by state (GitHub only has OPEN/CLOSED)
             # We map based on state enum value
-            state_value = issue.state.value if hasattr(issue.state, 'value') else str(issue.state)
+            state_value = (
+                issue.state.value if hasattr(issue.state, "value") else str(issue.state)
+            )
 
             if state_value in ["open", "in_progress", "blocked", "waiting"]:
                 if state_value == "in_progress":
@@ -3159,7 +3159,11 @@ Fixes #{issue_number}
                 # Priority detection (priority:high, priority/low, etc.)
                 if "priority:" in tag_lower or "priority/" in tag_lower:
                     # Extract priority level
-                    priority = tag_lower.replace("priority:", "").replace("priority/", "").strip()
+                    priority = (
+                        tag_lower.replace("priority:", "")
+                        .replace("priority/", "")
+                        .strip()
+                    )
                     if priority in priority_counts:
                         priority_counts[priority] += 1
                     elif "crit" in priority or "p0" in priority:
@@ -3205,7 +3209,7 @@ Fixes #{issue_number}
             priority_high_count=priority_counts["high"],
             priority_critical_count=priority_counts["critical"],
             health=health,
-            progress_percentage=round(progress_pct, 1)
+            progress_percentage=round(progress_pct, 1),
         )
 
         logger.info(

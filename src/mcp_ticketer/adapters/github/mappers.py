@@ -31,7 +31,6 @@ from ...core.models import (
     Project,
     ProjectScope,
     ProjectState,
-    ProjectStatistics,
     ProjectVisibility,
     Task,
     TicketState,
@@ -569,9 +568,7 @@ def map_github_projectv2_to_project(
     owner_data = data.get("owner", {})
     owner_type = owner_data.get("__typename", "Organization")
     scope = (
-        ProjectScope.ORGANIZATION
-        if owner_type == "Organization"
-        else ProjectScope.USER
+        ProjectScope.ORGANIZATION if owner_type == "Organization" else ProjectScope.USER
     )
 
     # Map closed boolean to ProjectState
@@ -586,7 +583,11 @@ def map_github_projectv2_to_project(
         try:
             closed_at = datetime.fromisoformat(data["closedAt"].replace("Z", "+00:00"))
             days_since_close = (datetime.now(closed_at.tzinfo) - closed_at).days
-            state = ProjectState.COMPLETED if days_since_close < 30 else ProjectState.ARCHIVED
+            state = (
+                ProjectState.COMPLETED
+                if days_since_close < 30
+                else ProjectState.ARCHIVED
+            )
         except (ValueError, TypeError):
             state = ProjectState.COMPLETED
 
@@ -598,21 +599,27 @@ def map_github_projectv2_to_project(
     created_at = None
     if data.get("createdAt"):
         try:
-            created_at = datetime.fromisoformat(data["createdAt"].replace("Z", "+00:00"))
+            created_at = datetime.fromisoformat(
+                data["createdAt"].replace("Z", "+00:00")
+            )
         except (ValueError, TypeError):
             pass
 
     updated_at = None
     if data.get("updatedAt"):
         try:
-            updated_at = datetime.fromisoformat(data["updatedAt"].replace("Z", "+00:00"))
+            updated_at = datetime.fromisoformat(
+                data["updatedAt"].replace("Z", "+00:00")
+            )
         except (ValueError, TypeError):
             pass
 
     completed_at = None
     if data.get("closedAt"):
         try:
-            completed_at = datetime.fromisoformat(data["closedAt"].replace("Z", "+00:00"))
+            completed_at = datetime.fromisoformat(
+                data["closedAt"].replace("Z", "+00:00")
+            )
         except (ValueError, TypeError):
             pass
 

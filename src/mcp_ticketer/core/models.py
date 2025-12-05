@@ -728,7 +728,9 @@ class Project(BaseModel):
     name: str = Field(..., min_length=1, description="Project name")
     description: str | None = Field(None, description="Project description")
     state: ProjectState = Field(ProjectState.PLANNED, description="Current state")
-    visibility: ProjectVisibility = Field(ProjectVisibility.TEAM, description="Visibility")
+    visibility: ProjectVisibility = Field(
+        ProjectVisibility.TEAM, description="Visibility"
+    )
 
     # URLs and references
     url: str | None = Field(None, description="Direct URL to project")
@@ -820,11 +822,21 @@ class ProjectStatistics(BaseModel):
 
     # Legacy fields for backward compatibility (optional)
     project_id: str | None = Field(None, description="Project identifier (legacy)")
-    total_issues: int | None = Field(None, ge=0, description="Total issue count (legacy)")
-    completed_issues: int | None = Field(None, ge=0, description="Completed issues (legacy)")
-    in_progress_issues: int | None = Field(None, ge=0, description="In-progress issues (legacy)")
-    open_issues: int | None = Field(None, ge=0, description="Open/backlog issues (legacy)")
-    blocked_issues: int | None = Field(None, ge=0, description="Blocked issues (legacy)")
+    total_issues: int | None = Field(
+        None, ge=0, description="Total issue count (legacy)"
+    )
+    completed_issues: int | None = Field(
+        None, ge=0, description="Completed issues (legacy)"
+    )
+    in_progress_issues: int | None = Field(
+        None, ge=0, description="In-progress issues (legacy)"
+    )
+    open_issues: int | None = Field(
+        None, ge=0, description="Open/backlog issues (legacy)"
+    )
+    blocked_issues: int | None = Field(
+        None, ge=0, description="Blocked issues (legacy)"
+    )
 
     # New preferred fields
     total_count: int = Field(0, ge=0, description="Total issue count")
@@ -837,10 +849,14 @@ class ProjectStatistics(BaseModel):
     priority_low_count: int = Field(0, ge=0, description="Low priority issues")
     priority_medium_count: int = Field(0, ge=0, description="Medium priority issues")
     priority_high_count: int = Field(0, ge=0, description="High priority issues")
-    priority_critical_count: int = Field(0, ge=0, description="Critical priority issues")
+    priority_critical_count: int = Field(
+        0, ge=0, description="Critical priority issues"
+    )
 
     # Health and progress
-    health: str = Field("on_track", description="Health status: on_track, at_risk, off_track")
+    health: str = Field(
+        "on_track", description="Health status: on_track, at_risk, off_track"
+    )
     progress_percentage: float = Field(0.0, ge=0.0, le=100.0, description="Progress %")
     velocity: float | None = Field(None, description="Issues/week completion rate")
     estimated_completion: datetime | None = Field(

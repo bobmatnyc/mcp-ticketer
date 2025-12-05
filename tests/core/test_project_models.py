@@ -170,7 +170,9 @@ class TestProjectModel:
                 name="",  # Empty string violates min_length=1
             )
         errors = exc_info.value.errors()
-        assert any(e["loc"] == ("name",) and "at least 1" in str(e["msg"]) for e in errors)
+        assert any(
+            e["loc"] == ("name",) and "at least 1" in str(e["msg"]) for e in errors
+        )
 
     def test_project_validation_issue_counts(self):
         """Test validation of issue count constraints (non-negative)."""
@@ -574,7 +576,7 @@ class TestProjectEdgeCases:
     def test_statistics_with_inconsistent_counts(self):
         """Test statistics allows inconsistent counts (no validation enforced)."""
         # This should succeed even though completed > total (validation is adapter's responsibility)
-        stats = ProjectStatistics(
+        _ = ProjectStatistics(
             project_id="proj-123",
             total_issues=10,
             completed_issues=15,  # More completed than total!

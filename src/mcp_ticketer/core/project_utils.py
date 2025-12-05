@@ -95,12 +95,12 @@ def epic_to_project(epic: Epic) -> Project:
         url=getattr(epic.metadata, "url", None) if epic.metadata else None,
         created_at=epic.created_at,
         updated_at=epic.updated_at,
-        target_date=getattr(epic.metadata, "target_date", None)
-        if epic.metadata
-        else None,
-        completed_at=getattr(epic.metadata, "completed_at", None)
-        if epic.metadata
-        else None,
+        target_date=(
+            getattr(epic.metadata, "target_date", None) if epic.metadata else None
+        ),
+        completed_at=(
+            getattr(epic.metadata, "completed_at", None) if epic.metadata else None
+        ),
         child_issues=epic.child_issues or [],
         extra_data={"original_type": "epic", **epic.metadata} if epic.metadata else {},
     )
