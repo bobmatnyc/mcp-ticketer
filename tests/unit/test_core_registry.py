@@ -73,6 +73,34 @@ class MockAdapter(BaseAdapter[Task]):
         """Mock validate credentials method."""
         return True
 
+    async def milestone_create(
+        self, name: str, target_date=None, labels=None, description=""
+    ):
+        """Mock milestone create method."""
+        return None
+
+    async def milestone_get(self, milestone_id: str):
+        """Mock milestone get method."""
+        return None
+
+    async def milestone_list(self, project_id=None, state=None):
+        """Mock milestone list method."""
+        return []
+
+    async def milestone_update(
+        self, milestone_id: str, name=None, target_date=None, state=None
+    ):
+        """Mock milestone update method."""
+        return None
+
+    async def milestone_delete(self, milestone_id: str) -> bool:
+        """Mock milestone delete method."""
+        return True
+
+    async def milestone_get_issues(self, milestone_id: str, state=None):
+        """Mock milestone get issues method."""
+        return []
+
 
 class InvalidAdapter:
     """Invalid adapter that doesn't inherit from BaseAdapter."""
