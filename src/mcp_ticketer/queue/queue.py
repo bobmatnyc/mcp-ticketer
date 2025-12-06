@@ -535,3 +535,71 @@ class Queue:
                 stats[status] = count
 
             return stats
+
+    def poll_until_complete(
+        self,
+        queue_id: str,
+        timeout: float = 30.0,
+        poll_interval: float = 0.5,
+    ) -> QueueItem:
+        """Poll queue item until completion or timeout.
+
+        This enables synchronous waiting for queue operations, useful for:
+        - CLI commands that need immediate results
+        - Testing that requires actual ticket IDs
+        - GitHub adapter operations requiring ticket numbers
+
+        Args:
+            queue_id: Queue ID to poll (e.g., "Q-9E7B5050")
+            timeout: Maximum seconds to wait (default: 30.0)
+            poll_interval: Seconds between polls (default: 0.5)
+
+        Returns:
+            Completed QueueItem with result data
+
+        Raises:
+            TimeoutError: If operation doesn't complete within timeout
+            RuntimeError: If operation fails or queue item not found
+
+        Example:
+            >>> queue = Queue()
+            >>> queue_id = queue.add(ticket_data={...}, adapter="github", operation="create")
+            >>> # Start worker to process the queue
+            >>> completed_item = queue.poll_until_complete(queue_id, timeout=30)
+            >>> ticket_id = completed_item.result["id"]
+
+        """
+        import time
+
+        start_time = time.time()
+        elapsed = 0.0
+
+        while elapsed < timeout:
+            item = self.get_item(queue_id)
+
+            if item is None:
+                raise RuntimeError(f"Queue item not found: {queue_id}")
+
+            if item.status == QueueStatus.COMPLETED:
+                if item.result is None:
+                    raise RuntimeError(
+                        f"Queue operation completed but has no result data: {queue_id}"
+                    )
+                return item
+
+            elif item.status == QueueStatus.FAILED:
+                error_msg = item.error_message or "Unknown error"
+                raise RuntimeError(
+                    f"Queue operation failed: {error_msg} (queue_id: {queue_id})"
+                )
+
+            # Still pending or processing - wait and retry
+            time.sleep(poll_interval)
+            elapsed = time.time() - start_time
+
+        # Timeout reached
+        final_item = self.get_item(queue_id)
+        final_status = final_item.status.value if final_item else "UNKNOWN"
+        raise TimeoutError(
+            f"Queue operation timed out after {timeout}s (status: {final_status}, queue_id: {queue_id})"
+        )

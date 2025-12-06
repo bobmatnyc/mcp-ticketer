@@ -213,6 +213,17 @@ def create(
         "--epic",
         help="Parent epic/project ID (synonym for --project)",
     ),
+    wait: bool = typer.Option(
+        False,
+        "--wait",
+        "-w",
+        help="Wait for operation to complete (synchronous mode, returns actual ticket ID)",
+    ),
+    timeout: float = typer.Option(
+        30.0,
+        "--timeout",
+        help="Timeout in seconds for --wait mode (default: 30)",
+    ),
     output_json: bool = typer.Option(
         False, "--json", "-j", help="Output as JSON"
     ),
@@ -380,50 +391,100 @@ def create(
         queue_id, adapter_name, "create", title, task_data
     )
 
-    console.print(f"[green]✓[/green] Queued ticket creation: {queue_id}")
-    console.print(f"  Title: {title}")
-    console.print(f"  Priority: {priority}")
-    console.print(f"  Adapter: {adapter_name}")
-    console.print(
-        "[dim]Use 'mcp-ticketer ticket check {queue_id}' to check progress[/dim]"
-    )
-
-    # Start worker if needed with immediate feedback
+    # Start worker if needed - must happen before polling
     manager = WorkerManager()
     worker_started = manager.start_if_needed()
 
     if worker_started:
-        console.print("[dim]Worker started to process request[/dim]")
+        if not output_json:
+            console.print("[dim]Worker started to process request[/dim]")
 
-        # Give immediate feedback on processing
-        import time
+    # SYNCHRONOUS MODE: Poll until completion if --wait flag is set
+    if wait:
+        if not output_json:
+            console.print(f"[yellow]⏳[/yellow] Waiting for operation to complete (timeout: {timeout}s)...")
 
-        time.sleep(1)  # Brief pause to let worker start
+        try:
+            # Poll the queue until operation completes
+            completed_item = queue.poll_until_complete(queue_id, timeout=timeout)
 
-        # Check if item is being processed
-        item = queue.get_item(queue_id)
-        if item and item.status == QueueStatus.PROCESSING:
-            console.print("[green]✓ Item is being processed by worker[/green]")
-        elif item and item.status == QueueStatus.PENDING:
-            console.print("[yellow]⏳ Item is queued for processing[/yellow]")
-        else:
-            console.print(
-                "[red]⚠️  Item status unclear - check with 'mcp-ticketer ticket check {queue_id}'[/red]"
-            )
+            # Extract result data
+            result = completed_item.result
+
+            # Extract ticket ID from result
+            ticket_id = result.get("id") if result else queue_id
+
+            if output_json:
+                # Return actual ticket data in JSON format
+                data = result if result else {"queue_id": queue_id}
+                console.print(format_json_response("success", data, message="Ticket created successfully"))
+            else:
+                # Display ticket creation success with actual ID
+                console.print(f"[green]✓[/green] Ticket created successfully: {ticket_id}")
+                console.print(f"  Title: {title}")
+                console.print(f"  Priority: {priority}")
+
+                # Display additional metadata if available
+                if result:
+                    if "url" in result:
+                        console.print(f"  URL: {result['url']}")
+                    if "state" in result:
+                        console.print(f"  State: {result['state']}")
+
+            return ticket_id
+
+        except TimeoutError as e:
+            if output_json:
+                console.print(format_error_json(str(e), queue_id=queue_id))
+            else:
+                console.print(f"[red]❌[/red] Operation timed out after {timeout}s")
+                console.print(f"  Queue ID: {queue_id}")
+                console.print(f"  Use 'mcp-ticketer ticket check {queue_id}' to check status later")
+            raise typer.Exit(1) from None
+
+        except RuntimeError as e:
+            if output_json:
+                console.print(format_error_json(str(e), queue_id=queue_id))
+            else:
+                console.print(f"[red]❌[/red] Operation failed: {e}")
+                console.print(f"  Queue ID: {queue_id}")
+            raise typer.Exit(1) from None
+
+    # ASYNCHRONOUS MODE (default): Return queue ID immediately
     else:
-        # Worker didn't start - this is a problem
-        pending_count = queue.get_pending_count()
-        if pending_count > 1:  # More than just this item
-            console.print(
-                f"[red]❌ Worker failed to start with {pending_count} pending items![/red]"
-            )
-            console.print(
-                "[red]This is a critical issue. Try 'mcp-ticketer queue worker start' manually.[/red]"
-            )
+        if output_json:
+            data = {
+                "queue_id": queue_id,
+                "title": title,
+                "priority": priority.value if hasattr(priority, 'value') else priority,
+                "adapter": adapter_name,
+                "status": "queued"
+            }
+            console.print(format_json_response("success", data, message="Ticket creation queued"))
         else:
+            console.print(f"[green]✓[/green] Queued ticket creation: {queue_id}")
+            console.print(f"  Title: {title}")
+            console.print(f"  Priority: {priority}")
+            console.print(f"  Adapter: {adapter_name}")
             console.print(
-                "[yellow]Worker not started (no other pending items)[/yellow]"
+                "[dim]Use 'mcp-ticketer ticket check {queue_id}' to check progress[/dim]"
             )
+
+            # Give immediate feedback on processing
+            import time
+
+            time.sleep(1)  # Brief pause to let worker start
+
+            # Check if item is being processed
+            item = queue.get_item(queue_id)
+            if item and item.status == QueueStatus.PROCESSING:
+                console.print("[green]✓ Item is being processed by worker[/green]")
+            elif item and item.status == QueueStatus.PENDING:
+                console.print("[yellow]⏳ Item is queued for processing[/yellow]")
+            else:
+                console.print(
+                    "[red]⚠️  Item status unclear - check with 'mcp-ticketer ticket check {queue_id}'[/red]"
+                )
 
 
 @app.command("list")
@@ -893,6 +954,17 @@ def update(
         None, "--priority", "-p", help="New priority"
     ),
     assignee: str | None = typer.Option(None, "--assignee", "-a", help="New assignee"),
+    wait: bool = typer.Option(
+        False,
+        "--wait",
+        "-w",
+        help="Wait for operation to complete (synchronous mode)",
+    ),
+    timeout: float = typer.Option(
+        30.0,
+        "--timeout",
+        help="Timeout in seconds for --wait mode (default: 30)",
+    ),
     output_json: bool = typer.Option(
         False, "--json", "-j", help="Output as JSON"
     ),
@@ -940,29 +1012,67 @@ def update(
         project_dir=str(Path.cwd()),  # Explicitly pass current project directory
     )
 
-    if output_json:
-        updated_fields = [k for k in updates.keys() if k != "ticket_id"]
-        data = {
-            "id": ticket_id,
-            "queue_id": queue_id,
-            "updated_fields": updated_fields,
-            **{k: v for k, v in updates.items() if k != "ticket_id"}
-        }
-        console.print(format_json_response("success", data, message="Ticket update queued"))
-    else:
-        console.print(f"[green]✓[/green] Queued ticket update: {queue_id}")
-        for key, value in updates.items():
-            if key != "ticket_id":
-                console.print(f"  {key}: {value}")
-        console.print(
-            "[dim]Use 'mcp-ticketer ticket check {queue_id}' to check progress[/dim]"
-        )
-
     # Start worker if needed
     manager = WorkerManager()
     if manager.start_if_needed():
         if not output_json:
             console.print("[dim]Worker started to process request[/dim]")
+
+    # SYNCHRONOUS MODE: Poll until completion if --wait flag is set
+    if wait:
+        from .utils import format_error_json
+
+        if not output_json:
+            console.print(f"[yellow]⏳[/yellow] Waiting for update to complete (timeout: {timeout}s)...")
+
+        try:
+            # Poll the queue until operation completes
+            completed_item = queue.poll_until_complete(queue_id, timeout=timeout)
+            result = completed_item.result
+
+            if output_json:
+                data = result if result else {"queue_id": queue_id, "id": ticket_id}
+                console.print(format_json_response("success", data, message="Ticket updated successfully"))
+            else:
+                console.print(f"[green]✓[/green] Ticket updated successfully: {ticket_id}")
+                for key, value in updates.items():
+                    if key != "ticket_id":
+                        console.print(f"  {key}: {value}")
+
+        except TimeoutError as e:
+            if output_json:
+                console.print(format_error_json(str(e), queue_id=queue_id))
+            else:
+                console.print(f"[red]❌[/red] Operation timed out after {timeout}s")
+                console.print(f"  Queue ID: {queue_id}")
+            raise typer.Exit(1) from None
+
+        except RuntimeError as e:
+            if output_json:
+                console.print(format_error_json(str(e), queue_id=queue_id))
+            else:
+                console.print(f"[red]❌[/red] Operation failed: {e}")
+            raise typer.Exit(1) from None
+
+    # ASYNCHRONOUS MODE (default)
+    else:
+        if output_json:
+            updated_fields = [k for k in updates.keys() if k != "ticket_id"]
+            data = {
+                "id": ticket_id,
+                "queue_id": queue_id,
+                "updated_fields": updated_fields,
+                **{k: v for k, v in updates.items() if k != "ticket_id"}
+            }
+            console.print(format_json_response("success", data, message="Ticket update queued"))
+        else:
+            console.print(f"[green]✓[/green] Queued ticket update: {queue_id}")
+            for key, value in updates.items():
+                if key != "ticket_id":
+                    console.print(f"  {key}: {value}")
+            console.print(
+                "[dim]Use 'mcp-ticketer ticket check {queue_id}' to check progress[/dim]"
+            )
 
 
 @app.command()
@@ -973,6 +1083,17 @@ def transition(
     ),
     state: TicketState | None = typer.Option(
         None, "--state", "-s", help="Target state (recommended)"
+    ),
+    wait: bool = typer.Option(
+        False,
+        "--wait",
+        "-w",
+        help="Wait for operation to complete (synchronous mode)",
+    ),
+    timeout: float = typer.Option(
+        30.0,
+        "--timeout",
+        help="Timeout in seconds for --wait mode (default: 30)",
     ),
     output_json: bool = typer.Option(
         False, "--json", "-j", help="Output as JSON"
@@ -1028,27 +1149,67 @@ def transition(
         project_dir=str(Path.cwd()),  # Explicitly pass current project directory
     )
 
-    if output_json:
-        data = {
-            "id": ticket_id,
-            "queue_id": queue_id,
-            "new_state": state_value,
-            "matched_state": state_value,
-            "confidence": 1.0
-        }
-        console.print(format_json_response("success", data, message="State transition queued"))
-    else:
-        console.print(f"[green]✓[/green] Queued state transition: {queue_id}")
-        console.print(f"  Ticket: {ticket_id} → {target_state}")
-        console.print(
-            "[dim]Use 'mcp-ticketer ticket check {queue_id}' to check progress[/dim]"
-        )
-
     # Start worker if needed
     manager = WorkerManager()
     if manager.start_if_needed():
         if not output_json:
             console.print("[dim]Worker started to process request[/dim]")
+
+    # SYNCHRONOUS MODE: Poll until completion if --wait flag is set
+    if wait:
+        from .utils import format_error_json
+
+        if not output_json:
+            console.print(f"[yellow]⏳[/yellow] Waiting for transition to complete (timeout: {timeout}s)...")
+
+        try:
+            # Poll the queue until operation completes
+            completed_item = queue.poll_until_complete(queue_id, timeout=timeout)
+            result = completed_item.result
+
+            if output_json:
+                data = result if result else {
+                    "id": ticket_id,
+                    "new_state": state_value,
+                    "matched_state": state_value,
+                    "confidence": 1.0
+                }
+                console.print(format_json_response("success", data, message="State transition completed"))
+            else:
+                console.print(f"[green]✓[/green] State transition completed: {ticket_id} → {target_state}")
+
+        except TimeoutError as e:
+            if output_json:
+                console.print(format_error_json(str(e), queue_id=queue_id))
+            else:
+                console.print(f"[red]❌[/red] Operation timed out after {timeout}s")
+                console.print(f"  Queue ID: {queue_id}")
+            raise typer.Exit(1) from None
+
+        except RuntimeError as e:
+            if output_json:
+                console.print(format_error_json(str(e), queue_id=queue_id))
+            else:
+                console.print(f"[red]❌[/red] Operation failed: {e}")
+            raise typer.Exit(1) from None
+
+    # ASYNCHRONOUS MODE (default)
+    else:
+        if output_json:
+            data = {
+                "id": ticket_id,
+                "queue_id": queue_id,
+                "new_state": state_value,
+                "matched_state": state_value,
+                "confidence": 1.0
+            }
+            console.print(format_json_response("success", data, message="State transition queued"))
+        else:
+            console.print(f"[green]✓[/green] Queued state transition: {queue_id}")
+            console.print(f"  Ticket: {ticket_id} → {target_state}")
+            console.print(
+                "[dim]Use 'mcp-ticketer ticket check {queue_id}' to check progress[/dim]"
+            )
 
 
 @app.command()
