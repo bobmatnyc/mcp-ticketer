@@ -88,7 +88,11 @@ def build_claude_mcp_command(
     # Transport: always stdio
     cmd.extend(["--transport", "stdio"])
 
-    # Environment variables (credentials)
+    # Server name - MUST come before -e flags per Claude CLI syntax:
+    # claude mcp add [options] <name> -e KEY=val... -- <command> [args...]
+    cmd.append("mcp-ticketer")
+
+    # Environment variables (credentials) - MUST come after server name
     adapters = project_config.get("adapters", {})
 
     # Linear adapter
@@ -124,9 +128,6 @@ def build_claude_mcp_command(
     # Add default adapter
     default_adapter = project_config.get("default_adapter", "aitrackdown")
     cmd.extend(["-e", f"MCP_TICKETER_ADAPTER={default_adapter}"])
-
-    # Server label
-    cmd.append("mcp-ticketer")
 
     # Command separator
     cmd.append("--")
