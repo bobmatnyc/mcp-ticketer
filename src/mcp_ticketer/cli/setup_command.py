@@ -625,21 +625,38 @@ def _update_mcp_json_credentials(proj_path: Path, console: Console) -> None:
     from the project's .mcp-ticketer/config.json file. It also ensures .mcp.json is
     added to .gitignore to prevent credential leaks.
 
+    Additionally, it updates the official @modelcontextprotocol/server-github MCP server
+    if found, since it also requires GITHUB_PERSONAL_ACCESS_TOKEN.
+
     Args:
         proj_path: Project path
         console: Rich console for output
 
     """
-    # Check both new and old .mcp.json locations
+    # Check multiple .mcp.json locations
     new_mcp_json_path = Path.home() / ".config" / "claude" / "mcp.json"
     old_mcp_json_path = Path.home() / ".claude.json"
     legacy_mcp_json_path = proj_path / ".claude" / "mcp.local.json"
+    project_mcp_json_path = proj_path / ".mcp.json"
 
     mcp_json_paths = [
         (new_mcp_json_path, True),  # (path, is_global_mcp_config)
         (old_mcp_json_path, False),
         (legacy_mcp_json_path, False),
+        (project_mcp_json_path, False),
     ]
+
+    # Also check parent directories for .mcp.json (Claude Code inheritance)
+    # This handles cases like /Users/masa/Projects/.mcp.json
+    current = proj_path.parent
+    home = Path.home()
+    checked_parents: set[Path] = set()
+    while current != home and current != current.parent:
+        parent_mcp = current / ".mcp.json"
+        if parent_mcp not in checked_parents and parent_mcp.exists():
+            mcp_json_paths.append((parent_mcp, False))
+            checked_parents.add(parent_mcp)
+        current = current.parent
 
     # Import the helper function to get adapter credentials
     from .mcp_configure import _get_adapter_env_vars
@@ -674,13 +691,42 @@ def _update_mcp_json_credentials(proj_path: Path, console: Console) -> None:
                     # Try flat structure for backward compatibility
                     mcp_servers = mcp_config.get("mcpServers", {})
 
-            if mcp_servers is None or "mcp-ticketer" not in mcp_servers:
+            if mcp_servers is None:
                 continue
 
-            # Update the mcp-ticketer server env vars
-            current_env = mcp_servers["mcp-ticketer"].get("env", {})
-            current_env.update(env_vars)
-            mcp_servers["mcp-ticketer"]["env"] = current_env
+            config_updated = False
+
+            # Update the mcp-ticketer server env vars if configured
+            if "mcp-ticketer" in mcp_servers:
+                current_env = mcp_servers["mcp-ticketer"].get("env", {})
+                current_env.update(env_vars)
+                mcp_servers["mcp-ticketer"]["env"] = current_env
+                config_updated = True
+
+            # Also update official @modelcontextprotocol/server-github if present
+            # This server uses GITHUB_PERSONAL_ACCESS_TOKEN instead of GITHUB_TOKEN
+            if "github" in mcp_servers and "GITHUB_TOKEN" in env_vars:
+                github_server = mcp_servers["github"]
+                # Check if it's the official GitHub MCP server (uses npx or server-github)
+                cmd = github_server.get("command", "")
+                args = github_server.get("args", [])
+                is_official_github = (
+                    cmd == "npx"
+                    and any("server-github" in str(arg) for arg in args)
+                ) or "server-github" in cmd
+
+                if is_official_github:
+                    current_env = github_server.get("env", {})
+                    # The official server uses GITHUB_PERSONAL_ACCESS_TOKEN
+                    current_env["GITHUB_PERSONAL_ACCESS_TOKEN"] = env_vars["GITHUB_TOKEN"]
+                    github_server["env"] = current_env
+                    config_updated = True
+                    console.print(
+                        f"[dim]  Also updated official GitHub MCP server in {mcp_json_path}[/dim]"
+                    )
+
+            if not config_updated:
+                continue
 
             # Save updated config
             with open(mcp_json_path, "w") as f:
