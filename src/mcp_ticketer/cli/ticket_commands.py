@@ -224,15 +224,14 @@ def create(
         "--timeout",
         help="Timeout in seconds for --wait mode (default: 30)",
     ),
-    output_json: bool = typer.Option(
-        False, "--json", "-j", help="Output as JSON"
-    ),
+    output_json: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
     adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
     """Create a new ticket with comprehensive health checks."""
-    from .utils import format_json_response, format_error_json, serialize_task
+    from .utils import format_error_json, format_json_response, serialize_task
+
     # IMMEDIATE HEALTH CHECK - Critical for reliability
     health_monitor = QueueHealthMonitor()
     health = health_monitor.check_health()
@@ -353,9 +352,15 @@ def create(
 
             if output_json:
                 data = serialize_task(result)
-                console.print(format_json_response("success", data, message="Ticket created successfully"))
+                console.print(
+                    format_json_response(
+                        "success", data, message="Ticket created successfully"
+                    )
+                )
             else:
-                console.print(f"[green]✓[/green] Ticket created successfully: {result.id}")
+                console.print(
+                    f"[green]✓[/green] Ticket created successfully: {result.id}"
+                )
                 console.print(f"  Title: {result.title}")
                 console.print(f"  Priority: {result.priority}")
                 console.print(f"  State: {result.state}")
@@ -402,7 +407,9 @@ def create(
     # SYNCHRONOUS MODE: Poll until completion if --wait flag is set
     if wait:
         if not output_json:
-            console.print(f"[yellow]⏳[/yellow] Waiting for operation to complete (timeout: {timeout}s)...")
+            console.print(
+                f"[yellow]⏳[/yellow] Waiting for operation to complete (timeout: {timeout}s)..."
+            )
 
         try:
             # Poll the queue until operation completes
@@ -417,10 +424,16 @@ def create(
             if output_json:
                 # Return actual ticket data in JSON format
                 data = result if result else {"queue_id": queue_id}
-                console.print(format_json_response("success", data, message="Ticket created successfully"))
+                console.print(
+                    format_json_response(
+                        "success", data, message="Ticket created successfully"
+                    )
+                )
             else:
                 # Display ticket creation success with actual ID
-                console.print(f"[green]✓[/green] Ticket created successfully: {ticket_id}")
+                console.print(
+                    f"[green]✓[/green] Ticket created successfully: {ticket_id}"
+                )
                 console.print(f"  Title: {title}")
                 console.print(f"  Priority: {priority}")
 
@@ -439,7 +452,9 @@ def create(
             else:
                 console.print(f"[red]❌[/red] Operation timed out after {timeout}s")
                 console.print(f"  Queue ID: {queue_id}")
-                console.print(f"  Use 'mcp-ticketer ticket check {queue_id}' to check status later")
+                console.print(
+                    f"  Use 'mcp-ticketer ticket check {queue_id}' to check status later"
+                )
             raise typer.Exit(1) from None
 
         except RuntimeError as e:
@@ -456,11 +471,13 @@ def create(
             data = {
                 "queue_id": queue_id,
                 "title": title,
-                "priority": priority.value if hasattr(priority, 'value') else priority,
+                "priority": priority.value if hasattr(priority, "value") else priority,
                 "adapter": adapter_name,
-                "status": "queued"
+                "status": "queued",
             }
-            console.print(format_json_response("success", data, message="Ticket creation queued"))
+            console.print(
+                format_json_response("success", data, message="Ticket creation queued")
+            )
         else:
             console.print(f"[green]✓[/green] Queued ticket creation: {queue_id}")
             console.print(f"  Title: {title}")
@@ -496,9 +513,7 @@ def list_tickets(
         None, "--priority", "-p", help="Filter by priority"
     ),
     limit: int = typer.Option(10, "--limit", "-l", help="Maximum number of tickets"),
-    output_json: bool = typer.Option(
-        False, "--json", "-j", help="Output as JSON"
-    ),
+    output_json: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
     adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
@@ -521,7 +536,11 @@ def list_tickets(
 
     if not tickets:
         if output_json:
-            console.print(format_json_response("success", {"tickets": [], "count": 0, "has_more": False}))
+            console.print(
+                format_json_response(
+                    "success", {"tickets": [], "count": 0, "has_more": False}
+                )
+            )
         else:
             console.print("[yellow]No tickets found[/yellow]")
         return
@@ -532,7 +551,8 @@ def list_tickets(
         data = {
             "tickets": tickets_data,
             "count": len(tickets_data),
-            "has_more": len(tickets) >= limit  # Heuristic: if we got exactly limit, there might be more
+            "has_more": len(tickets)
+            >= limit,  # Heuristic: if we got exactly limit, there might be more
         }
         console.print(format_json_response("success", data))
         return
@@ -566,9 +586,7 @@ def show(
     no_comments: bool = typer.Option(
         False, "--no-comments", help="Hide comments (shown by default)"
     ),
-    output_json: bool = typer.Option(
-        False, "--json", "-j", help="Output as JSON"
-    ),
+    output_json: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
     adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
@@ -581,7 +599,7 @@ def show(
     Use --no-comments to display only ticket metadata without comments.
     Use --json to output in machine-readable JSON format.
     """
-    from .utils import format_json_response, format_error_json, serialize_task
+    from .utils import format_error_json, format_json_response, serialize_task
 
     async def _show() -> tuple[Any, Any, Any]:
         adapter_instance = get_adapter(
@@ -613,7 +631,11 @@ def show(
 
         if not ticket:
             if output_json:
-                console.print(format_error_json(f"Ticket not found: {ticket_id}", ticket_id=ticket_id))
+                console.print(
+                    format_error_json(
+                        f"Ticket not found: {ticket_id}", ticket_id=ticket_id
+                    )
+                )
             else:
                 console.print(f"[red]✗[/red] Ticket not found: {ticket_id}")
             raise typer.Exit(1) from None
@@ -629,7 +651,11 @@ def show(
                         "id": getattr(c, "id", None),
                         "text": c.content,
                         "author": c.author,
-                        "created_at": c.created_at.isoformat() if hasattr(c.created_at, 'isoformat') else str(c.created_at)
+                        "created_at": (
+                            c.created_at.isoformat()
+                            if hasattr(c.created_at, "isoformat")
+                            else str(c.created_at)
+                        ),
                     }
                     for c in ticket_comments
                 ]
@@ -724,15 +750,13 @@ def show(
 def comment(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
     content: str = typer.Argument(..., help="Comment content"),
-    output_json: bool = typer.Option(
-        False, "--json", "-j", help="Output as JSON"
-    ),
+    output_json: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
     adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
     """Add a comment to a ticket."""
-    from .utils import format_json_response, format_error_json
+    from .utils import format_error_json, format_json_response
 
     async def _comment() -> Comment:
         adapter_instance = get_adapter(
@@ -758,9 +782,17 @@ def comment(
                 "ticket_id": ticket_id,
                 "text": content,
                 "author": result.author,
-                "created_at": result.created_at.isoformat() if hasattr(result.created_at, 'isoformat') else str(result.created_at)
+                "created_at": (
+                    result.created_at.isoformat()
+                    if hasattr(result.created_at, "isoformat")
+                    else str(result.created_at)
+                ),
             }
-            console.print(format_json_response("success", data, message="Comment added successfully"))
+            console.print(
+                format_json_response(
+                    "success", data, message="Comment added successfully"
+                )
+            )
         else:
             console.print("[green]✓[/green] Comment added successfully")
             if result.id:
@@ -965,9 +997,7 @@ def update(
         "--timeout",
         help="Timeout in seconds for --wait mode (default: 30)",
     ),
-    output_json: bool = typer.Option(
-        False, "--json", "-j", help="Output as JSON"
-    ),
+    output_json: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
     adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
@@ -989,7 +1019,13 @@ def update(
 
     if not updates:
         if output_json:
-            console.print(format_json_response("error", {"error": "No updates specified"}, message="No updates specified"))
+            console.print(
+                format_json_response(
+                    "error",
+                    {"error": "No updates specified"},
+                    message="No updates specified",
+                )
+            )
         else:
             console.print("[yellow]No updates specified[/yellow]")
         raise typer.Exit(1) from None
@@ -1023,7 +1059,9 @@ def update(
         from .utils import format_error_json
 
         if not output_json:
-            console.print(f"[yellow]⏳[/yellow] Waiting for update to complete (timeout: {timeout}s)...")
+            console.print(
+                f"[yellow]⏳[/yellow] Waiting for update to complete (timeout: {timeout}s)..."
+            )
 
         try:
             # Poll the queue until operation completes
@@ -1032,9 +1070,15 @@ def update(
 
             if output_json:
                 data = result if result else {"queue_id": queue_id, "id": ticket_id}
-                console.print(format_json_response("success", data, message="Ticket updated successfully"))
+                console.print(
+                    format_json_response(
+                        "success", data, message="Ticket updated successfully"
+                    )
+                )
             else:
-                console.print(f"[green]✓[/green] Ticket updated successfully: {ticket_id}")
+                console.print(
+                    f"[green]✓[/green] Ticket updated successfully: {ticket_id}"
+                )
                 for key, value in updates.items():
                     if key != "ticket_id":
                         console.print(f"  {key}: {value}")
@@ -1062,9 +1106,11 @@ def update(
                 "id": ticket_id,
                 "queue_id": queue_id,
                 "updated_fields": updated_fields,
-                **{k: v for k, v in updates.items() if k != "ticket_id"}
+                **{k: v for k, v in updates.items() if k != "ticket_id"},
             }
-            console.print(format_json_response("success", data, message="Ticket update queued"))
+            console.print(
+                format_json_response("success", data, message="Ticket update queued")
+            )
         else:
             console.print(f"[green]✓[/green] Queued ticket update: {queue_id}")
             for key, value in updates.items():
@@ -1095,9 +1141,7 @@ def transition(
         "--timeout",
         help="Timeout in seconds for --wait mode (default: 30)",
     ),
-    output_json: bool = typer.Option(
-        False, "--json", "-j", help="Output as JSON"
-    ),
+    output_json: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
     adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
@@ -1120,7 +1164,11 @@ def transition(
 
     if target_state is None:
         if output_json:
-            console.print(format_json_response("error", {"error": "State is required"}, message="State is required"))
+            console.print(
+                format_json_response(
+                    "error", {"error": "State is required"}, message="State is required"
+                )
+            )
         else:
             console.print("[red]Error: State is required[/red]")
             console.print(
@@ -1160,7 +1208,9 @@ def transition(
         from .utils import format_error_json
 
         if not output_json:
-            console.print(f"[yellow]⏳[/yellow] Waiting for transition to complete (timeout: {timeout}s)...")
+            console.print(
+                f"[yellow]⏳[/yellow] Waiting for transition to complete (timeout: {timeout}s)..."
+            )
 
         try:
             # Poll the queue until operation completes
@@ -1168,15 +1218,25 @@ def transition(
             result = completed_item.result
 
             if output_json:
-                data = result if result else {
-                    "id": ticket_id,
-                    "new_state": state_value,
-                    "matched_state": state_value,
-                    "confidence": 1.0
-                }
-                console.print(format_json_response("success", data, message="State transition completed"))
+                data = (
+                    result
+                    if result
+                    else {
+                        "id": ticket_id,
+                        "new_state": state_value,
+                        "matched_state": state_value,
+                        "confidence": 1.0,
+                    }
+                )
+                console.print(
+                    format_json_response(
+                        "success", data, message="State transition completed"
+                    )
+                )
             else:
-                console.print(f"[green]✓[/green] State transition completed: {ticket_id} → {target_state}")
+                console.print(
+                    f"[green]✓[/green] State transition completed: {ticket_id} → {target_state}"
+                )
 
         except TimeoutError as e:
             if output_json:
@@ -1201,9 +1261,11 @@ def transition(
                 "queue_id": queue_id,
                 "new_state": state_value,
                 "matched_state": state_value,
-                "confidence": 1.0
+                "confidence": 1.0,
             }
-            console.print(format_json_response("success", data, message="State transition queued"))
+            console.print(
+                format_json_response("success", data, message="State transition queued")
+            )
         else:
             console.print(f"[green]✓[/green] Queued state transition: {queue_id}")
             console.print(f"  Ticket: {ticket_id} → {target_state}")
@@ -1219,9 +1281,7 @@ def search(
     priority: Priority | None = typer.Option(None, "--priority", "-p"),
     assignee: str | None = typer.Option(None, "--assignee", "-a"),
     limit: int = typer.Option(10, "--limit", "-l"),
-    output_json: bool = typer.Option(
-        False, "--json", "-j", help="Output as JSON"
-    ),
+    output_json: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
     adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
@@ -1246,7 +1306,11 @@ def search(
 
     if not tickets:
         if output_json:
-            console.print(format_json_response("success", {"tickets": [], "query": query, "count": 0}))
+            console.print(
+                format_json_response(
+                    "success", {"tickets": [], "query": query, "count": 0}
+                )
+            )
         else:
             console.print("[yellow]No tickets found matching query[/yellow]")
         return
@@ -1254,11 +1318,7 @@ def search(
     # JSON output
     if output_json:
         tickets_data = [serialize_task(t) for t in tickets]
-        data = {
-            "tickets": tickets_data,
-            "query": query,
-            "count": len(tickets_data)
-        }
+        data = {"tickets": tickets_data, "query": query, "count": len(tickets_data)}
         console.print(format_json_response("success", data))
         return
 

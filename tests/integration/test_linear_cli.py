@@ -41,7 +41,9 @@ class TestLinearCLI:
         )
 
         assert ticket_id is not None, "Ticket ID should be returned"
-        assert ticket_id.startswith("1M-"), f"Ticket ID format should be 1M-XXX: {ticket_id}"
+        assert ticket_id.startswith(
+            "1M-"
+        ), f"Ticket ID format should be 1M-XXX: {ticket_id}"
 
         # Verify ticket details
         ticket = cli_helper.get_ticket(ticket_id)
@@ -196,7 +198,7 @@ class TestLinearCLI:
         )
 
         # Update with additional tag
-        updated = cli_helper.update_ticket(
+        cli_helper.update_ticket(
             ticket_id,
             tags=["test", "validation", "cli", "updated"],
         )
@@ -297,7 +299,7 @@ class TestLinearCLI:
         ticket_id = cli_helper.create_ticket(title=title)
 
         # Test semantic matching
-        result = cli_helper.transition_ticket(ticket_id, "working on it")
+        cli_helper.transition_ticket(ticket_id, "working on it")
 
         # Should map to 'in_progress'
         assert cli_helper.verify_state_transition(ticket_id, "in_progress")
@@ -441,5 +443,5 @@ class TestLinearCLI:
         assert success, "Ticket deletion should succeed"
 
         # Verify ticket is deleted (get should fail)
-        with pytest.raises(Exception):
+        with pytest.raises((ValueError, RuntimeError, Exception)):
             cli_helper.get_ticket(ticket_id)

@@ -124,7 +124,7 @@ class TestGitHubCLI:
         issue_id = cli_helper.create_ticket(title=title)
 
         # Update state (GitHub uses labels for state)
-        updated = cli_helper.update_ticket(issue_id, state="in_progress")
+        cli_helper.update_ticket(issue_id, state="in_progress")
 
         # Verify state label applied
         issue = cli_helper.get_ticket(issue_id)
@@ -155,7 +155,7 @@ class TestGitHubCLI:
         )
 
         # Update to critical
-        updated = cli_helper.update_ticket(issue_id, priority="critical")
+        cli_helper.update_ticket(issue_id, priority="critical")
 
         # Verify priority label
         issue = cli_helper.get_ticket(issue_id)
@@ -184,7 +184,7 @@ class TestGitHubCLI:
         )
 
         # Update labels
-        updated = cli_helper.update_ticket(
+        cli_helper.update_ticket(
             issue_id,
             tags=["test", "validation", "cli", "updated"],
         )
@@ -228,7 +228,9 @@ class TestGitHubCLI:
         cli_helper.set_adapter("github")
 
         # Create issue with unique label
-        unique_label = f"test-{unique_title('')[:8]}"
+        import uuid
+
+        unique_label = f"test-{str(uuid.uuid4())[:8]}"
         cli_helper.create_ticket(
             title="Label filter test",
             tags=[unique_label],
@@ -325,11 +327,13 @@ class TestGitHubStateMappings:
         for state, expected_label_part in states:
             cli_helper.update_ticket(issue_id, state=state)
             issue = cli_helper.get_ticket(issue_id)
-            labels = [str(l).lower() for l in issue.get("tags", [])]
+            labels = [str(label).lower() for label in issue.get("tags", [])]
 
             # Check that state label exists
             has_state_label = any(expected_label_part in label for label in labels)
-            assert has_state_label, f"State '{state}' should have label with '{expected_label_part}'"
+            assert (
+                has_state_label
+            ), f"State '{state}' should have label with '{expected_label_part}'"
 
     def test_priority_label_mapping(
         self,
@@ -357,7 +361,7 @@ class TestGitHubStateMappings:
             )
 
             issue = cli_helper.get_ticket(issue_id)
-            labels = [str(l).lower() for l in issue.get("tags", [])]
+            labels = [str(label).lower() for label in issue.get("tags", [])]
 
             # Check priority label exists
             has_priority = any(priority in label for label in labels)

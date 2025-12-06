@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 # Get version from package
 try:
     from importlib.metadata import version
+
     __version__ = version("mcp-ticketer")
 except Exception:
     __version__ = "2.2.2"  # Fallback to known version
@@ -59,8 +60,8 @@ def format_json_response(status: str, data: Any, message: str | None = None) -> 
         "data": data,
         "metadata": {
             "timestamp": datetime.utcnow().isoformat() + "Z",
-            "version": __version__
-        }
+            "version": __version__,
+        },
     }
     if message:
         response["message"] = message
@@ -105,9 +106,17 @@ def serialize_task(task: Task) -> dict[str, Any]:
 
     # Add timestamps if available
     if task.created_at:
-        task_dict["created_at"] = task.created_at.isoformat() if hasattr(task.created_at, 'isoformat') else str(task.created_at)
+        task_dict["created_at"] = (
+            task.created_at.isoformat()
+            if hasattr(task.created_at, "isoformat")
+            else str(task.created_at)
+        )
     if task.updated_at:
-        task_dict["updated_at"] = task.updated_at.isoformat() if hasattr(task.updated_at, 'isoformat') else str(task.updated_at)
+        task_dict["updated_at"] = (
+            task.updated_at.isoformat()
+            if hasattr(task.updated_at, "isoformat")
+            else str(task.updated_at)
+        )
 
     # Add parent relationships
     if hasattr(task, "parent_epic") and task.parent_epic:

@@ -168,9 +168,7 @@ class MCPHelper:
             "MCP tool calls must be invoked directly from test context"
         )
 
-    async def list_comments(
-        self, ticket_id: str, limit: int = 10
-    ) -> dict[str, Any]:
+    async def list_comments(self, ticket_id: str, limit: int = 10) -> dict[str, Any]:
         """List comments via MCP.
 
         Args:

@@ -6,7 +6,6 @@ Verifies that operations return actual ticket IDs instead of queue IDs.
 
 import json
 import subprocess
-import time
 from pathlib import Path
 
 import pytest

@@ -113,7 +113,9 @@ class CLIHelper:
             return response.get("data", {})
         else:
             # Error case
-            raise ValueError(f"Failed to get ticket: {response.get('message', 'Unknown error')}")
+            raise ValueError(
+                f"Failed to get ticket: {response.get('message', 'Unknown error')}"
+            )
 
     def update_ticket(
         self,
@@ -150,7 +152,7 @@ class CLIHelper:
         if description:
             cmd.extend(["--description", description])
 
-        result = self.run_command(cmd)
+        self.run_command(cmd)
         # CLI doesn't support --json, fetch updated ticket to return data
         return self.get_ticket(ticket_id)
 
@@ -191,7 +193,9 @@ class CLIHelper:
         if response.get("status") == "success":
             return response.get("data", {}).get("tickets", [])
         else:
-            raise ValueError(f"Failed to list tickets: {response.get('message', 'Unknown error')}")
+            raise ValueError(
+                f"Failed to list tickets: {response.get('message', 'Unknown error')}"
+            )
 
     def search_tickets(
         self, query: str, state: str | None = None, limit: int = 10
@@ -219,7 +223,9 @@ class CLIHelper:
         if response.get("status") == "success":
             return response.get("data", {}).get("tickets", [])
         else:
-            raise ValueError(f"Failed to search tickets: {response.get('message', 'Unknown error')}")
+            raise ValueError(
+                f"Failed to search tickets: {response.get('message', 'Unknown error')}"
+            )
 
     def transition_ticket(
         self, ticket_id: str, to_state: str, comment: str | None = None
