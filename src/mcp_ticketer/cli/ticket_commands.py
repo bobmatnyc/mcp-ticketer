@@ -213,11 +213,15 @@ def create(
         "--epic",
         help="Parent epic/project ID (synonym for --project)",
     ),
+    output_json: bool = typer.Option(
+        False, "--json", "-j", help="Output as JSON"
+    ),
     adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
     """Create a new ticket with comprehensive health checks."""
+    from .utils import format_json_response, format_error_json, serialize_task
     # IMMEDIATE HEALTH CHECK - Critical for reliability
     health_monitor = QueueHealthMonitor()
     health = health_monitor.check_health()
@@ -336,22 +340,29 @@ def create(
 
             result = asyncio.run(adapter_instance.create(task))
 
-            console.print(f"[green]✓[/green] Ticket created successfully: {result.id}")
-            console.print(f"  Title: {result.title}")
-            console.print(f"  Priority: {result.priority}")
-            console.print(f"  State: {result.state}")
-            # Get URL from metadata if available
-            if (
-                result.metadata
-                and "linear" in result.metadata
-                and "url" in result.metadata["linear"]
-            ):
-                console.print(f"  URL: {result.metadata['linear']['url']}")
+            if output_json:
+                data = serialize_task(result)
+                console.print(format_json_response("success", data, message="Ticket created successfully"))
+            else:
+                console.print(f"[green]✓[/green] Ticket created successfully: {result.id}")
+                console.print(f"  Title: {result.title}")
+                console.print(f"  Priority: {result.priority}")
+                console.print(f"  State: {result.state}")
+                # Get URL from metadata if available
+                if (
+                    result.metadata
+                    and "linear" in result.metadata
+                    and "url" in result.metadata["linear"]
+                ):
+                    console.print(f"  URL: {result.metadata['linear']['url']}")
 
             return result.id
 
         except Exception as e:
-            console.print(f"[red]❌[/red] Failed to create ticket: {e}")
+            if output_json:
+                console.print(format_error_json(e))
+            else:
+                console.print(f"[red]❌[/red] Failed to create ticket: {e}")
             raise
 
     # Use queue for other adapters
@@ -424,11 +435,15 @@ def list_tickets(
         None, "--priority", "-p", help="Filter by priority"
     ),
     limit: int = typer.Option(10, "--limit", "-l", help="Maximum number of tickets"),
+    output_json: bool = typer.Option(
+        False, "--json", "-j", help="Output as JSON"
+    ),
     adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
     """List tickets with optional filters."""
+    from .utils import format_json_response, serialize_task
 
     async def _list() -> list[Any]:
         adapter_instance = get_adapter(
@@ -444,10 +459,24 @@ def list_tickets(
     tickets = asyncio.run(_list())
 
     if not tickets:
-        console.print("[yellow]No tickets found[/yellow]")
+        if output_json:
+            console.print(format_json_response("success", {"tickets": [], "count": 0, "has_more": False}))
+        else:
+            console.print("[yellow]No tickets found[/yellow]")
         return
 
-    # Create table
+    # JSON output
+    if output_json:
+        tickets_data = [serialize_task(t) for t in tickets]
+        data = {
+            "tickets": tickets_data,
+            "count": len(tickets_data),
+            "has_more": len(tickets) >= limit  # Heuristic: if we got exactly limit, there might be more
+        }
+        console.print(format_json_response("success", data))
+        return
+
+    # Original table output
     table = Table(title="Tickets")
     table.add_column("ID", style="cyan", no_wrap=True)
     table.add_column("Title", style="white")
@@ -476,6 +505,9 @@ def show(
     no_comments: bool = typer.Option(
         False, "--no-comments", help="Hide comments (shown by default)"
     ),
+    output_json: bool = typer.Option(
+        False, "--json", "-j", help="Output as JSON"
+    ),
     adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
@@ -486,7 +518,9 @@ def show(
     a holistic view of the ticket's history and context.
 
     Use --no-comments to display only ticket metadata without comments.
+    Use --json to output in machine-readable JSON format.
     """
+    from .utils import format_json_response, format_error_json, serialize_task
 
     async def _show() -> tuple[Any, Any, Any]:
         adapter_instance = get_adapter(
@@ -513,11 +547,45 @@ def show(
 
         return ticket, ticket_comments, attachments
 
-    ticket, ticket_comments, attachments = asyncio.run(_show())
+    try:
+        ticket, ticket_comments, attachments = asyncio.run(_show())
 
-    if not ticket:
-        console.print(f"[red]✗[/red] Ticket not found: {ticket_id}")
-        raise typer.Exit(1) from None
+        if not ticket:
+            if output_json:
+                console.print(format_error_json(f"Ticket not found: {ticket_id}", ticket_id=ticket_id))
+            else:
+                console.print(f"[red]✗[/red] Ticket not found: {ticket_id}")
+            raise typer.Exit(1) from None
+
+        # JSON output
+        if output_json:
+            data = serialize_task(ticket)
+
+            # Add comments if available
+            if ticket_comments:
+                data["comments"] = [
+                    {
+                        "id": getattr(c, "id", None),
+                        "text": c.content,
+                        "author": c.author,
+                        "created_at": c.created_at.isoformat() if hasattr(c.created_at, 'isoformat') else str(c.created_at)
+                    }
+                    for c in ticket_comments
+                ]
+
+            # Add attachments if available
+            if attachments:
+                data["attachments"] = attachments
+
+            console.print(format_json_response("success", data))
+            return
+
+        # Original formatted output continues below...
+    except Exception as e:
+        if output_json:
+            console.print(format_error_json(e, ticket_id=ticket_id))
+            raise typer.Exit(1) from None
+        raise
 
     # Display ticket header with metadata
     console.print(f"\n[bold cyan]┌─ Ticket: {ticket.id}[/bold cyan]")
@@ -595,11 +663,15 @@ def show(
 def comment(
     ticket_id: str = typer.Argument(..., help="Ticket ID"),
     content: str = typer.Argument(..., help="Comment content"),
+    output_json: bool = typer.Option(
+        False, "--json", "-j", help="Output as JSON"
+    ),
     adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
     """Add a comment to a ticket."""
+    from .utils import format_json_response, format_error_json
 
     async def _comment() -> Comment:
         adapter_instance = get_adapter(
@@ -618,12 +690,26 @@ def comment(
 
     try:
         result = asyncio.run(_comment())
-        console.print("[green]✓[/green] Comment added successfully")
-        if result.id:
-            console.print(f"Comment ID: {result.id}")
-        console.print(f"Content: {content}")
+
+        if output_json:
+            data = {
+                "id": result.id,
+                "ticket_id": ticket_id,
+                "text": content,
+                "author": result.author,
+                "created_at": result.created_at.isoformat() if hasattr(result.created_at, 'isoformat') else str(result.created_at)
+            }
+            console.print(format_json_response("success", data, message="Comment added successfully"))
+        else:
+            console.print("[green]✓[/green] Comment added successfully")
+            if result.id:
+                console.print(f"Comment ID: {result.id}")
+            console.print(f"Content: {content}")
     except Exception as e:
-        console.print(f"[red]✗[/red] Failed to add comment: {e}")
+        if output_json:
+            console.print(format_error_json(e, ticket_id=ticket_id))
+        else:
+            console.print(f"[red]✗[/red] Failed to add comment: {e}")
         raise typer.Exit(1) from None
 
 
@@ -807,11 +893,16 @@ def update(
         None, "--priority", "-p", help="New priority"
     ),
     assignee: str | None = typer.Option(None, "--assignee", "-a", help="New assignee"),
+    output_json: bool = typer.Option(
+        False, "--json", "-j", help="Output as JSON"
+    ),
     adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
     """Update ticket fields."""
+    from .utils import format_json_response
+
     updates = {}
     if title:
         updates["title"] = title
@@ -825,7 +916,10 @@ def update(
         updates["assignee"] = assignee
 
     if not updates:
-        console.print("[yellow]No updates specified[/yellow]")
+        if output_json:
+            console.print(format_json_response("error", {"error": "No updates specified"}, message="No updates specified"))
+        else:
+            console.print("[yellow]No updates specified[/yellow]")
         raise typer.Exit(1) from None
 
     # Get the adapter name
@@ -846,18 +940,29 @@ def update(
         project_dir=str(Path.cwd()),  # Explicitly pass current project directory
     )
 
-    console.print(f"[green]✓[/green] Queued ticket update: {queue_id}")
-    for key, value in updates.items():
-        if key != "ticket_id":
-            console.print(f"  {key}: {value}")
-    console.print(
-        "[dim]Use 'mcp-ticketer ticket check {queue_id}' to check progress[/dim]"
-    )
+    if output_json:
+        updated_fields = [k for k in updates.keys() if k != "ticket_id"]
+        data = {
+            "id": ticket_id,
+            "queue_id": queue_id,
+            "updated_fields": updated_fields,
+            **{k: v for k, v in updates.items() if k != "ticket_id"}
+        }
+        console.print(format_json_response("success", data, message="Ticket update queued"))
+    else:
+        console.print(f"[green]✓[/green] Queued ticket update: {queue_id}")
+        for key, value in updates.items():
+            if key != "ticket_id":
+                console.print(f"  {key}: {value}")
+        console.print(
+            "[dim]Use 'mcp-ticketer ticket check {queue_id}' to check progress[/dim]"
+        )
 
     # Start worker if needed
     manager = WorkerManager()
     if manager.start_if_needed():
-        console.print("[dim]Worker started to process request[/dim]")
+        if not output_json:
+            console.print("[dim]Worker started to process request[/dim]")
 
 
 @app.command()
@@ -868,6 +973,9 @@ def transition(
     ),
     state: TicketState | None = typer.Option(
         None, "--state", "-s", help="Target state (recommended)"
+    ),
+    output_json: bool = typer.Option(
+        False, "--json", "-j", help="Output as JSON"
     ),
     adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
@@ -884,16 +992,21 @@ def transition(
         mcp-ticketer ticket transition BTA-215 done
 
     """
+    from .utils import format_json_response
+
     # Determine which state to use (prefer flag over positional)
     target_state = state if state is not None else state_positional
 
     if target_state is None:
-        console.print("[red]Error: State is required[/red]")
-        console.print(
-            "Use either:\n"
-            "  - Flag syntax (recommended): mcp-ticketer ticket transition TICKET-ID --state STATE\n"
-            "  - Positional syntax: mcp-ticketer ticket transition TICKET-ID STATE"
-        )
+        if output_json:
+            console.print(format_json_response("error", {"error": "State is required"}, message="State is required"))
+        else:
+            console.print("[red]Error: State is required[/red]")
+            console.print(
+                "Use either:\n"
+                "  - Flag syntax (recommended): mcp-ticketer ticket transition TICKET-ID --state STATE\n"
+                "  - Positional syntax: mcp-ticketer ticket transition TICKET-ID STATE"
+            )
         raise typer.Exit(1) from None
 
     # Get the adapter name
@@ -904,28 +1017,38 @@ def transition(
 
     # Add to queue with explicit project directory
     queue = Queue()
+    state_value = target_state.value if hasattr(target_state, "value") else target_state
     queue_id = queue.add(
         ticket_data={
             "ticket_id": ticket_id,
-            "state": (
-                target_state.value if hasattr(target_state, "value") else target_state
-            ),
+            "state": state_value,
         },
         adapter=adapter_name,
         operation="transition",
         project_dir=str(Path.cwd()),  # Explicitly pass current project directory
     )
 
-    console.print(f"[green]✓[/green] Queued state transition: {queue_id}")
-    console.print(f"  Ticket: {ticket_id} → {target_state}")
-    console.print(
-        "[dim]Use 'mcp-ticketer ticket check {queue_id}' to check progress[/dim]"
-    )
+    if output_json:
+        data = {
+            "id": ticket_id,
+            "queue_id": queue_id,
+            "new_state": state_value,
+            "matched_state": state_value,
+            "confidence": 1.0
+        }
+        console.print(format_json_response("success", data, message="State transition queued"))
+    else:
+        console.print(f"[green]✓[/green] Queued state transition: {queue_id}")
+        console.print(f"  Ticket: {ticket_id} → {target_state}")
+        console.print(
+            "[dim]Use 'mcp-ticketer ticket check {queue_id}' to check progress[/dim]"
+        )
 
     # Start worker if needed
     manager = WorkerManager()
     if manager.start_if_needed():
-        console.print("[dim]Worker started to process request[/dim]")
+        if not output_json:
+            console.print("[dim]Worker started to process request[/dim]")
 
 
 @app.command()
@@ -935,11 +1058,15 @@ def search(
     priority: Priority | None = typer.Option(None, "--priority", "-p"),
     assignee: str | None = typer.Option(None, "--assignee", "-a"),
     limit: int = typer.Option(10, "--limit", "-l"),
+    output_json: bool = typer.Option(
+        False, "--json", "-j", help="Output as JSON"
+    ),
     adapter: AdapterType | None = typer.Option(
         None, "--adapter", help="Override default adapter"
     ),
 ) -> None:
     """Search tickets with advanced query."""
+    from .utils import format_json_response, serialize_task
 
     async def _search() -> list[Any]:
         adapter_instance = get_adapter(
@@ -957,7 +1084,21 @@ def search(
     tickets = asyncio.run(_search())
 
     if not tickets:
-        console.print("[yellow]No tickets found matching query[/yellow]")
+        if output_json:
+            console.print(format_json_response("success", {"tickets": [], "query": query, "count": 0}))
+        else:
+            console.print("[yellow]No tickets found matching query[/yellow]")
+        return
+
+    # JSON output
+    if output_json:
+        tickets_data = [serialize_task(t) for t in tickets]
+        data = {
+            "tickets": tickets_data,
+            "query": query,
+            "count": len(tickets_data)
+        }
+        console.print(format_json_response("success", data))
         return
 
     # Display results

@@ -276,14 +276,89 @@ Comprehensive suite passes when:
 - ✅ No test tickets left orphaned
 - ✅ Error handling consistent
 
-## Limitations and Manual Verification
+## Known Limitations
 
-### MCP Tests
+### 🚨 CRITICAL: CLI Missing JSON Output Support
 
-**Limitation**: MCP tests cannot be executed directly with pytest.
+**Status**: **BLOCKER** - Affects 75% of tests
+**Impact**: High - Prevents reliable automated validation
 
-**Reason**: MCP tool calls require an active MCP server context (Claude Desktop,
-Claude Code, or MCP client).
+**Issue**: The CLI does not support `--json` flag for structured output. All commands return human-readable text, making programmatic parsing unreliable.
+
+**Commands Affected**:
+- `ticket show`, `ticket list`, `ticket search`
+- `ticket update`, `ticket transition`, `ticket comment`
+- All CLI commands that return data
+
+**Current Workaround**:
+Test helpers use fragile regex-based text parsing:
+
+```python
+# FRAGILE: Breaks when output format changes
+match = re.search(r'Title:\s*(.+)', output)
+if match:
+    title = match.group(1).strip()
+```
+
+**Impact on Tests**:
+- ❌ 12/15 Linear CLI tests fail (validation impossible)
+- ❌ Cannot verify field values after updates
+- ❌ List/search result parsing unreliable
+- ⚠️ Only basic operations testable
+
+**Expected Results (Until Fixed)**:
+- **Passing**: 3-4 tests (basic create, read)
+- **Failing**: 30+ tests (update validation, list parsing)
+- **Success Rate**: 10-20% (expected until CLI enhanced)
+
+**Recommended Solution**: Add `--json` flag to all CLI commands
+**Tracking**: See `docs/PRODUCT_BACKLOG_RECOMMENDATIONS.md` - BACKLOG-001
+
+---
+
+### 🚨 CRITICAL: GitHub Queue System Not Integrated
+
+**Status**: **BLOCKER** - Affects 100% of GitHub tests
+**Impact**: High - All GitHub operations return queue IDs, not ticket IDs
+
+**Issue**: GitHub adapter uses asynchronous queue system. CLI returns queue IDs (Q-XXXXXXXX) instead of issue numbers (#42), making immediate validation impossible.
+
+**Example**:
+```bash
+# Linear (synchronous)
+$ mcp-ticketer ticket create --title "Test"
+✓ Ticket created successfully: 1M-643
+
+# GitHub (asynchronous)
+$ mcp-ticketer ticket create --title "Test"
+✓ Queued ticket creation: Q-9E7B5050  # Cannot read this ID!
+```
+
+**Current Workaround**: None available
+
+**Impact on Tests**:
+- ❌ All 13 GitHub CLI tests fail
+- ❌ Cannot retrieve created issues
+- ❌ Cannot chain operations
+- ❌ Zero GitHub test coverage
+
+**Expected Results (Until Fixed)**:
+- **Passing**: 0 GitHub tests
+- **Skipped**: 13 tests (will skip without GITHUB_TOKEN)
+- **Success Rate**: 0% (expected until queue integration added)
+
+**Recommended Solution**: Add `--wait` flag to poll queue until completion
+**Tracking**: See `docs/PRODUCT_BACKLOG_RECOMMENDATIONS.md` - BACKLOG-002
+
+---
+
+### ⚠️ MCP Tests Cannot Execute Directly
+
+**Limitation**: MCP tests require active MCP server context
+
+**Reason**: MCP tool calls need Claude Desktop, Claude Code, or MCP client
+
+**Status**: Reference patterns only (marked as skipped)
 
 **Workaround**: Use MCP test files as **reference patterns** for manual testing:
 
@@ -292,32 +367,127 @@ Claude Code, or MCP client).
 3. Execute in Claude Desktop/Claude Code
 4. Verify responses match expected format
 
-### GitHub Search Indexing
+**Impact**: 9 MCP tests skipped (expected)
 
-**Limitation**: GitHub search has indexing delays.
+---
 
-**Impact**: Newly created issues may not appear in search immediately.
+### ⚠️ GitHub Search Indexing Delay
 
-**Workaround**: Tests may need retry logic or longer delays for search validation.
+**Limitation**: GitHub search has indexing delays
 
-### State Transition Coverage
+**Impact**: Newly created issues may not appear in search immediately
 
-**Limitation**: Not all state machine paths are tested.
+**Workaround**: Tests may need retry logic or longer delays for search validation
 
-**Coverage**: Tests cover common transitions (open → in_progress → ready → done).
+**Impact**: Search tests may be flaky
 
-**Missing**: Edge cases like blocked → done or waiting → ready.
+---
 
-### Cleanup on Failure
+### ⚠️ Incomplete State Machine Coverage
 
-**Behavior**: Failed tests may leave test tickets in the system.
+**Limitation**: Not all state machine paths are tested
 
-**Reason**: Cleanup only runs for successful tests by default.
+**Coverage**: Tests cover common transitions (open → in_progress → ready → done)
+
+**Missing**: Edge cases like blocked → done or waiting → ready
+
+**Impact**: Some state transitions not validated
+
+---
+
+### ⚠️ Test Cleanup on Failure
+
+**Behavior**: Failed tests may leave test tickets in the system
+
+**Reason**: Cleanup only runs for successful tests by default
 
 **Manual Cleanup**: Periodically delete test tickets with titles matching
-`"Test ticket: 2025-12-*"` pattern.
+`"Test ticket: 2025-12-*"` pattern
 
-## Troubleshooting
+**Impact**: Requires occasional manual cleanup
+
+## Troubleshooting Common Test Failures
+
+### Expected Failure: Update/Validation Tests (JSON Output Missing)
+
+**Symptom**:
+```
+FAILED test_linear_cli.py::TestLinearCLI::test_update_ticket_priority
+AssertionError: Cannot validate priority after update
+```
+
+**Cause**: CLI does not support `--json` flag, cannot parse updated field values
+
+**Expected Behavior**: ❌ **EXPECTED TO FAIL** until BACKLOG-001 implemented
+
+**Tests Affected**: 12/15 Linear CLI tests
+- `test_update_ticket_priority`
+- `test_update_ticket_state`
+- `test_update_ticket_tags`
+- `test_list_tickets_by_state`
+- `test_list_tickets_by_priority`
+- `test_list_tickets_compact_mode`
+- `test_state_transition_semantic`
+- `test_state_transition_direct`
+- `test_add_comment`
+- `test_list_comments`
+- `test_search_tickets`
+- `test_delete_ticket`
+
+**Workaround**: None until CLI enhanced
+
+**Tracking**: `docs/PRODUCT_BACKLOG_RECOMMENDATIONS.md` - BACKLOG-001
+
+---
+
+### Expected Failure: GitHub Queue System Tests
+
+**Symptom**:
+```
+FAILED test_github_cli.py::TestGitHubCLI::test_create_issue_basic
+AssertionError: Expected issue number, got queue ID: Q-9E7B5050
+```
+
+**Cause**: GitHub adapter returns queue IDs, not issue numbers
+
+**Expected Behavior**: ❌ **EXPECTED TO FAIL** until BACKLOG-002 implemented
+
+**Tests Affected**: All 13 GitHub CLI tests
+
+**Workaround**: None until `--wait` flag added
+
+**Tracking**: `docs/PRODUCT_BACKLOG_RECOMMENDATIONS.md` - BACKLOG-002
+
+---
+
+### Expected Failure: CLI Flag Mismatch
+
+**Symptom**:
+```
+ERROR: unrecognized arguments: --tags bug,feature
+```
+
+**Cause**: CLI expects `--tag bug --tag feature`, not `--tags bug,feature`
+
+**Solution**: Update test to use correct flags:
+
+```python
+# WRONG
+cli.create_ticket(title="Test", tags=["bug", "feature"])  # Uses --tags
+
+# CORRECT
+# Update cli_helper.py to use --tag multiple times
+for tag in tags:
+    cmd.extend(["--tag", tag])
+```
+
+**Status**: Fixed in test helpers
+
+**Tracking**: `docs/PRODUCT_BACKLOG_RECOMMENDATIONS.md` - BACKLOG-003
+
+---
+
+### Common Issues
 
 ### Token Issues
 
@@ -332,6 +502,13 @@ echo $GITHUB_TOKEN | head -c 10
 # Set if missing
 export LINEAR_API_KEY="lin_api_..."
 export GITHUB_TOKEN="ghp_..."
+```
+
+**Alternative**: Set in config file (may require BACKLOG-004 implementation)
+```bash
+# Check config
+cat ~/.mcp-ticketer/config.json | jq '.adapters.linear.api_key'
+cat ~/.mcp-ticketer/config.json | jq '.adapters.github.token'
 ```
 
 ### Permission Errors

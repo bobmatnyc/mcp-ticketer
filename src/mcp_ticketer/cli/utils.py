@@ -5,6 +5,7 @@ import json
 import logging
 import os
 from collections.abc import Callable
+from datetime import datetime
 from functools import wraps
 from pathlib import Path
 from typing import Any, TypeVar
@@ -22,6 +23,109 @@ T = TypeVar("T")
 
 console = Console()
 logger = logging.getLogger(__name__)
+
+# Get version from package
+try:
+    from importlib.metadata import version
+    __version__ = version("mcp-ticketer")
+except Exception:
+    __version__ = "2.2.2"  # Fallback to known version
+
+
+def format_json_response(status: str, data: Any, message: str | None = None) -> str:
+    """Format response as JSON with standard structure.
+
+    Args:
+        status: Response status - "success" or "error"
+        data: Response data (dict, list, or any JSON-serializable type)
+        message: Optional human-readable message
+
+    Returns:
+        JSON string with standard format
+
+    Example:
+        >>> format_json_response("success", {"id": "1M-123", "title": "Fix bug"})
+        {
+          "status": "success",
+          "data": {"id": "1M-123", "title": "Fix bug"},
+          "metadata": {
+            "timestamp": "2025-12-05T10:30:00Z",
+            "version": "2.2.2"
+          }
+        }
+    """
+    response = {
+        "status": status,
+        "data": data,
+        "metadata": {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "version": __version__
+        }
+    }
+    if message:
+        response["message"] = message
+    return json.dumps(response, indent=2, default=str)
+
+
+def format_error_json(error: str | Exception, ticket_id: str | None = None) -> str:
+    """Format error response as JSON.
+
+    Args:
+        error: Error message or exception
+        ticket_id: Optional ticket ID that caused the error
+
+    Returns:
+        JSON error response
+    """
+    error_msg = str(error)
+    data = {"error": error_msg}
+    if ticket_id:
+        data["ticket_id"] = ticket_id
+    return format_json_response("error", data, message=error_msg)
+
+
+def serialize_task(task: Task) -> dict[str, Any]:
+    """Serialize Task object to JSON-compatible dict.
+
+    Args:
+        task: Task object to serialize
+
+    Returns:
+        Dictionary with task fields
+    """
+    task_dict = {
+        "id": task.id,
+        "title": task.title,
+        "state": task.state,
+        "priority": task.priority,
+        "description": task.description,
+        "tags": task.tags or [],
+        "assignee": task.assignee,
+    }
+
+    # Add timestamps if available
+    if task.created_at:
+        task_dict["created_at"] = task.created_at.isoformat() if hasattr(task.created_at, 'isoformat') else str(task.created_at)
+    if task.updated_at:
+        task_dict["updated_at"] = task.updated_at.isoformat() if hasattr(task.updated_at, 'isoformat') else str(task.updated_at)
+
+    # Add parent relationships
+    if hasattr(task, "parent_epic") and task.parent_epic:
+        task_dict["parent_epic"] = task.parent_epic
+    if hasattr(task, "parent_issue") and task.parent_issue:
+        task_dict["parent_issue"] = task.parent_issue
+
+    # Add URL from metadata if available
+    if task.metadata:
+        if isinstance(task.metadata, dict):
+            # Linear metadata structure
+            if "linear" in task.metadata and "url" in task.metadata["linear"]:
+                task_dict["url"] = task.metadata["linear"]["url"]
+            # Generic url field
+            elif "url" in task.metadata:
+                task_dict["url"] = task.metadata["url"]
+
+    return task_dict
 
 
 class CommonPatterns:

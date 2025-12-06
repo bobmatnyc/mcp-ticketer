@@ -76,9 +76,10 @@ class CLIHelper:
         if priority:
             cmd.extend(["--priority", priority])
         if tags:
-            cmd.extend(["--tags", ",".join(tags)])
+            for tag in tags:
+                cmd.extend(["--tag", tag])
         if parent_epic:
-            cmd.extend(["--parent-epic", parent_epic])
+            cmd.extend(["--epic", parent_epic])
 
         result = self.run_command(cmd)
 
@@ -96,14 +97,23 @@ class CLIHelper:
             ticket_id: Ticket ID to retrieve
 
         Returns:
-            Ticket data as dictionary
+            Ticket data as dictionary (parsed from JSON output)
 
         Raises:
             subprocess.CalledProcessError: If retrieval fails
         """
-        cmd = ["mcp-ticketer", "ticket", "show", ticket_id, "--json"]
+        cmd = ["mcp-ticketer", "ticket", "show", ticket_id, "--no-comments", "--json"]
         result = self.run_command(cmd)
-        return json.loads(result.stdout)
+
+        # Parse JSON output
+        response = json.loads(result.stdout)
+
+        # Return the data field from the standard response
+        if response.get("status") == "success":
+            return response.get("data", {})
+        else:
+            # Error case
+            raise ValueError(f"Failed to get ticket: {response.get('message', 'Unknown error')}")
 
     def update_ticket(
         self,
@@ -135,13 +145,14 @@ class CLIHelper:
         if state:
             cmd.extend(["--state", state])
         if tags:
-            cmd.extend(["--tags", ",".join(tags)])
+            for tag in tags:
+                cmd.extend(["--tag", tag])
         if description:
             cmd.extend(["--description", description])
 
-        cmd.append("--json")
         result = self.run_command(cmd)
-        return json.loads(result.stdout)
+        # CLI doesn't support --json, fetch updated ticket to return data
+        return self.get_ticket(ticket_id)
 
     def list_tickets(
         self,
@@ -173,11 +184,14 @@ class CLIHelper:
             cmd.extend(["--project-id", project_id])
         if limit:
             cmd.extend(["--limit", str(limit)])
-        if compact:
-            cmd.append("--compact")
 
         result = self.run_command(cmd)
-        return json.loads(result.stdout)
+        response = json.loads(result.stdout)
+
+        if response.get("status") == "success":
+            return response.get("data", {}).get("tickets", [])
+        else:
+            raise ValueError(f"Failed to list tickets: {response.get('message', 'Unknown error')}")
 
     def search_tickets(
         self, query: str, state: str | None = None, limit: int = 10
@@ -200,7 +214,12 @@ class CLIHelper:
             cmd.extend(["--limit", str(limit)])
 
         result = self.run_command(cmd)
-        return json.loads(result.stdout)
+        response = json.loads(result.stdout)
+
+        if response.get("status") == "success":
+            return response.get("data", {}).get("tickets", [])
+        else:
+            raise ValueError(f"Failed to search tickets: {response.get('message', 'Unknown error')}")
 
     def transition_ticket(
         self, ticket_id: str, to_state: str, comment: str | None = None
@@ -219,13 +238,14 @@ class CLIHelper:
             >>> helper.transition_ticket("1M-123", "working on it")
             # Maps "working on it" -> "in_progress"
         """
-        cmd = ["mcp-ticketer", "ticket", "transition", ticket_id, to_state, "--json"]
+        cmd = ["mcp-ticketer", "ticket", "transition", ticket_id, to_state]
 
         if comment:
             cmd.extend(["--comment", comment])
 
         result = self.run_command(cmd)
-        return json.loads(result.stdout)
+        # CLI does not support JSON output
+        return {"success": True, "output": result.stdout}
 
     def add_comment(self, ticket_id: str, text: str) -> dict[str, Any]:
         """Add comment to ticket via CLI.
@@ -237,9 +257,10 @@ class CLIHelper:
         Returns:
             Comment data
         """
-        cmd = ["mcp-ticketer", "ticket", "comment", "add", ticket_id, text, "--json"]
+        cmd = ["mcp-ticketer", "ticket", "comment", "add", ticket_id, text]
         result = self.run_command(cmd)
-        return json.loads(result.stdout)
+        # CLI does not support JSON output
+        return {"success": True, "output": result.stdout}
 
     def list_comments(self, ticket_id: str, limit: int = 10) -> list[dict[str, Any]]:
         """List ticket comments via CLI.
@@ -259,10 +280,10 @@ class CLIHelper:
             ticket_id,
             "--limit",
             str(limit),
-            "--json",
         ]
         result = self.run_command(cmd)
-        return json.loads(result.stdout)
+        # CLI does not support JSON output
+        return {"success": True, "output": result.stdout}
 
     def delete_ticket(self, ticket_id: str) -> bool:
         """Delete ticket via CLI.
@@ -315,6 +336,7 @@ class CLIHelper:
         """
         # Try multiple patterns for different output formats
         patterns = [
+            "Ticket created successfully: ",
             "Created ticket: ",
             "Ticket ID: ",
             "Issue #",
