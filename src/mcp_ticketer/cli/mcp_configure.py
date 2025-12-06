@@ -95,35 +95,35 @@ def build_claude_mcp_command(
     if "linear" in adapters:
         linear_config = adapters["linear"]
         if "api_key" in linear_config:
-            cmd.extend(["--env", f"LINEAR_API_KEY={linear_config['api_key']}"])
+            cmd.extend(["-e", f"LINEAR_API_KEY={linear_config['api_key']}"])
         if "team_id" in linear_config:
-            cmd.extend(["--env", f"LINEAR_TEAM_ID={linear_config['team_id']}"])
+            cmd.extend(["-e", f"LINEAR_TEAM_ID={linear_config['team_id']}"])
         if "team_key" in linear_config:
-            cmd.extend(["--env", f"LINEAR_TEAM_KEY={linear_config['team_key']}"])
+            cmd.extend(["-e", f"LINEAR_TEAM_KEY={linear_config['team_key']}"])
 
     # GitHub adapter
     if "github" in adapters:
         github_config = adapters["github"]
         if "token" in github_config:
-            cmd.extend(["--env", f"GITHUB_TOKEN={github_config['token']}"])
+            cmd.extend(["-e", f"GITHUB_TOKEN={github_config['token']}"])
         if "owner" in github_config:
-            cmd.extend(["--env", f"GITHUB_OWNER={github_config['owner']}"])
+            cmd.extend(["-e", f"GITHUB_OWNER={github_config['owner']}"])
         if "repo" in github_config:
-            cmd.extend(["--env", f"GITHUB_REPO={github_config['repo']}"])
+            cmd.extend(["-e", f"GITHUB_REPO={github_config['repo']}"])
 
     # JIRA adapter
     if "jira" in adapters:
         jira_config = adapters["jira"]
         if "api_token" in jira_config:
-            cmd.extend(["--env", f"JIRA_API_TOKEN={jira_config['api_token']}"])
+            cmd.extend(["-e", f"JIRA_API_TOKEN={jira_config['api_token']}"])
         if "email" in jira_config:
-            cmd.extend(["--env", f"JIRA_EMAIL={jira_config['email']}"])
+            cmd.extend(["-e", f"JIRA_EMAIL={jira_config['email']}"])
         if "url" in jira_config:
-            cmd.extend(["--env", f"JIRA_URL={jira_config['url']}"])
+            cmd.extend(["-e", f"JIRA_URL={jira_config['url']}"])
 
     # Add default adapter
     default_adapter = project_config.get("default_adapter", "aitrackdown")
-    cmd.extend(["--env", f"MCP_TICKETER_ADAPTER={default_adapter}"])
+    cmd.extend(["-e", f"MCP_TICKETER_ADAPTER={default_adapter}"])
 
     # Server label
     cmd.append("mcp-ticketer")
@@ -197,7 +197,7 @@ def configure_claude_mcp_native(
     # Show command to user (mask sensitive values)
     masked_cmd = []
     for i, arg in enumerate(cmd):
-        if arg.startswith("--env=") or (i > 0 and cmd[i - 1] == "--env"):
+        if arg.startswith("-e=") or (i > 0 and cmd[i - 1] == "-e"):
             # Mask environment variable values
             if "=" in arg:
                 key, _ = arg.split("=", 1)
