@@ -13,6 +13,7 @@ from rich.table import Table
 # Import for typing compatibility
 from .init_command import init
 from .platform_detection import PlatformDetector, get_platform_by_name
+from .setup_command import _update_mcp_json_credentials
 
 console = Console()
 
@@ -248,6 +249,10 @@ def install(
                 console.print(f"[cyan]Installing for {plat.display_name}...[/cyan]")
                 config_func()
                 success_count += 1
+
+                # Update credentials in parent .mcp.json for Claude platforms
+                if plat.name in ("claude-code", "claude-desktop"):
+                    _update_mcp_json_credentials(Path.cwd(), console)
             except Exception as e:
                 console.print(
                     f"[red]✗[/red]  Failed to install for {plat.display_name}: {e}"
@@ -388,6 +393,10 @@ def install(
 
         try:
             config["func"]()
+
+            # Update credentials in parent .mcp.json for Claude platforms
+            if platform in ("claude-code", "claude-desktop"):
+                _update_mcp_json_credentials(Path.cwd(), console)
         except Exception as e:
             console.print(f"[red]Installation failed: {e}[/red]")
             raise typer.Exit(1) from e
