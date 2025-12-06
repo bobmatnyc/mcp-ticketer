@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.2.3] - 2025-12-05
+
 ### Added
 - **Synchronous operations**: `--wait` flag for ticket create/update/transition commands
 - `Queue.poll_until_complete()` method for synchronous queue polling
@@ -18,14 +20,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - JSON output for: show, list, create, update, transition, search, comment
 - Updated integration test helpers to use JSON parsing
 - Unblocks 30+ integration tests (BACKLOG-001)
+- Comprehensive integration test suite (40+ tests for Linear and GitHub)
+- Test helpers and utilities (CLIHelper, MCPHelper)
 
 ### Changed
 - Ticket operations now support both async (default) and sync (--wait) modes
 - Queue-based operations can now return actual ticket IDs instead of queue IDs
 - CLI commands provide immediate results when --wait flag is used
 
+### Fixed
+- CLI JSON output enables automated testing (unblocks 75% of tests)
+- GitHub queue system integration (unblocks 100% of GitHub tests)
+- Linting issues in integration tests
+
 ### Documentation
 - Added comprehensive GitHub synchronous operations guide
+- Added CLI_JSON_OUTPUT.md - Complete JSON format guide
+- Added GITHUB_SYNC_OPERATIONS.md - Synchronous operations guide
+- Added comprehensive test suite documentation
 - Documented --wait flag usage and examples
 - Added troubleshooting section for synchronous mode
 - Included integration testing examples with --wait flag
