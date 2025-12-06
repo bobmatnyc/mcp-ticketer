@@ -257,6 +257,69 @@ def configure_claude_mcp_native(
         raise
 
 
+def _get_adapter_env_vars() -> dict[str, str]:
+    """Get environment variables for the configured adapter from project config.
+
+    Reads credentials from .mcp-ticketer/config.json and returns them as
+    environment variables suitable for MCP server configuration.
+
+    Returns:
+        Dict of environment variables with adapter credentials
+
+    Example:
+        >>> env_vars = _get_adapter_env_vars()
+        >>> env_vars
+        {
+            'MCP_TICKETER_ADAPTER': 'github',
+            'GITHUB_TOKEN': 'ghp_...',
+            'GITHUB_OWNER': 'username',
+            'GITHUB_REPO': 'repo-name'
+        }
+
+    """
+    config_path = Path.cwd() / ".mcp-ticketer" / "config.json"
+    if not config_path.exists():
+        return {}
+
+    try:
+        with open(config_path) as f:
+            config = json.load(f)
+
+        adapter_type = config.get("default_adapter", "aitrackdown")
+        adapters = config.get("adapters", {})
+        adapter_config = adapters.get(adapter_type, {})
+
+        env_vars = {"MCP_TICKETER_ADAPTER": adapter_type}
+
+        if adapter_type == "github":
+            if token := adapter_config.get("token"):
+                env_vars["GITHUB_TOKEN"] = token
+            if owner := adapter_config.get("owner"):
+                env_vars["GITHUB_OWNER"] = owner
+            if repo := adapter_config.get("repo"):
+                env_vars["GITHUB_REPO"] = repo
+        elif adapter_type == "linear":
+            if api_key := adapter_config.get("api_key"):
+                env_vars["LINEAR_API_KEY"] = api_key
+            if team_key := adapter_config.get("team_key"):
+                env_vars["LINEAR_TEAM_KEY"] = team_key
+            elif team_id := adapter_config.get("team_id"):
+                env_vars["LINEAR_TEAM_ID"] = team_id
+        elif adapter_type == "jira":
+            if api_token := adapter_config.get("api_token"):
+                env_vars["JIRA_API_TOKEN"] = api_token
+            if server := adapter_config.get("server"):
+                env_vars["JIRA_SERVER"] = server
+            if email := adapter_config.get("email"):
+                env_vars["JIRA_EMAIL"] = email
+            if project := adapter_config.get("project_key"):
+                env_vars["JIRA_PROJECT_KEY"] = project
+
+        return env_vars
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
 def load_env_file(env_path: Path) -> dict[str, str]:
     """Load environment variables from .env file.
 
@@ -486,25 +549,23 @@ def create_mcp_server_config(
     # Environment variables below are optional fallbacks for backward compatibility
     # The FastMCP SDK server will automatically load config from the project directory
 
-    adapter = project_config.get("default_adapter", "aitrackdown")
-    adapters_config = project_config.get("adapters", {})
-    adapter_config = adapters_config.get(adapter, {})
-
     env_vars = {}
 
     # Add PYTHONPATH for project context (only for project-specific configs)
     if project_path and not is_global_config:
         env_vars["PYTHONPATH"] = project_path
 
-    # Add MCP_TICKETER_ADAPTER to identify which adapter to use (optional fallback)
-    env_vars["MCP_TICKETER_ADAPTER"] = adapter
+    # Get adapter credentials from project config
+    # This is the primary source for MCP server environment variables
+    adapter_env_vars = _get_adapter_env_vars()
+    env_vars.update(adapter_env_vars)
 
-    # Load environment variables from .env.local if it exists
+    # Load environment variables from .env.local if it exists (as override)
     if project_path:
         env_file_path = Path(project_path) / ".env.local"
         env_file_vars = load_env_file(env_file_path)
 
-        # Add relevant adapter-specific vars from .env.local
+        # Add relevant adapter-specific vars from .env.local (overrides config.json)
         adapter_env_keys = {
             "linear": ["LINEAR_API_KEY", "LINEAR_TEAM_ID", "LINEAR_TEAM_KEY"],
             "github": ["GITHUB_TOKEN", "GITHUB_OWNER", "GITHUB_REPO"],
@@ -519,23 +580,11 @@ def create_mcp_server_config(
             "aitrackdown": [],  # No specific env vars needed
         }
 
-        # Include adapter-specific env vars from .env.local
+        adapter = env_vars.get("MCP_TICKETER_ADAPTER", "aitrackdown")
+        # Include adapter-specific env vars from .env.local (overrides config.json)
         for key in adapter_env_keys.get(adapter, []):
             if key in env_file_vars:
                 env_vars[key] = env_file_vars[key]
-
-    # Fallback: Add adapter-specific environment variables from project config
-    if adapter == "linear" and "api_key" in adapter_config:
-        if "LINEAR_API_KEY" not in env_vars:
-            env_vars["LINEAR_API_KEY"] = adapter_config["api_key"]
-    elif adapter == "github" and "token" in adapter_config:
-        if "GITHUB_TOKEN" not in env_vars:
-            env_vars["GITHUB_TOKEN"] = adapter_config["token"]
-    elif adapter == "jira":
-        if "api_token" in adapter_config and "JIRA_API_TOKEN" not in env_vars:
-            env_vars["JIRA_API_TOKEN"] = adapter_config["api_token"]
-        if "email" in adapter_config and "JIRA_EMAIL" not in env_vars:
-            env_vars["JIRA_EMAIL"] = adapter_config["email"]
 
     if env_vars:
         config["env"] = env_vars
@@ -1125,9 +1174,25 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
         if absolute_project_path:
             console.print(f"  Project path: {absolute_project_path}")
         if "env" in server_config:
-            console.print(
-                f"  Environment variables: {list(server_config['env'].keys())}"
-            )
+            env_keys = list(server_config["env"].keys())
+            console.print(f"  Environment variables: {env_keys}")
+
+            # Security warning about credentials
+            sensitive_keys = [
+                k
+                for k in env_keys
+                if "TOKEN" in k or "KEY" in k or "PASSWORD" in k
+            ]
+            if sensitive_keys:
+                console.print(
+                    "\n[yellow]⚠️  Security Notice:[/yellow] Configuration contains credentials"
+                )
+                console.print(
+                    f"[yellow]   Location: {mcp_config_path}[/yellow]"
+                )
+                console.print(
+                    "[yellow]   Make sure this file is excluded from version control[/yellow]"
+                )
 
         # Migration success message (if legacy config was detected)
         if is_legacy:

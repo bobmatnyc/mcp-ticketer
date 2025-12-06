@@ -332,6 +332,9 @@ def setup(
         # Check and install adapter-specific dependencies
         _check_and_install_adapter_dependencies(adapter_type, console)
 
+        # Update existing MCP configurations with new credentials
+        _update_mcp_json_credentials(proj_path, console)
+
         console.print("\n[green]✓ Adapter configuration complete[/green]\n")
     else:
         console.print("[green]✓ Step 1/2: Adapter already configured[/green]\n")
@@ -339,6 +342,9 @@ def setup(
         # Even though adapter is configured, prompt for default values
         # This handles the case where credentials exist but defaults were never set
         _prompt_and_update_default_values(config_path, current_adapter, console)
+
+        # Update existing MCP configurations with credentials
+        _update_mcp_json_credentials(proj_path, console)
 
     # Step 3: Platform installation
     if skip_platforms:
@@ -610,6 +616,109 @@ def _check_existing_platform_configs(platforms: list, proj_path: Path) -> list[s
             pass
 
     return configured
+
+
+def _update_mcp_json_credentials(proj_path: Path, console: Console) -> None:
+    """Update .mcp.json with adapter credentials if mcp-ticketer is already configured.
+
+    This function updates the existing MCP configuration with the latest credentials
+    from the project's .mcp-ticketer/config.json file. It also ensures .mcp.json is
+    added to .gitignore to prevent credential leaks.
+
+    Args:
+        proj_path: Project path
+        console: Rich console for output
+
+    """
+    # Check both new and old .mcp.json locations
+    new_mcp_json_path = Path.home() / ".config" / "claude" / "mcp.json"
+    old_mcp_json_path = Path.home() / ".claude.json"
+    legacy_mcp_json_path = proj_path / ".claude" / "mcp.local.json"
+
+    mcp_json_paths = [
+        (new_mcp_json_path, True),  # (path, is_global_mcp_config)
+        (old_mcp_json_path, False),
+        (legacy_mcp_json_path, False),
+    ]
+
+    # Import the helper function to get adapter credentials
+    from .mcp_configure import _get_adapter_env_vars
+
+    env_vars = _get_adapter_env_vars()
+
+    if not env_vars:
+        return
+
+    updated_count = 0
+
+    for mcp_json_path, is_global_mcp_config in mcp_json_paths:
+        if not mcp_json_path.exists():
+            continue
+
+        try:
+            with open(mcp_json_path) as f:
+                mcp_config = json.load(f)
+
+            # Check if mcp-ticketer is configured
+            mcp_servers = None
+            if is_global_mcp_config:
+                # Global mcp.json uses flat structure
+                mcp_servers = mcp_config.get("mcpServers", {})
+            else:
+                # Old structure uses projects
+                projects = mcp_config.get("projects", {})
+                project_key = str(proj_path.resolve())
+                if project_key in projects:
+                    mcp_servers = projects[project_key].get("mcpServers", {})
+                else:
+                    # Try flat structure for backward compatibility
+                    mcp_servers = mcp_config.get("mcpServers", {})
+
+            if mcp_servers is None or "mcp-ticketer" not in mcp_servers:
+                continue
+
+            # Update the mcp-ticketer server env vars
+            current_env = mcp_servers["mcp-ticketer"].get("env", {})
+            current_env.update(env_vars)
+            mcp_servers["mcp-ticketer"]["env"] = current_env
+
+            # Save updated config
+            with open(mcp_json_path, "w") as f:
+                json.dump(mcp_config, f, indent=2)
+
+            updated_count += 1
+
+        except (json.JSONDecodeError, OSError) as e:
+            console.print(
+                f"[yellow]Warning: Could not update {mcp_json_path.name}: {e}[/yellow]"
+            )
+
+    if updated_count > 0:
+        console.print(
+            f"[green]✓[/green] Updated MCP configuration with adapter credentials ({updated_count} file(s))"
+        )
+
+        # Ensure .mcp.json files are in .gitignore (only for project-local files)
+        gitignore_path = proj_path / ".gitignore"
+        patterns_to_add = [".claude/", ".mcp.json"]
+
+        if gitignore_path.exists():
+            content = gitignore_path.read_text()
+            patterns_added = []
+
+            for pattern in patterns_to_add:
+                if pattern not in content:
+                    patterns_added.append(pattern)
+
+            if patterns_added:
+                with open(gitignore_path, "a") as f:
+                    f.write("\n# MCP configuration (contains tokens)\n")
+                    for pattern in patterns_added:
+                        f.write(f"{pattern}\n")
+
+                console.print(
+                    f"[dim]✓ Added {', '.join(patterns_added)} to .gitignore[/dim]"
+                )
 
 
 def _show_setup_complete_message(console: Console, proj_path: Path) -> None:
