@@ -8,19 +8,30 @@ Welcome to the comprehensive documentation for MCP Ticketer - the universal tick
 
 Our documentation is organized by audience and purpose:
 
-### 👥 [User Documentation](user-docs/README.md)
-For end users of MCP Ticketer
-- Getting started guides
-- User guide and CLI reference
-- Feature documentation
-- Examples and best practices
+### 🚀 [Getting Started](getting-started/README.md)
+Quick setup and initial configuration
+- [MCP Endpoint Setup](getting-started/MCP_ENDPOINT_SETUP.md)
+- [Quick Start Guide](getting-started/QUICK_START.md)
+- [Configuration Guide](getting-started/CONFIGURATION.md)
 
-### 👨‍💻 [Developer Documentation](developer-docs/README.md)
+### 📖 [User Guides](guides/README.md)
+Comprehensive guides for using MCP Ticketer
+- [User Guide](guides/USER_GUIDE.md)
+- [Bulletproof Ticket Creation](guides/BULLETPROOF_TICKET_CREATION.md)
+- [Label Management](guides/LABEL_MANAGEMENT.md)
+
+### ⚡ [Features](features/README.md)
+Feature documentation and capabilities
+- [Automatic Validation](features/AUTOMATIC_VALIDATION.md)
+- [Semantic Priority Matching](features/SEMANTIC_PRIORITY_MATCHING.md)
+- [Token Pagination](features/TOKEN_PAGINATION.md)
+
+### 👨‍💻 [Developer Documentation](developer/README.md)
 For contributors and developers
-- Developer guide and contributing guidelines
-- API reference
-- Adapter development
-- Release management
+- [Development Guide](developer/DEVELOPMENT.md)
+- [API Reference](developer/api/README.md)
+- [Adapter Development](developer/adapters/README.md)
+- [Release Management](developer/releasing/README.md)
 
 ### 🏛️ [Architecture Documentation](architecture/README.md)
 Technical deep-dives and design documents
@@ -34,50 +45,56 @@ Platform-specific setup and integration
 - Platform setup guides (Linear, JIRA, Claude Desktop, etc.)
 - Pull request integration
 
-### 🔧 [Troubleshooting Guide](user-docs/troubleshooting/TROUBLESHOOTING.md)
+### 📚 [Reference Documentation](reference/)
+Technical reference and API documentation
+- [CLI JSON Output](reference/CLI_JSON_OUTPUT.md)
+- [Project URL Validation](reference/project-url-validation.md)
+- [MCP Tools](reference/mcp-tools/)
+
+### 🔧 [Troubleshooting](troubleshooting/README.md)
 Common issues and solutions
+- [Troubleshooting Guide](troubleshooting/TROUBLESHOOTING.md)
 - General troubleshooting steps
 - Adapter-specific issues (Linear, GitHub, JIRA)
 - Configuration and performance issues
-- Error reference and fixes
 
-### 🔍 [Investigation Reports](investigations/README.md)
-Analysis, research, and investigation results
-- Adapter investigations
-- Performance reports
-- Test coverage reports
-- Implementation documentation
+### 🔄 [Migration Guides](migration/README.md)
+Version migration and upgrade guides
+- [Migration v2.0.2](migration/MIGRATION-v2.0.2.md)
+- [Upgrading v2.0](migration/UPGRADING-v2.0.md)
+
+### 📦 [Releases](releases/README.md)
+Release notes and version information
+- [Release v2.0.2](releases/RELEASE-v2.0.2.md)
+- Version verification reports
 
 ### 🗄️ [Archive](_archive/README.md)
 Historical documentation and older reports
-
-### 📋 [Meta Documentation](meta/README.md)
-Documentation about documentation, migrations, and configuration
 
 ---
 
 ## Quick Start Paths
 
 ### I'm a new user
-1. [Quick Start Guide](user-docs/getting-started/QUICK_START.md)
-2. [Configuration Guide](user-docs/getting-started/CONFIGURATION.md)
-3. [User Guide](user-docs/guides/USER_GUIDE.md)
+1. [Quick Start Guide](getting-started/QUICK_START.md)
+2. [Configuration Guide](getting-started/CONFIGURATION.md)
+3. [User Guide](guides/USER_GUIDE.md)
 
 ### I want to integrate with an AI client
 1. [AI Client Integration](integrations/AI_CLIENT_INTEGRATION.md)
 2. Choose your platform: [Claude Desktop](integrations/setup/CLAUDE_DESKTOP_SETUP.md), [Codex](integrations/setup/CODEX_INTEGRATION.md)
-3. [Bulletproof Ticket Creation](user-docs/guides/BULLETPROOF_TICKET_CREATION.md)
+3. [Bulletproof Ticket Creation](guides/BULLETPROOF_TICKET_CREATION.md)
 
 ### I want to contribute
-1. [Development Guide](developer-docs/DEVELOPMENT.md) - Build system, testing, and workflows
-2. [Developer Guide](developer-docs/getting-started/DEVELOPER_GUIDE.md)
-3. [Contributing Guide](developer-docs/getting-started/CONTRIBUTING.md)
-4. [Code Structure](developer-docs/getting-started/CODE_STRUCTURE.md)
+1. [Development Guide](developer/DEVELOPMENT.md) - Build system, testing, and workflows
+2. [Developer Guide](developer/getting-started/DEVELOPER_GUIDE.md)
+3. [Contributing Guide](developer/getting-started/CONTRIBUTING.md)
+4. [Code Structure](developer/getting-started/CODE_STRUCTURE.md)
 
 ### I need to understand the architecture
 1. [Architecture Overview](architecture/README.md)
 2. [MCP Integration](architecture/MCP_INTEGRATION.md)
-3. [API Reference](developer-docs/api/README.md)
+3. [API Reference](developer/api/README.md)
 
 ---
 
@@ -91,13 +108,13 @@ Documentation about documentation, migrations, and configuration
 
 ## Getting Help
 
-- **Having Issues?**: Check the [Troubleshooting Guide](user-docs/troubleshooting/TROUBLESHOOTING.md) first
+- **Having Issues?**: Check the [Troubleshooting Guide](troubleshooting/TROUBLESHOOTING.md) first
 - **Missing Information**: Open an issue describing what's missing
 - **Unclear Instructions**: Submit a pull request with improvements
 - **Broken Examples**: Report with steps to reproduce
-- **General Questions**: Check [User Guide](user-docs/guides/USER_GUIDE.md) or GitHub Discussions
+- **General Questions**: Check [User Guide](guides/USER_GUIDE.md) or GitHub Discussions
 
 ---
 
-**Last Updated**: November 2025
-**Documentation Version**: 2.0 (Reorganized)
+**Last Updated**: December 2025
+**Documentation Version**: 3.0 (Reorganized and Consolidated)
