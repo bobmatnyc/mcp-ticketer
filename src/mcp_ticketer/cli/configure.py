@@ -1,9 +1,12 @@
 """Interactive configuration wizard for MCP Ticketer."""
 
+import json
 import os
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
+import httpx
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -21,6 +24,209 @@ from ..core.project_config import (
 )
 
 console = Console()
+
+
+def _load_existing_adapter_config(adapter_type: str) -> dict[str, Any] | None:
+    """Load existing adapter configuration from project config if available.
+
+    Args:
+    ----
+        adapter_type: Type of adapter (linear, jira, github, aitrackdown)
+
+    Returns:
+    -------
+        Dictionary with existing configuration if available, None otherwise
+
+    """
+    config_path = Path.cwd() / ".mcp-ticketer" / "config.json"
+    if not config_path.exists():
+        return None
+
+    try:
+        with open(config_path) as f:
+            config = json.load(f)
+        return config.get("adapters", {}).get(adapter_type)
+    except (json.JSONDecodeError, OSError) as e:
+        console.print(f"[yellow]Warning: Could not load existing config: {e}[/yellow]")
+        return None
+
+
+def _mask_sensitive_value(value: str, show_chars: int = 8) -> str:
+    """Mask sensitive value for display.
+
+    Args:
+    ----
+        value: The sensitive value to mask
+        show_chars: Number of characters to show at start (default: 8)
+
+    Returns:
+    -------
+        Masked string like "ghp_1234****" or "****" for short values
+
+    """
+    if not value:
+        return "****"
+    if len(value) <= show_chars:
+        return "****"
+    return f"{value[:show_chars]}****"
+
+
+def _validate_api_credentials(
+    adapter_type: str,
+    credentials: dict[str, str],
+    max_retries: int = 3,
+) -> bool:
+    """Validate API credentials with real API calls.
+
+    Args:
+    ----
+        adapter_type: Type of adapter (linear, github, jira)
+        credentials: Dictionary with adapter-specific credentials
+        max_retries: Maximum retry attempts on validation failure
+
+    Returns:
+    -------
+        True if validation succeeds
+
+    Raises:
+    ------
+        typer.Exit: If user gives up after max retries
+
+    """
+    for attempt in range(1, max_retries + 1):
+        try:
+            if adapter_type == "linear":
+                # Test Linear API with viewer query
+                response = httpx.post(
+                    "https://api.linear.app/graphql",
+                    headers={"Authorization": credentials["api_key"]},
+                    json={"query": "{ viewer { id name email } }"},
+                    timeout=10.0,
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    if "data" in data and "viewer" in data["data"]:
+                        viewer = data["data"]["viewer"]
+                        console.print(
+                            f"[green]✓ Linear API key verified (user: {viewer.get('name', viewer.get('email', 'Unknown'))})[/green]"
+                        )
+                        return True
+                    else:
+                        errors = data.get("errors", [])
+                        if errors:
+                            error_msg = errors[0].get("message", "Unknown error")
+                            raise ValueError(f"API returned error: {error_msg}")
+                        raise ValueError("Invalid API response format")
+                else:
+                    raise ValueError(
+                        f"API returned status {response.status_code}: {response.text}"
+                    )
+
+            elif adapter_type == "github":
+                # Test GitHub API with user endpoint
+                response = httpx.get(
+                    "https://api.github.com/user",
+                    headers={
+                        "Authorization": f"Bearer {credentials['token']}",
+                        "Accept": "application/vnd.github+json",
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    timeout=10.0,
+                )
+
+                if response.status_code == 200:
+                    user_data = response.json()
+                    login = user_data.get("login", "Unknown")
+                    console.print(
+                        f"[green]✓ GitHub token verified (user: {login})[/green]"
+                    )
+                    return True
+                elif response.status_code == 401:
+                    raise ValueError("Invalid token or token has expired")
+                elif response.status_code == 403:
+                    raise ValueError(
+                        "Token lacks required permissions (need 'repo' scope)"
+                    )
+                else:
+                    raise ValueError(
+                        f"GitHub API returned {response.status_code}: {response.text}"
+                    )
+
+            elif adapter_type == "jira":
+                # Test JIRA API with myself endpoint
+                response = httpx.get(
+                    f"{credentials['server'].rstrip('/')}/rest/api/2/myself",
+                    auth=(credentials["email"], credentials["api_token"]),
+                    headers={"Accept": "application/json"},
+                    timeout=10.0,
+                )
+
+                if response.status_code == 200:
+                    user_data = response.json()
+                    name = user_data.get("displayName", credentials["email"])
+                    console.print(
+                        f"[green]✓ JIRA credentials verified (user: {name})[/green]"
+                    )
+                    return True
+                elif response.status_code == 401:
+                    raise ValueError("Invalid credentials or API token has expired")
+                elif response.status_code == 404:
+                    raise ValueError(
+                        f"Invalid JIRA server URL: {credentials['server']}"
+                    )
+                else:
+                    raise ValueError(
+                        f"JIRA API returned {response.status_code}: {response.text}"
+                    )
+
+            else:
+                # Unknown adapter type, skip validation
+                console.print(
+                    f"[yellow]Warning: No validation available for adapter '{adapter_type}'[/yellow]"
+                )
+                return True
+
+        except httpx.TimeoutException:
+            console.print(
+                f"[red]✗ API validation timed out (attempt {attempt}/{max_retries})[/red]"
+            )
+        except httpx.NetworkError as e:
+            console.print(
+                f"[red]✗ Network error during validation: {e} (attempt {attempt}/{max_retries})[/red]"
+            )
+        except ValueError as e:
+            console.print(
+                f"[red]✗ API validation failed: {e} (attempt {attempt}/{max_retries})[/red]"
+            )
+        except Exception as e:
+            console.print(
+                f"[red]✗ Unexpected error during validation: {e} (attempt {attempt}/{max_retries})[/red]"
+            )
+
+        # Ask user if they want to retry
+        if attempt < max_retries:
+            retry = Confirm.ask(
+                "Re-enter credentials and try again?", default=True
+            )
+            if not retry:
+                console.print(
+                    "[yellow]Skipping validation. Configuration saved but may not work.[/yellow]"
+                )
+                return True  # Allow saving unvalidated config
+        else:
+            console.print("[red]Max retries exceeded[/red]")
+            final_choice = Confirm.ask(
+                "Save configuration anyway? (it may not work)", default=False
+            )
+            if final_choice:
+                console.print(
+                    "[yellow]Configuration saved without validation[/yellow]"
+                )
+                return True
+            raise typer.Exit(1) from None
+
+    return False
 
 
 def _retry_setting(
@@ -207,6 +413,10 @@ def _configure_linear(
     if interactive:
         console.print("\n[bold cyan]Linear Configuration[/bold cyan]")
 
+    # Load existing configuration if available
+    if existing_config is None and interactive:
+        existing_config = _load_existing_adapter_config("linear")
+
     # Check if we have existing config
     has_existing = (
         existing_config is not None and existing_config.get("adapter") == "linear"
@@ -244,7 +454,7 @@ def _configure_linear(
                 "[yellow]Enter new values or press Enter to keep current[/yellow]"
             )
 
-    # API Key (programmatic mode: use provided value or env, interactive: prompt)
+    # API Key with validation loop
     current_key = config_dict.get("api_key", "") if has_existing else ""
     final_api_key = api_key or os.getenv("LINEAR_API_KEY") or ""
 
@@ -256,18 +466,38 @@ def _configure_linear(
             if use_env:
                 current_key = final_api_key
 
-        def prompt_api_key() -> str:
-            if current_key:
-                api_key_prompt = f"Linear API Key [current: {'*' * 8}...]"
-                return Prompt.ask(api_key_prompt, password=True, default=current_key)
-            return Prompt.ask("Linear API Key", password=True)
+        # Validation loop for API key
+        api_key_validated = False
+        while not api_key_validated:
 
-        def validate_api_key(key: str) -> tuple[bool, str | None]:
-            if not key or len(key) < 10:
-                return False, "API key must be at least 10 characters"
-            return True, None
+            def prompt_api_key() -> str:
+                if current_key:
+                    masked = _mask_sensitive_value(current_key)
+                    api_key_prompt = f"Linear API Key [current: {masked}]"
+                    return Prompt.ask(api_key_prompt, password=True, default=current_key)
+                return Prompt.ask("Linear API Key", password=True)
 
-        final_api_key = _retry_setting("API Key", prompt_api_key, validate_api_key)
+            def validate_api_key(key: str) -> tuple[bool, str | None]:
+                if not key or len(key) < 10:
+                    return False, "API key must be at least 10 characters"
+                return True, None
+
+            final_api_key = _retry_setting("API Key", prompt_api_key, validate_api_key)
+
+            # Validate API key with real API call
+            try:
+                api_key_validated = _validate_api_credentials(
+                    "linear", {"api_key": final_api_key}
+                )
+            except typer.Exit:
+                # User cancelled, propagate the exit
+                raise
+            except Exception as e:
+                console.print(f"[red]Validation error: {e}[/red]")
+                retry = Confirm.ask("Re-enter API key?", default=True)
+                if not retry:
+                    raise typer.Exit(1) from None
+
     elif not final_api_key:
         raise ValueError(
             "Linear API key is required (provide api_key parameter or set LINEAR_API_KEY environment variable)"
@@ -513,44 +743,112 @@ def _configure_jira(
     if interactive:
         console.print("\n[bold]Configure JIRA Integration:[/bold]")
 
-    # Server URL (programmatic mode: use provided value or env, interactive: prompt)
+    # Load existing configuration if available
+    existing_config = _load_existing_adapter_config("jira") if interactive else None
+    has_existing = existing_config is not None
+
+    # Server URL (with existing value as default)
+    existing_server = existing_config.get("server", "") if has_existing else ""
     final_server = server or os.getenv("JIRA_SERVER") or ""
-    if interactive and not final_server:
-        final_server = Prompt.ask(
-            "JIRA Server URL (e.g., https://company.atlassian.net)"
-        )
+
+    if interactive:
+        if not final_server and existing_server:
+            final_server = Prompt.ask(
+                f"JIRA Server URL [current: {existing_server}]",
+                default=existing_server,
+            )
+        elif not final_server:
+            final_server = Prompt.ask(
+                "JIRA Server URL (e.g., https://company.atlassian.net)"
+            )
     elif not interactive and not final_server:
         raise ValueError(
             "JIRA server URL is required (provide server parameter or set JIRA_SERVER environment variable)"
         )
 
-    # Email (programmatic mode: use provided value or env, interactive: prompt)
+    # Email (with existing value as default)
+    existing_email = existing_config.get("email", "") if has_existing else ""
     final_email = email or os.getenv("JIRA_EMAIL") or ""
-    if interactive and not final_email:
-        final_email = Prompt.ask("JIRA User Email")
+
+    if interactive:
+        if not final_email and existing_email:
+            final_email = Prompt.ask(
+                f"JIRA User Email [current: {existing_email}]",
+                default=existing_email,
+            )
+        elif not final_email:
+            final_email = Prompt.ask("JIRA User Email")
     elif not interactive and not final_email:
         raise ValueError(
             "JIRA email is required (provide email parameter or set JIRA_EMAIL environment variable)"
         )
 
-    # API Token (programmatic mode: use provided value or env, interactive: prompt)
+    # API Token with validation loop
+    existing_token = existing_config.get("api_token", "") if has_existing else ""
     final_api_token = api_token or os.getenv("JIRA_API_TOKEN") or ""
-    if interactive and not final_api_token:
-        console.print(
-            "[dim]Generate token at: https://id.atlassian.com/manage/api-tokens[/dim]"
-        )
-        final_api_token = Prompt.ask("JIRA API Token", password=True)
+
+    if interactive:
+        # Validation loop for JIRA credentials
+        jira_validated = False
+        while not jira_validated:
+            if not final_api_token and existing_token:
+                masked = _mask_sensitive_value(existing_token)
+                console.print(
+                    "[dim]Generate token at: https://id.atlassian.com/manage/api-tokens[/dim]"
+                )
+                final_api_token = Prompt.ask(
+                    f"JIRA API Token [current: {masked}]",
+                    password=True,
+                    default=existing_token,
+                )
+            elif not final_api_token:
+                console.print(
+                    "[dim]Generate token at: https://id.atlassian.com/manage/api-tokens[/dim]"
+                )
+                final_api_token = Prompt.ask("JIRA API Token", password=True)
+
+            # Validate JIRA credentials with real API call
+            try:
+                jira_validated = _validate_api_credentials(
+                    "jira",
+                    {
+                        "server": final_server,
+                        "email": final_email,
+                        "api_token": final_api_token,
+                    },
+                )
+            except typer.Exit:
+                # User cancelled, propagate the exit
+                raise
+            except Exception as e:
+                console.print(f"[red]Validation error: {e}[/red]")
+                retry = Confirm.ask("Re-enter credentials?", default=True)
+                if not retry:
+                    raise typer.Exit(1) from None
+                # Reset to prompt again
+                final_api_token = ""
+
     elif not interactive and not final_api_token:
         raise ValueError(
             "JIRA API token is required (provide api_token parameter or set JIRA_API_TOKEN environment variable)"
         )
 
-    # Project Key (optional)
+    # Project Key (optional, with existing value as default)
+    existing_project_key = (
+        existing_config.get("project_key", "") if has_existing else ""
+    )
     final_project_key = project_key or os.getenv("JIRA_PROJECT_KEY") or ""
-    if interactive and not final_project_key:
-        final_project_key = Prompt.ask(
-            "Default Project Key (optional, e.g., PROJ)", default=""
-        )
+
+    if interactive:
+        if not final_project_key and existing_project_key:
+            final_project_key = Prompt.ask(
+                f"Default Project Key (optional, e.g., PROJ) [current: {existing_project_key}]",
+                default=existing_project_key,
+            )
+        elif not final_project_key:
+            final_project_key = Prompt.ask(
+                "Default Project Key (optional, e.g., PROJ)", default=""
+            )
 
     config_dict = {
         "adapter": AdapterType.JIRA.value,
@@ -580,11 +878,18 @@ def _configure_jira(
         console.print("Configure default values for ticket creation:")
 
         # Default user/assignee
-        user_input = Prompt.ask(
-            "Default assignee/user (optional, JIRA username or email)",
-            default="",
-            show_default=False,
-        )
+        existing_user = existing_config.get("user_email", "") if has_existing else ""
+        if existing_user:
+            user_input = Prompt.ask(
+                f"Default assignee/user (optional, JIRA username or email) [current: {existing_user}]",
+                default=existing_user,
+            )
+        else:
+            user_input = Prompt.ask(
+                "Default assignee/user (optional, JIRA username or email)",
+                default="",
+                show_default=False,
+            )
         if user_input:
             default_values["default_user"] = user_input
             console.print(
@@ -592,11 +897,18 @@ def _configure_jira(
             )
 
         # Default epic/project
-        epic_input = Prompt.ask(
-            "Default epic/project ID (optional, e.g., 'PROJ-123')",
-            default="",
-            show_default=False,
-        )
+        existing_epic = existing_config.get("default_epic", "") if has_existing else ""
+        if existing_epic:
+            epic_input = Prompt.ask(
+                f"Default epic/project ID (optional, e.g., 'PROJ-123') [current: {existing_epic}]",
+                default=existing_epic,
+            )
+        else:
+            epic_input = Prompt.ask(
+                "Default epic/project ID (optional, e.g., 'PROJ-123')",
+                default="",
+                show_default=False,
+            )
         if epic_input:
             default_values["default_epic"] = epic_input
             default_values["default_project"] = epic_input  # Compatibility
@@ -605,11 +917,19 @@ def _configure_jira(
             )
 
         # Default tags
-        tags_input = Prompt.ask(
-            "Default tags/labels (optional, comma-separated, e.g., 'bug,urgent')",
-            default="",
-            show_default=False,
-        )
+        existing_tags = existing_config.get("default_tags", []) if has_existing else []
+        existing_tags_str = ", ".join(existing_tags) if existing_tags else ""
+        if existing_tags_str:
+            tags_input = Prompt.ask(
+                f"Default tags/labels (optional, comma-separated, e.g., 'bug,urgent') [current: {existing_tags_str}]",
+                default=existing_tags_str,
+            )
+        else:
+            tags_input = Prompt.ask(
+                "Default tags/labels (optional, comma-separated, e.g., 'bug,urgent')",
+                default="",
+                show_default=False,
+            )
         if tags_input:
             tags_list = [t.strip() for t in tags_input.split(",") if t.strip()]
             if tags_list:
@@ -650,30 +970,74 @@ def _configure_github(
     if interactive:
         console.print("\n[bold]Configure GitHub Integration:[/bold]")
 
-    # Token (programmatic mode: use provided value or env, interactive: prompt)
+    # Load existing configuration if available
+    existing_config = _load_existing_adapter_config("github") if interactive else None
+    has_existing = existing_config is not None
+
+    # Token with validation loop
+    existing_token = existing_config.get("token", "") if has_existing else ""
     final_token = token or os.getenv("GITHUB_TOKEN") or ""
+
     if interactive:
-        if final_token:
-            console.print("[dim]Found GITHUB_TOKEN in environment[/dim]")
-            use_env = Confirm.ask("Use this token?", default=True)
-            if not use_env:
+        github_validated = False
+        while not github_validated:
+            if final_token and not existing_token:
+                console.print("[dim]Found GITHUB_TOKEN in environment[/dim]")
+                use_env = Confirm.ask("Use this token?", default=True)
+                if not use_env:
+                    final_token = ""
+
+            if not final_token:
+                if existing_token:
+                    # Show masked existing token as default
+                    masked = _mask_sensitive_value(existing_token)
+                    console.print(
+                        "[dim]Create token at: https://github.com/settings/tokens/new[/dim]"
+                    )
+                    console.print(
+                        "[dim]Required scopes: repo (or public_repo for public repos)[/dim]"
+                    )
+                    final_token = Prompt.ask(
+                        f"GitHub Personal Access Token [current: {masked}]",
+                        password=True,
+                        default=existing_token,
+                    )
+                else:
+                    console.print(
+                        "[dim]Create token at: https://github.com/settings/tokens/new[/dim]"
+                    )
+                    console.print(
+                        "[dim]Required scopes: repo (or public_repo for public repos)[/dim]"
+                    )
+                    final_token = Prompt.ask(
+                        "GitHub Personal Access Token", password=True
+                    )
+
+            # Validate GitHub token with real API call
+            try:
+                github_validated = _validate_api_credentials(
+                    "github", {"token": final_token}
+                )
+            except typer.Exit:
+                # User cancelled, propagate the exit
+                raise
+            except Exception as e:
+                console.print(f"[red]Validation error: {e}[/red]")
+                retry = Confirm.ask("Re-enter token?", default=True)
+                if not retry:
+                    raise typer.Exit(1) from None
+                # Reset to prompt again
                 final_token = ""
 
-        if not final_token:
-            console.print(
-                "[dim]Create token at: https://github.com/settings/tokens/new[/dim]"
-            )
-            console.print(
-                "[dim]Required scopes: repo (or public_repo for public repos)[/dim]"
-            )
-            final_token = Prompt.ask("GitHub Personal Access Token", password=True)
     elif not final_token:
         raise ValueError(
             "GitHub token is required (provide token parameter or set GITHUB_TOKEN environment variable)"
         )
 
     # Repository URL/Owner/Repo - Prioritize repo_url, fallback to owner/repo
-    # Programmatic mode: use repo_url or GITHUB_REPO_URL env, fallback to owner/repo
+    existing_owner = existing_config.get("owner", "") if has_existing else ""
+    existing_repo = existing_config.get("repo", "") if has_existing else ""
+
     final_owner = ""
     final_repo = ""
 
@@ -705,13 +1069,24 @@ def _configure_github(
             "[dim]Enter your GitHub repository URL (e.g., https://github.com/owner/repo)[/dim]"
         )
 
+        # Show existing as default if available
+        if existing_owner and existing_repo:
+            existing_url = f"https://github.com/{existing_owner}/{existing_repo}"
+            console.print(f"[dim]Current repository: {existing_url}[/dim]")
+
         # Keep prompting until we get a valid URL
         while not final_owner or not final_repo:
             from ..core.url_parser import parse_github_repo_url
 
+            default_prompt = (
+                f"https://github.com/{existing_owner}/{existing_repo}"
+                if existing_owner and existing_repo
+                else "https://github.com/"
+            )
+
             url_prompt = Prompt.ask(
                 "GitHub Repository URL",
-                default="https://github.com/",
+                default=default_prompt,
             )
 
             parsed_owner, parsed_repo, error = parse_github_repo_url(url_prompt)
@@ -774,11 +1149,18 @@ def _configure_github(
         console.print("Configure default values for ticket creation:")
 
         # Default user/assignee
-        user_input = Prompt.ask(
-            "Default assignee/user (optional, GitHub username)",
-            default="",
-            show_default=False,
-        )
+        existing_user = existing_config.get("user_email", "") if has_existing else ""
+        if existing_user:
+            user_input = Prompt.ask(
+                f"Default assignee/user (optional, GitHub username) [current: {existing_user}]",
+                default=existing_user,
+            )
+        else:
+            user_input = Prompt.ask(
+                "Default assignee/user (optional, GitHub username)",
+                default="",
+                show_default=False,
+            )
         if user_input:
             default_values["default_user"] = user_input
             console.print(
@@ -786,11 +1168,18 @@ def _configure_github(
             )
 
         # Default epic/project (milestone for GitHub)
-        epic_input = Prompt.ask(
-            "Default milestone/project (optional, e.g., 'v1.0' or milestone number)",
-            default="",
-            show_default=False,
-        )
+        existing_epic = existing_config.get("default_epic", "") if has_existing else ""
+        if existing_epic:
+            epic_input = Prompt.ask(
+                f"Default milestone/project (optional, e.g., 'v1.0' or milestone number) [current: {existing_epic}]",
+                default=existing_epic,
+            )
+        else:
+            epic_input = Prompt.ask(
+                "Default milestone/project (optional, e.g., 'v1.0' or milestone number)",
+                default="",
+                show_default=False,
+            )
         if epic_input:
             default_values["default_epic"] = epic_input
             default_values["default_project"] = epic_input  # Compatibility
@@ -799,11 +1188,19 @@ def _configure_github(
             )
 
         # Default tags (labels for GitHub)
-        tags_input = Prompt.ask(
-            "Default labels (optional, comma-separated, e.g., 'bug,enhancement')",
-            default="",
-            show_default=False,
-        )
+        existing_tags = existing_config.get("default_tags", []) if has_existing else []
+        existing_tags_str = ", ".join(existing_tags) if existing_tags else ""
+        if existing_tags_str:
+            tags_input = Prompt.ask(
+                f"Default labels (optional, comma-separated, e.g., 'bug,enhancement') [current: {existing_tags_str}]",
+                default=existing_tags_str,
+            )
+        else:
+            tags_input = Prompt.ask(
+                "Default labels (optional, comma-separated, e.g., 'bug,enhancement')",
+                default="",
+                show_default=False,
+            )
         if tags_input:
             tags_list = [t.strip() for t in tags_input.split(",") if t.strip()]
             if tags_list:
@@ -838,12 +1235,28 @@ def _configure_aitrackdown(
     if interactive:
         console.print("\n[bold]Configure AITrackdown (File-based):[/bold]")
 
-    # Base path (programmatic mode: use provided value or default, interactive: prompt)
-    final_base_path = base_path or ".aitrackdown"
+    # Load existing configuration if available
+    existing_config = (
+        _load_existing_adapter_config("aitrackdown") if interactive else None
+    )
+    has_existing = existing_config is not None
+
+    # Base path with existing value as default
+    existing_base_path = (
+        existing_config.get("base_path", ".aitrackdown") if has_existing else ""
+    )
+    final_base_path = base_path or existing_base_path or ".aitrackdown"
+
     if interactive:
-        final_base_path = Prompt.ask(
-            "Base path for ticket storage", default=".aitrackdown"
-        )
+        if existing_base_path:
+            final_base_path = Prompt.ask(
+                f"Base path for ticket storage [current: {existing_base_path}]",
+                default=existing_base_path,
+            )
+        else:
+            final_base_path = Prompt.ask(
+                "Base path for ticket storage", default=".aitrackdown"
+            )
 
     config_dict = {
         "adapter": AdapterType.AITRACKDOWN.value,
@@ -860,9 +1273,16 @@ def _configure_aitrackdown(
         console.print("Configure default values for ticket creation:")
 
         # Default user/assignee
-        user_input = Prompt.ask(
-            "Default assignee/user (optional)", default="", show_default=False
-        )
+        existing_user = existing_config.get("user_email", "") if has_existing else ""
+        if existing_user:
+            user_input = Prompt.ask(
+                f"Default assignee/user (optional) [current: {existing_user}]",
+                default=existing_user,
+            )
+        else:
+            user_input = Prompt.ask(
+                "Default assignee/user (optional)", default="", show_default=False
+            )
         if user_input:
             default_values["default_user"] = user_input
             console.print(
@@ -870,9 +1290,16 @@ def _configure_aitrackdown(
             )
 
         # Default epic/project
-        epic_input = Prompt.ask(
-            "Default epic/project ID (optional)", default="", show_default=False
-        )
+        existing_epic = existing_config.get("default_epic", "") if has_existing else ""
+        if existing_epic:
+            epic_input = Prompt.ask(
+                f"Default epic/project ID (optional) [current: {existing_epic}]",
+                default=existing_epic,
+            )
+        else:
+            epic_input = Prompt.ask(
+                "Default epic/project ID (optional)", default="", show_default=False
+            )
         if epic_input:
             default_values["default_epic"] = epic_input
             default_values["default_project"] = epic_input  # Compatibility
@@ -881,9 +1308,17 @@ def _configure_aitrackdown(
             )
 
         # Default tags
-        tags_input = Prompt.ask(
-            "Default tags (optional, comma-separated)", default="", show_default=False
-        )
+        existing_tags = existing_config.get("default_tags", []) if has_existing else []
+        existing_tags_str = ", ".join(existing_tags) if existing_tags else ""
+        if existing_tags_str:
+            tags_input = Prompt.ask(
+                f"Default tags (optional, comma-separated) [current: {existing_tags_str}]",
+                default=existing_tags_str,
+            )
+        else:
+            tags_input = Prompt.ask(
+                "Default tags (optional, comma-separated)", default="", show_default=False
+            )
         if tags_input:
             tags_list = [t.strip() for t in tags_input.split(",") if t.strip()]
             if tags_list:
