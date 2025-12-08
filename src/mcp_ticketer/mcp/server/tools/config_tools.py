@@ -60,6 +60,55 @@ def get_resolver() -> ConfigResolver:
     return ConfigResolver(project_path=Path.cwd())
 
 
+def _safe_load_config() -> TicketerConfig:
+    """Safely load project configuration, preserving existing adapters.
+
+    This function prevents data loss when updating config fields by:
+    1. Attempting to load existing configuration
+    2. If file doesn't exist: create new empty config (first-time setup OK)
+    3. If file exists but fails to load: raise error to prevent data wipe
+
+    Returns:
+        Loaded or new TicketerConfig instance
+
+    Raises:
+        RuntimeError: If config file exists but cannot be loaded
+
+    Design Rationale:
+        The pattern `config = resolver.load_project_config() or TicketerConfig()`
+        is DANGEROUS because load_project_config() returns None on ANY failure
+        (file read error, JSON parse error, etc), which creates an empty config
+        and wipes all adapter configurations when saved.
+
+        This function prevents data loss by explicitly checking if the file
+        exists before deciding whether to create a new config.
+    """
+    resolver = get_resolver()
+    config_path = resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH
+
+    # Try to load existing config
+    config = resolver.load_project_config()
+
+    # If config loaded successfully, return it
+    if config is not None:
+        return config
+
+    # Config is None - need to determine if this is first-time setup or an error
+    if config_path.exists():
+        # File exists but failed to load - this is an error condition
+        # DO NOT create empty config and wipe existing data
+        raise RuntimeError(
+            f"Configuration file exists at {config_path} but failed to load. "
+            f"This may indicate a corrupted or invalid JSON file. "
+            f"Please check the file manually before retrying. "
+            f"To prevent data loss, this operation was aborted."
+        )
+
+    # File doesn't exist - first-time setup, safe to create new config
+    logger.info(f"No configuration file found at {config_path}, creating new config")
+    return TicketerConfig()
+
+
 @mcp.tool()
 async def config(
     action: str,
@@ -385,9 +434,8 @@ async def config_set_primary_adapter(adapter: str) -> dict[str, Any]:
                 "valid_adapters": valid_adapters,
             }
 
-        # Load current configuration
-        resolver = get_resolver()
-        config = resolver.load_project_config() or TicketerConfig()
+        # Load current configuration safely (preserves adapters)
+        config = _safe_load_config()
 
         # Store previous adapter for response
         previous_adapter = config.default_adapter
@@ -396,6 +444,7 @@ async def config_set_primary_adapter(adapter: str) -> dict[str, Any]:
         config.default_adapter = adapter.lower()
 
         # Save configuration
+        resolver = get_resolver()
         resolver.save_project_config(config)
 
         return {
@@ -433,9 +482,8 @@ async def config_set_default_project(
         stacklevel=2,
     )
     try:
-        # Load current configuration
-        resolver = get_resolver()
-        config = resolver.load_project_config() or TicketerConfig()
+        # Load current configuration safely (preserves adapters)
+        config = _safe_load_config()
 
         # Store previous project for response
         previous_project = config.default_project or config.default_epic
@@ -445,6 +493,7 @@ async def config_set_default_project(
         config.default_epic = project_id if project_id else None
 
         # Save configuration
+        resolver = get_resolver()
         resolver.save_project_config(config)
 
         return {
@@ -485,9 +534,8 @@ async def config_set_default_user(
         stacklevel=2,
     )
     try:
-        # Load current configuration
-        resolver = get_resolver()
-        config = resolver.load_project_config() or TicketerConfig()
+        # Load current configuration safely (preserves adapters)
+        config = _safe_load_config()
 
         # Store previous user for response
         previous_user = config.default_user
@@ -496,6 +544,7 @@ async def config_set_default_user(
         config.default_user = user_id if user_id else None
 
         # Save configuration
+        resolver = get_resolver()
         resolver.save_project_config(config)
 
         return {
@@ -602,12 +651,14 @@ async def config_set_default_tags(
                     "error": f"Tag '{tag}' is too long (max 50 characters)",
                 }
 
-        # Load current configuration
-        resolver = get_resolver()
-        config = resolver.load_project_config() or TicketerConfig()
+        # Load current configuration safely (preserves adapters)
+        config = _safe_load_config()
 
         # Update config
         config.default_tags = [tag.strip() for tag in tags]
+
+        # Save configuration
+        resolver = get_resolver()
         resolver.save_project_config(config)
 
         return {
@@ -650,15 +701,17 @@ async def config_set_default_team(
                 "error": "Team ID must be at least 1 character",
             }
 
-        # Load current configuration
-        resolver = get_resolver()
-        config = resolver.load_project_config() or TicketerConfig()
+        # Load current configuration safely (preserves adapters)
+        config = _safe_load_config()
 
         # Store previous team for response
         previous_team = config.default_team
 
         # Update default team
         config.default_team = team_id.strip()
+
+        # Save configuration
+        resolver = get_resolver()
         resolver.save_project_config(config)
 
         return {
@@ -702,15 +755,17 @@ async def config_set_default_cycle(
                 "error": "Cycle ID must be at least 1 character",
             }
 
-        # Load current configuration
-        resolver = get_resolver()
-        config = resolver.load_project_config() or TicketerConfig()
+        # Load current configuration safely (preserves adapters)
+        config = _safe_load_config()
 
         # Store previous cycle for response
         previous_cycle = config.default_cycle
 
         # Update default cycle
         config.default_cycle = cycle_id.strip()
+
+        # Save configuration
+        resolver = get_resolver()
         resolver.save_project_config(config)
 
         return {
@@ -753,13 +808,15 @@ async def config_set_default_epic(
                 "error": "Epic/project ID must be at least 2 characters",
             }
 
-        # Load current configuration
-        resolver = get_resolver()
-        config = resolver.load_project_config() or TicketerConfig()
+        # Load current configuration safely (preserves adapters)
+        config = _safe_load_config()
 
         # Update config (set both for compatibility)
         config.default_epic = epic_id.strip()
         config.default_project = epic_id.strip()
+
+        # Save configuration
+        resolver = get_resolver()
         resolver.save_project_config(config)
 
         return {
@@ -802,10 +859,13 @@ async def config_set_assignment_labels(labels: list[str]) -> dict[str, Any]:
                     "error": f"Invalid label '{label}': must be 2-50 characters",
                 }
 
-        resolver = get_resolver()
-        config = resolver.load_project_config() or TicketerConfig()
+        # Load current configuration safely (preserves adapters)
+        config = _safe_load_config()
 
         config.assignment_labels = labels if labels else None
+
+        # Save configuration
+        resolver = get_resolver()
         resolver.save_project_config(config)
 
         config_path = Path.cwd() / ".mcp-ticketer" / "config.json"
@@ -1318,10 +1378,11 @@ async def config_setup_wizard(
         test_error = None
 
         if test_connection:
-            # Save config temporarily for testing
-            resolver = get_resolver()
-            config = resolver.load_project_config() or TicketerConfig()
+            # Save config temporarily for testing (preserves adapters)
+            config = _safe_load_config()
             config.adapters[adapter_lower] = adapter_config
+
+            resolver = get_resolver()
             resolver.save_project_config(config)
 
             # Test the adapter with enhanced error handling (1M-431)
@@ -1387,18 +1448,20 @@ async def config_setup_wizard(
                     ],
                 }
         else:
-            # Save config without testing
-            resolver = get_resolver()
-            config = resolver.load_project_config() or TicketerConfig()
+            # Save config without testing (preserves adapters)
+            config = _safe_load_config()
             config.adapters[adapter_lower] = adapter_config
+
+            resolver = get_resolver()
             resolver.save_project_config(config)
 
         # Step 8: Set as default if enabled
         if set_as_default:
-            # Update default adapter
-            resolver = get_resolver()
-            config = resolver.load_project_config() or TicketerConfig()
+            # Update default adapter (preserves adapters)
+            config = _safe_load_config()
             config.default_adapter = adapter_lower
+
+            resolver = get_resolver()
             resolver.save_project_config(config)
 
         # Step 9: Return success
@@ -1488,9 +1551,8 @@ async def config_set_project_from_url(
         project_id = result.project_id
         platform = result.platform
 
-        # Load current configuration
-        resolver = get_resolver()
-        config = resolver.load_project_config() or TicketerConfig()
+        # Load current configuration safely (preserves adapters)
+        config = _safe_load_config()
 
         # Store previous project for response
         previous_project = config.default_project or config.default_epic
@@ -1504,6 +1566,7 @@ async def config_set_project_from_url(
         config.default_adapter = platform
 
         # Save configuration
+        resolver = get_resolver()
         resolver.save_project_config(config)
 
         return {
