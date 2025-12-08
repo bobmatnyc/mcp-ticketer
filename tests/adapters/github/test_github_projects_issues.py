@@ -22,12 +22,11 @@ Test Coverage Requirements:
 - Pagination support
 """
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from mcp_ticketer.adapters.github.adapter import GitHubAdapter
-from mcp_ticketer.core.models import Task, TicketState
 
 
 @pytest.fixture
@@ -112,18 +111,12 @@ class TestProjectAddIssue:
         """Test adding issue by owner/repo#number format."""
         # Mock issue node ID resolution
         adapter._graphql_request.return_value = {
-            "repository": {
-                "issue": {
-                    "id": "I_RESOLVED_NODE_ID"
-                }
-            }
+            "repository": {"issue": {"id": "I_RESOLVED_NODE_ID"}}
         }
 
         # Mock successful addition
         adapter.gh_client.execute_graphql.return_value = {
-            "addProjectV2ItemById": {
-                "item": {"id": "PVTI_TEST1"}
-            }
+            "addProjectV2ItemById": {"item": {"id": "PVTI_TEST1"}}
         }
 
         result = await adapter.project_add_issue(
@@ -209,11 +202,7 @@ class TestProjectAddIssue:
     async def test_add_issue_number_not_found(self, adapter):
         """Test handling of issue not found during resolution."""
         # Mock issue not found
-        adapter._graphql_request.return_value = {
-            "repository": {
-                "issue": None
-            }
-        }
+        adapter._graphql_request.return_value = {"repository": {"issue": None}}
 
         with pytest.raises(ValueError, match="Issue #123 not found"):
             await adapter.project_add_issue(
@@ -240,9 +229,7 @@ class TestProjectAddIssue:
         """Test handling of mutation succeeding but no item returned."""
         # Mock mutation with no item
         adapter.gh_client.execute_graphql.return_value = {
-            "addProjectV2ItemById": {
-                "item": None
-            }
+            "addProjectV2ItemById": {"item": None}
         }
 
         result = await adapter.project_add_issue(
@@ -265,9 +252,7 @@ class TestProjectRemoveIssue:
     async def test_remove_issue_success(self, adapter):
         """Test successful issue removal."""
         adapter.gh_client.execute_graphql.return_value = {
-            "deleteProjectV2Item": {
-                "deletedItemId": "PVTI_TEST"
-            }
+            "deleteProjectV2Item": {"deletedItemId": "PVTI_TEST"}
         }
 
         result = await adapter.project_remove_issue(
@@ -343,9 +328,7 @@ class TestProjectRemoveIssue:
     async def test_remove_issue_no_deleted_id(self, adapter):
         """Test handling of mutation succeeding but no deleted ID returned."""
         adapter.gh_client.execute_graphql.return_value = {
-            "deleteProjectV2Item": {
-                "deletedItemId": None
-            }
+            "deleteProjectV2Item": {"deletedItemId": None}
         }
 
         result = await adapter.project_remove_issue(
@@ -400,9 +383,7 @@ class TestProjectGetIssues:
                                 "number": 2,
                                 "title": "Test Issue 2",
                                 "state": "CLOSED",
-                                "labels": {
-                                    "nodes": []
-                                },
+                                "labels": {"nodes": []},
                             },
                         },
                     ],
@@ -612,9 +593,7 @@ class TestProjectGetIssues:
     @pytest.mark.asyncio
     async def test_get_issues_project_not_found(self, adapter):
         """Test handling of project not found."""
-        adapter.gh_client.execute_graphql.return_value = {
-            "node": None
-        }
+        adapter.gh_client.execute_graphql.return_value = {"node": None}
 
         issues = await adapter.project_get_issues(
             project_id="PVT_NOTFOUND",
@@ -671,9 +650,7 @@ class TestProjectGetIssues:
     @pytest.mark.asyncio
     async def test_get_issues_query_failure(self, adapter):
         """Test handling of query failure."""
-        adapter.gh_client.execute_graphql.side_effect = RuntimeError(
-            "GraphQL error"
-        )
+        adapter.gh_client.execute_graphql.side_effect = RuntimeError("GraphQL error")
 
         with pytest.raises(RuntimeError, match="Failed to get project issues"):
             await adapter.project_get_issues(

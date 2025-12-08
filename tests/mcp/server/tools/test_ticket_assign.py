@@ -74,7 +74,8 @@ class TestTicketAssignBasic:
                 # Verify adapter methods were called correctly
                 mock_adapter.read.assert_called_once_with("TICKET-1")
                 mock_adapter.update.assert_called_once_with(
-                    "TICKET-1", {"assignee": "user@example.com", "state": TicketState.IN_PROGRESS}
+                    "TICKET-1",
+                    {"assignee": "user@example.com", "state": TicketState.IN_PROGRESS},
                 )
 
     async def test_assign_ticket_with_user_id(self) -> None:
@@ -424,7 +425,11 @@ class TestTicketAssignWithURLs:
                     # Verify routing was used with auto-transition
                     mock_router.route_read.assert_called_once_with(linear_url)
                     mock_router.route_update.assert_called_once_with(
-                        linear_url, {"assignee": "user@example.com", "state": TicketState.IN_PROGRESS}
+                        linear_url,
+                        {
+                            "assignee": "user@example.com",
+                            "state": TicketState.IN_PROGRESS,
+                        },
                     )
 
     async def test_assign_with_github_url(self) -> None:

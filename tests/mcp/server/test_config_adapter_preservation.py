@@ -17,8 +17,6 @@ The fix uses _safe_load_config() which:
 """
 
 import json
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -32,7 +30,6 @@ from mcp_ticketer.mcp.server.tools.config_tools import (
     config_set_default_team,
     config_set_default_user,
     config_set_primary_adapter,
-    config_set_project_from_url,
 )
 
 
@@ -117,7 +114,9 @@ async def test_config_set_primary_adapter_preserves_adapters(config_with_adapter
     assert "jira" in updated_config["adapters"], "JIRA adapter was lost!"
 
     # Verify adapter details are intact
-    assert updated_config["adapters"]["linear"]["api_key"] == "lin_api_test_key_1234567890"
+    assert (
+        updated_config["adapters"]["linear"]["api_key"] == "lin_api_test_key_1234567890"
+    )
     assert updated_config["adapters"]["github"]["token"] == "ghp_test_token_1234567890"
     assert updated_config["adapters"]["jira"]["server"] == "https://test.atlassian.net"
 
@@ -287,7 +286,10 @@ async def test_corrupted_config_file_raises_error(temp_project_dir):
     result = await config_set_primary_adapter("github")
 
     assert result["status"] == "error"
-    assert "failed to load" in result["error"].lower() or "corrupted" in result["error"].lower()
+    assert (
+        "failed to load" in result["error"].lower()
+        or "corrupted" in result["error"].lower()
+    )
 
 
 @pytest.mark.asyncio

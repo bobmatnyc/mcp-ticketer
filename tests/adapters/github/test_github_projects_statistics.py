@@ -93,12 +93,8 @@ class TestProjectGetStatistics:
     async def test_healthy_project_on_track(self, adapter):
         """Test 2: Healthy project (80% done, 0 blocked) returns on_track."""
         # Create 10 tasks: 8 done, 2 open
-        tasks = [
-            create_test_task(i, TicketState.DONE, [])
-            for i in range(8)
-        ] + [
-            create_test_task(i, TicketState.OPEN, [])
-            for i in range(8, 10)
+        tasks = [create_test_task(i, TicketState.DONE, []) for i in range(8)] + [
+            create_test_task(i, TicketState.OPEN, []) for i in range(8, 10)
         ]
 
         adapter.project_get_issues = AsyncMock(return_value=tasks)
@@ -116,16 +112,14 @@ class TestProjectGetStatistics:
     async def test_at_risk_project(self, adapter):
         """Test 3: At-risk project (50% done, 15% blocked) returns at_risk."""
         # Create 20 tasks: 10 done, 7 open, 3 blocked
-        tasks = [
-            create_test_task(i, TicketState.DONE, [])
-            for i in range(10)
-        ] + [
-            create_test_task(i, TicketState.OPEN, [])
-            for i in range(10, 17)
-        ] + [
-            create_test_task(i, TicketState.OPEN, ["blocked"])
-            for i in range(17, 20)
-        ]
+        tasks = (
+            [create_test_task(i, TicketState.DONE, []) for i in range(10)]
+            + [create_test_task(i, TicketState.OPEN, []) for i in range(10, 17)]
+            + [
+                create_test_task(i, TicketState.OPEN, ["blocked"])
+                for i in range(17, 20)
+            ]
+        )
 
         adapter.project_get_issues = AsyncMock(return_value=tasks)
 
@@ -142,16 +136,11 @@ class TestProjectGetStatistics:
     async def test_off_track_project(self, adapter):
         """Test 4: Off-track project (20% done, 40% blocked) returns off_track."""
         # Create 10 tasks: 2 done, 4 open, 4 blocked
-        tasks = [
-            create_test_task(i, TicketState.DONE, [])
-            for i in range(2)
-        ] + [
-            create_test_task(i, TicketState.OPEN, [])
-            for i in range(2, 6)
-        ] + [
-            create_test_task(i, TicketState.OPEN, ["blocker"])
-            for i in range(6, 10)
-        ]
+        tasks = (
+            [create_test_task(i, TicketState.DONE, []) for i in range(2)]
+            + [create_test_task(i, TicketState.OPEN, []) for i in range(2, 6)]
+            + [create_test_task(i, TicketState.OPEN, ["blocker"]) for i in range(6, 10)]
+        )
 
         adapter.project_get_issues = AsyncMock(return_value=tasks)
 
@@ -196,7 +185,9 @@ class TestProjectGetStatistics:
             create_test_task(1, TicketState.OPEN, ["blocked"]),
             create_test_task(2, TicketState.OPEN, ["blocker"]),
             create_test_task(3, TicketState.OPEN, ["Blocked"]),  # Case insensitive
-            create_test_task(4, TicketState.OPEN, ["needs-blocker"]),  # Contains blocker
+            create_test_task(
+                4, TicketState.OPEN, ["needs-blocker"]
+            ),  # Contains blocker
             create_test_task(5, TicketState.OPEN, []),  # Not blocked
         ]
 
@@ -223,12 +214,8 @@ class TestProjectGetStatistics:
     async def test_progress_percentage_calculation(self, adapter):
         """Test 8: Progress percentage calculated correctly."""
         # 3 done out of 7 total = 42.857... -> 42.9%
-        tasks = [
-            create_test_task(i, TicketState.DONE, [])
-            for i in range(3)
-        ] + [
-            create_test_task(i, TicketState.OPEN, [])
-            for i in range(3, 7)
+        tasks = [create_test_task(i, TicketState.DONE, []) for i in range(3)] + [
+            create_test_task(i, TicketState.OPEN, []) for i in range(3, 7)
         ]
 
         adapter.project_get_issues = AsyncMock(return_value=tasks)
@@ -242,10 +229,7 @@ class TestProjectGetStatistics:
     @pytest.mark.asyncio
     async def test_all_issues_blocked_edge_case(self, adapter):
         """Test 9: Edge case where all issues are blocked."""
-        tasks = [
-            create_test_task(i, TicketState.OPEN, ["blocked"])
-            for i in range(5)
-        ]
+        tasks = [create_test_task(i, TicketState.OPEN, ["blocked"]) for i in range(5)]
 
         adapter.project_get_issues = AsyncMock(return_value=tasks)
 
@@ -260,10 +244,7 @@ class TestProjectGetStatistics:
     @pytest.mark.asyncio
     async def test_all_issues_completed_edge_case(self, adapter):
         """Test 10: Edge case where all issues are completed."""
-        tasks = [
-            create_test_task(i, TicketState.DONE, [])
-            for i in range(10)
-        ]
+        tasks = [create_test_task(i, TicketState.DONE, []) for i in range(10)]
 
         adapter.project_get_issues = AsyncMock(return_value=tasks)
 
@@ -283,7 +264,9 @@ class TestProjectGetStatistics:
             side_effect=RuntimeError("API connection failed")
         )
 
-        with pytest.raises(RuntimeError, match="Failed to calculate project statistics"):
+        with pytest.raises(
+            RuntimeError, match="Failed to calculate project statistics"
+        ):
             await adapter.project_get_statistics("PVT_TEST")
 
     @pytest.mark.asyncio
@@ -294,7 +277,9 @@ class TestProjectGetStatistics:
             create_test_task(2, TicketState.OPEN, ["priority:p1"]),  # p1 -> high
             create_test_task(3, TicketState.OPEN, ["priority/p2"]),  # p2 -> medium
             create_test_task(4, TicketState.OPEN, ["priority:p3"]),  # p3 -> low
-            create_test_task(5, TicketState.OPEN, ["priority:crit"]),  # crit -> critical
+            create_test_task(
+                5, TicketState.OPEN, ["priority:crit"]
+            ),  # crit -> critical
             create_test_task(6, TicketState.OPEN, ["priority/med"]),  # med -> medium
         ]
 

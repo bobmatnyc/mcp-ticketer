@@ -38,9 +38,7 @@ def linear_adapter(mock_linear_client):
 async def test_get_attachments_for_issue_success(linear_adapter, mock_linear_client):
     """Test successful attachment retrieval for an issue."""
     # Mock issue UUID resolution
-    linear_adapter._resolve_issue_id = AsyncMock(
-        return_value="issue-uuid-12345"
-    )
+    linear_adapter._resolve_issue_id = AsyncMock(return_value="issue-uuid-12345")
 
     # Mock GraphQL response with attachments
     mock_linear_client.execute_query.return_value = {
@@ -82,7 +80,9 @@ async def test_get_attachments_for_issue_success(linear_adapter, mock_linear_cli
     # Check first attachment
     assert attachments[0].id == "att-1"
     assert attachments[0].filename == "screenshot.png"
-    assert attachments[0].url == "https://files.linear.app/workspace/att-1/screenshot.png"
+    assert (
+        attachments[0].url == "https://files.linear.app/workspace/att-1/screenshot.png"
+    )
     assert attachments[0].description == "UI mockup"
     assert attachments[0].ticket_id == "TEST-123"
 
@@ -101,9 +101,7 @@ async def test_get_attachments_for_issue_success(linear_adapter, mock_linear_cli
 @pytest.mark.asyncio
 async def test_get_attachments_for_issue_empty(linear_adapter, mock_linear_client):
     """Test attachment retrieval for issue with no attachments."""
-    linear_adapter._resolve_issue_id = AsyncMock(
-        return_value="issue-uuid-12345"
-    )
+    linear_adapter._resolve_issue_id = AsyncMock(return_value="issue-uuid-12345")
 
     mock_linear_client.execute_query.return_value = {
         "issue": {
@@ -125,9 +123,7 @@ async def test_get_attachments_for_project_success(linear_adapter, mock_linear_c
     linear_adapter._resolve_issue_id = AsyncMock(return_value=None)
 
     # Project resolution returns UUID
-    linear_adapter._resolve_project_id = AsyncMock(
-        return_value="project-uuid-67890"
-    )
+    linear_adapter._resolve_project_id = AsyncMock(return_value="project-uuid-67890")
 
     # Mock GraphQL response with project documents
     mock_linear_client.execute_query.return_value = {
@@ -177,9 +173,7 @@ async def test_get_attachments_not_found(linear_adapter, mock_linear_client):
 @pytest.mark.asyncio
 async def test_get_attachments_api_error(linear_adapter, mock_linear_client):
     """Test error handling when API call fails."""
-    linear_adapter._resolve_issue_id = AsyncMock(
-        return_value="issue-uuid-12345"
-    )
+    linear_adapter._resolve_issue_id = AsyncMock(return_value="issue-uuid-12345")
 
     # Simulate API error
     mock_linear_client.execute_query.side_effect = Exception("GraphQL error")
@@ -203,9 +197,7 @@ async def test_get_attachments_missing_credentials(linear_adapter):
 @pytest.mark.asyncio
 async def test_attachment_metadata_preservation(linear_adapter, mock_linear_client):
     """Test that Linear-specific metadata is preserved."""
-    linear_adapter._resolve_issue_id = AsyncMock(
-        return_value="issue-uuid-12345"
-    )
+    linear_adapter._resolve_issue_id = AsyncMock(return_value="issue-uuid-12345")
 
     mock_linear_client.execute_query.return_value = {
         "issue": {

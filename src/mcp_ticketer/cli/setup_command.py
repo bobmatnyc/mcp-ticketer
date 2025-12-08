@@ -711,14 +711,15 @@ def _update_mcp_json_credentials(proj_path: Path, console: Console) -> None:
                 cmd = github_server.get("command", "")
                 args = github_server.get("args", [])
                 is_official_github = (
-                    cmd == "npx"
-                    and any("server-github" in str(arg) for arg in args)
+                    cmd == "npx" and any("server-github" in str(arg) for arg in args)
                 ) or "server-github" in cmd
 
                 if is_official_github:
                     current_env = github_server.get("env", {})
                     # The official server uses GITHUB_PERSONAL_ACCESS_TOKEN
-                    current_env["GITHUB_PERSONAL_ACCESS_TOKEN"] = env_vars["GITHUB_TOKEN"]
+                    current_env["GITHUB_PERSONAL_ACCESS_TOKEN"] = env_vars[
+                        "GITHUB_TOKEN"
+                    ]
                     github_server["env"] = current_env
                     config_updated = True
                     console.print(

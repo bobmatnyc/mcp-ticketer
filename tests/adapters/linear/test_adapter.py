@@ -342,9 +342,24 @@ class TestLinearAdapterInitialization:
             "team": {
                 "states": {
                     "nodes": [
-                        {"id": "state-1", "name": "Todo", "type": "unstarted", "position": 1},
-                        {"id": "state-2", "name": "In Progress", "type": "started", "position": 1},
-                        {"id": "state-3", "name": "Done", "type": "completed", "position": 1},
+                        {
+                            "id": "state-1",
+                            "name": "Todo",
+                            "type": "unstarted",
+                            "position": 1,
+                        },
+                        {
+                            "id": "state-2",
+                            "name": "In Progress",
+                            "type": "started",
+                            "position": 1,
+                        },
+                        {
+                            "id": "state-3",
+                            "name": "Done",
+                            "type": "completed",
+                            "position": 1,
+                        },
                     ]
                 }
             }
@@ -357,7 +372,9 @@ class TestLinearAdapterInitialization:
         # (Uses universal state names, not Linear type names)
         assert adapter._workflow_states is not None
         assert "open" in adapter._workflow_states  # Maps to "Todo" (unstarted type)
-        assert "in_progress" in adapter._workflow_states  # Maps to "In Progress" (started type)
+        assert (
+            "in_progress" in adapter._workflow_states
+        )  # Maps to "In Progress" (started type)
         assert "done" in adapter._workflow_states  # Maps to "Done" (completed type)
 
         # Verify mapping correctness

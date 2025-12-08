@@ -62,9 +62,16 @@ async def test_assign_open_ticket_auto_transitions():
     adapter.add_comment = AsyncMock()
 
     # Patch get_adapter to return our mock
-    with patch("mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter):
-        with patch("mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False):
-            with patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+    with patch(
+        "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter
+    ):
+        with patch(
+            "mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False
+        ):
+            with patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ):
                 result = await ticket_assign(
                     ticket_id="TEST-123",
                     assignee="user@example.com",
@@ -113,9 +120,16 @@ async def test_assign_waiting_ticket_auto_transitions():
     adapter.update = AsyncMock(return_value=updated_ticket)
     adapter.add_comment = AsyncMock()
 
-    with patch("mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter):
-        with patch("mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False):
-            with patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+    with patch(
+        "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter
+    ):
+        with patch(
+            "mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False
+        ):
+            with patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ):
                 result = await ticket_assign(
                     ticket_id="TEST-123",
                     assignee="user@example.com",
@@ -152,9 +166,16 @@ async def test_assign_blocked_ticket_auto_transitions():
     adapter.update = AsyncMock(return_value=updated_ticket)
     adapter.add_comment = AsyncMock()
 
-    with patch("mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter):
-        with patch("mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False):
-            with patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+    with patch(
+        "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter
+    ):
+        with patch(
+            "mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False
+        ):
+            with patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ):
                 result = await ticket_assign(
                     ticket_id="TEST-123",
                     assignee="user@example.com",
@@ -190,9 +211,16 @@ async def test_assign_in_progress_no_transition():
     )
     adapter.update = AsyncMock(return_value=updated_ticket)
 
-    with patch("mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter):
-        with patch("mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False):
-            with patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+    with patch(
+        "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter
+    ):
+        with patch(
+            "mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False
+        ):
+            with patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ):
                 result = await ticket_assign(
                     ticket_id="TEST-123",
                     assignee="new@example.com",
@@ -234,9 +262,16 @@ async def test_assign_ready_no_backward_transition():
     )
     adapter.update = AsyncMock(return_value=updated_ticket)
 
-    with patch("mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter):
-        with patch("mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False):
-            with patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+    with patch(
+        "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter
+    ):
+        with patch(
+            "mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False
+        ):
+            with patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ):
                 result = await ticket_assign(
                     ticket_id="TEST-123",
                     assignee="user@example.com",
@@ -272,9 +307,16 @@ async def test_assign_done_no_transition():
     )
     adapter.update = AsyncMock(return_value=updated_ticket)
 
-    with patch("mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter):
-        with patch("mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False):
-            with patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+    with patch(
+        "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter
+    ):
+        with patch(
+            "mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False
+        ):
+            with patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ):
                 result = await ticket_assign(
                     ticket_id="TEST-123",
                     assignee="user@example.com",
@@ -310,9 +352,16 @@ async def test_unassign_no_state_change():
     )
     adapter.update = AsyncMock(return_value=updated_ticket)
 
-    with patch("mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter):
-        with patch("mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False):
-            with patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+    with patch(
+        "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter
+    ):
+        with patch(
+            "mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False
+        ):
+            with patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ):
                 result = await ticket_assign(
                     ticket_id="TEST-123",
                     assignee=None,
@@ -355,9 +404,16 @@ async def test_auto_transition_disabled():
     )
     adapter.update = AsyncMock(return_value=updated_ticket)
 
-    with patch("mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter):
-        with patch("mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False):
-            with patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+    with patch(
+        "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter
+    ):
+        with patch(
+            "mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False
+        ):
+            with patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ):
                 result = await ticket_assign(
                     ticket_id="TEST-123",
                     assignee="user@example.com",
@@ -401,9 +457,16 @@ async def test_auto_transition_adds_comment():
     adapter.update = AsyncMock(return_value=updated_ticket)
     adapter.add_comment = AsyncMock()
 
-    with patch("mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter):
-        with patch("mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False):
-            with patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+    with patch(
+        "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter
+    ):
+        with patch(
+            "mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False
+        ):
+            with patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ):
                 result = await ticket_assign(
                     ticket_id="TEST-123",
                     assignee="user@example.com",
@@ -447,9 +510,16 @@ async def test_auto_transition_preserves_user_comment():
 
     user_comment = "Taking ownership of this important issue"
 
-    with patch("mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter):
-        with patch("mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False):
-            with patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+    with patch(
+        "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter
+    ):
+        with patch(
+            "mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False
+        ):
+            with patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ):
                 result = await ticket_assign(
                     ticket_id="TEST-123",
                     assignee="user@example.com",
@@ -490,9 +560,16 @@ async def test_reassignment_in_progress_no_change():
     )
     adapter.update = AsyncMock(return_value=updated_ticket)
 
-    with patch("mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter):
-        with patch("mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False):
-            with patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+    with patch(
+        "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter
+    ):
+        with patch(
+            "mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False
+        ):
+            with patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ):
                 result = await ticket_assign(
                     ticket_id="TEST-123",
                     assignee="new@example.com",
@@ -521,7 +598,9 @@ async def test_assign_with_url_auto_transitions():
     # Mock router
     router = AsyncMock()
     router.route_read = AsyncMock(return_value=ticket)
-    router._normalize_ticket_id = Mock(return_value=("TEST-123", "linear", "https://linear.app/team/issue/TEST-123"))
+    router._normalize_ticket_id = Mock(
+        return_value=("TEST-123", "linear", "https://linear.app/team/issue/TEST-123")
+    )
 
     # Mock adapter
     adapter = AsyncMock()
@@ -539,8 +618,13 @@ async def test_assign_with_url_auto_transitions():
     router.route_add_comment = AsyncMock()
 
     with patch("mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=True):
-        with patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=True):
-            with patch("mcp_ticketer.mcp.server.tools.ticket_tools.get_router", return_value=router):
+        with patch(
+            "mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=True
+        ):
+            with patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.get_router",
+                return_value=router,
+            ):
                 result = await ticket_assign(
                     ticket_id="https://linear.app/team/issue/TEST-123",
                     assignee="user@example.com",
@@ -582,9 +666,16 @@ async def test_assign_tested_no_transition():
     )
     adapter.update = AsyncMock(return_value=updated_ticket)
 
-    with patch("mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter):
-        with patch("mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False):
-            with patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+    with patch(
+        "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter
+    ):
+        with patch(
+            "mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False
+        ):
+            with patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ):
                 result = await ticket_assign(
                     ticket_id="TEST-123",
                     assignee="user@example.com",
@@ -620,9 +711,16 @@ async def test_assign_closed_no_transition():
     )
     adapter.update = AsyncMock(return_value=updated_ticket)
 
-    with patch("mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter):
-        with patch("mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False):
-            with patch("mcp_ticketer.mcp.server.tools.ticket_tools.has_router", return_value=False):
+    with patch(
+        "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=adapter
+    ):
+        with patch(
+            "mcp_ticketer.mcp.server.tools.ticket_tools.is_url", return_value=False
+        ):
+            with patch(
+                "mcp_ticketer.mcp.server.tools.ticket_tools.has_router",
+                return_value=False,
+            ):
                 result = await ticket_assign(
                     ticket_id="TEST-123",
                     assignee="user@example.com",

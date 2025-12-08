@@ -1179,17 +1179,13 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
 
             # Security warning about credentials
             sensitive_keys = [
-                k
-                for k in env_keys
-                if "TOKEN" in k or "KEY" in k or "PASSWORD" in k
+                k for k in env_keys if "TOKEN" in k or "KEY" in k or "PASSWORD" in k
             ]
             if sensitive_keys:
                 console.print(
                     "\n[yellow]⚠️  Security Notice:[/yellow] Configuration contains credentials"
                 )
-                console.print(
-                    f"[yellow]   Location: {mcp_config_path}[/yellow]"
-                )
+                console.print(f"[yellow]   Location: {mcp_config_path}[/yellow]")
                 console.print(
                     "[yellow]   Make sure this file is excluded from version control[/yellow]"
                 )

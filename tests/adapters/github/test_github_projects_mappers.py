@@ -18,7 +18,6 @@ from mcp_ticketer.adapters.github.mappers import (
     map_github_projectv2_to_project,
 )
 from mcp_ticketer.core.models import (
-    Project,
     ProjectScope,
     ProjectState,
     ProjectVisibility,

@@ -206,9 +206,7 @@ def _validate_api_credentials(
 
         # Ask user if they want to retry
         if attempt < max_retries:
-            retry = Confirm.ask(
-                "Re-enter credentials and try again?", default=True
-            )
+            retry = Confirm.ask("Re-enter credentials and try again?", default=True)
             if not retry:
                 console.print(
                     "[yellow]Skipping validation. Configuration saved but may not work.[/yellow]"
@@ -220,9 +218,7 @@ def _validate_api_credentials(
                 "Save configuration anyway? (it may not work)", default=False
             )
             if final_choice:
-                console.print(
-                    "[yellow]Configuration saved without validation[/yellow]"
-                )
+                console.print("[yellow]Configuration saved without validation[/yellow]")
                 return True
             raise typer.Exit(1) from None
 
@@ -474,7 +470,9 @@ def _configure_linear(
                 if current_key:
                     masked = _mask_sensitive_value(current_key)
                     api_key_prompt = f"Linear API Key [current: {masked}]"
-                    return Prompt.ask(api_key_prompt, password=True, default=current_key)
+                    return Prompt.ask(
+                        api_key_prompt, password=True, default=current_key
+                    )
                 return Prompt.ask("Linear API Key", password=True)
 
             def validate_api_key(key: str) -> tuple[bool, str | None]:
@@ -1317,7 +1315,9 @@ def _configure_aitrackdown(
             )
         else:
             tags_input = Prompt.ask(
-                "Default tags (optional, comma-separated)", default="", show_default=False
+                "Default tags (optional, comma-separated)",
+                default="",
+                show_default=False,
             )
         if tags_input:
             tags_list = [t.strip() for t in tags_input.split(",") if t.strip()]

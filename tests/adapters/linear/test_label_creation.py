@@ -583,7 +583,9 @@ class TestLabelCreation:
         existing_label_id = "existing-label-id-456"
 
         # Mock: Creation fails with duplicate error
-        duplicate_error = AdapterError("Label already exists: duplicate label name", "linear")
+        duplicate_error = AdapterError(
+            "Label already exists: duplicate label name", "linear"
+        )
         adapter.client.execute_mutation = AsyncMock(side_effect=duplicate_error)
 
         # Mock: Recovery lookup finds the existing label
@@ -613,7 +615,9 @@ class TestLabelCreation:
         label_name = "Inaccessible Label"
 
         # Mock: Creation fails with duplicate error
-        duplicate_error = AdapterError("Label already exists: duplicate label name", "linear")
+        duplicate_error = AdapterError(
+            "Label already exists: duplicate label name", "linear"
+        )
         adapter.client.execute_mutation = AsyncMock(side_effect=duplicate_error)
 
         # Mock: Recovery lookup returns None (permissions issue or API inconsistency)
@@ -660,6 +664,7 @@ class TestTransportQueryErrorHandling:
     def client(self):
         """Create a Linear GraphQL client for testing."""
         from mcp_ticketer.adapters.linear.client import LinearGraphQLClient
+
         return LinearGraphQLClient(api_key="test_api_key_12345")
 
     @pytest.mark.asyncio
@@ -674,12 +679,12 @@ class TestTransportQueryErrorHandling:
         # Mock TransportQueryError with duplicate label error
         mock_error = TransportQueryError(
             "GraphQL validation error",
-            errors=[{"message": "duplicate label name", "path": ["issueLabelCreate"]}]
+            errors=[{"message": "duplicate label name", "path": ["issueLabelCreate"]}],
         )
 
         query_string = "mutation { issueLabelCreate(input: {}) { success } }"
 
-        with patch.object(client, 'create_client') as mock_create_client:
+        with patch.object(client, "create_client") as mock_create_client:
             mock_session = AsyncMock()
             mock_session.execute = AsyncMock(side_effect=mock_error)
             mock_client_instance = AsyncMock()
@@ -708,12 +713,17 @@ class TestTransportQueryErrorHandling:
         # Mock TransportQueryError with generic validation error
         mock_error = TransportQueryError(
             "GraphQL validation error",
-            errors=[{"message": "Invalid input: field 'name' is required", "path": ["issueCreate"]}]
+            errors=[
+                {
+                    "message": "Invalid input: field 'name' is required",
+                    "path": ["issueCreate"],
+                }
+            ],
         )
 
         query_string = "mutation { issueCreate(input: {}) { success } }"
 
-        with patch.object(client, 'create_client') as mock_create_client:
+        with patch.object(client, "create_client") as mock_create_client:
             mock_session = AsyncMock()
             mock_session.execute = AsyncMock(side_effect=mock_error)
             mock_client_instance = AsyncMock()
@@ -744,7 +754,7 @@ class TestTransportQueryErrorHandling:
 
         query_string = "query { viewer { id } }"
 
-        with patch.object(client, 'create_client') as mock_create_client:
+        with patch.object(client, "create_client") as mock_create_client:
             mock_session = AsyncMock()
             mock_session.execute = AsyncMock(side_effect=mock_error)
             mock_client_instance = AsyncMock()

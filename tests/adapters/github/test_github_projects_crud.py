@@ -15,11 +15,12 @@ Test Coverage Requirements:
 - Auto-detection in project_get()
 """
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from mcp_ticketer.adapters.github.adapter import GitHubAdapter
-from mcp_ticketer.core.models import Project, ProjectScope, ProjectState
+from mcp_ticketer.core.models import ProjectState
 
 
 @pytest.fixture
@@ -122,7 +123,9 @@ class TestProjectList:
     async def test_project_list_empty(self, adapter):
         """Test project listing with no results."""
         adapter.gh_client.execute_graphql.return_value = {
-            "organization": {"projectsV2": {"nodes": [], "pageInfo": {"hasNextPage": False}}}
+            "organization": {
+                "projectsV2": {"nodes": [], "pageInfo": {"hasNextPage": False}}
+            }
         }
 
         projects = await adapter.project_list()
@@ -142,7 +145,11 @@ class TestProjectList:
                             "title": "Active Project",
                             "closed": False,
                             "public": True,
-                            "owner": {"__typename": "Organization", "login": "test-org", "id": "ORG123"},
+                            "owner": {
+                                "__typename": "Organization",
+                                "login": "test-org",
+                                "id": "ORG123",
+                            },
                         },
                         {
                             "id": "PVT_CLOSED",
@@ -151,7 +158,11 @@ class TestProjectList:
                             "closed": True,
                             "closedAt": "2025-01-05T00:00:00Z",
                             "public": True,
-                            "owner": {"__typename": "Organization", "login": "test-org", "id": "ORG123"},
+                            "owner": {
+                                "__typename": "Organization",
+                                "login": "test-org",
+                                "id": "ORG123",
+                            },
                         },
                     ],
                     "pageInfo": {"hasNextPage": False},
@@ -198,7 +209,11 @@ class TestProjectGet:
                     "title": "Test Project",
                     "closed": False,
                     "public": True,
-                    "owner": {"__typename": "Organization", "login": "test-org", "id": "ORG123"},
+                    "owner": {
+                        "__typename": "Organization",
+                        "login": "test-org",
+                        "id": "ORG123",
+                    },
                 }
             }
         }
@@ -219,7 +234,11 @@ class TestProjectGet:
                 "title": "Test Project",
                 "closed": False,
                 "public": True,
-                "owner": {"__typename": "Organization", "login": "test-org", "id": "ORG123"},
+                "owner": {
+                    "__typename": "Organization",
+                    "login": "test-org",
+                    "id": "ORG123",
+                },
             }
         }
 
@@ -232,7 +251,9 @@ class TestProjectGet:
     @pytest.mark.asyncio
     async def test_project_get_not_found(self, adapter):
         """Test getting project that doesn't exist."""
-        adapter.gh_client.execute_graphql.return_value = {"organization": {"projectV2": None}}
+        adapter.gh_client.execute_graphql.return_value = {
+            "organization": {"projectV2": None}
+        }
 
         project = await adapter.project_get("999", owner="test-org")
 
@@ -274,7 +295,11 @@ class TestProjectCreate:
                         "createdAt": "2025-01-10T00:00:00Z",
                         "closed": False,
                         "public": True,
-                        "owner": {"__typename": "Organization", "login": "test-org", "id": "ORG123"},
+                        "owner": {
+                            "__typename": "Organization",
+                            "login": "test-org",
+                            "id": "ORG123",
+                        },
                     }
                 }
             },
@@ -302,7 +327,11 @@ class TestProjectCreate:
                         "title": "New Project",
                         "closed": False,
                         "public": True,
-                        "owner": {"__typename": "Organization", "login": "test-org", "id": "ORG123"},
+                        "owner": {
+                            "__typename": "Organization",
+                            "login": "test-org",
+                            "id": "ORG123",
+                        },
                     }
                 }
             },
@@ -316,7 +345,11 @@ class TestProjectCreate:
                         "shortDescription": "Test description",
                         "closed": False,
                         "public": True,
-                        "owner": {"__typename": "Organization", "login": "test-org", "id": "ORG123"},
+                        "owner": {
+                            "__typename": "Organization",
+                            "login": "test-org",
+                            "id": "ORG123",
+                        },
                     }
                 }
             },
@@ -360,12 +393,18 @@ class TestProjectUpdate:
                     "title": "Updated Title",
                     "closed": False,
                     "public": True,
-                    "owner": {"__typename": "Organization", "login": "test-org", "id": "ORG123"},
+                    "owner": {
+                        "__typename": "Organization",
+                        "login": "test-org",
+                        "id": "ORG123",
+                    },
                 }
             }
         }
 
-        project = await adapter.project_update(project_id="PVT_TEST", title="Updated Title")
+        project = await adapter.project_update(
+            project_id="PVT_TEST", title="Updated Title"
+        )
 
         assert project is not None
         assert project.name == "Updated Title"
@@ -387,12 +426,18 @@ class TestProjectUpdate:
                     "closed": True,
                     "closedAt": recent_close,
                     "public": True,
-                    "owner": {"__typename": "Organization", "login": "test-org", "id": "ORG123"},
+                    "owner": {
+                        "__typename": "Organization",
+                        "login": "test-org",
+                        "id": "ORG123",
+                    },
                 }
             }
         }
 
-        project = await adapter.project_update(project_id="PVT_TEST", state=ProjectState.COMPLETED)
+        project = await adapter.project_update(
+            project_id="PVT_TEST", state=ProjectState.COMPLETED
+        )
 
         assert project is not None
         assert project.state == ProjectState.COMPLETED
@@ -413,12 +458,18 @@ class TestProjectUpdate:
                     "shortDescription": "New description",
                     "closed": False,
                     "public": True,
-                    "owner": {"__typename": "Organization", "login": "test-org", "id": "ORG123"},
+                    "owner": {
+                        "__typename": "Organization",
+                        "login": "test-org",
+                        "id": "ORG123",
+                    },
                 }
             }
         }
 
-        project = await adapter.project_update(project_id="PVT_TEST", description="New description")
+        project = await adapter.project_update(
+            project_id="PVT_TEST", description="New description"
+        )
 
         assert project is not None
         # Verify only shortDescription was in variables
@@ -436,9 +487,13 @@ class TestProjectUpdate:
     @pytest.mark.asyncio
     async def test_project_update_not_found(self, adapter):
         """Test project update when project doesn't exist."""
-        adapter.gh_client.execute_graphql.return_value = {"updateProjectV2": {"projectV2": None}}
+        adapter.gh_client.execute_graphql.return_value = {
+            "updateProjectV2": {"projectV2": None}
+        }
 
-        project = await adapter.project_update(project_id="PVT_NONEXISTENT", title="New Title")
+        project = await adapter.project_update(
+            project_id="PVT_NONEXISTENT", title="New Title"
+        )
 
         assert project is None
 
@@ -457,7 +512,11 @@ class TestProjectDelete:
                     "title": "Test Project",
                     "closed": True,
                     "public": False,
-                    "owner": {"__typename": "Organization", "login": "test-org", "id": "ORG123"},
+                    "owner": {
+                        "__typename": "Organization",
+                        "login": "test-org",
+                        "id": "ORG123",
+                    },
                 }
             }
         }
@@ -489,7 +548,9 @@ class TestProjectDelete:
     @pytest.mark.asyncio
     async def test_project_delete_not_found(self, adapter):
         """Test deleting project that doesn't exist."""
-        adapter.gh_client.execute_graphql.return_value = {"updateProjectV2": {"projectV2": None}}
+        adapter.gh_client.execute_graphql.return_value = {
+            "updateProjectV2": {"projectV2": None}
+        }
 
         result = await adapter.project_delete("PVT_NONEXISTENT")
 
@@ -511,7 +572,9 @@ class TestProjectListEdgeCases:
     async def test_project_list_custom_owner(self, adapter):
         """Test project listing with custom owner."""
         adapter.gh_client.execute_graphql.return_value = {
-            "organization": {"projectsV2": {"nodes": [], "pageInfo": {"hasNextPage": False}}}
+            "organization": {
+                "projectsV2": {"nodes": [], "pageInfo": {"hasNextPage": False}}
+            }
         }
 
         await adapter.project_list(owner="custom-org")

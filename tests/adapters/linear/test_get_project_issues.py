@@ -71,9 +71,7 @@ class TestGetProjectIssues:
         with patch.object(
             adapter.client, "execute_query", new_callable=AsyncMock
         ) as mock_query:
-            mock_query.return_value = {
-                "issues": {"nodes": mock_issues_data}
-            }
+            mock_query.return_value = {"issues": {"nodes": mock_issues_data}}
 
             # Call method with short ID
             issues = await adapter._get_project_issues(short_id)
@@ -100,9 +98,7 @@ class TestGetProjectIssues:
         with patch.object(
             adapter.client, "execute_query", new_callable=AsyncMock
         ) as mock_query:
-            mock_query.return_value = {
-                "issues": {"nodes": mock_issues_data}
-            }
+            mock_query.return_value = {"issues": {"nodes": mock_issues_data}}
 
             issues = await adapter._get_project_issues(slug_id)
 
@@ -122,9 +118,7 @@ class TestGetProjectIssues:
         with patch.object(
             adapter.client, "execute_query", new_callable=AsyncMock
         ) as mock_query:
-            mock_query.return_value = {
-                "issues": {"nodes": mock_issues_data}
-            }
+            mock_query.return_value = {"issues": {"nodes": mock_issues_data}}
 
             issues = await adapter._get_project_issues(full_uuid)
 
@@ -144,9 +138,7 @@ class TestGetProjectIssues:
         with patch.object(
             adapter.client, "execute_query", new_callable=AsyncMock
         ) as mock_query:
-            mock_query.return_value = {
-                "issues": {"nodes": []}
-            }
+            mock_query.return_value = {"issues": {"nodes": []}}
 
             issues = await adapter._get_project_issues(project_id)
 
@@ -181,9 +173,7 @@ class TestGetProjectIssues:
         with patch.object(
             adapter.client, "execute_query", new_callable=AsyncMock
         ) as mock_query:
-            mock_query.return_value = {
-                "issues": {"nodes": mock_issues_data}
-            }
+            mock_query.return_value = {"issues": {"nodes": mock_issues_data}}
 
             await adapter._get_project_issues(project_id, limit=custom_limit)
 
@@ -191,7 +181,6 @@ class TestGetProjectIssues:
             call_args = mock_query.call_args
             variables = call_args[0][1]
             assert variables["first"] == custom_limit
-
 
     @pytest.mark.asyncio
     async def test_get_project_issues_max_limit_capped(
@@ -204,9 +193,7 @@ class TestGetProjectIssues:
         with patch.object(
             adapter.client, "execute_query", new_callable=AsyncMock
         ) as mock_query:
-            mock_query.return_value = {
-                "issues": {"nodes": mock_issues_data}
-            }
+            mock_query.return_value = {"issues": {"nodes": mock_issues_data}}
 
             await adapter._get_project_issues(project_id, limit=excessive_limit)
 
@@ -233,9 +220,7 @@ class TestGetProjectIssuesIntegration:
         return LinearAdapter(config)
 
     @pytest.mark.asyncio
-    async def test_epic_issues_integration_flow(
-        self, adapter: LinearAdapter
-    ) -> None:
+    async def test_epic_issues_integration_flow(self, adapter: LinearAdapter) -> None:
         """Test the complete flow: epic_issues tool -> read() -> _get_project_issues().
 
         This simulates the actual user flow that was failing:
@@ -283,9 +268,7 @@ class TestGetProjectIssuesIntegration:
                 with patch.object(
                     adapter.client, "execute_query", new_callable=AsyncMock
                 ) as mock_query:
-                    mock_query.return_value = {
-                        "issues": {"nodes": mock_issues}
-                    }
+                    mock_query.return_value = {"issues": {"nodes": mock_issues}}
 
                     # Simulate read() call (which epic_issues uses)
                     epic = await adapter.read(short_id)

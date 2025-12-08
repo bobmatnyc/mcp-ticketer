@@ -146,7 +146,9 @@ if __name__ == "__main__":
     print("   export LINEAR_API_KEY=lin_api_...")
     print("   export LINEAR_TEAM_KEY=ENG")
     print("   export LINEAR_RUN_INTEGRATION_TESTS=1")
-    print("2. Run: uv run pytest tests/adapters/linear/test_attachments_integration.py -v -s")
+    print(
+        "2. Run: uv run pytest tests/adapters/linear/test_attachments_integration.py -v -s"
+    )
     print("\nOptional:")
     print("   export LINEAR_TEST_ISSUE_ID=ENG-123  # Use specific issue")
     print("   export LINEAR_TEST_PROJECT_ID=...    # Use specific project")
