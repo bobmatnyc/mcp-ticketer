@@ -75,7 +75,9 @@ async def test_removed_tools_count():
     )
 
     # Verify re-enabled tools ARE present
-    missing_re_enabled_tools = [tool for tool in re_enabled_tools if tool not in tool_names]
+    missing_re_enabled_tools = [
+        tool for tool in re_enabled_tools if tool not in tool_names
+    ]
 
     assert len(missing_re_enabled_tools) == 0, (
         f"Found {len(missing_re_enabled_tools)} re-enabled tools missing: "

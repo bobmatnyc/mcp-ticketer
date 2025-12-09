@@ -44,7 +44,7 @@ class TestTicketAttachMCPTool:
     def mock_adapter_native_only(self) -> Mock:
         """Create a mock adapter with adapter-native add_attachment support."""
         # Use spec to ensure only add_attachment is available (not Linear methods)
-        adapter = Mock(spec=['read', 'add_attachment', 'add_comment'])
+        adapter = Mock(spec=["read", "add_attachment", "add_comment"])
         adapter.add_attachment = AsyncMock()
         adapter.read = AsyncMock()
         return adapter
@@ -53,7 +53,7 @@ class TestTicketAttachMCPTool:
     def mock_adapter_comment_only(self) -> Mock:
         """Create a mock adapter with only comment support (no attachment methods)."""
         # Use spec to limit available attributes
-        adapter = Mock(spec=['read', 'add_comment', 'get_comments'])
+        adapter = Mock(spec=["read", "add_comment", "get_comments"])
         adapter.read = AsyncMock()
         adapter.add_comment = AsyncMock()
         return adapter
