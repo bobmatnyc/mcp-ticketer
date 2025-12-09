@@ -688,15 +688,12 @@ class TestSynonymUniqueness:
         done_synonyms = [
             s.lower() for s in SemanticStateMatcher.STATE_SYNONYMS[TicketState.DONE]
         ]
-        assert (
-            "closed" not in done_synonyms
-        ), "'closed' should NOT be in DONE synonyms"
+        assert "closed" not in done_synonyms, "'closed' should NOT be in DONE synonyms"
 
     def test_closed_synonyms_include_closed(self) -> None:
         """Test that CLOSED synonyms DO include 'closed'."""
         closed_synonyms = [
-            s.lower()
-            for s in SemanticStateMatcher.STATE_SYNONYMS[TicketState.CLOSED]
+            s.lower() for s in SemanticStateMatcher.STATE_SYNONYMS[TicketState.CLOSED]
         ]
         assert "closed" in closed_synonyms, "'closed' should be in CLOSED synonyms"
 
