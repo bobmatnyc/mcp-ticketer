@@ -442,7 +442,8 @@ def main() -> None:
             manager.track_build(args.notes)
 
         elif args.command == "get-version":
-            pass
+            version = manager.get_current_version()
+            print(version)
 
     except (RuntimeError, ValueError, FileNotFoundError):
         sys.exit(1)
