@@ -43,7 +43,8 @@ def run_server() -> None:
             os.chdir(project_path)
             sys.stderr.write(f"[MCP Server] Working directory: {project_path}\n")
         except OSError as e:
-            sys.stderr.write(f"Warning: Could not change to project directory: {e}\n")
+            sys.stderr.write(f"Error: Could not change to project directory: {e}\n")
+            sys.exit(1)
 
     # Run the async main function
     try:
