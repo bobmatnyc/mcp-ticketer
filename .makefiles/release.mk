@@ -213,3 +213,58 @@ homebrew-tap-auto: ## Auto-update Homebrew tap with current version
 	@echo "Auto-updating Homebrew tap with current version..."
 	@CURRENT_VERSION=$$($(PYTHON) scripts/manage_version.py get-version) && \
 		bash scripts/update_homebrew_tap.sh $$CURRENT_VERSION
+
+.PHONY: homebrew-tap-push
+homebrew-tap-push: ## Update Homebrew tap and push automatically
+	@echo "Auto-updating Homebrew tap with auto-push..."
+	@CURRENT_VERSION=$$($(PYTHON) scripts/manage_version.py get-version) && \
+		bash scripts/update_homebrew_tap.sh $$CURRENT_VERSION --push
+
+##@ GitHub Release Management
+
+.PHONY: github-release
+github-release: ## Create GitHub release for current version
+	@echo "Creating GitHub release..."
+	@bash scripts/create_github_release.sh
+
+.PHONY: github-release-version
+github-release-version: ## Create GitHub release for specific version (requires VERSION)
+	@if [ -z "$(VERSION)" ]; then \
+		echo "Error: VERSION not specified"; \
+		echo "Usage: make github-release-version VERSION=2.2.11"; \
+		exit 1; \
+	fi
+	@echo "Creating GitHub release for version $(VERSION)..."
+	@bash scripts/create_github_release.sh v$(VERSION)
+
+##@ Full Release Automation
+
+.PHONY: release-full-patch
+release-full-patch: ## Complete patch release (PyPI + GitHub + Homebrew)
+	@echo "🚀 Starting full patch release workflow..."
+	@bash scripts/release_full.sh patch
+
+.PHONY: release-full-minor
+release-full-minor: ## Complete minor release (PyPI + GitHub + Homebrew)
+	@echo "🚀 Starting full minor release workflow..."
+	@bash scripts/release_full.sh minor
+
+.PHONY: release-full-major
+release-full-major: ## Complete major release (PyPI + GitHub + Homebrew)
+	@echo "🚀 Starting full major release workflow..."
+	@bash scripts/release_full.sh major
+
+.PHONY: release-pypi
+release-pypi: ## Publish to PyPI (alias for publish-prod)
+	@$(MAKE) publish-prod
+
+##@ Release Verification
+
+.PHONY: verify-release
+verify-release: ## Verify package is installable from PyPI
+	@echo "Verifying package installation from PyPI..."
+	@CURRENT_VERSION=$$($(PYTHON) scripts/manage_version.py get-version) && \
+		echo "Current version: $$CURRENT_VERSION" && \
+		echo "Checking if version exists on PyPI..." && \
+		$(PYTHON) -m pip index versions mcp-ticketer | grep "$$CURRENT_VERSION" && \
+		echo "✅ Version $$CURRENT_VERSION found on PyPI"

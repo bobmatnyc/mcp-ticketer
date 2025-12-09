@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 # Update Homebrew tap formula for mcp-ticketer
-# Usage: ./scripts/update_homebrew_tap.sh <version>
+# Usage: ./scripts/update_homebrew_tap.sh <version> [--push]
+#
+# Arguments:
+#   version  - Version number (e.g., 2.2.11)
+#   --push   - Automatically push changes to GitHub (optional)
+#
+# Examples:
+#   ./scripts/update_homebrew_tap.sh 2.2.11           # Create commit but don't push
+#   ./scripts/update_homebrew_tap.sh 2.2.11 --push    # Create commit and push
 
 set -euo pipefail
 
@@ -28,16 +36,74 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Parse arguments
+AUTO_PUSH=false
+VERSION=""
+
+# Handle --help flag
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    echo "Usage: $0 <version> [--push]"
+    echo ""
+    echo "Update Homebrew tap formula for mcp-ticketer"
+    echo ""
+    echo "Arguments:"
+    echo "  version       Version number in X.Y.Z format (e.g., 2.2.11) (required)"
+    echo ""
+    echo "Options:"
+    echo "  --push        Automatically push changes to GitHub (optional)"
+    echo "  -h, --help    Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0 2.2.11           # Create commit but don't push"
+    echo "  $0 2.2.11 --push    # Create commit and push"
+    echo ""
+    echo "What this script does:"
+    echo "  1. Wait for PyPI to publish the specified version"
+    echo "  2. Fetch SHA256 checksum from PyPI"
+    echo "  3. Clone or update Homebrew tap repository"
+    echo "  4. Update formula with new version and checksum"
+    echo "  5. Run formula syntax check"
+    echo "  6. Commit changes to tap repository"
+    echo "  7. Optionally push to GitHub (with --push flag)"
+    echo ""
+    echo "Prerequisites:"
+    echo "  - Package must be published on PyPI"
+    echo "  - Git access to tap repository (${TAP_REPO})"
+    echo "  - Homebrew installed (for formula audit)"
+    exit 0
+fi
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --push)
+            AUTO_PUSH=true
+            shift
+            ;;
+        *)
+            if [ -z "$VERSION" ]; then
+                VERSION="$1"
+            else
+                log_error "Unexpected argument: $1"
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
 # Check if version is provided
-if [ $# -eq 0 ]; then
+if [ -z "$VERSION" ]; then
     log_error "Version number required"
-    echo "Usage: $0 <version>"
-    echo "Example: $0 1.2.10"
+    echo "Usage: $0 <version> [--push]"
+    echo "Example: $0 2.2.11"
+    echo "Example: $0 2.2.11 --push"
     exit 1
 fi
 
-VERSION="$1"
 log_info "Updating Homebrew tap for version ${VERSION}"
+if [ "$AUTO_PUSH" = true ]; then
+    log_info "Auto-push enabled - changes will be pushed automatically"
+fi
 
 # Validate version format (X.Y.Z)
 if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -130,7 +196,7 @@ if ! brew audit --new "$FORMULA_PATH" 2>&1; then
     log_warn "Formula audit warnings detected (non-fatal)"
 fi
 
-# Commit and push
+# Commit changes
 log_info "Committing changes..."
 git add "$FORMULA_PATH"
 git commit -m "feat: update ${FORMULA_NAME} to v${VERSION}
@@ -139,14 +205,43 @@ git commit -m "feat: update ${FORMULA_NAME} to v${VERSION}
 - Updated SHA256 checksum
 - Source: PyPI release"
 
+# Push if --push flag was provided
+if [ "$AUTO_PUSH" = true ]; then
+    log_info "Pushing changes to GitHub..."
+    if git push origin main; then
+        log_info "✅ Changes pushed successfully!"
+
+        # Verify push succeeded
+        REMOTE_COMMIT=$(git ls-remote origin main | cut -f1)
+        LOCAL_COMMIT=$(git rev-parse HEAD)
+
+        if [ "$REMOTE_COMMIT" = "$LOCAL_COMMIT" ]; then
+            log_info "✅ Remote and local commits match"
+        else
+            log_warn "Remote commit doesn't match local - push may have failed"
+            log_info "Remote: ${REMOTE_COMMIT}"
+            log_info "Local:  ${LOCAL_COMMIT}"
+        fi
+    else
+        log_error "Failed to push changes to GitHub"
+        echo "You can manually push with:"
+        echo "  cd ${TAP_DIR}"
+        echo "  git push origin main"
+        exit 1
+    fi
+else
+    log_info "Changes committed locally (not pushed)"
+    echo ""
+    echo "Next steps:"
+    echo "1. Review the changes above"
+    echo "2. Push to GitHub:"
+    echo "   cd ${TAP_DIR}"
+    echo "   git push origin main"
+    echo ""
+fi
+
 log_info "Formula updated successfully!"
 echo ""
-echo "Next steps:"
-echo "1. Review the changes above"
-echo "2. Push to GitHub:"
-echo "   cd ${TAP_DIR}"
-echo "   git push origin main"
-echo ""
-echo "3. Test installation:"
-echo "   brew upgrade ${FORMULA_NAME}"
-echo "   ${FORMULA_NAME} --version"
+echo "Test installation:"
+echo "  brew upgrade ${FORMULA_NAME}"
+echo "  ${FORMULA_NAME} --version  # Should show ${VERSION}"

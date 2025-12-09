@@ -12,6 +12,8 @@ Usage:
     python scripts/manage_version.py get-version
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import re
