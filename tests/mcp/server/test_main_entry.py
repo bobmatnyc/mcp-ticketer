@@ -21,8 +21,6 @@ def mock_asyncio_run():
         yield mock
 
 
-
-
 class TestMainEntryPoint:
     """Test suite for __main__.py entry point behavior."""
 
@@ -69,7 +67,9 @@ class TestMainEntryPoint:
 
                     # Verify error message includes os.chdir context
                     captured = capsys.readouterr()
-                    assert "Error: Could not change to project directory" in captured.err
+                    assert (
+                        "Error: Could not change to project directory" in captured.err
+                    )
                     assert "Permission denied" in captured.err
 
                     # Verify server was NOT started
