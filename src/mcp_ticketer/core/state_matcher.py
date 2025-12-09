@@ -199,7 +199,6 @@ class SemanticStateMatcher:
             "complete",
             "finished",
             "resolved",
-            "closed",
             "done done",
             "done-done",
             "delivered",
@@ -271,17 +270,51 @@ class SemanticStateMatcher:
         """Initialize the semantic state matcher.
 
         Creates reverse lookup dictionary for O(1) synonym matching.
+        Detects and logs duplicate synonyms across states.
         """
+        import logging
+
+        logger = logging.getLogger(__name__)
+
         # Build reverse lookup: synonym -> (state, is_exact)
         self._synonym_to_state: dict[str, tuple[TicketState, bool]] = {}
 
+        # Track duplicates for validation
+        duplicate_check: dict[str, list[TicketState]] = {}
+
         for state in TicketState:
             # Add exact state value
-            self._synonym_to_state[state.value.lower()] = (state, True)
+            normalized_value = state.value.lower()
+            self._synonym_to_state[normalized_value] = (state, True)
+
+            if normalized_value not in duplicate_check:
+                duplicate_check[normalized_value] = []
+            duplicate_check[normalized_value].append(state)
 
             # Add all synonyms
             for synonym in self.STATE_SYNONYMS.get(state, []):
-                self._synonym_to_state[synonym.lower()] = (state, False)
+                normalized_synonym = synonym.lower()
+
+                # Check for duplicates
+                if normalized_synonym in duplicate_check:
+                    duplicate_check[normalized_synonym].append(state)
+                else:
+                    duplicate_check[normalized_synonym] = [state]
+
+                self._synonym_to_state[normalized_synonym] = (state, False)
+
+        # Log warnings for any duplicates found (excluding expected state value duplicates)
+        for synonym, states in duplicate_check.items():
+            if len(states) > 1:
+                # Filter out duplicate state values (they're expected - exact match + synonym)
+                unique_states = list(set(states))
+                if len(unique_states) > 1:
+                    logger.warning(
+                        "Duplicate synonym '%s' found in multiple states: %s. "
+                        "This may cause non-deterministic behavior.",
+                        synonym,
+                        ", ".join(s.value for s in unique_states),
+                    )
 
     def match_state(
         self,

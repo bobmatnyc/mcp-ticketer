@@ -656,3 +656,66 @@ def test_comprehensive_synonym_coverage(input_str, expected_state) -> None:
     # Should match the expected state with good confidence
     assert result.state == expected_state
     assert result.confidence >= 0.90
+
+
+class TestSynonymUniqueness:
+    """Test that synonyms are unique across states (no duplicates)."""
+
+    def test_no_duplicate_synonyms_across_states(self) -> None:
+        """Test that no synonym appears in multiple state definitions."""
+        seen_synonyms: dict[str, TicketState] = {}
+        duplicates: list[tuple[str, TicketState, TicketState]] = []
+
+        for state, synonyms in SemanticStateMatcher.STATE_SYNONYMS.items():
+            for synonym in synonyms:
+                normalized = synonym.lower()
+                if normalized in seen_synonyms:
+                    duplicates.append((synonym, seen_synonyms[normalized], state))
+                else:
+                    seen_synonyms[normalized] = state
+
+        # Assert no duplicates found
+        if duplicates:
+            error_msg = "Duplicate synonyms found across states:\n"
+            for synonym, state1, state2 in duplicates:
+                error_msg += (
+                    f"  - '{synonym}' in both {state1.value} and {state2.value}\n"
+                )
+            pytest.fail(error_msg)
+
+    def test_done_synonyms_exclude_closed(self) -> None:
+        """Test that DONE synonyms do NOT include 'closed'."""
+        done_synonyms = [
+            s.lower() for s in SemanticStateMatcher.STATE_SYNONYMS[TicketState.DONE]
+        ]
+        assert (
+            "closed" not in done_synonyms
+        ), "'closed' should NOT be in DONE synonyms"
+
+    def test_closed_synonyms_include_closed(self) -> None:
+        """Test that CLOSED synonyms DO include 'closed'."""
+        closed_synonyms = [
+            s.lower()
+            for s in SemanticStateMatcher.STATE_SYNONYMS[TicketState.CLOSED]
+        ]
+        assert "closed" in closed_synonyms, "'closed' should be in CLOSED synonyms"
+
+    def test_done_and_closed_are_distinct(self) -> None:
+        """Test that DONE and CLOSED have completely distinct synonym sets."""
+        matcher = SemanticStateMatcher()
+
+        # Test DONE synonyms map to DONE
+        done_synonyms = ["completed", "finished", "done", "resolved"]
+        for synonym in done_synonyms:
+            result = matcher.match_state(synonym)
+            assert (
+                result.state == TicketState.DONE
+            ), f"'{synonym}' should map to DONE, got {result.state.value}"
+
+        # Test CLOSED synonyms map to CLOSED
+        closed_synonyms = ["closed", "cancelled", "canceled", "archived"]
+        for synonym in closed_synonyms:
+            result = matcher.match_state(synonym)
+            assert (
+                result.state == TicketState.CLOSED
+            ), f"'{synonym}' should map to CLOSED, got {result.state.value}"
