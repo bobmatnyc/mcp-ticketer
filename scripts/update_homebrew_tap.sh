@@ -112,6 +112,13 @@ if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     exit 1
 fi
 
+# Check if jq is available
+if ! command -v jq &> /dev/null; then
+    log_error "jq is required but not installed"
+    echo "Install jq with: brew install jq"
+    exit 1
+fi
+
 # Wait for PyPI to have the new version available
 log_info "Waiting for PyPI to publish version ${VERSION}..."
 MAX_RETRIES=10
@@ -119,37 +126,34 @@ RETRY_COUNT=0
 SLEEP_DURATION=5
 
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    if curl -s "https://pypi.org/pypi/${PACKAGE_NAME}/json" | grep -q "\"version\": \"${VERSION}\""; then
+    # Check version-specific endpoint (returns 404 if version doesn't exist)
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://pypi.org/pypi/${PACKAGE_NAME}/${VERSION}/json")
+
+    if [ "$HTTP_CODE" = "200" ]; then
         log_info "Version ${VERSION} found on PyPI"
         break
     fi
 
     RETRY_COUNT=$((RETRY_COUNT + 1))
     if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-        log_warn "Version not yet available on PyPI (attempt ${RETRY_COUNT}/${MAX_RETRIES}). Retrying in ${SLEEP_DURATION}s..."
+        log_warn "Version not yet available on PyPI (HTTP ${HTTP_CODE}, attempt ${RETRY_COUNT}/${MAX_RETRIES}). Retrying in ${SLEEP_DURATION}s..."
         sleep $SLEEP_DURATION
     else
-        log_error "Version ${VERSION} not found on PyPI after ${MAX_RETRIES} attempts"
+        log_error "Version ${VERSION} not found on PyPI after ${MAX_RETRIES} attempts (HTTP ${HTTP_CODE})"
         exit 1
     fi
 done
 
 # Fetch SHA256 from PyPI
 log_info "Fetching SHA256 checksum from PyPI..."
-PYPI_JSON=$(curl -s "https://pypi.org/pypi/${PACKAGE_NAME}/${VERSION}/json")
 
-# Extract SHA256 for the tar.gz file
-SHA256=$(echo "$PYPI_JSON" | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-for url_info in data['urls']:
-    if url_info['packagetype'] == 'sdist' and url_info['filename'].endswith('.tar.gz'):
-        print(url_info['digests']['sha256'])
-        break
-")
+# Extract SHA256 for the tar.gz file using jq
+SHA256=$(curl -s "https://pypi.org/pypi/${PACKAGE_NAME}/${VERSION}/json" | \
+    jq -r '.urls[] | select(.filename | endswith(".tar.gz")) | .digests.sha256')
 
-if [ -z "$SHA256" ]; then
+if [ -z "$SHA256" ] || [ "$SHA256" = "null" ]; then
     log_error "Failed to fetch SHA256 checksum from PyPI"
+    echo "Tried to get SHA256 for ${PACKAGE_NAME}-${VERSION}.tar.gz"
     exit 1
 fi
 
