@@ -18,13 +18,13 @@ Modules:
     project_update_tools: Project status update management (1M-238)
     project_status_tools: Project status analysis and work planning (1M-316)
     milestone_tools: Milestone management and progress tracking (1M-607)
+    attachment_tools: File attachment management (ticket_attach, ticket_attachments)
 
 Note:
     instruction_tools: Removed from MCP server (CLI-only as of Phase 2 Sprint 2.3)
     pr_tools: Removed from MCP server (CLI-only as of Phase 2 Sprint 1.3)
-    attachment_tools: Removed from MCP server (CLI-only as of Phase 2 Sprint 1.3)
     These tools are available via CLI commands but not exposed through MCP interface.
-    Use filesystem MCP for file operations and GitHub MCP for PR management.
+    Use GitHub MCP for PR management.
 
 """
 
@@ -32,7 +32,7 @@ Note:
 # Order matters - import core functionality first
 from . import (
     analysis_tools,  # noqa: F401
-    # attachment_tools removed - CLI-only (Phase 2 Sprint 1.3 - use filesystem MCP)
+    attachment_tools,  # noqa: F401
     bulk_tools,  # noqa: F401
     comment_tools,  # noqa: F401
     config_tools,  # noqa: F401
@@ -51,7 +51,7 @@ from . import (
 
 __all__ = [
     "analysis_tools",
-    # "attachment_tools" removed - CLI-only (Phase 2 Sprint 1.3)
+    "attachment_tools",
     "bulk_tools",
     "comment_tools",
     "config_tools",

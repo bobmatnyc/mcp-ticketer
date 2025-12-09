@@ -1,6 +1,7 @@
 """Test that removed tools are not available in MCP server.
 
-Phase 2 Sprint 1.3: Verify attachment and PR tools removed from MCP.
+Phase 2 Sprint 1.3: Verify PR tools removed from MCP.
+Note: Attachment tools have been RE-ENABLED as of recent updates.
 
 Related ticket: 1M-484
 """
@@ -9,21 +10,21 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_attachment_tools_not_in_mcp():
-    """Verify attachment tools removed from MCP server (Phase 2 Sprint 1.3)."""
+async def test_attachment_tools_in_mcp():
+    """Verify attachment tools are present in MCP server (re-enabled)."""
     from mcp_ticketer.mcp.server import server_sdk
 
     # Get all registered MCP tools
     tools = await server_sdk.mcp.list_tools()
     tool_names = [tool.name for tool in tools]
 
-    # Verify attachment tools are NOT present
+    # Verify attachment tools ARE present (re-enabled)
     assert (
-        "ticket_attach" not in tool_names
-    ), "ticket_attach should be removed from MCP (CLI-only as of v1.5.0)"
+        "ticket_attach" in tool_names
+    ), "ticket_attach should be present in MCP (re-enabled)"
     assert (
-        "ticket_attachments" not in tool_names
-    ), "ticket_attachments should be removed from MCP (CLI-only as of v1.5.0)"
+        "ticket_attachments" in tool_names
+    ), "ticket_attachments should be present in MCP (re-enabled)"
 
 
 @pytest.mark.asyncio
@@ -46,27 +47,39 @@ async def test_pr_tools_not_in_mcp():
 
 @pytest.mark.asyncio
 async def test_removed_tools_count():
-    """Verify total count of removed tools (4 tools)."""
+    """Verify only PR tools are removed (2 tools), attachments re-enabled."""
     from mcp_ticketer.mcp.server import server_sdk
 
     # Get all registered MCP tools
     tools = await server_sdk.mcp.list_tools()
     tool_names = [tool.name for tool in tools]
 
-    # List of removed tools
+    # List of removed tools (PR tools only)
     removed_tools = [
-        "ticket_attach",
-        "ticket_attachments",
         "ticket_create_pr",
         "ticket_link_pr",
     ]
 
-    # Verify none are present
+    # List of re-enabled tools (attachment tools)
+    re_enabled_tools = [
+        "ticket_attach",
+        "ticket_attachments",
+    ]
+
+    # Verify removed tools are NOT present
     present_removed_tools = [tool for tool in removed_tools if tool in tool_names]
 
     assert len(present_removed_tools) == 0, (
         f"Found {len(present_removed_tools)} removed tools still present: "
         f"{present_removed_tools}"
+    )
+
+    # Verify re-enabled tools ARE present
+    missing_re_enabled_tools = [tool for tool in re_enabled_tools if tool not in tool_names]
+
+    assert len(missing_re_enabled_tools) == 0, (
+        f"Found {len(missing_re_enabled_tools)} re-enabled tools missing: "
+        f"{missing_re_enabled_tools}"
     )
 
 
@@ -101,47 +114,44 @@ def test_cli_tools_still_importable():
 
 
 def test_migration_guide_exists():
-    """Verify migration documentation exists."""
+    """Verify PR removal migration documentation exists in archive."""
     from pathlib import Path
 
+    # Migration guide moved to archive since attachment tools were re-enabled
     migration_guide = (
         Path(__file__).parent.parent.parent
         / "docs"
+        / "_archive"
         / "migrations"
         / "ATTACHMENT_PR_REMOVAL.md"
     )
 
     assert (
         migration_guide.exists()
-    ), "Migration guide should exist at docs/migrations/ATTACHMENT_PR_REMOVAL.md"
+    ), "Migration guide should exist at docs/_archive/migrations/ATTACHMENT_PR_REMOVAL.md"
 
-    # Verify guide has content
+    # Verify guide has content about PR removal
     content = migration_guide.read_text()
     content_lower = content.lower()
-    assert "ticket_attach" in content
     assert "ticket_create_pr" in content
-    assert "filesystem" in content_lower and "mcp" in content_lower
     assert "github" in content_lower and "mcp" in content_lower
 
 
 def test_token_savings_documentation():
-    """Verify token savings are documented."""
+    """Verify PR tools token savings are documented in archive."""
     from pathlib import Path
 
+    # Migration guide moved to archive since attachment tools were re-enabled
     migration_guide = (
         Path(__file__).parent.parent.parent
         / "docs"
+        / "_archive"
         / "migrations"
         / "ATTACHMENT_PR_REMOVAL.md"
     )
 
     content = migration_guide.read_text()
 
-    # Verify token costs are mentioned
-    assert "731 tokens" in content  # ticket_attach
-    assert "664 tokens" in content  # ticket_attachments
+    # Verify PR tool token costs are mentioned
     assert "828 tokens" in content  # ticket_create_pr
     assert "717 tokens" in content  # ticket_link_pr
-
-    # Verify total savings mentioned
-    assert "2,644 tokens" in content or "2644 tokens" in content

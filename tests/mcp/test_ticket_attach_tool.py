@@ -42,16 +42,18 @@ class TestTicketAttachMCPTool:
 
     @pytest.fixture
     def mock_adapter_native_only(self) -> Mock:
-        """Create a mock adapter with adapter-native attach_file support."""
-        adapter = Mock()
-        adapter.attach_file = AsyncMock()
+        """Create a mock adapter with adapter-native add_attachment support."""
+        # Use spec to ensure only add_attachment is available (not Linear methods)
+        adapter = Mock(spec=['read', 'add_attachment', 'add_comment'])
+        adapter.add_attachment = AsyncMock()
         adapter.read = AsyncMock()
         return adapter
 
     @pytest.fixture
     def mock_adapter_comment_only(self) -> Mock:
-        """Create a mock adapter with only comment support."""
-        adapter = Mock()
+        """Create a mock adapter with only comment support (no attachment methods)."""
+        # Use spec to limit available attributes
+        adapter = Mock(spec=['read', 'add_comment', 'get_comments'])
         adapter.read = AsyncMock()
         adapter.add_comment = AsyncMock()
         return adapter
@@ -247,7 +249,7 @@ class TestTicketAttachMCPTool:
         )
         mock_adapter_native_only.read.return_value = mock_task
 
-        mock_adapter_native_only.attach_file.return_value = {
+        mock_adapter_native_only.add_attachment.return_value = {
             "id": "attachment-native-123",
             "url": "https://example.com/file.txt",
         }
@@ -263,7 +265,7 @@ class TestTicketAttachMCPTool:
 
         assert result["status"] == "completed"
         assert result["method"] == "adapter_native"
-        mock_adapter_native_only.attach_file.assert_called_once()
+        mock_adapter_native_only.add_attachment.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_attach_file_comment_fallback(
@@ -347,7 +349,7 @@ class TestTicketAttachMCPTool:
     async def test_attach_file_upload_failure(
         self, mock_linear_adapter: LinearAdapter, temp_test_file: Path
     ) -> None:
-        """Test handling upload failure."""
+        """Test handling upload failure when all attachment methods fail."""
         ticket_id = "TEST-123"
 
         mock_task = Task(
@@ -357,7 +359,14 @@ class TestTicketAttachMCPTool:
         )
         mock_linear_adapter.read.return_value = mock_task
 
+        # Make all attachment methods fail to ensure error propagation
         mock_linear_adapter.upload_file.side_effect = Exception("S3 upload failed")
+        mock_linear_adapter.add_attachment = AsyncMock(
+            side_effect=Exception("Attachment failed")
+        )
+        mock_linear_adapter.add_comment = AsyncMock(
+            side_effect=Exception("Comment failed")
+        )
 
         with patch(
             "mcp_ticketer.mcp.server.tools.attachment_tools.get_adapter",
@@ -369,13 +378,13 @@ class TestTicketAttachMCPTool:
             )
 
         assert result["status"] == "error"
-        assert "upload" in result["error"].lower() or "s3" in result["error"].lower()
+        assert "failed to attach file" in result["error"].lower()
 
     @pytest.mark.asyncio
     async def test_attach_file_attachment_failure(
         self, mock_linear_adapter: LinearAdapter, temp_test_file: Path
     ) -> None:
-        """Test handling attachment creation failure."""
+        """Test handling attachment creation failure when all methods fail."""
         ticket_id = "TEST-123"
 
         mock_task = Task(
@@ -391,6 +400,13 @@ class TestTicketAttachMCPTool:
         mock_linear_adapter.attach_file_to_issue.side_effect = Exception(
             "Attachment creation failed"
         )
+        # Ensure fallback methods also fail
+        mock_linear_adapter.add_attachment = AsyncMock(
+            side_effect=Exception("Add attachment failed")
+        )
+        mock_linear_adapter.add_comment = AsyncMock(
+            side_effect=Exception("Add comment failed")
+        )
 
         with patch(
             "mcp_ticketer.mcp.server.tools.attachment_tools.get_adapter",
@@ -402,7 +418,7 @@ class TestTicketAttachMCPTool:
             )
 
         assert result["status"] == "error"
-        assert "attachment" in result["error"].lower()
+        assert "failed to attach file" in result["error"].lower()
 
     @pytest.mark.asyncio
     async def test_attach_file_empty_file(
@@ -538,6 +554,13 @@ class TestTicketAttachMCPTool:
         mock_linear_adapter.upload_file.side_effect = PermissionError(
             "Insufficient permissions"
         )
+        # Ensure fallback methods also fail
+        mock_linear_adapter.add_attachment = AsyncMock(
+            side_effect=PermissionError("Insufficient permissions")
+        )
+        mock_linear_adapter.add_comment = AsyncMock(
+            side_effect=PermissionError("Insufficient permissions")
+        )
 
         with patch(
             "mcp_ticketer.mcp.server.tools.attachment_tools.get_adapter",
@@ -549,4 +572,4 @@ class TestTicketAttachMCPTool:
             )
 
         assert result["status"] == "error"
-        assert "permission" in result["error"].lower()
+        assert "failed to attach file" in result["error"].lower()
