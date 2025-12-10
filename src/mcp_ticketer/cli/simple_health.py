@@ -32,8 +32,8 @@ def simple_health_check() -> int:
     # Check for basic configuration files
     config_files = [
         ".mcp-ticketer/config.json",  # Primary project-local config (current format)
-        "mcp-ticketer.yaml",          # Legacy YAML (backward compat)
-        "mcp-ticketer.yml",           # Legacy YML (backward compat)
+        "mcp-ticketer.yaml",  # Legacy YAML (backward compat)
+        "mcp-ticketer.yml",  # Legacy YML (backward compat)
     ]
 
     config_found = False
@@ -188,8 +188,8 @@ def simple_diagnose() -> dict[str, Any]:
     console.print("\n📋 [yellow]Configuration Check[/yellow]")
     config_files = [
         ".mcp-ticketer/config.json",  # Primary config location
-        "mcp-ticketer.yaml",          # Legacy YAML
-        "mcp-ticketer.yml",           # Legacy YML
+        "mcp-ticketer.yaml",  # Legacy YAML
+        "mcp-ticketer.yml",  # Legacy YML
     ]
     config_found = any(Path(f).exists() for f in config_files)
 
