@@ -74,6 +74,7 @@ def _mask_sensitive_value(value: str, show_chars: int = 8) -> str:
 def _validate_api_credentials(
     adapter_type: str,
     credentials: dict[str, str],
+    credential_prompter: Callable[[], dict[str, str]] | None = None,
     max_retries: int = 3,
 ) -> bool:
     """Validate API credentials with real API calls.
@@ -82,6 +83,7 @@ def _validate_api_credentials(
     ----
         adapter_type: Type of adapter (linear, github, jira)
         credentials: Dictionary with adapter-specific credentials
+        credential_prompter: Optional callback to re-prompt for credentials on failure
         max_retries: Maximum retry attempts on validation failure
 
     Returns:
@@ -207,7 +209,11 @@ def _validate_api_credentials(
         # Ask user if they want to retry
         if attempt < max_retries:
             retry = Confirm.ask("Re-enter credentials and try again?", default=True)
-            if not retry:
+            if retry and credential_prompter:
+                # Re-prompt for fresh credentials
+                new_credentials = credential_prompter()
+                credentials.update(new_credentials)
+            elif not retry:
                 console.print(
                     "[yellow]Skipping validation. Configuration saved but may not work.[/yellow]"
                 )
@@ -483,10 +489,20 @@ def _configure_linear(
             final_api_key = _retry_setting("API Key", prompt_api_key, validate_api_key)
 
             # Validate API key with real API call
+            def prompt_new_api_key() -> dict[str, str]:
+                """Re-prompt for API key on validation failure."""
+                new_key = Prompt.ask("Linear API Key", password=True)
+                return {"api_key": new_key}
+
             try:
+                credentials = {"api_key": final_api_key}
                 api_key_validated = _validate_api_credentials(
-                    "linear", {"api_key": final_api_key}
+                    "linear",
+                    credentials,
+                    credential_prompter=prompt_new_api_key,
                 )
+                # Update final_api_key with potentially updated value
+                final_api_key = credentials["api_key"]
             except typer.Exit:
                 # User cancelled, propagate the exit
                 raise
@@ -806,15 +822,27 @@ def _configure_jira(
                 final_api_token = Prompt.ask("JIRA API Token", password=True)
 
             # Validate JIRA credentials with real API call
+            def prompt_new_jira_credentials() -> dict[str, str]:
+                """Re-prompt for JIRA credentials on validation failure."""
+                console.print(
+                    "[dim]Generate token at: https://id.atlassian.com/manage/api-tokens[/dim]"
+                )
+                new_token = Prompt.ask("JIRA API Token", password=True)
+                return {"api_token": new_token}
+
             try:
+                credentials = {
+                    "server": final_server,
+                    "email": final_email,
+                    "api_token": final_api_token,
+                }
                 jira_validated = _validate_api_credentials(
                     "jira",
-                    {
-                        "server": final_server,
-                        "email": final_email,
-                        "api_token": final_api_token,
-                    },
+                    credentials,
+                    credential_prompter=prompt_new_jira_credentials,
                 )
+                # Update final_api_token with potentially updated value
+                final_api_token = credentials["api_token"]
             except typer.Exit:
                 # User cancelled, propagate the exit
                 raise
@@ -1012,10 +1040,24 @@ def _configure_github(
                     )
 
             # Validate GitHub token with real API call
-            try:
-                github_validated = _validate_api_credentials(
-                    "github", {"token": final_token}
+            def prompt_new_github_token() -> dict[str, str]:
+                """Re-prompt for GitHub token on validation failure."""
+                console.print(
+                    "[dim]Create token at: https://github.com/settings/tokens/new[/dim]"
                 )
+                console.print(
+                    "[dim]Required scopes: repo (or public_repo for public repos)[/dim]"
+                )
+                new_token = Prompt.ask("GitHub Personal Access Token", password=True)
+                return {"token": new_token}
+
+            try:
+                credentials = {"token": final_token}
+                github_validated = _validate_api_credentials(
+                    "github", credentials, credential_prompter=prompt_new_github_token
+                )
+                # Update final_token with potentially updated value
+                final_token = credentials["token"]
             except typer.Exit:
                 # User cancelled, propagate the exit
                 raise
