@@ -1098,25 +1098,22 @@ async def main() -> None:
 
     # Load environment variables AFTER working directory has been set by __main__.py
     # This ensures we load .env files from the target project directory, not from where the command is executed
+    # We explicitly avoid upward directory search to prevent loading .env files from parent projects
     env_local_file = Path.cwd() / ".env.local"
+    env_file = Path.cwd() / ".env"
+
     if env_local_file.exists():
         load_dotenv(env_local_file, override=True)
         sys.stderr.write(f"[MCP Server] Loaded environment from: {env_local_file}\n")
         logger.debug(f"Loaded environment from: {env_local_file}")
+    elif env_file.exists():
+        load_dotenv(env_file, override=True)
+        sys.stderr.write(f"[MCP Server] Loaded environment from: {env_file}\n")
+        logger.debug(f"Loaded environment from: {env_file}")
     else:
-        # Fall back to .env
-        env_file = Path.cwd() / ".env"
-        if env_file.exists():
-            load_dotenv(env_file, override=True)
-            sys.stderr.write(f"[MCP Server] Loaded environment from: {env_file}\n")
-            logger.debug(f"Loaded environment from: {env_file}")
-        else:
-            # Try default dotenv loading (searches upward)
-            load_dotenv(override=True)
-            sys.stderr.write(
-                "[MCP Server] Loaded environment from default search path\n"
-            )
-            logger.debug("Loaded environment from default search path")
+        # No .env file found in project directory - this is okay
+        sys.stderr.write("[MCP Server] No .env file found in project directory\n")
+        logger.info("No .env file found in current directory")
 
     # Initialize defaults
     adapter_type = "aitrackdown"
