@@ -37,13 +37,16 @@ from .ticket_commands import app as ticket_app
 
 # Load environment variables from .env files
 # Priority: .env.local (highest) > .env (base)
-# This matches the pattern used in worker.py and server.py
+# We explicitly specify file paths to avoid upward directory search
+# which could load .env files from unrelated parent projects
+env_file = Path.cwd() / ".env"
+env_local = Path.cwd() / ".env.local"
 
-# Load .env first (base configuration)
-load_dotenv()
+# Load .env first (base configuration) if it exists
+if env_file.exists():
+    load_dotenv(env_file)
 
 # Load .env.local with override=True (project-specific overrides)
-env_local = Path.cwd() / ".env.local"
 if env_local.exists():
     load_dotenv(env_local, override=True)
 
