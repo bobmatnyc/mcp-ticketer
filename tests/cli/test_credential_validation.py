@@ -2,10 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import httpx
-import pytest
-import typer
-
 from mcp_ticketer.cli.configure import _validate_api_credentials
 
 
