@@ -130,8 +130,6 @@ class MCPTicketServer:
             elif method == "ticket/bulk_update":
                 result = await self._handle_bulk_update(params)
             # Advanced search
-            elif method == "ticket/search_hierarchy":
-                result = await self._handle_search_hierarchy(params)
             # Attachment handling
             elif method == "ticket/attach":
                 result = await self._handle_attach(params)
@@ -550,59 +548,6 @@ class MCPTicketServer:
             STATUS_COMPLETED, **ResponseBuilder.bulk_result(results)
         )
 
-    async def _handle_search_hierarchy(self, params: dict[str, Any]) -> dict[str, Any]:
-        """Handle hierarchy-aware search - SYNCHRONOUS."""
-        query = params.get("query", "")
-        include_children = params.get("include_children", True)
-        include_parents = params.get("include_parents", True)
-
-        # Perform basic search
-        search_query = SearchQuery(  # type: ignore[call-arg]
-            query=query,
-            state=TicketState(params["state"]) if params.get("state") else None,
-            priority=Priority(params["priority"]) if params.get("priority") else None,
-            limit=params.get("limit", 50),
-        )
-
-        tickets = await self.adapter.search(search_query)
-
-        # Enhance with hierarchy information
-        enhanced_results = []
-        for ticket in tickets:
-            result = {"ticket": ticket.model_dump(), "hierarchy": {}}
-
-            # Add parent information
-            if include_parents:
-                if hasattr(ticket, "parent_epic") and ticket.parent_epic:
-                    parent_epic = await self.adapter.get_epic(ticket.parent_epic)
-                    if parent_epic:
-                        result["hierarchy"]["epic"] = parent_epic.model_dump()
-
-                if hasattr(ticket, "parent_issue") and ticket.parent_issue:
-                    parent_issue = await self.adapter.read(ticket.parent_issue)
-                    if parent_issue:
-                        result["hierarchy"]["parent_issue"] = parent_issue.model_dump()
-
-            # Add children information
-            if include_children:
-                if ticket.ticket_type == "epic":
-                    issues = await self.adapter.list_issues_by_epic(ticket.id)
-                    result["hierarchy"]["issues"] = [
-                        issue.model_dump() for issue in issues
-                    ]
-                elif ticket.ticket_type == "issue":
-                    tasks = await self.adapter.list_tasks_by_issue(ticket.id)
-                    result["hierarchy"]["tasks"] = [task.model_dump() for task in tasks]
-
-            enhanced_results.append(result)
-
-        return {
-            "status": "completed",
-            "results": enhanced_results,
-            "count": len(enhanced_results),
-            "query": query,
-        }
-
     async def _handle_attach(self, params: dict[str, Any]) -> dict[str, Any]:
         """Handle file attachment to ticket."""
         # Note: This is a placeholder for attachment functionality
@@ -968,8 +913,6 @@ class MCPTicketServer:
             elif tool_name == "ticket_bulk_update":
                 result = await self._handle_bulk_update(arguments)
             # Advanced search
-            elif tool_name == "ticket_search_hierarchy":
-                result = await self._handle_search_hierarchy(arguments)
             # Standard ticket operations
             elif tool_name == "ticket_create":
                 result = await self._handle_create(arguments)

@@ -18,13 +18,10 @@ async def test_attachment_tools_in_mcp():
     tools = await server_sdk.mcp.list_tools()
     tool_names = [tool.name for tool in tools]
 
-    # Verify attachment tools ARE present (re-enabled)
+    # Verify attachment tool is present (consolidated)
     assert (
-        "ticket_attach" in tool_names
-    ), "ticket_attach should be present in MCP (re-enabled)"
-    assert (
-        "ticket_attachments" in tool_names
-    ), "ticket_attachments should be present in MCP (re-enabled)"
+        "attachment" in tool_names
+    ), "attachment should be present in MCP (consolidated from ticket_attach and ticket_attachments)"
 
 
 @pytest.mark.asyncio
@@ -60,10 +57,9 @@ async def test_removed_tools_count():
         "ticket_link_pr",
     ]
 
-    # List of re-enabled tools (attachment tools)
-    re_enabled_tools = [
-        "ticket_attach",
-        "ticket_attachments",
+    # List of consolidated tools (attachment tools)
+    consolidated_tools = [
+        "attachment",  # Consolidated from ticket_attach and ticket_attachments
     ]
 
     # Verify removed tools are NOT present
@@ -74,14 +70,14 @@ async def test_removed_tools_count():
         f"{present_removed_tools}"
     )
 
-    # Verify re-enabled tools ARE present
-    missing_re_enabled_tools = [
-        tool for tool in re_enabled_tools if tool not in tool_names
+    # Verify consolidated tools ARE present
+    missing_consolidated_tools = [
+        tool for tool in consolidated_tools if tool not in tool_names
     ]
 
-    assert len(missing_re_enabled_tools) == 0, (
-        f"Found {len(missing_re_enabled_tools)} re-enabled tools missing: "
-        f"{missing_re_enabled_tools}"
+    assert len(missing_consolidated_tools) == 0, (
+        f"Found {len(missing_consolidated_tools)} consolidated tools missing: "
+        f"{missing_consolidated_tools}"
     )
 
 
@@ -107,12 +103,12 @@ def test_cli_tools_still_importable():
     from mcp_ticketer.mcp.server.tools import attachment_tools, pr_tools
 
     # Verify tools are defined in modules
-    assert hasattr(attachment_tools, "ticket_attach")
-    assert hasattr(attachment_tools, "ticket_attachments")
+    assert hasattr(attachment_tools, "attachment")
     assert hasattr(pr_tools, "ticket_create_pr")
     assert hasattr(pr_tools, "ticket_link_pr")
 
-    # These tools exist in code but are not registered with MCP
+    # PR tools exist in code but are not registered with MCP
+    # Attachment tool is registered with MCP (consolidated)
 
 
 def test_migration_guide_exists():

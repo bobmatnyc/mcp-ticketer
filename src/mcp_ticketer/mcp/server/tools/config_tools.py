@@ -969,7 +969,7 @@ async def config_test_adapter(adapter_name: str) -> dict[str, Any]:
     )
     try:
         # Import diagnostic tool
-        from .diagnostic_tools import check_adapter_health
+        from .diagnostic_tools import diagnostics
 
         # Validate adapter name
         valid_adapters = [adapter_type.value for adapter_type in AdapterType]
@@ -981,7 +981,7 @@ async def config_test_adapter(adapter_name: str) -> dict[str, Any]:
             }
 
         # Use existing health check infrastructure
-        result = await check_adapter_health(adapter_name=adapter_name)
+        result = await diagnostics(action="adapter", adapter_name=adapter_name)
 
         if result["status"] == "error":
             return result

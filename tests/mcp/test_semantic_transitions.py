@@ -21,7 +21,7 @@ class TestSemanticTransitionMCP:
         self, aitrackdown_adapter
     ):
         """Test natural language transition with high confidence."""
-        from mcp_ticketer.mcp.server.tools.user_ticket_tools import ticket_transition
+        from mcp_ticketer.mcp.server.tools.user_ticket_tools import workflow
 
         # Create a test ticket
         ticket = Task(
@@ -37,7 +37,7 @@ class TestSemanticTransitionMCP:
 
         try:
             # Use natural language to transition
-            result = await ticket_transition(
+            result = await workflow(action="transition", 
                 ticket_id=ticket_id,
                 to_state="working on it",  # Natural language!
                 comment="Started implementation",
@@ -56,7 +56,7 @@ class TestSemanticTransitionMCP:
 
     async def test_synonym_transition(self, aitrackdown_adapter):
         """Test transition using synonym."""
-        from mcp_ticketer.mcp.server.tools.user_ticket_tools import ticket_transition
+        from mcp_ticketer.mcp.server.tools.user_ticket_tools import workflow
 
         ticket = Task(
             title="Test synonym",
@@ -68,7 +68,7 @@ class TestSemanticTransitionMCP:
 
         try:
             # Use "review" synonym for READY
-            result = await ticket_transition(
+            result = await workflow(action="transition", 
                 ticket_id=ticket_id,
                 to_state="needs review",
             )
@@ -83,7 +83,7 @@ class TestSemanticTransitionMCP:
 
     async def test_typo_handling_fuzzy_match(self, aitrackdown_adapter):
         """Test that typos are handled with fuzzy matching."""
-        from mcp_ticketer.mcp.server.tools.user_ticket_tools import ticket_transition
+        from mcp_ticketer.mcp.server.tools.user_ticket_tools import workflow
 
         ticket = Task(
             title="Test typo handling",
@@ -95,7 +95,7 @@ class TestSemanticTransitionMCP:
 
         try:
             # Typo: "reviw" instead of "review"
-            result = await ticket_transition(
+            result = await workflow(action="transition", 
                 ticket_id=ticket_id,
                 to_state="reviw",  # Typo!
             )
@@ -111,7 +111,7 @@ class TestSemanticTransitionMCP:
 
     async def test_ambiguous_input_returns_suggestions(self, aitrackdown_adapter):
         """Test that ambiguous input returns suggestions."""
-        from mcp_ticketer.mcp.server.tools.user_ticket_tools import ticket_transition
+        from mcp_ticketer.mcp.server.tools.user_ticket_tools import workflow
 
         ticket = Task(
             title="Test ambiguous input",
@@ -123,7 +123,7 @@ class TestSemanticTransitionMCP:
 
         try:
             # Very short/ambiguous input
-            result = await ticket_transition(
+            result = await workflow(action="transition", 
                 ticket_id=ticket_id,
                 to_state="x",  # Ambiguous!
             )
@@ -143,7 +143,7 @@ class TestSemanticTransitionMCP:
 
     async def test_medium_confidence_with_auto_confirm_false(self, aitrackdown_adapter):
         """Test medium confidence requires confirmation when auto_confirm=False."""
-        from mcp_ticketer.mcp.server.tools.user_ticket_tools import ticket_transition
+        from mcp_ticketer.mcp.server.tools.user_ticket_tools import workflow
 
         ticket = Task(
             title="Test confirmation",
@@ -155,7 +155,7 @@ class TestSemanticTransitionMCP:
 
         try:
             # Use a slightly misspelled input
-            result = await ticket_transition(
+            result = await workflow(action="transition", 
                 ticket_id=ticket_id,
                 to_state="redy",  # Misspelled
                 auto_confirm=False,
@@ -171,7 +171,7 @@ class TestSemanticTransitionMCP:
 
     async def test_workflow_validation_with_semantic_input(self, aitrackdown_adapter):
         """Test that workflow validation works with semantic input."""
-        from mcp_ticketer.mcp.server.tools.user_ticket_tools import ticket_transition
+        from mcp_ticketer.mcp.server.tools.user_ticket_tools import workflow
 
         ticket = Task(
             title="Test workflow validation",
@@ -183,7 +183,7 @@ class TestSemanticTransitionMCP:
 
         try:
             # Try invalid transition: OPEN -> TESTED (not allowed)
-            result = await ticket_transition(
+            result = await workflow(action="transition", 
                 ticket_id=ticket_id,
                 to_state="tested",  # Invalid from OPEN
             )
@@ -200,7 +200,7 @@ class TestSemanticTransitionMCP:
 
     async def test_complete_workflow_with_natural_language(self, aitrackdown_adapter):
         """Test complete workflow using natural language."""
-        from mcp_ticketer.mcp.server.tools.user_ticket_tools import ticket_transition
+        from mcp_ticketer.mcp.server.tools.user_ticket_tools import workflow
 
         ticket = Task(
             title="Test complete workflow",
@@ -212,31 +212,31 @@ class TestSemanticTransitionMCP:
 
         try:
             # 1. Start work: OPEN -> IN_PROGRESS
-            result1 = await ticket_transition(
+            result1 = await workflow(action="transition", 
                 ticket_id=ticket_id, to_state="started working"
             )
             assert result1["status"] == "completed"
             assert result1["new_state"] == "in_progress"
 
             # 2. Complete work: IN_PROGRESS -> READY
-            result2 = await ticket_transition(
+            result2 = await workflow(action="transition", 
                 ticket_id=ticket_id, to_state="needs review"
             )
             assert result2["status"] == "completed"
             assert result2["new_state"] == "ready"
 
             # 3. Test: READY -> TESTED
-            result3 = await ticket_transition(ticket_id=ticket_id, to_state="qa passed")
+            result3 = await workflow(action="transition", ticket_id=ticket_id, to_state="qa passed")
             assert result3["status"] == "completed"
             assert result3["new_state"] == "tested"
 
             # 4. Complete: TESTED -> DONE
-            result4 = await ticket_transition(ticket_id=ticket_id, to_state="finished")
+            result4 = await workflow(action="transition", ticket_id=ticket_id, to_state="finished")
             assert result4["status"] == "completed"
             assert result4["new_state"] == "done"
 
             # 5. Close: DONE -> CLOSED
-            result5 = await ticket_transition(ticket_id=ticket_id, to_state="archived")
+            result5 = await workflow(action="transition", ticket_id=ticket_id, to_state="archived")
             assert result5["status"] == "completed"
             assert result5["new_state"] == "closed"
 
@@ -245,7 +245,7 @@ class TestSemanticTransitionMCP:
 
     async def test_exact_state_names_still_work(self, aitrackdown_adapter):
         """Test backward compatibility - exact state names still work."""
-        from mcp_ticketer.mcp.server.tools.user_ticket_tools import ticket_transition
+        from mcp_ticketer.mcp.server.tools.user_ticket_tools import workflow
 
         ticket = Task(
             title="Test backward compatibility",
@@ -257,7 +257,7 @@ class TestSemanticTransitionMCP:
 
         try:
             # Use exact state name (old behavior)
-            result = await ticket_transition(
+            result = await workflow(action="transition", 
                 ticket_id=ticket_id,
                 to_state="in_progress",  # Exact state name
             )
@@ -272,7 +272,7 @@ class TestSemanticTransitionMCP:
 
     async def test_case_insensitivity(self, aitrackdown_adapter):
         """Test that matching is case insensitive."""
-        from mcp_ticketer.mcp.server.tools.user_ticket_tools import ticket_transition
+        from mcp_ticketer.mcp.server.tools.user_ticket_tools import workflow
 
         ticket = Task(
             title="Test case insensitivity",
@@ -284,7 +284,7 @@ class TestSemanticTransitionMCP:
 
         try:
             # Use mixed case
-            result = await ticket_transition(
+            result = await workflow(action="transition", 
                 ticket_id=ticket_id,
                 to_state="WORKING ON IT",  # UPPERCASE
             )
@@ -297,7 +297,7 @@ class TestSemanticTransitionMCP:
 
     async def test_whitespace_handling(self, aitrackdown_adapter):
         """Test that extra whitespace is handled."""
-        from mcp_ticketer.mcp.server.tools.user_ticket_tools import ticket_transition
+        from mcp_ticketer.mcp.server.tools.user_ticket_tools import workflow
 
         ticket = Task(
             title="Test whitespace",
@@ -309,7 +309,7 @@ class TestSemanticTransitionMCP:
 
         try:
             # Use extra whitespace
-            result = await ticket_transition(
+            result = await workflow(action="transition", 
                 ticket_id=ticket_id,
                 to_state="  working   on   it  ",  # Extra whitespace
             )
@@ -322,7 +322,7 @@ class TestSemanticTransitionMCP:
 
     async def test_confidence_included_in_response(self, aitrackdown_adapter):
         """Test that confidence score is included in response."""
-        from mcp_ticketer.mcp.server.tools.user_ticket_tools import ticket_transition
+        from mcp_ticketer.mcp.server.tools.user_ticket_tools import workflow
 
         ticket = Task(
             title="Test confidence reporting",
@@ -333,7 +333,7 @@ class TestSemanticTransitionMCP:
         ticket_id = created.id
 
         try:
-            result = await ticket_transition(
+            result = await workflow(action="transition", 
                 ticket_id=ticket_id, to_state="working on it"
             )
 
@@ -352,7 +352,7 @@ class TestSemanticTransitionMCP:
 
     async def test_platform_specific_terms(self, aitrackdown_adapter):
         """Test platform-specific terminology."""
-        from mcp_ticketer.mcp.server.tools.user_ticket_tools import ticket_transition
+        from mcp_ticketer.mcp.server.tools.user_ticket_tools import workflow
 
         ticket = Task(
             title="Test platform terms",
@@ -376,7 +376,7 @@ class TestSemanticTransitionMCP:
                 if not current_state.can_transition_to(target_state):
                     continue
 
-                result = await ticket_transition(
+                result = await workflow(action="transition", 
                     ticket_id=ticket_id,
                     to_state=input_term,
                 )
@@ -395,7 +395,7 @@ class TestSemanticTransitionEdgeCases:
 
     async def test_empty_state_input(self, aitrackdown_adapter):
         """Test empty state input handling."""
-        from mcp_ticketer.mcp.server.tools.user_ticket_tools import ticket_transition
+        from mcp_ticketer.mcp.server.tools.user_ticket_tools import workflow
 
         ticket = Task(
             title="Test empty input",
@@ -406,7 +406,7 @@ class TestSemanticTransitionEdgeCases:
         ticket_id = created.id
 
         try:
-            result = await ticket_transition(
+            result = await workflow(action="transition", 
                 ticket_id=ticket_id,
                 to_state="",  # Empty!
             )
@@ -419,9 +419,9 @@ class TestSemanticTransitionEdgeCases:
 
     async def test_ticket_not_found(self):
         """Test semantic transition with non-existent ticket."""
-        from mcp_ticketer.mcp.server.tools.user_ticket_tools import ticket_transition
+        from mcp_ticketer.mcp.server.tools.user_ticket_tools import workflow
 
-        result = await ticket_transition(
+        result = await workflow(action="transition", 
             ticket_id="NONEXISTENT-123",
             to_state="working on it",
         )
@@ -431,7 +431,7 @@ class TestSemanticTransitionEdgeCases:
 
     async def test_terminal_state_transition_attempt(self, aitrackdown_adapter):
         """Test attempting transition from terminal state."""
-        from mcp_ticketer.mcp.server.tools.user_ticket_tools import ticket_transition
+        from mcp_ticketer.mcp.server.tools.user_ticket_tools import workflow
 
         ticket = Task(
             title="Test terminal state",
@@ -442,7 +442,7 @@ class TestSemanticTransitionEdgeCases:
         ticket_id = created.id
 
         try:
-            result = await ticket_transition(
+            result = await workflow(action="transition", 
                 ticket_id=ticket_id,
                 to_state="working on it",
             )
@@ -461,7 +461,7 @@ class TestCommentIntegration:
 
     async def test_comment_added_with_transition(self, aitrackdown_adapter):
         """Test that comments are added with transitions."""
-        from mcp_ticketer.mcp.server.tools.user_ticket_tools import ticket_transition
+        from mcp_ticketer.mcp.server.tools.user_ticket_tools import workflow
 
         ticket = Task(
             title="Test comment integration",
@@ -472,7 +472,7 @@ class TestCommentIntegration:
         ticket_id = created.id
 
         try:
-            result = await ticket_transition(
+            result = await workflow(action="transition", 
                 ticket_id=ticket_id,
                 to_state="working on it",
                 comment="Started implementation of feature X",

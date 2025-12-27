@@ -1,11 +1,12 @@
 """Tests for unified user_session tool.
 
 This module tests the consolidated user_session tool that replaces
-get_my_tickets and get_session_info with a single interface.
+get_my_tickets, get_session_info, and attach_ticket with a single interface.
 
 Tests cover:
 - Unified tool with get_my_tickets action
 - Unified tool with get_session_info action
+- Unified tool with attach_ticket, detach_ticket, get_attached, opt_out actions
 - Invalid action handling
 - Parameter forwarding (state, project_id, limit)
 - Deprecation warnings on original tools
@@ -88,11 +89,11 @@ class TestUnifiedUserSession:
         mock_adapter.list.return_value = sample_tickets
 
         with patch(
-            "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_adapter",
+            "mcp_ticketer.mcp.server.server_sdk.get_adapter",
             return_value=mock_adapter,
         ):
             with patch(
-                "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_config_resolver"
+                "mcp_ticketer.core.project_config.ConfigResolver"
             ) as mock_resolver:
                 mock_resolver.return_value.load_project_config.return_value = (
                     mock_config
@@ -117,11 +118,11 @@ class TestUnifiedUserSession:
         mock_adapter.list.return_value = sample_tickets
 
         with patch(
-            "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_adapter",
+            "mcp_ticketer.mcp.server.server_sdk.get_adapter",
             return_value=mock_adapter,
         ):
             with patch(
-                "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_config_resolver"
+                "mcp_ticketer.core.project_config.ConfigResolver"
             ) as mock_resolver:
                 mock_resolver.return_value.load_project_config.return_value = (
                     mock_config
@@ -168,7 +169,14 @@ class TestUnifiedUserSession:
         assert result["status"] == "error"
         assert "Invalid action" in result["error"]
         assert "invalid_action" in result["error"]
-        assert result["valid_actions"] == ["get_my_tickets", "get_session_info"]
+        assert result["valid_actions"] == [
+            "get_my_tickets",
+            "get_session_info",
+            "attach_ticket",
+            "detach_ticket",
+            "get_attached",
+            "opt_out",
+        ]
         assert "hint" in result
 
     @pytest.mark.asyncio
@@ -178,11 +186,11 @@ class TestUnifiedUserSession:
         config.default_project = "TEST-PROJECT"
 
         with patch(
-            "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_adapter",
+            "mcp_ticketer.mcp.server.server_sdk.get_adapter",
             return_value=mock_adapter,
         ):
             with patch(
-                "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_config_resolver"
+                "mcp_ticketer.core.project_config.ConfigResolver"
             ) as mock_resolver:
                 mock_resolver.return_value.load_project_config.return_value = config
 
@@ -200,11 +208,11 @@ class TestUnifiedUserSession:
         # No default_project
 
         with patch(
-            "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_adapter",
+            "mcp_ticketer.mcp.server.server_sdk.get_adapter",
             return_value=mock_adapter,
         ):
             with patch(
-                "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_config_resolver"
+                "mcp_ticketer.core.project_config.ConfigResolver"
             ) as mock_resolver:
                 mock_resolver.return_value.load_project_config.return_value = config
 
@@ -222,11 +230,11 @@ class TestUnifiedUserSession:
         mock_adapter.list.return_value = sample_tickets
 
         with patch(
-            "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_adapter",
+            "mcp_ticketer.mcp.server.server_sdk.get_adapter",
             return_value=mock_adapter,
         ):
             with patch(
-                "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_config_resolver"
+                "mcp_ticketer.core.project_config.ConfigResolver"
             ) as mock_resolver:
                 mock_resolver.return_value.load_project_config.return_value = (
                     mock_config
@@ -252,6 +260,112 @@ class TestUnifiedUserSession:
         assert "error" in result
         assert "Session load failed" in result["error"]
 
+    @pytest.mark.asyncio
+    async def test_attach_ticket_action(self, mock_session_state):
+        """Test attach_ticket action with unified tool."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.session_tools.SessionStateManager"
+        ) as mock_manager_class:
+            mock_manager = MagicMock()
+            mock_manager.load_session.return_value = mock_session_state
+            mock_manager_class.return_value = mock_manager
+
+            result = await user_session(action="attach_ticket", ticket_id="TEST-123")
+
+        assert result["success"] is True
+        assert result["current_ticket"] == "TEST-123"
+        assert result["opted_out"] is False
+        assert "message" in result
+        mock_manager.set_current_ticket.assert_called_once_with("TEST-123")
+
+    @pytest.mark.asyncio
+    async def test_attach_ticket_without_ticket_id(self):
+        """Test attach_ticket action fails without ticket_id."""
+        result = await user_session(action="attach_ticket")
+
+        assert result["success"] is False
+        assert "ticket_id is required" in result["error"]
+        assert "guidance" in result
+
+    @pytest.mark.asyncio
+    async def test_detach_ticket_action(self, mock_session_state):
+        """Test detach_ticket action with unified tool."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.session_tools.SessionStateManager"
+        ) as mock_manager_class:
+            mock_manager = MagicMock()
+            mock_manager.load_session.return_value = mock_session_state
+            mock_manager_class.return_value = mock_manager
+
+            result = await user_session(action="detach_ticket")
+
+        assert result["success"] is True
+        assert result["current_ticket"] is None
+        assert result["opted_out"] is False
+        assert "Ticket association cleared" in result["message"]
+        mock_manager.set_current_ticket.assert_called_once_with(None)
+
+    @pytest.mark.asyncio
+    async def test_opt_out_action(self, mock_session_state):
+        """Test opt_out action with unified tool."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.session_tools.SessionStateManager"
+        ) as mock_manager_class:
+            mock_manager = MagicMock()
+            mock_manager.load_session.return_value = mock_session_state
+            mock_manager_class.return_value = mock_manager
+
+            result = await user_session(action="opt_out")
+
+        assert result["success"] is True
+        assert result["current_ticket"] is None
+        assert result["opted_out"] is True
+        assert "Opted out" in result["message"]
+        mock_manager.opt_out_ticket.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_attached_action_with_ticket(self, mock_session_state):
+        """Test get_attached action when ticket is attached."""
+        with patch(
+            "mcp_ticketer.mcp.server.tools.session_tools.SessionStateManager"
+        ) as mock_manager_class:
+            mock_manager = MagicMock()
+            mock_manager.load_session.return_value = mock_session_state
+            mock_manager.get_current_ticket.return_value = "TEST-456"
+            mock_manager_class.return_value = mock_manager
+
+            result = await user_session(action="get_attached")
+
+        assert result["success"] is True
+        assert result["current_ticket"] == "TEST-456"
+        assert result["opted_out"] is False
+        assert "Currently associated" in result["message"]
+
+    @pytest.mark.asyncio
+    async def test_get_attached_action_opted_out(self):
+        """Test get_attached action when user opted out."""
+        mock_state = SessionState(
+            session_id="test-session",
+            current_ticket=None,
+            ticket_opted_out=True,
+            last_activity="2025-01-19T20:00:00",
+        )
+
+        with patch(
+            "mcp_ticketer.mcp.server.tools.session_tools.SessionStateManager"
+        ) as mock_manager_class:
+            mock_manager = MagicMock()
+            mock_manager.load_session.return_value = mock_state
+            mock_manager.get_current_ticket.return_value = None
+            mock_manager_class.return_value = mock_manager
+
+            result = await user_session(action="get_attached")
+
+        assert result["success"] is True
+        assert result["current_ticket"] is None
+        assert result["opted_out"] is True
+        assert "opted out" in result["message"]
+
 
 class TestIntegration:
     """Integration tests for user_session tool."""
@@ -265,11 +379,11 @@ class TestIntegration:
 
         # First, get user's tickets
         with patch(
-            "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_adapter",
+            "mcp_ticketer.mcp.server.server_sdk.get_adapter",
             return_value=mock_adapter,
         ):
             with patch(
-                "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_config_resolver"
+                "mcp_ticketer.core.project_config.ConfigResolver"
             ) as mock_resolver:
                 mock_resolver.return_value.load_project_config.return_value = (
                     mock_config
@@ -299,11 +413,11 @@ class TestIntegration:
     async def test_multiple_state_filters(self, mock_adapter, mock_config):
         """Test different state filters work correctly."""
         with patch(
-            "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_adapter",
+            "mcp_ticketer.mcp.server.server_sdk.get_adapter",
             return_value=mock_adapter,
         ):
             with patch(
-                "mcp_ticketer.mcp.server.tools.user_ticket_tools.get_config_resolver"
+                "mcp_ticketer.core.project_config.ConfigResolver"
             ) as mock_resolver:
                 mock_resolver.return_value.load_project_config.return_value = (
                     mock_config

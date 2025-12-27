@@ -1,6 +1,11 @@
 """Comment management tools for tickets.
 
 This module implements tools for adding and retrieving comments on tickets.
+
+Version 2.0.0 changes:
+- Removed @mcp.tool() decorator from ticket_comment (consolidated into ticket() tool)
+- ticket_comment retained as internal helper for backward compatibility
+- Use ticket(action="add_comment"|"list_comments") instead
 """
 
 import logging
@@ -42,7 +47,6 @@ def _build_adapter_metadata(
     return metadata
 
 
-@mcp.tool()
 async def ticket_comment(
     ticket_id: str,
     operation: str,
@@ -51,6 +55,10 @@ async def ticket_comment(
     offset: int = 0,
 ) -> dict[str, Any]:
     """Add or list comments on a ticket using ID or URL.
+
+    .. deprecated:: 2.0.0
+        Use :func:`ticket` with ``action='add_comment'`` or ``action='list_comments'`` instead.
+        This function is retained for backward compatibility but is no longer exposed as an MCP tool.
 
     This tool supports two operations:
     - 'add': Add a new comment to a ticket (requires 'text' parameter)
@@ -68,6 +76,10 @@ async def ticket_comment(
 
     Returns:
         Comment data or list of comments, or error information
+
+    Migration:
+        - ticket_comment(operation="add", text=...) → ticket(action="add_comment", comment_text=...)
+        - ticket_comment(operation="list", limit=..., offset=...) → ticket(action="list_comments", comment_limit=..., comment_offset=...)
 
     """
     try:

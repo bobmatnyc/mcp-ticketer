@@ -1,5 +1,9 @@
 """Project update management tools for status updates with health indicators.
 
+.. deprecated::
+    Use project(action="create_update"|"get_update"|"list_updates", ...) instead from project_tools module.
+    This module will be removed in v3.0.0.
+
 This module provides a unified interface for creating, listing, and retrieving project
 status updates with health indicators across multiple platforms.
 
@@ -8,6 +12,13 @@ v2.0.0 Consolidation (Phase 3 Sprint 3.4):
 - Replaces 4 separate tools (create, get, list) with unified interface
 - Helper functions retained for internal use with deprecation warnings
 - ~1,100 tokens saved (69% reduction)
+
+v2.1.0 Consolidation (Phase 3 Sprint 3.5):
+- Merged into unified `project()` tool in project_tools module
+- project_update(action="create") → project(action="create_update")
+- project_update(action="get") → project(action="get_update")
+- project_update(action="list") → project(action="list_updates")
+- This module kept for backward compatibility with deprecation warnings
 
 Platform Support:
 - Linear: Native ProjectUpdate entities with health, diff_markdown, staleness
@@ -86,6 +97,10 @@ async def project_update(
 ) -> dict[str, Any]:
     """Unified project update management with action-based routing.
 
+    .. deprecated::
+        Use project(action="create_update"|"get_update"|"list_updates", ...) instead.
+        This tool will be removed in v3.0.0.
+
     This tool consolidates all project update operations into a single interface:
     - create: Create new project status update
     - get: Get specific update by ID
@@ -134,7 +149,17 @@ async def project_update(
         project identification.
         Related to ticket 1M-484: Phase 2 Sprint 1.1 - Consolidate project_update tools.
 
+    Migration:
+        project_update(action="create", ...) → project(action="create_update", ...)
+        project_update(action="get", ...) → project(action="get_update", ...)
+        project_update(action="list", ...) → project(action="list_updates", ...)
+
     """
+    warnings.warn(
+        "project_update is deprecated. Use project(action='create_update'|'get_update'|'list_updates', ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     # Validate action
     valid_actions = ["create", "get", "list"]
     if action not in valid_actions:

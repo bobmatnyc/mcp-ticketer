@@ -13,16 +13,12 @@ from ....core.models import Comment, TicketType
 from ..server_sdk import get_adapter, mcp
 
 
-@mcp.tool()
-async def ticket_attach(
+async def _handle_attach(
     ticket_id: str,
     file_path: str,
     description: str = "",
-) -> dict[str, Any]:  # Keep as dict for MCP compatibility
-    """Attach a file to a ticket.
-
-    Uploads a file and associates it with the specified ticket. This
-    functionality may not be available in all adapters.
+) -> dict[str, Any]:
+    """Handle file attachment to a ticket.
 
     Args:
         ticket_id: Unique identifier of the ticket
@@ -31,7 +27,6 @@ async def ticket_attach(
 
     Returns:
         Attachment details including URL or ID, or error information
-
     """
     try:
         adapter = get_adapter()
@@ -145,21 +140,14 @@ async def ticket_attach(
         }
 
 
-@mcp.tool()
-async def ticket_attachments(
-    ticket_id: str,
-) -> dict[str, Any]:  # Keep as dict for MCP compatibility
-    """Get all attachments for a ticket.
-
-    Retrieves a list of all files attached to the specified ticket.
-    This functionality may not be available in all adapters.
+async def _handle_list_attachments(ticket_id: str) -> dict[str, Any]:
+    """Handle listing attachments for a ticket.
 
     Args:
         ticket_id: Unique identifier of the ticket
 
     Returns:
         List of attachments with metadata, or error information
-
     """
     try:
         adapter = get_adapter()
@@ -224,3 +212,76 @@ async def ticket_attachments(
             "error": f"Failed to get attachments: {str(e)}",
             "ticket_id": ticket_id,
         }
+
+
+@mcp.tool()
+async def attachment(
+    action: str,
+    ticket_id: str,
+    file_path: str | None = None,
+    description: str = "",
+) -> dict[str, Any]:
+    """Unified attachment management for tickets.
+
+    Handles file attachments and attachment listing through a single interface.
+    Note that file attachment functionality may not be available in all adapters.
+
+    Args:
+        action: Operation to perform. Valid values:
+            - "attach": Attach a file to a ticket (requires file_path)
+            - "list": Get all attachments for a ticket
+        ticket_id: Unique identifier of the ticket (required)
+        file_path: Path to file to attach (required for attach action)
+        description: File description (optional for attach action)
+
+    Returns:
+        Results specific to action with status and relevant data
+
+    Raises:
+        ValueError: If action is invalid or required parameters missing
+
+    Examples:
+        # Attach file
+        attachment(action="attach", ticket_id="PROJ-123", file_path="/path/to/file.pdf")
+
+        # Attach with description
+        attachment(action="attach", ticket_id="PROJ-123",
+                  file_path="/path/to/doc.pdf", description="Design mockups")
+
+        # List attachments
+        attachment(action="list", ticket_id="PROJ-123")
+
+    Migration from old tools:
+        - ticket_attach(ticket_id, file_path, description)
+          → attachment(action="attach", ticket_id=ticket_id, file_path=file_path, description=description)
+        - ticket_attachments(ticket_id)
+          → attachment(action="list", ticket_id=ticket_id)
+
+    See: docs/mcp-api-reference.md for detailed response formats
+    """
+    # Validate action
+    valid_actions = {"attach", "list"}
+    if action not in valid_actions:
+        return {
+            "status": "error",
+            "error": f"Invalid action '{action}'. Must be one of: {', '.join(sorted(valid_actions))}",
+        }
+
+    # Route to appropriate handler
+    if action == "attach":
+        # Validate required parameters
+        if not file_path:
+            return {
+                "status": "error",
+                "error": "file_path is required for 'attach' action",
+            }
+        return await _handle_attach(ticket_id, file_path, description)
+
+    elif action == "list":
+        return await _handle_list_attachments(ticket_id)
+
+    # Should never reach here due to validation above
+    return {
+        "status": "error",
+        "error": f"Unhandled action: {action}",
+    }

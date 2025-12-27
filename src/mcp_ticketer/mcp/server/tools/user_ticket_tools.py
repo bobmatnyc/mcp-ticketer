@@ -45,12 +45,86 @@ def _build_adapter_metadata(
 
 
 @mcp.tool()
-async def get_available_transitions(ticket_id: str) -> dict[str, Any]:
+async def workflow(
+    action: str,
+    ticket_id: str,
+    to_state: str | None = None,
+    comment: str | None = None,
+    auto_confirm: bool = True,
+) -> dict[str, Any]:
+    """Unified workflow management for ticket state transitions.
+
+    Consolidates workflow state operations into a single interface for
+    getting available transitions and performing state transitions.
+
+    Args:
+        action: Operation to perform. Valid values:
+            - "get_transitions": Get valid next states for ticket
+            - "transition": Move ticket through workflow with validation
+        ticket_id: Ticket ID (required for all actions)
+        to_state: Target state (required for "transition", supports natural language)
+        comment: Optional comment when transitioning
+        auto_confirm: Auto-confirm medium confidence matches (default: True)
+
+    Returns:
+        For get_transitions: TransitionResponse with current_state, available_transitions,
+                           transition_descriptions, is_terminal
+        For transition: TransitionResponse with status, ticket, previous_state, new_state,
+                       matched_state, confidence, suggestions (if ambiguous)
+
+    Examples:
+        # Get available transitions
+        workflow(action="get_transitions", ticket_id="PROJ-123")
+
+        # Transition ticket (exact state name)
+        workflow(action="transition", ticket_id="PROJ-123", to_state="in_progress")
+
+        # Transition with natural language
+        workflow(action="transition", ticket_id="PROJ-123", to_state="working on it")
+
+        # Transition with comment
+        workflow(
+            action="transition",
+            ticket_id="PROJ-123",
+            to_state="done",
+            comment="Implementation complete and tested"
+        )
+
+    Migration from deprecated tools:
+        - get_available_transitions(ticket_id) → workflow(action="get_transitions", ticket_id=ticket_id)
+        - ticket_transition(ticket_id, to_state, ...) → workflow(action="transition", ticket_id=ticket_id, to_state=to_state, ...)
+
+    See:
+        - docs/ticket-workflows.md#valid-state-transitions
+        - docs/ticket-workflows.md#semantic-state-matching
+    """
+    if action == "get_transitions":
+        return await _handle_get_transitions(ticket_id)
+    elif action == "transition":
+        if to_state is None:
+            return {
+                "status": "error",
+                "error": "to_state is required for transition action",
+            }
+        return await _handle_transition(ticket_id, to_state, comment, auto_confirm)
+    else:
+        return {
+            "status": "error",
+            "error": f"Invalid action '{action}'. Must be 'get_transitions' or 'transition'",
+        }
+
+
+async def _handle_get_transitions(ticket_id: str) -> dict[str, Any]:
     """Get valid next states for ticket based on workflow state machine.
 
-    Args: ticket_id (required)
-    Returns: TransitionResponse with current_state, available_transitions, transition_descriptions, is_terminal
-    See: docs/ticket-workflows.md#valid-state-transitions
+    This is the internal implementation for workflow(action="get_transitions").
+
+    Args:
+        ticket_id: Ticket ID to get transitions for
+
+    Returns:
+        TransitionResponse with current_state, available_transitions,
+        transition_descriptions, is_terminal
     """
     try:
         # Get ticket from adapter
@@ -104,18 +178,26 @@ async def get_available_transitions(ticket_id: str) -> dict[str, Any]:
         }
 
 
-@mcp.tool()
-async def ticket_transition(
+async def _handle_transition(
     ticket_id: str,
     to_state: str,
     comment: str | None = None,
     auto_confirm: bool = True,
 ) -> dict[str, Any]:
-    """Move ticket through workflow with validation and semantic matching (natural language support).
+    """Move ticket through workflow with validation and semantic matching.
 
-    Args: ticket_id (required), to_state (supports natural language like "working on it"), comment (optional), auto_confirm (default: True)
-    Returns: TransitionResponse with status, ticket, previous_state, new_state, matched_state, confidence, suggestions (if ambiguous)
-    See: docs/ticket-workflows.md#semantic-state-matching, docs/ticket-workflows.md#valid-state-transitions
+    This is the internal implementation for workflow(action="transition").
+    Supports natural language state names (e.g., "working on it" → "in_progress").
+
+    Args:
+        ticket_id: Ticket ID to transition
+        to_state: Target state (supports natural language)
+        comment: Optional comment to add with transition
+        auto_confirm: Auto-confirm medium confidence matches (default: True)
+
+    Returns:
+        TransitionResponse with status, ticket, previous_state, new_state,
+        matched_state, confidence, suggestions (if ambiguous)
     """
     try:
         # Get ticket from adapter
@@ -362,3 +444,54 @@ def _get_state_description(state: TicketState) -> str:
         TicketState.CLOSED: "Ticket closed or archived (final state)",
     }
     return descriptions.get(state, "")
+
+
+# Deprecated functions - kept for backward compatibility
+# These will be removed in a future version
+
+
+async def get_available_transitions(ticket_id: str) -> dict[str, Any]:
+    """Get valid next states for ticket based on workflow state machine.
+
+    .. deprecated::
+        Use workflow(action="get_transitions", ticket_id=ticket_id) instead.
+        This tool will be removed in a future version.
+
+    Args: ticket_id (required)
+    Returns: TransitionResponse with current_state, available_transitions, transition_descriptions, is_terminal
+    See: docs/ticket-workflows.md#valid-state-transitions
+    """
+    import warnings
+
+    warnings.warn(
+        "get_available_transitions is deprecated. Use workflow(action='get_transitions', ticket_id=ticket_id) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return await _handle_get_transitions(ticket_id)
+
+
+async def ticket_transition(
+    ticket_id: str,
+    to_state: str,
+    comment: str | None = None,
+    auto_confirm: bool = True,
+) -> dict[str, Any]:
+    """Move ticket through workflow with validation and semantic matching (natural language support).
+
+    .. deprecated::
+        Use workflow(action="transition", ticket_id=ticket_id, to_state=to_state, ...) instead.
+        This tool will be removed in a future version.
+
+    Args: ticket_id (required), to_state (supports natural language like "working on it"), comment (optional), auto_confirm (default: True)
+    Returns: TransitionResponse with status, ticket, previous_state, new_state, matched_state, confidence, suggestions (if ambiguous)
+    See: docs/ticket-workflows.md#semantic-state-matching, docs/ticket-workflows.md#valid-state-transitions
+    """
+    import warnings
+
+    warnings.warn(
+        "ticket_transition is deprecated. Use workflow(action='transition', ticket_id=ticket_id, to_state=to_state, ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return await _handle_transition(ticket_id, to_state, comment, auto_confirm)

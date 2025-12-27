@@ -6,9 +6,7 @@ and hierarchical search under a single interface.
 This test suite validates:
 1. Standard search behavior (include_hierarchy=False)
 2. Hierarchical search behavior (include_hierarchy=True)
-3. Backward compatibility with ticket_search_hierarchy
-4. Deprecation warnings
-5. Parameter validation
+3. Parameter validation
 """
 
 from __future__ import annotations
@@ -18,10 +16,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from mcp_ticketer.core.models import Priority, Task, TicketState
-from mcp_ticketer.mcp.server.tools.search_tools import (
-    ticket_search,
-    ticket_search_hierarchy,
-)
+from mcp_ticketer.mcp.server.tools.search_tools import ticket_search
 
 
 @pytest.fixture
@@ -268,106 +263,6 @@ class TestTicketSearchUnifiedTool:
             )
             assert result["status"] == "error"
             assert "max_depth must be between 1 and 3" in result["error"]
-
-    # =============================================================================
-    # Backward Compatibility Tests
-    # =============================================================================
-
-    async def test_ticket_search_hierarchy_deprecated(
-        self, mock_adapter, sample_tickets, mock_config_resolver
-    ):
-        """Test deprecated ticket_search_hierarchy still works."""
-        mock_adapter.search.return_value = sample_tickets
-
-        with (
-            patch(
-                "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
-                return_value=mock_adapter,
-            ),
-            patch(
-                "mcp_ticketer.core.project_config.ConfigResolver",
-                return_value=mock_config_resolver,
-            ),
-        ):
-            with pytest.warns(DeprecationWarning, match="Use ticket_search"):
-                result = await ticket_search_hierarchy(
-                    query="authentication",
-                    project_id="project-123",
-                )
-
-        assert result["status"] == "completed"
-        assert "results" in result
-
-    async def test_ticket_search_hierarchy_deprecation_message(
-        self, mock_adapter, mock_config_resolver
-    ):
-        """Test deprecation warning includes migration instructions."""
-        mock_adapter.search.return_value = []
-
-        with (
-            patch(
-                "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
-                return_value=mock_adapter,
-            ),
-            patch(
-                "mcp_ticketer.core.project_config.ConfigResolver",
-                return_value=mock_config_resolver,
-            ),
-        ):
-            with pytest.warns(DeprecationWarning) as warning_list:
-                await ticket_search_hierarchy(
-                    query="test",
-                    project_id="project-123",
-                )
-
-            # Verify warning message contains helpful information
-            warning_msg = str(warning_list[0].message)
-            assert "ticket_search_hierarchy is deprecated" in warning_msg
-            assert "ticket_search(include_hierarchy=True" in warning_msg
-            assert "UPGRADING-v2.0.md" in warning_msg
-
-    async def test_hierarchy_migration_equivalence(
-        self, mock_adapter, sample_tickets, mock_config_resolver
-    ):
-        """Test old ticket_search_hierarchy equals new ticket_search."""
-        mock_adapter.search.return_value = sample_tickets
-
-        with (
-            patch(
-                "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
-                return_value=mock_adapter,
-            ),
-            patch(
-                "mcp_ticketer.core.project_config.ConfigResolver",
-                return_value=mock_config_resolver,
-            ),
-        ):
-            # Old tool (with deprecation warning suppressed)
-            import warnings
-
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                result_old = await ticket_search_hierarchy(
-                    query="feature request",
-                    project_id="project-123",
-                    max_depth=2,
-                )
-
-            # Reset mock
-            mock_adapter.search.return_value = sample_tickets
-
-            # New tool
-            result_new = await ticket_search(
-                query="feature request",
-                project_id="project-123",
-                include_hierarchy=True,
-                max_depth=2,
-            )
-
-        # Results should be identical
-        assert result_old["status"] == result_new["status"]
-        assert result_old["count"] == result_new["count"]
-        assert len(result_old["results"]) == len(result_new["results"])
 
     # =============================================================================
     # Parameter Validation Tests

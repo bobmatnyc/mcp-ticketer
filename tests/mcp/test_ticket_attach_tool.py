@@ -17,7 +17,7 @@ import pytest
 
 from mcp_ticketer.adapters.linear.adapter import LinearAdapter
 from mcp_ticketer.core.models import Epic, Task, TicketType
-from mcp_ticketer.mcp.server.tools.attachment_tools import ticket_attach
+from mcp_ticketer.mcp.server.tools.attachment_tools import attachment
 
 
 class TestTicketAttachMCPTool:
@@ -90,7 +90,8 @@ class TestTicketAttachMCPTool:
             "mcp_ticketer.mcp.server.tools.attachment_tools.get_adapter",
             return_value=mock_linear_adapter,
         ):
-            result = await ticket_attach(
+            result = await attachment(
+                action="attach",
                 ticket_id=ticket_id,
                 file_path=str(temp_test_file),
             )
@@ -172,7 +173,8 @@ class TestTicketAttachMCPTool:
             "mcp_ticketer.mcp.server.tools.attachment_tools.get_adapter",
             return_value=mock_linear_adapter,
         ):
-            result = await ticket_attach(
+            result = await attachment(
+                action="attach",
                 ticket_id=ticket_id,
                 file_path=str(temp_test_file),
                 description=description,
@@ -205,7 +207,8 @@ class TestTicketAttachMCPTool:
             "mcp_ticketer.mcp.server.tools.attachment_tools.get_adapter",
             return_value=mock_linear_adapter,
         ):
-            result = await ticket_attach(
+            result = await attachment(
+                action="attach",
                 ticket_id=ticket_id,
                 file_path=nonexistent_file,
             )
@@ -226,7 +229,8 @@ class TestTicketAttachMCPTool:
             "mcp_ticketer.mcp.server.tools.attachment_tools.get_adapter",
             return_value=mock_linear_adapter,
         ):
-            result = await ticket_attach(
+            result = await attachment(
+                action="attach",
                 ticket_id=ticket_id,
                 file_path=str(temp_test_file),
             )
@@ -258,7 +262,8 @@ class TestTicketAttachMCPTool:
             "mcp_ticketer.mcp.server.tools.attachment_tools.get_adapter",
             return_value=mock_adapter_native_only,
         ):
-            result = await ticket_attach(
+            result = await attachment(
+                action="attach",
                 ticket_id=ticket_id,
                 file_path=str(temp_test_file),
             )
@@ -294,7 +299,8 @@ class TestTicketAttachMCPTool:
             "mcp_ticketer.mcp.server.tools.attachment_tools.get_adapter",
             return_value=mock_adapter_comment_only,
         ):
-            result = await ticket_attach(
+            result = await attachment(
+                action="attach",
                 ticket_id=ticket_id,
                 file_path=str(temp_test_file),
             )
@@ -332,7 +338,8 @@ class TestTicketAttachMCPTool:
             "mcp_ticketer.mcp.server.tools.attachment_tools.get_adapter",
             return_value=mock_linear_adapter,
         ):
-            result = await ticket_attach(
+            result = await attachment(
+                action="attach",
                 ticket_id=ticket_id,
                 file_path=str(temp_test_file),
             )
@@ -372,7 +379,8 @@ class TestTicketAttachMCPTool:
             "mcp_ticketer.mcp.server.tools.attachment_tools.get_adapter",
             return_value=mock_linear_adapter,
         ):
-            result = await ticket_attach(
+            result = await attachment(
+                action="attach",
                 ticket_id=ticket_id,
                 file_path=str(temp_test_file),
             )
@@ -412,7 +420,8 @@ class TestTicketAttachMCPTool:
             "mcp_ticketer.mcp.server.tools.attachment_tools.get_adapter",
             return_value=mock_linear_adapter,
         ):
-            result = await ticket_attach(
+            result = await attachment(
+                action="attach",
                 ticket_id=ticket_id,
                 file_path=str(temp_test_file),
             )
@@ -450,7 +459,8 @@ class TestTicketAttachMCPTool:
             "mcp_ticketer.mcp.server.tools.attachment_tools.get_adapter",
             return_value=mock_linear_adapter,
         ):
-            result = await ticket_attach(
+            result = await attachment(
+                action="attach",
                 ticket_id=ticket_id,
                 file_path=str(empty_file),
             )
@@ -490,7 +500,8 @@ class TestTicketAttachMCPTool:
             "mcp_ticketer.mcp.server.tools.attachment_tools.get_adapter",
             return_value=mock_linear_adapter,
         ):
-            result = await ticket_attach(
+            result = await attachment(
+                action="attach",
                 ticket_id=ticket_id,
                 file_path=str(special_file),
             )
@@ -524,7 +535,8 @@ class TestTicketAttachMCPTool:
             "mcp_ticketer.mcp.server.tools.attachment_tools.get_adapter",
             return_value=mock_linear_adapter,
         ):
-            result = await ticket_attach(
+            result = await attachment(
+                action="attach",
                 ticket_id=ticket_id,
                 file_path=str(temp_test_file),
             )
@@ -566,7 +578,8 @@ class TestTicketAttachMCPTool:
             "mcp_ticketer.mcp.server.tools.attachment_tools.get_adapter",
             return_value=mock_linear_adapter,
         ):
-            result = await ticket_attach(
+            result = await attachment(
+                action="attach",
                 ticket_id=ticket_id,
                 file_path=str(temp_test_file),
             )

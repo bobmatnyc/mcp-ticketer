@@ -1,22 +1,26 @@
 #!/usr/bin/env python3
 """Test suite for diagnostic MCP tools (1M-134).
 
-Tests system_diagnostics and check_adapter_health MCP tools.
+Tests consolidated diagnostics MCP tool with action-based routing.
 """
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from mcp_ticketer.mcp.server.tools.diagnostic_tools import (
-    check_adapter_health,
-    system_diagnostics,
-)
+from mcp_ticketer.mcp.server.tools.diagnostic_tools import diagnostics
 
 
 @pytest.mark.asyncio
-class TestSystemDiagnosticsTool:
-    """Test system_diagnostics MCP tool."""
+class TestDiagnosticsToolSystem:
+    """Test diagnostics tool with action='system'."""
+
+    async def test_invalid_action(self):
+        """Test diagnostics with invalid action."""
+        result = await diagnostics(action="invalid")
+
+        assert result["status"] == "error"
+        assert "Invalid action" in result["error"]
 
     async def test_full_diagnostics_success(self):
         """Test full diagnostics run successfully."""
@@ -37,7 +41,7 @@ class TestSystemDiagnosticsTool:
             "mcp_ticketer.mcp.server.tools.diagnostic_tools.SystemDiagnostics",
             return_value=mock_diagnostics,
         ):
-            result = await system_diagnostics(simple=False)
+            result = await diagnostics(action="system", simple=False)
 
             assert result["status"] == "completed"
             assert result["diagnostic_type"] == "full"
@@ -63,7 +67,7 @@ class TestSystemDiagnosticsTool:
             "mcp_ticketer.mcp.server.tools.diagnostic_tools.SystemDiagnostics",
             return_value=mock_diagnostics,
         ):
-            result = await system_diagnostics(simple=False)
+            result = await diagnostics(action="system", simple=False)
 
             assert result["status"] == "completed"
             assert result["diagnostic_type"] == "full"
@@ -82,7 +86,7 @@ class TestSystemDiagnosticsTool:
             "mcp_ticketer.mcp.server.tools.diagnostic_tools.simple_diagnose",
             return_value=mock_simple_report,
         ):
-            result = await system_diagnostics(simple=True)
+            result = await diagnostics(action="system", simple=True)
 
             assert result["status"] == "completed"
             assert result["diagnostic_type"] == "simple"
@@ -95,17 +99,17 @@ class TestSystemDiagnosticsTool:
             "mcp_ticketer.mcp.server.tools.diagnostic_tools.SystemDiagnostics",
             side_effect=RuntimeError("Diagnostics crashed"),
         ):
-            result = await system_diagnostics(simple=False)
+            result = await diagnostics(action="system", simple=False)
 
             assert result["status"] == "error"
-            assert "Diagnostics failed" in result["error"]
+            assert "System diagnostics failed" in result["error"]
             assert "Diagnostics crashed" in result["error"]
             assert "simple=True" in result["recommendation"]
 
 
 @pytest.mark.asyncio
-class TestCheckAdapterHealthTool:
-    """Test check_adapter_health MCP tool."""
+class TestDiagnosticsToolAdapter:
+    """Test diagnostics tool with action='adapter'."""
 
     async def test_check_all_adapters_healthy(self):
         """Test checking all adapters when all are healthy."""
@@ -127,7 +131,7 @@ class TestCheckAdapterHealthTool:
                 "mcp_ticketer.core.registry.AdapterRegistry.get_adapter",
                 return_value=mock_adapter,
             ):
-                result = await check_adapter_health()
+                result = await diagnostics(action="adapter")
 
                 assert result["status"] == "completed"
                 assert result["healthy_count"] == 2
@@ -157,7 +161,7 @@ class TestCheckAdapterHealthTool:
                 "mcp_ticketer.core.registry.AdapterRegistry.get_adapter",
                 return_value=mock_adapter,
             ):
-                result = await check_adapter_health(adapter_name="linear")
+                result = await diagnostics(action="adapter", adapter_name="linear")
 
                 assert result["status"] == "completed"
                 assert result["healthy_count"] == 1
@@ -194,7 +198,7 @@ class TestCheckAdapterHealthTool:
                 "mcp_ticketer.core.registry.AdapterRegistry.get_adapter",
                 side_effect=get_adapter_side_effect,
             ):
-                result = await check_adapter_health()
+                result = await diagnostics(action="adapter")
 
                 assert result["status"] == "completed"
                 assert result["healthy_count"] == 1
@@ -211,7 +215,7 @@ class TestCheckAdapterHealthTool:
             "mcp_ticketer.cli.utils.CommonPatterns.load_config",
             return_value=mock_config,
         ):
-            result = await check_adapter_health()
+            result = await diagnostics(action="adapter")
 
             assert result["status"] == "error"
             assert "No adapters configured" in result["error"]
@@ -229,7 +233,7 @@ class TestCheckAdapterHealthTool:
             "mcp_ticketer.cli.utils.CommonPatterns.load_config",
             return_value=mock_config,
         ):
-            result = await check_adapter_health(adapter_name="jira")
+            result = await diagnostics(action="adapter", adapter_name="jira")
 
             assert result["status"] == "error"
             assert "not found in configuration" in result["error"]
@@ -242,29 +246,27 @@ class TestCheckAdapterHealthTool:
             "mcp_ticketer.cli.utils.CommonPatterns.load_config",
             side_effect=RuntimeError("Config system crashed"),
         ):
-            result = await check_adapter_health()
+            result = await diagnostics(action="adapter")
 
             assert result["status"] == "error"
-            assert "Health check failed" in result["error"]
+            assert "Adapter health check failed" in result["error"]
 
 
 class TestToolIntegration:
-    """Test integration of diagnostic tools with error responses."""
+    """Test integration of diagnostic tool with error responses."""
 
     @pytest.mark.asyncio
-    async def test_diagnostic_tools_are_registered(self):
-        """Verify diagnostic tools are properly registered as MCP tools."""
-        # Both functions should have the @mcp.tool() decorator
-        # This is validated by their presence in the module
+    async def test_diagnostic_tool_is_registered(self):
+        """Verify diagnostic tool is properly registered as MCP tool."""
+        # Function should have the @mcp.tool() decorator
+        # This is validated by its presence in the module
 
-        assert callable(system_diagnostics)
-        assert callable(check_adapter_health)
+        assert callable(diagnostics)
 
-        # Check that they're async functions
+        # Check that it's an async function
         import inspect
 
-        assert inspect.iscoroutinefunction(system_diagnostics)
-        assert inspect.iscoroutinefunction(check_adapter_health)
+        assert inspect.iscoroutinefunction(diagnostics)
 
 
 if __name__ == "__main__":

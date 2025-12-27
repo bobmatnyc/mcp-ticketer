@@ -166,7 +166,16 @@ async def detect_and_apply_labels(
 @mcp.tool()
 async def ticket(
     action: Literal[
-        "create", "get", "update", "delete", "list", "summary", "get_activity", "assign"
+        "create",
+        "get",
+        "update",
+        "delete",
+        "list",
+        "summary",
+        "get_activity",
+        "assign",
+        "add_comment",
+        "list_comments",
     ],
     # Ticket identification
     ticket_id: str | None = None,
@@ -188,15 +197,19 @@ async def ticket(
     # Assign parameters
     comment: str | None = None,
     auto_transition: bool = True,
+    # Comment parameters
+    comment_text: str | None = None,
+    comment_limit: int = 10,
+    comment_offset: int = 0,
 ) -> dict[str, Any]:
     """Unified ticket management tool for all CRUD operations.
 
     Handles ticket creation, reading, updating, deletion, listing,
-    summarization, activity tracking, and assignment in a single interface.
+    summarization, activity tracking, assignment, and comments in a single interface.
 
     Args:
-        action: Operation to perform (create, get, update, delete, list, summary, get_activity, assign)
-        ticket_id: Ticket ID for get/update/delete/summary/assign operations
+        action: Operation to perform (create, get, update, delete, list, summary, get_activity, assign, add_comment, list_comments)
+        ticket_id: Ticket ID for get/update/delete/summary/assign/comment operations
         title: Ticket title (required for create)
         description: Ticket description
         priority: Ticket priority (low, medium, high, critical)
@@ -211,6 +224,9 @@ async def ticket(
         compact: Return compact format for list (saves tokens)
         comment: Comment when assigning ticket
         auto_transition: Auto-transition state when assigning
+        comment_text: Comment text (required for add_comment action)
+        comment_limit: Maximum comments to return (for list_comments, default: 10)
+        comment_offset: Pagination offset for list_comments (default: 0)
 
     Returns:
         dict: Operation results
@@ -275,6 +291,24 @@ async def ticket(
             action="delete",
             ticket_id="PROJ-123"
         )
+
+        # Add comment
+        await ticket(
+            action="add_comment",
+            ticket_id="PROJ-123",
+            comment_text="Working on this now"
+        )
+
+        # List comments
+        await ticket(
+            action="list_comments",
+            ticket_id="PROJ-123",
+            comment_limit=5
+        )
+
+    Migration from deprecated tools:
+        - ticket_comment(operation="add", text=...) → ticket(action="add_comment", comment_text=...)
+        - ticket_comment(operation="list", limit=..., offset=...) → ticket(action="list_comments", comment_limit=..., comment_offset=...)
     """
     # Normalize action to lowercase for case-insensitive matching
     action_lower = action.lower()
@@ -357,6 +391,30 @@ async def ticket(
             }
         return await ticket_assign(ticket_id, assignee, comment, auto_transition)
 
+    elif action_lower == "add_comment":
+        if not ticket_id:
+            return {
+                "status": "error",
+                "error": "ticket_id parameter required for action='add_comment'",
+                "hint": "Example: ticket(action='add_comment', ticket_id='PROJ-123', comment_text='Working on this')",
+            }
+        if not comment_text:
+            return {
+                "status": "error",
+                "error": "comment_text parameter required for action='add_comment'",
+                "hint": "Example: ticket(action='add_comment', ticket_id='PROJ-123', comment_text='Working on this')",
+            }
+        return await _ticket_add_comment(ticket_id, comment_text)
+
+    elif action_lower == "list_comments":
+        if not ticket_id:
+            return {
+                "status": "error",
+                "error": "ticket_id parameter required for action='list_comments'",
+                "hint": "Example: ticket(action='list_comments', ticket_id='PROJ-123', comment_limit=5)",
+            }
+        return await _ticket_list_comments(ticket_id, comment_limit, comment_offset)
+
     else:
         return {
             "status": "error",
@@ -370,6 +428,8 @@ async def ticket(
                 "summary",
                 "get_activity",
                 "assign",
+                "add_comment",
+                "list_comments",
             ],
             "hint": "Use one of the valid actions listed above",
         }
@@ -469,8 +529,8 @@ async def ticket_create(
                         "⚠️  No ticket association found for this work session.\n\n"
                         "It's recommended to associate your work with a ticket for proper tracking.\n\n"
                         "**Options**:\n"
-                        "1. Associate with a ticket: attach_ticket(action='set', ticket_id='PROJ-123')\n"
-                        "2. Skip for this session: attach_ticket(action='none')\n"
+                        "1. Associate with a ticket: user_session(action='attach_ticket', ticket_id='PROJ-123')\n"
+                        "2. Skip for this session: user_session(action='opt_out')\n"
                         "3. Provide parent_epic directly: ticket_create(..., parent_epic='PROJ-123')\n"
                         "4. Set a default: config_set_default_project(project_id='PROJ-123')\n\n"
                         "After associating, run ticket_create again to create the ticket."
@@ -1411,3 +1471,99 @@ async def ticket_assign(
                 logging.debug(f"Diagnostic suggestion generation failed: {diag_error}")
 
         return error_response
+
+async def _ticket_add_comment(ticket_id: str, text: str) -> dict[str, Any]:
+    """Add a comment to a ticket (internal helper for ticket tool).
+
+    Args:
+        ticket_id: Ticket ID or URL
+        text: Comment text
+
+    Returns:
+        dict: Comment response with created comment data
+
+    """
+    try:
+        # Import Comment model
+        from ....core.models import Comment
+
+        # Create comment object
+        comment = Comment(
+            ticket_id=ticket_id,  # Will be normalized by router if URL
+            content=text,
+        )
+
+        # Route to appropriate adapter
+        is_routed = False
+        if is_url(ticket_id) and has_router():
+            router = get_router()
+            logging.info(f"Routing add_comment for URL: {ticket_id}")
+            created = await router.route_add_comment(ticket_id, comment)
+            is_routed = True
+            normalized_id, _, _ = router._normalize_ticket_id(ticket_id)
+            adapter = router._get_adapter(router._detect_adapter_from_url(ticket_id))
+        else:
+            adapter = get_adapter()
+            created = await adapter.add_comment(comment)
+
+        return {
+            "status": "completed",
+            **_build_adapter_metadata(adapter, created.ticket_id, is_routed),
+            "operation": "add_comment",
+            "comment": created.model_dump(),
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to add comment: {str(e)}",
+        }
+
+
+async def _ticket_list_comments(
+    ticket_id: str, limit: int = 10, offset: int = 0
+) -> dict[str, Any]:
+    """List comments on a ticket (internal helper for ticket tool).
+
+    Args:
+        ticket_id: Ticket ID or URL
+        limit: Maximum number of comments to return (default: 10)
+        offset: Pagination offset (default: 0)
+
+    Returns:
+        dict: List of comments with metadata
+
+    """
+    try:
+        # Route to appropriate adapter
+        is_routed = False
+        if is_url(ticket_id) and has_router():
+            router = get_router()
+            logging.info(f"Routing get_comments for URL: {ticket_id}")
+            comments = await router.route_get_comments(
+                ticket_id, limit=limit, offset=offset
+            )
+            is_routed = True
+            normalized_id, _, _ = router._normalize_ticket_id(ticket_id)
+            adapter = router._get_adapter(router._detect_adapter_from_url(ticket_id))
+        else:
+            adapter = get_adapter()
+            comments = await adapter.get_comments(
+                ticket_id=ticket_id, limit=limit, offset=offset
+            )
+
+        return {
+            "status": "completed",
+            **_build_adapter_metadata(adapter, ticket_id, is_routed),
+            "operation": "list_comments",
+            "comments": [comment.model_dump() for comment in comments],
+            "count": len(comments),
+            "limit": limit,
+            "offset": offset,
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to list comments: {str(e)}",
+        }

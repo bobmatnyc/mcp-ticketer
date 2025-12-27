@@ -1,13 +1,22 @@
 """MCP tools for project status analysis and work planning.
 
+.. deprecated::
+    Use project(action="status", ...) instead from project_tools module.
+    This module will be removed in v3.0.0.
+
 This module provides PM-focused tools to analyze project health and
 generate intelligent work plans with recommendations.
 
 Tools:
 - project_status: Comprehensive project/epic analysis with health assessment
+  DEPRECATED: Use project(action="status", ...) instead
+
+Migration:
+    project_status(project_id="123") → project(action="status", project_id="123")
 """
 
 import logging
+import warnings
 from typing import Any
 
 from ....analysis.project_status import StatusAnalyzer
@@ -20,6 +29,10 @@ logger = logging.getLogger(__name__)
 @mcp.tool()
 async def project_status(project_id: str | None = None) -> dict[str, Any]:
     """Analyze project/epic status and generate work plan with recommendations.
+
+    .. deprecated::
+        Use project(action="status", ...) instead.
+        This tool will be removed in v3.0.0.
 
     Provides comprehensive project analysis including:
     - Health assessment (on_track, at_risk, off_track)
@@ -71,6 +84,11 @@ async def project_status(project_id: str | None = None) -> dict[str, Any]:
         }
 
     """
+    warnings.warn(
+        "project_status is deprecated. Use project(action='status', ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         adapter = get_adapter()
 
