@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.3.0] - 2025-12-27
+
+### Added
+- Unified `workflow` tool consolidating `get_available_transitions` and `ticket_transition`
+- Unified `attachment` tool consolidating `ticket_attach` and `ticket_attachments`
+- Unified `project` tool consolidating `project_status` and `project_update`
+- Unified `diagnostics` tool consolidating `system_diagnostics` and `check_adapter_health`
+- Comment actions (`add_comment`, `list_comments`) added to `ticket` tool
+- Session actions (`attach_ticket`, `detach_ticket`, `get_attached`, `opt_out`) added to `user_session`
+
+### Removed
+- `ticket_search_hierarchy` (use `ticket_search(include_hierarchy=True)` instead)
+
+### Changed
+- MCP tool count reduced from 18 to 11 (39% reduction)
+- Token footprint reduced by ~6,000-8,000 tokens (25-33% reduction)
+- All tools now use consistent action-based routing pattern
+
+### Migration Guide
+See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration examples.
+
 ## [2.2.3] - 2025-12-05
 
 ### Added
