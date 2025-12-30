@@ -198,20 +198,22 @@ def create(
         Priority.MEDIUM, "--priority", "-p", help="Priority level"
     ),
     tags: list[str] | None = typer.Option(
-        None, "--tag", "-t", help="Tags (can be specified multiple times)"
+        None,
+        "--tags",  # PRIMARY (matches MCP)
+        "--tag",   # ALIAS (backward compatibility)
+        "-t",      # SHORT FORM
+        help="Tags (can be specified multiple times)",
     ),
     assignee: str | None = typer.Option(
         None, "--assignee", "-a", help="Assignee username"
     ),
-    project: str | None = typer.Option(
+    parent_epic: str | None = typer.Option(
         None,
-        "--project",
-        help="Parent project/epic ID (synonym for --epic)",
-    ),
-    epic: str | None = typer.Option(
-        None,
-        "--epic",
-        help="Parent epic/project ID (synonym for --project)",
+        "--parent-epic",  # PRIMARY (matches MCP)
+        "--epic",         # ALIAS (backward compatibility)
+        "--project",      # ALIAS (backward compatibility)
+        "-e",             # SHORT FORM
+        help="Parent epic/project ID",
     ),
     wait: bool = typer.Option(
         False,
@@ -298,9 +300,6 @@ def create(
                 # Priority 4: Default
                 adapter_name = "aitrackdown"
 
-    # Resolve project/epic synonym - prefer whichever is provided
-    parent_epic_id = project or epic
-
     # Create task data
     # Import Priority for type checking
     from ..core.models import Priority as PriorityEnum
@@ -311,7 +310,7 @@ def create(
         "priority": priority.value if isinstance(priority, PriorityEnum) else priority,
         "tags": tags or [],
         "assignee": assignee,
-        "parent_epic": parent_epic_id,
+        "parent_epic": parent_epic,
     }
 
     # WORKAROUND: Use direct operation for Linear adapter to bypass worker subprocess issue
