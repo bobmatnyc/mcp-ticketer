@@ -87,6 +87,7 @@ async def hierarchy(
     priority: str = "medium",
     tags: list[str] | None = None,
     auto_detect_labels: bool = True,
+    max_auto_labels: int = 4,
 ) -> dict[str, Any]:
     """Unified hierarchy management tool for epics, issues, and tasks.
 
@@ -122,6 +123,7 @@ async def hierarchy(
         priority: Priority level - low, medium, high, critical (default: medium)
         tags: Tags/labels for issues/tasks
         auto_detect_labels: Auto-detect labels from title/description (default: True)
+        max_auto_labels: Maximum number of auto-detected labels to apply (default: 4)
 
     Returns:
         Operation results in standard format with status, data, and metadata
@@ -664,7 +666,7 @@ async def hierarchy(
                     final_tags = tags
                     if auto_detect_labels:
                         final_tags = await detect_and_apply_labels(
-                            adapter, title or "", description or "", tags
+                            adapter, title or "", description or "", tags, max_auto_labels
                         )
 
                     # Create issue (Task with ISSUE type)
@@ -885,7 +887,7 @@ async def hierarchy(
                     final_tags = tags
                     if auto_detect_labels:
                         final_tags = await detect_and_apply_labels(
-                            adapter, title or "", description or "", tags
+                            adapter, title or "", description or "", tags, max_auto_labels
                         )
 
                     # Create task (Task with TASK type)
