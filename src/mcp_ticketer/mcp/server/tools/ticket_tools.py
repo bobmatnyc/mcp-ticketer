@@ -66,6 +66,7 @@ async def detect_and_apply_labels(
     ticket_title: str,
     ticket_description: str,
     existing_labels: list[str] | None = None,
+    max_auto_labels: int = 4,
 ) -> list[str]:
     """Detect and suggest labels/tags based on ticket content.
 
@@ -77,6 +78,7 @@ async def detect_and_apply_labels(
         ticket_title: Ticket title text
         ticket_description: Ticket description text
         existing_labels: Labels already specified by user (optional)
+        max_auto_labels: Maximum number of auto-detected labels to apply (default: 4)
 
     Returns:
         List of label/tag identifiers to apply (combines auto-detected + user-specified)
@@ -135,6 +137,12 @@ async def detect_and_apply_labels(
 
         label_name_lower = label_name.lower()
 
+        # Skip hierarchical labels (containing "/") unless exact match
+        # This prevents overly broad matches like "Test Suite/Authentication" matching "test"
+        if "/" in label_name_lower:
+            if label_name_lower not in content:
+                continue
+
         # Direct match: label name appears in content
         if label_name_lower in content:
             if label_name not in matched_labels:
@@ -154,9 +162,9 @@ async def detect_and_apply_labels(
                         matched_labels.append(label_name)
                     break
 
-    # Combine user-specified labels with auto-detected ones
+    # Combine user-specified labels with auto-detected ones (apply limit to auto-detected)
     final_labels = list(existing_labels or [])
-    for label in matched_labels:
+    for label in matched_labels[:max_auto_labels]:  # Apply max limit
         if label not in final_labels:
             final_labels.append(label)
 
@@ -187,6 +195,7 @@ async def ticket(
     assignee: str | None = None,
     parent_epic: str | None = _UNSET,
     auto_detect_labels: bool = True,
+    max_auto_labels: int = 4,
     # Update parameters
     state: str | None = None,
     # List parameters
@@ -217,6 +226,7 @@ async def ticket(
         assignee: User ID or email to assign ticket
         parent_epic: Parent epic/project ID
         auto_detect_labels: Auto-detect labels from content
+        max_auto_labels: Maximum number of auto-detected labels to apply (default: 4)
         state: Ticket state for updates
         limit: Maximum results for list/get_activity operations
         offset: Pagination offset for list
@@ -328,6 +338,7 @@ async def ticket(
             assignee,
             parent_epic,
             auto_detect_labels,
+            max_auto_labels,
         )
 
     elif action_lower == "get":
@@ -443,6 +454,7 @@ async def ticket_create(
     assignee: str | None = None,
     parent_epic: str | None = _UNSET,
     auto_detect_labels: bool = True,
+    max_auto_labels: int = 4,
 ) -> dict[str, Any]:
     """Create ticket with auto-label detection and semantic priority matching.
 
@@ -558,7 +570,7 @@ async def ticket_create(
         # Auto-detect labels if enabled (adds to existing tags)
         if auto_detect_labels:
             final_tags = await detect_and_apply_labels(
-                adapter, title, description or "", final_tags
+                adapter, title, description or "", final_tags, max_auto_labels
             )
 
         # Create task object
