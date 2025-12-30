@@ -10,6 +10,7 @@ Version 2.0.0 changes:
 """
 
 import logging
+import re
 import warnings
 from pathlib import Path
 from typing import Any, Literal
@@ -59,6 +60,61 @@ def _build_adapter_metadata(
         metadata["routed_from_url"] = True
 
     return metadata
+
+
+def extract_project_url_from_text(text: str) -> str | None:
+    """Extract Linear/GitHub/Jira project URL from text if present.
+
+    Supports project URLs from:
+    - Linear: https://linear.app/{workspace}/project/{projectId}
+    - GitHub: https://github.com/{owner}/projects/{projectNumber}
+    - Jira: https://{domain}.atlassian.net/browse/{projectKey}
+
+    Args:
+        text: Text to search for project URLs (title, description, etc.)
+
+    Returns:
+        First project URL found, or None if no project URL detected
+
+    Note:
+        Only extracts project URLs, not individual ticket/issue URLs.
+        Ticket URLs are intentionally ignored to avoid confusion.
+
+    Examples:
+        >>> extract_project_url_from_text("Fix bug in https://linear.app/hello-recess/project/v2-f7a18fae1c21")
+        'https://linear.app/hello-recess/project/v2-f7a18fae1c21'
+
+        >>> extract_project_url_from_text("No URL here")
+        None
+
+    """
+    if not text:
+        return None
+
+    # Linear project URL pattern
+    # Format: https://linear.app/{workspace}/project/{projectId}
+    # projectId is alphanumeric with hyphens (e.g., v2-f7a18fae1c21)
+    linear_pattern = r"https?://linear\.app/[^/\s]+/project/[a-zA-Z0-9-]+"
+
+    # GitHub project URL pattern
+    # Format: https://github.com/{owner}/projects/{projectNumber}
+    # projectNumber is numeric
+    github_pattern = r"https?://github\.com/[^/\s]+/projects/\d+"
+
+    # Jira project URL pattern
+    # Format: https://{domain}.atlassian.net/browse/{projectKey}
+    # projectKey is typically uppercase letters (e.g., PROJ, ABC)
+    jira_pattern = r"https?://[^/\s]+\.atlassian\.net/browse/[A-Z][A-Z0-9]+"
+
+    # Combined patterns
+    patterns = [linear_pattern, github_pattern, jira_pattern]
+
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            return match.group(0)
+
+    return None
 
 
 async def detect_and_apply_labels(
@@ -498,15 +554,27 @@ async def ticket_create(
 
         priority_enum = match_result.priority
 
+        # Auto-detect project URL from description if parent_epic not provided
+        # This happens BEFORE priority resolution so explicit parent_epic takes precedence
+        if parent_epic is _UNSET:
+            combined_text = f"{title} {description or ''}"
+            detected_project = extract_project_url_from_text(combined_text)
+            if detected_project:
+                parent_epic = detected_project
+                logging.info(
+                    f"Auto-detected project URL from ticket content: {detected_project}"
+                )
+
         # Apply configuration defaults if values not provided
         resolver = ConfigResolver(project_path=Path.cwd())
         config = resolver.load_project_config() or TicketerConfig()
 
         # Determine final_parent_epic based on priority order:
         # Priority 1: Explicit parent_epic argument (including explicit None for opt-out)
-        # Priority 2: Config default (default_epic or default_project)
-        # Priority 3: Session-attached ticket
-        # Priority 4: Prompt user (last resort only if nothing configured)
+        # Priority 2: Auto-detected project URL from title/description
+        # Priority 3: Config default (default_epic or default_project)
+        # Priority 4: Session-attached ticket
+        # Priority 5: Prompt user (last resort only if nothing configured)
 
         final_parent_epic: str | None = None
 
