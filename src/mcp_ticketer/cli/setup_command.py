@@ -339,6 +339,9 @@ def setup(
     else:
         console.print("[green]✓ Step 1/2: Adapter already configured[/green]\n")
 
+        # Prompt to update credentials (issue #53)
+        _prompt_and_update_credentials(config_path, current_adapter, console)
+
         # Even though adapter is configured, prompt for default values
         # This handles the case where credentials exist but defaults were never set
         _prompt_and_update_default_values(config_path, current_adapter, console)
@@ -491,6 +494,218 @@ def setup(
 
     console.print()
     _show_setup_complete_message(console, proj_path)
+
+
+def _prompt_and_update_credentials(
+    config_path: Path, adapter_type: str, console: Console
+) -> None:
+    """Prompt user to update adapter credentials.
+
+    This function allows users to update their API credentials without
+    going through full re-initialization.
+
+    Args:
+        config_path: Path to the configuration file (.mcp-ticketer/config.json)
+        adapter_type: Type of adapter (linear, jira, github, aitrackdown)
+        console: Rich console for output
+
+    Raises:
+        typer.Exit: If configuration cannot be loaded or updated
+
+    """
+    from .configure import _mask_sensitive_value, _validate_api_credentials
+
+    # Ask if user wants to update credentials
+    if not typer.confirm("Would you like to update your credentials?", default=False):
+        return
+
+    try:
+        # Load current config
+        with open(config_path) as f:
+            config = json.load(f)
+
+        adapter_config = config.get("adapters", {}).get(adapter_type, {})
+
+        # Prompt for new credentials based on adapter type
+        new_credentials = {}
+
+        if adapter_type == "linear":
+            # Linear: API key
+            current_key = adapter_config.get("api_key", "")
+            if current_key:
+                masked = _mask_sensitive_value(current_key)
+                new_key = typer.prompt(
+                    f"Linear API Key [current: {masked}]",
+                    hide_input=True,
+                    default=current_key,
+                    show_default=False,
+                )
+            else:
+                new_key = typer.prompt("Linear API Key", hide_input=True)
+
+            # Validate the new API key
+            def prompt_new_api_key() -> dict[str, str]:
+                """Re-prompt for API key on validation failure."""
+                retry_key = typer.prompt("Linear API Key", hide_input=True)
+                return {"api_key": retry_key}
+
+            credentials = {"api_key": new_key}
+            if _validate_api_credentials(
+                "linear", credentials, credential_prompter=prompt_new_api_key
+            ):
+                new_credentials["api_key"] = credentials["api_key"]
+
+        elif adapter_type == "github":
+            # GitHub: Token
+            current_token = adapter_config.get("token", "")
+            if current_token:
+                masked = _mask_sensitive_value(current_token)
+                console.print(
+                    "[dim]Create token at: https://github.com/settings/tokens/new[/dim]"
+                )
+                console.print(
+                    "[dim]Required scopes: repo (or public_repo for public repos)[/dim]"
+                )
+                new_token = typer.prompt(
+                    f"GitHub Token [current: {masked}]",
+                    hide_input=True,
+                    default=current_token,
+                    show_default=False,
+                )
+            else:
+                console.print(
+                    "[dim]Create token at: https://github.com/settings/tokens/new[/dim]"
+                )
+                console.print(
+                    "[dim]Required scopes: repo (or public_repo for public repos)[/dim]"
+                )
+                new_token = typer.prompt("GitHub Token", hide_input=True)
+
+            # Validate the new token
+            def prompt_new_github_token() -> dict[str, str]:
+                """Re-prompt for GitHub token on validation failure."""
+                console.print(
+                    "[dim]Create token at: https://github.com/settings/tokens/new[/dim]"
+                )
+                console.print(
+                    "[dim]Required scopes: repo (or public_repo for public repos)[/dim]"
+                )
+                retry_token = typer.prompt("GitHub Token", hide_input=True)
+                return {"token": retry_token}
+
+            credentials = {"token": new_token}
+            if _validate_api_credentials(
+                "github", credentials, credential_prompter=prompt_new_github_token
+            ):
+                new_credentials["token"] = credentials["token"]
+
+        elif adapter_type == "jira":
+            # JIRA: Server URL (optional), Email (optional), API Token (required)
+            current_server = adapter_config.get("server", "")
+            current_email = adapter_config.get("email", "")
+            current_token = adapter_config.get("api_token", "")
+
+            # Optionally update server URL
+            if typer.confirm(
+                "Update JIRA server URL?",
+                default=False,
+            ):
+                if current_server:
+                    new_server = typer.prompt(
+                        f"JIRA Server URL [current: {current_server}]",
+                        default=current_server,
+                    )
+                else:
+                    new_server = typer.prompt(
+                        "JIRA Server URL (e.g., https://company.atlassian.net)"
+                    )
+                new_credentials["server"] = new_server.rstrip("/")
+            else:
+                new_credentials["server"] = current_server
+
+            # Optionally update email
+            if typer.confirm("Update JIRA email?", default=False):
+                if current_email:
+                    new_email = typer.prompt(
+                        f"JIRA Email [current: {current_email}]",
+                        default=current_email,
+                    )
+                else:
+                    new_email = typer.prompt("JIRA Email")
+                new_credentials["email"] = new_email
+            else:
+                new_credentials["email"] = current_email
+
+            # Always prompt for API token
+            if current_token:
+                masked = _mask_sensitive_value(current_token)
+                console.print(
+                    "[dim]Generate token at: https://id.atlassian.com/manage/api-tokens[/dim]"
+                )
+                new_token = typer.prompt(
+                    f"JIRA API Token [current: {masked}]",
+                    hide_input=True,
+                    default=current_token,
+                    show_default=False,
+                )
+            else:
+                console.print(
+                    "[dim]Generate token at: https://id.atlassian.com/manage/api-tokens[/dim]"
+                )
+                new_token = typer.prompt("JIRA API Token", hide_input=True)
+
+            new_credentials["api_token"] = new_token
+
+            # Validate JIRA credentials
+            def prompt_new_jira_credentials() -> dict[str, str]:
+                """Re-prompt for JIRA API token on validation failure."""
+                console.print(
+                    "[dim]Generate token at: https://id.atlassian.com/manage/api-tokens[/dim]"
+                )
+                retry_token = typer.prompt("JIRA API Token", hide_input=True)
+                return {"api_token": retry_token}
+
+            if not _validate_api_credentials(
+                "jira", new_credentials, credential_prompter=prompt_new_jira_credentials
+            ):
+                console.print("[red]✗ Failed to validate JIRA credentials[/red]")
+                return
+
+        elif adapter_type == "aitrackdown":
+            # AITrackdown: No credentials needed
+            console.print(
+                "[yellow]AITrackdown does not require credentials (file-based adapter)[/yellow]"
+            )
+            return
+
+        else:
+            console.print(f"[yellow]Unknown adapter type: {adapter_type}[/yellow]")
+            return
+
+        # Update config with new credentials
+        if new_credentials:
+            adapter_config.update(new_credentials)
+            config["adapters"][adapter_type] = adapter_config
+
+            # Save updated config
+            with open(config_path, "w") as f:
+                json.dump(config, f, indent=2)
+
+            console.print("\n[green]✓ Credentials updated[/green]\n")
+
+    except json.JSONDecodeError as e:
+        console.print(f"[red]✗ Invalid JSON in configuration file: {e}[/red]\n")
+        console.print(
+            "[yellow]Please fix the configuration file manually or run 'mcp-ticketer init --force'[/yellow]\n"
+        )
+    except OSError as e:
+        console.print(f"[red]✗ Could not read/write configuration file: {e}[/red]\n")
+        console.print("[yellow]Please check file permissions and try again[/yellow]\n")
+    except Exception as e:
+        console.print(f"[red]✗ Unexpected error updating credentials: {e}[/red]\n")
+        console.print(
+            "[yellow]Configuration may be incomplete. Run 'mcp-ticketer doctor' to verify[/yellow]\n"
+        )
 
 
 def _prompt_and_update_default_values(
