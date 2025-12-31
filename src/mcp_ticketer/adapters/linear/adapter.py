@@ -123,16 +123,12 @@ class LinearAdapter(BaseAdapter[Task]):
 
         super().__init__(config)
 
-        # Extract configuration
+        # Extract configuration - don't raise here, validate_credentials() will check
         self.api_key = config.get("api_key") or os.getenv("LINEAR_API_KEY")
-        if not self.api_key:
-            raise ValueError(
-                "Linear API key is required (api_key or LINEAR_API_KEY env var)"
-            )
 
         # Clean API key - remove common prefixes if accidentally included in config
         # (The client will add Bearer back when making requests)
-        if isinstance(self.api_key, str):
+        if self.api_key:
             # Remove Bearer prefix
             if self.api_key.startswith("Bearer "):
                 self.api_key = self.api_key.replace("Bearer ", "")

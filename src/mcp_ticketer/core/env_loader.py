@@ -41,7 +41,7 @@ class UnifiedEnvLoader:
             primary_key="LINEAR_API_KEY",
             aliases=["LINEAR_TOKEN", "LINEAR_ACCESS_TOKEN", "LINEAR_AUTH_TOKEN"],
             description="Linear API key",
-            required=True,
+            required=False,  # Adapter validates credentials, not env_loader
         ),
         "linear_team_id": EnvKeyConfig(
             primary_key="LINEAR_TEAM_ID",
@@ -77,7 +77,7 @@ class UnifiedEnvLoader:
                 "JIRA_PASSWORD",
             ],
             description="JIRA API token",
-            required=True,
+            required=False,  # Adapter validates credentials, not env_loader
         ),
         "jira_project_key": EnvKeyConfig(
             primary_key="JIRA_PROJECT_KEY",
@@ -90,7 +90,7 @@ class UnifiedEnvLoader:
             primary_key="GITHUB_TOKEN",
             aliases=["GITHUB_ACCESS_TOKEN", "GITHUB_API_TOKEN", "GITHUB_AUTH_TOKEN"],
             description="GitHub access token",
-            required=True,
+            required=False,  # Adapter validates credentials, not env_loader
         ),
         "github_owner": EnvKeyConfig(
             primary_key="GITHUB_OWNER",

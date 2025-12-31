@@ -53,8 +53,13 @@ class JiraClient:
         self.timeout = timeout
         self.max_retries = max_retries
 
-        # HTTP client setup
-        self.auth = httpx.BasicAuth(self.email, self.api_token)
+        # HTTP client setup - only create auth if credentials are present
+        # (validate_credentials() will check for missing credentials)
+        self.auth = (
+            httpx.BasicAuth(self.email, self.api_token)
+            if self.email and self.api_token
+            else None
+        )
         self.headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",

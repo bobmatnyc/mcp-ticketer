@@ -47,13 +47,17 @@ class GitHubConfig(BaseAdapterConfig):
 
     @field_validator("token", mode="before")
     @classmethod
-    def validate_token(cls, v: Any) -> str:
-        """Validate GitHub token from config or environment."""
+    def validate_token(cls, v: Any) -> str | None:
+        """Resolve GitHub token from config or environment.
+
+        Token resolution order:
+        1. Explicit value from config file
+        2. GITHUB_TOKEN environment variable
+        3. None (adapter will validate and provide clear error)
+        """
         if not v:
             v = os.getenv("GITHUB_TOKEN")
-        if not v:
-            raise ValueError("GitHub token is required")
-        return cast(str, v)
+        return cast(str, v) if v else None
 
     @field_validator("owner", mode="before")
     @classmethod
@@ -109,13 +113,17 @@ class JiraConfig(BaseAdapterConfig):
 
     @field_validator("api_token", mode="before")
     @classmethod
-    def validate_api_token(cls, v: Any) -> str:
-        """Validate JIRA API token from config or environment."""
+    def validate_api_token(cls, v: Any) -> str | None:
+        """Resolve JIRA API token from config or environment.
+
+        API token resolution order:
+        1. Explicit value from config file
+        2. JIRA_API_TOKEN environment variable
+        3. None (adapter will validate and provide clear error)
+        """
         if not v:
             v = os.getenv("JIRA_API_TOKEN")
-        if not v:
-            raise ValueError("JIRA API token is required")
-        return cast(str, v)
+        return cast(str, v) if v else None
 
 
 class LinearConfig(BaseAdapterConfig):
@@ -137,13 +145,17 @@ class LinearConfig(BaseAdapterConfig):
 
     @field_validator("api_key", mode="before")
     @classmethod
-    def validate_api_key(cls, v: Any) -> str:
-        """Validate Linear API key from config or environment."""
+    def validate_api_key(cls, v: Any) -> str | None:
+        """Resolve Linear API key from config or environment.
+
+        API key resolution order:
+        1. Explicit value from config file
+        2. LINEAR_API_KEY environment variable
+        3. None (adapter will validate and provide clear error)
+        """
         if not v:
             v = os.getenv("LINEAR_API_KEY")
-        if not v:
-            raise ValueError("Linear API key is required")
-        return cast(str, v)
+        return cast(str, v) if v else None
 
 
 class AITrackdownConfig(BaseAdapterConfig):
