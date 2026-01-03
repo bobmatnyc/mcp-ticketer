@@ -26,6 +26,7 @@ Performance: Configuration is cached in memory by ConfigResolver,
 so repeated reads are fast (O(1) after first load).
 """
 
+import json
 import logging
 import warnings
 from pathlib import Path
@@ -95,14 +96,39 @@ def _safe_load_config() -> TicketerConfig:
 
     # Config is None - need to determine if this is first-time setup or an error
     if config_path.exists():
-        # File exists but failed to load - this is an error condition
-        # DO NOT create empty config and wipe existing data
-        raise RuntimeError(
-            f"Configuration file exists at {config_path} but failed to load. "
-            f"This may indicate a corrupted or invalid JSON file. "
-            f"Please check the file manually before retrying. "
-            f"To prevent data loss, this operation was aborted."
-        )
+        # File exists but failed to load - need to determine the specific error type
+        # to provide accurate error messages (not assume corruption)
+        try:
+            with open(config_path) as f:
+                data = json.load(f)
+            # JSON is valid, but TicketerConfig construction failed
+            # This suggests validation error, not corruption
+            raise RuntimeError(
+                f"Configuration file at {config_path} contains valid JSON "
+                f"but failed to load as TicketerConfig. This may indicate "
+                f"invalid configuration values or a validation error during initialization. "
+                f"Check the application logs for specific error details. "
+                f"To prevent data loss, this operation was aborted."
+            )
+        except json.JSONDecodeError as e:
+            # File contains corrupted JSON
+            raise RuntimeError(
+                f"Configuration file exists at {config_path} but contains invalid JSON. "
+                f"JSON parse error: {e}. "
+                f"Please check the file manually before retrying. "
+                f"To prevent data loss, this operation was aborted."
+            )
+        except RuntimeError:
+            # Re-raise our own RuntimeError from above
+            raise
+        except Exception as e:
+            # File read error or other unexpected error
+            raise RuntimeError(
+                f"Configuration file exists at {config_path} but failed to load. "
+                f"Error: {type(e).__name__}: {e}. "
+                f"Check the application logs for details. "
+                f"To prevent data loss, this operation was aborted."
+            )
 
     # File doesn't exist - first-time setup, safe to create new config
     logger.info(f"No configuration file found at {config_path}, creating new config")
