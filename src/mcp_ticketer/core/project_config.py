@@ -536,7 +536,11 @@ class ConfigResolver:
                     data = json.load(f)
                 return TicketerConfig.from_dict(data)
             except Exception as e:
-                logger.error(f"Failed to load project config from {config_path}: {e}")
+                logger.error(
+                    f"Failed to load project config from {config_path}: "
+                    f"{type(e).__name__}: {e}",
+                    exc_info=True
+                )
 
         return None
 

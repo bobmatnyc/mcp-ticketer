@@ -1593,3 +1593,99 @@ class TestConfigSetupWizard:
             assert "missing_fields" in result
             assert "owner" in result["missing_fields"]
             assert "repo" in result["missing_fields"]
+
+
+@pytest.mark.asyncio
+class TestConfigErrorHandling:
+    """Test suite for config error handling (GitHub issue #62)."""
+
+    async def test_config_set_with_corrupted_json(self, tmp_path: Path) -> None:
+        """Test that config set fails with clear error when JSON is corrupted."""
+        # Create corrupted JSON file
+        config_dir = tmp_path / ".mcp-ticketer"
+        config_dir.mkdir(parents=True)
+        config_path = config_dir / "config.json"
+
+        with open(config_path, "w") as f:
+            f.write("{invalid json syntax")
+
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_set_default_project("PROJ-123")
+
+            assert result["status"] == "error"
+            assert "invalid JSON" in result["error"]
+            assert "JSON parse error" in result["error"]
+            # Should not say "corrupted or invalid JSON file" (old misleading message)
+
+    async def test_config_set_with_valid_json_invalid_config(self, tmp_path: Path) -> None:
+        """Test that config set fails with clear error when JSON is valid but config is invalid."""
+        # Create valid JSON but invalid config structure
+        config_dir = tmp_path / ".mcp-ticketer"
+        config_dir.mkdir(parents=True)
+        config_path = config_dir / "config.json"
+
+        # Valid JSON but will cause validation error during TicketerConfig initialization
+        invalid_config = {
+            "default_adapter": "linear",
+            "adapters": {
+                "linear": {
+                    # This will cause some validation error
+                    "adapter": "linear",
+                    # Missing required fields like api_key
+                }
+            }
+        }
+        with open(config_path, "w") as f:
+            json.dump(invalid_config, f)
+
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_set_default_project("PROJ-123")
+
+            # Should succeed or fail with validation error, not "corrupted JSON" error
+            # If it fails, error should mention validation, not JSON corruption
+            if result["status"] == "error":
+                assert "valid JSON" in result["error"] or "validation" in result["error"].lower()
+                assert "JSON parse error" not in result["error"]
+
+    async def test_config_set_with_valid_config(self, tmp_path: Path) -> None:
+        """Test that config set works correctly with valid existing config."""
+        # Create valid config
+        config_dir = tmp_path / ".mcp-ticketer"
+        config_dir.mkdir(parents=True)
+        config_path = config_dir / "config.json"
+
+        valid_config = {
+            "default_adapter": "linear",
+            "default_project": "OLD-PROJ",
+            "adapters": {
+                "linear": {
+                    "adapter": "linear",
+                    "api_key": "lin_api_test123456789012345678901234567890",
+                    "team_key": "ENG"
+                }
+            }
+        }
+        with open(config_path, "w") as f:
+            json.dump(valid_config, f)
+
+        with patch(
+            "mcp_ticketer.mcp.server.tools.config_tools.Path.cwd",
+            return_value=tmp_path,
+        ):
+            result = await config_set_default_project("NEW-PROJ")
+
+            assert result["status"] == "completed"
+            assert result["new_project"] == "NEW-PROJ"
+            assert result["previous_project"] == "OLD-PROJ"
+
+            # Verify adapter config was preserved
+            with open(config_path) as f:
+                config_data = json.load(f)
+            assert config_data["adapters"]["linear"]["api_key"] == "lin_api_test123456789012345678901234567890"
+            assert config_data["default_project"] == "NEW-PROJ"
