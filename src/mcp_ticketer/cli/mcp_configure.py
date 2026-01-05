@@ -10,6 +10,7 @@ from pathlib import Path
 from rich.console import Console
 
 from .python_detection import get_mcp_ticketer_python
+from .utils import CommonPatterns
 
 console = Console()
 
@@ -526,10 +527,8 @@ def create_mcp_server_config(
     # The CLI uses FastMCP SDK which implements proper Content-Length framing
     # Legacy python -m mcp_ticketer.mcp.server uses line-delimited JSON (incompatible)
 
-    # Get mcp-ticketer CLI path from Python path
-    # If python_path is /path/to/venv/bin/python, CLI is /path/to/venv/bin/mcp-ticketer
-    python_dir = Path(python_path).parent
-    cli_path = str(python_dir / "mcp-ticketer")
+    # Get mcp-ticketer CLI path using PATH resolution (reliable for all installations)
+    cli_path = CommonPatterns.get_mcp_cli_path()
 
     # Build CLI arguments
     args = ["mcp"]
@@ -1019,9 +1018,8 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
         else:
             console.print("[dim]Using pipx/system Python[/dim]")
 
-        # Derive CLI path from Python path
-        python_dir = Path(python_path).parent
-        cli_path = str(python_dir / "mcp-ticketer")
+        # Get mcp-ticketer CLI path using PATH resolution (reliable for all installations)
+        cli_path = CommonPatterns.get_mcp_cli_path()
         console.print(f"[dim]CLI command will be: {cli_path}[/dim]")
     except Exception as e:
         console.print(f"[red]✗[/red] Could not find Python executable: {e}")

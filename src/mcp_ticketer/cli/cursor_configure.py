@@ -12,6 +12,7 @@ from rich.console import Console
 
 from .mcp_configure import load_project_config
 from .python_detection import get_mcp_ticketer_python
+from .utils import CommonPatterns
 
 console = Console()
 
@@ -94,16 +95,14 @@ def create_cursor_server_config(
     """
     # IMPORTANT: Use CLI command, NOT Python module invocation
     # The CLI uses FastMCP SDK which implements proper Content-Length framing
-    from pathlib import Path
 
     # Get adapter configuration
     adapter = project_config.get("default_adapter", "aitrackdown")
     adapters_config = project_config.get("adapters", {})
     adapter_config = adapters_config.get(adapter, {})
 
-    # Get mcp-ticketer CLI path from Python path
-    python_dir = Path(python_path).parent
-    cli_path = str(python_dir / "mcp-ticketer")
+    # Get mcp-ticketer CLI path using PATH resolution (reliable for all installations)
+    cli_path = CommonPatterns.get_mcp_cli_path()
 
     # Build CLI arguments
     args = ["mcp"]

@@ -8,6 +8,7 @@ from rich.console import Console
 
 from .mcp_configure import load_project_config
 from .python_detection import get_mcp_ticketer_python
+from .utils import CommonPatterns
 
 console = Console()
 
@@ -143,10 +144,8 @@ def create_gemini_server_config(
         if "project_key" in adapter_config:
             env_vars["JIRA_PROJECT_KEY"] = adapter_config["project_key"]
 
-    # Get mcp-ticketer CLI path from Python path
-    # If python_path is /path/to/venv/bin/python, CLI is /path/to/venv/bin/mcp-ticketer
-    python_dir = Path(python_path).parent
-    cli_path = str(python_dir / "mcp-ticketer")
+    # Get mcp-ticketer CLI path using PATH resolution (reliable for all installations)
+    cli_path = CommonPatterns.get_mcp_cli_path()
 
     # Build CLI arguments
     args = ["mcp"]

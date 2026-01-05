@@ -144,6 +144,29 @@ class CommonPatterns:
     CONFIG_FILE = Path.cwd() / ".mcp-ticketer" / "config.json"
 
     @staticmethod
+    def get_mcp_cli_path() -> str:
+        """Get mcp-ticketer CLI path using PATH resolution.
+
+        Uses shutil.which() for reliable resolution across all installation methods
+        (Homebrew, pipx, venv, pip install).
+
+        Returns:
+            Absolute path to mcp-ticketer CLI executable
+
+        Raises:
+            FileNotFoundError: If mcp-ticketer is not found in PATH
+        """
+        import shutil
+
+        cli_path = shutil.which("mcp-ticketer")
+        if not cli_path:
+            raise FileNotFoundError(
+                "mcp-ticketer CLI not found in PATH. "
+                "Ensure mcp-ticketer is installed and available in your PATH."
+            )
+        return cli_path
+
+    @staticmethod
     def load_config() -> dict:
         """Load configuration from project-local config file with environment discovery fallback.
 
