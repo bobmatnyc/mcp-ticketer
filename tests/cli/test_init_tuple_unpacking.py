@@ -357,3 +357,84 @@ class TestAdapterTupleUnpacking:
             assert config.get("default_user") == "linear_user@example.com"
             assert config.get("default_epic") == "LIN-999"
             assert config.get("default_tags") == ["linear", "reference"]
+
+    def test_init_preserves_existing_defaults_on_reinit(self, tmp_path: Path) -> None:
+        """Verify that re-running init preserves user defaults (settings persistence bug fix)."""
+        # Setup test environment
+        config_dir = tmp_path / ".mcp-ticketer"
+        config_dir.mkdir()
+        config_file = config_dir / "config.json"
+
+        # Step 1: Create initial config with user defaults
+        initial_config = {
+            "default_adapter": "linear",
+            "adapters": {
+                "linear": {
+                    "adapter": "linear",  # Required field
+                    "api_key": "initial_key",
+                    "team_id": "initial_team",
+                }
+            },
+            "default_user": "user@example.com",
+            "default_project": "PROJ-123",
+            "default_tags": ["bug", "urgent"],
+            "default_team": "engineering",
+            "default_cycle": "sprint-23",
+            "assignment_labels": ["my-tasks"],
+        }
+        with open(config_file, "w") as f:
+            json.dump(initial_config, f)
+
+        # Step 2: Mock re-initialization with different adapter
+        mock_adapter_config = Mock()
+        mock_adapter_config.to_dict.return_value = {
+            "token": "new_github_token",
+            "owner": "new_owner",
+            "repo": "new_repo",
+        }
+
+        # Re-init should NOT override these unless explicitly provided
+        mock_default_values = {}
+
+        with (
+            patch("mcp_ticketer.cli.init_command.Path.cwd", return_value=tmp_path),
+            patch(
+                "mcp_ticketer.cli.init_command._configure_github",
+                return_value=(mock_adapter_config, mock_default_values),
+            ),
+            patch("rich.console.Console.print"),
+            patch(
+                "mcp_ticketer.cli.init_command._validate_adapter_credentials",
+                return_value=[],  # Empty list = no validation issues
+            ),
+        ):
+            # Run init again with different adapter (simulating --force-reinit)
+            result = _init_adapter_internal(
+                adapter="github",
+                github_url="https://github.com/new_owner/new_repo",
+                github_token="new_github_token",
+            )
+
+            # Assert init succeeded
+            assert result is True
+
+            # Read the updated config
+            with open(config_file) as f:
+                config = json.load(f)
+
+            # Verify adapter changed
+            assert config["default_adapter"] == "github"
+            assert "github" in config["adapters"]
+            assert config["adapters"]["github"]["token"] == "new_github_token"
+
+            # CRITICAL: Verify existing user defaults were PRESERVED
+            assert config.get("default_user") == "user@example.com"
+            assert config.get("default_project") == "PROJ-123"
+            assert config.get("default_tags") == ["bug", "urgent"]
+            assert config.get("default_team") == "engineering"
+            assert config.get("default_cycle") == "sprint-23"
+            assert config.get("assignment_labels") == ["my-tasks"]
+
+            # Original adapter config should still exist
+            assert "linear" in config["adapters"]
+            assert config["adapters"]["linear"]["api_key"] == "initial_key"

@@ -521,7 +521,21 @@ def _init_adapter_internal(
             return False
 
     # 2. Create configuration based on adapter type
-    config = {"default_adapter": adapter_type, "adapters": {}}
+    # Preserve existing user defaults when re-initializing
+    from ..core.project_config import ConfigResolver
+
+    resolver = ConfigResolver(project_path=proj_path)
+    existing_config = resolver.load_project_config()
+
+    if existing_config:
+        # Preserve existing defaults while updating adapter
+        config = existing_config.to_dict()
+        config["default_adapter"] = adapter_type
+        # Ensure adapters dict exists
+        if "adapters" not in config:
+            config["adapters"] = {}
+    else:
+        config = {"default_adapter": adapter_type, "adapters": {}}
 
     # 3. If discovered and matches adapter_type, use discovered config
     if discovered and adapter_type != "aitrackdown":
