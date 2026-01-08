@@ -1346,6 +1346,26 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         """
         raise NotImplementedError("Milestone support for Jira coming in v2.1.0")
 
+    async def search_users(self, query: str) -> list[dict[str, Any]]:
+        """Search for users by name or email.
+
+        Args:
+        ----
+            query: Search query (name or email)
+
+        Returns:
+        -------
+            Empty list (user search not yet implemented for Jira)
+
+        Note:
+        ----
+            Jira user search API implementation pending.
+            Returns empty list for now.
+
+        """
+        logger.info("search_users called but not yet implemented for Jira adapter")
+        return []
+
 
 # Register the adapter
 AdapterRegistry.register("jira", JiraAdapter)

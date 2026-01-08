@@ -978,3 +978,18 @@ class BaseAdapter(ABC, Generic[T]):
         raise NotImplementedError(
             f"{self.__class__.__name__} does not support project statistics."
         )
+
+    @abstractmethod
+    async def search_users(self, query: str) -> builtins.list[dict[str, Any]]:
+        """Search for users by name or email.
+
+        Args:
+        ----
+            query: Search query (name or email)
+
+        Returns:
+        -------
+            List of user dictionaries with keys: id, name, email
+
+        """
+        pass

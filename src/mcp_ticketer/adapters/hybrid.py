@@ -4,6 +4,8 @@ This adapter enables synchronization across multiple ticketing systems
 (Linear, JIRA, GitHub, AITrackdown) with configurable sync strategies.
 """
 
+from __future__ import annotations
+
 import builtins
 import json
 import logging
@@ -591,3 +593,163 @@ class HybridAdapter(BaseAdapter):
                 status["adapters"][adapter_name] = {"status": "error", "error": str(e)}
 
         return status
+
+    def validate_credentials(self) -> tuple[bool, str]:
+        """Validate credentials for all adapters.
+
+        Returns:
+            Tuple of (is_valid, error_message)
+
+        """
+        if self.primary_adapter_name is None:
+            return False, "Primary adapter name is not set"
+
+        for adapter_name, adapter in self.adapters.items():
+            is_valid, error = adapter.validate_credentials()
+            if not is_valid:
+                return False, f"Adapter {adapter_name} credentials invalid: {error}"
+
+        return True, ""
+
+    async def milestone_create(
+        self,
+        name: str,
+        target_date: Any = None,
+        labels: list[str] | None = None,
+        description: str = "",
+        project_id: str | None = None,
+    ) -> Any:
+        """Create milestone in primary adapter.
+
+        Args:
+            name: Milestone name
+            target_date: Target completion date
+            labels: Labels that define this milestone
+            description: Milestone description
+            project_id: Associated project ID
+
+        Returns:
+            Created Milestone object
+
+        """
+        if self.primary_adapter_name is None:
+            raise ValueError("Primary adapter name is not set")
+        primary = self.adapters[self.primary_adapter_name]
+        return await primary.milestone_create(
+            name, target_date, labels, description, project_id
+        )
+
+    async def milestone_get(self, milestone_id: str) -> Any:
+        """Get milestone from primary adapter.
+
+        Args:
+            milestone_id: Milestone identifier
+
+        Returns:
+            Milestone object or None
+
+        """
+        if self.primary_adapter_name is None:
+            raise ValueError("Primary adapter name is not set")
+        primary = self.adapters[self.primary_adapter_name]
+        return await primary.milestone_get(milestone_id)
+
+    async def milestone_list(
+        self,
+        project_id: str | None = None,
+        state: str | None = None,
+    ) -> list[Any]:
+        """List milestones from primary adapter.
+
+        Args:
+            project_id: Filter by project
+            state: Filter by state
+
+        Returns:
+            List of Milestone objects
+
+        """
+        if self.primary_adapter_name is None:
+            raise ValueError("Primary adapter name is not set")
+        primary = self.adapters[self.primary_adapter_name]
+        return await primary.milestone_list(project_id, state)
+
+    async def milestone_update(
+        self,
+        milestone_id: str,
+        name: str | None = None,
+        target_date: Any = None,
+        state: str | None = None,
+        labels: list[str] | None = None,
+        description: str | None = None,
+    ) -> Any:
+        """Update milestone in primary adapter.
+
+        Args:
+            milestone_id: Milestone identifier
+            name: New name
+            target_date: New target date
+            state: New state
+            labels: New labels
+            description: New description
+
+        Returns:
+            Updated Milestone object or None
+
+        """
+        if self.primary_adapter_name is None:
+            raise ValueError("Primary adapter name is not set")
+        primary = self.adapters[self.primary_adapter_name]
+        return await primary.milestone_update(
+            milestone_id, name, target_date, state, labels, description
+        )
+
+    async def milestone_delete(self, milestone_id: str) -> bool:
+        """Delete milestone from primary adapter.
+
+        Args:
+            milestone_id: Milestone identifier
+
+        Returns:
+            True if deleted successfully
+
+        """
+        if self.primary_adapter_name is None:
+            raise ValueError("Primary adapter name is not set")
+        primary = self.adapters[self.primary_adapter_name]
+        return await primary.milestone_delete(milestone_id)
+
+    async def milestone_get_issues(
+        self,
+        milestone_id: str,
+        state: str | None = None,
+    ) -> list[Any]:
+        """Get milestone issues from primary adapter.
+
+        Args:
+            milestone_id: Milestone identifier
+            state: Filter by issue state
+
+        Returns:
+            List of Task objects
+
+        """
+        if self.primary_adapter_name is None:
+            raise ValueError("Primary adapter name is not set")
+        primary = self.adapters[self.primary_adapter_name]
+        return await primary.milestone_get_issues(milestone_id, state)
+
+    async def search_users(self, query: str) -> list[dict[str, Any]]:
+        """Search for users in primary adapter.
+
+        Args:
+            query: Search query (name or email)
+
+        Returns:
+            List of user dictionaries with keys: id, name, email
+
+        """
+        if self.primary_adapter_name is None:
+            raise ValueError("Primary adapter name is not set")
+        primary = self.adapters[self.primary_adapter_name]
+        return await primary.search_users(query)

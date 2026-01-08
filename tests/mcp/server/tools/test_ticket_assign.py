@@ -29,6 +29,10 @@ class TestTicketAssignBasic:
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "linear"
         mock_adapter.adapter_display_name = "Linear"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
+        # Delete search_users to trigger fallback behavior
+        del mock_adapter.search_users
 
         # Current ticket state (unassigned)
         mock_ticket = Task(
@@ -83,6 +87,8 @@ class TestTicketAssignBasic:
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "linear"
         mock_adapter.adapter_display_name = "Linear"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
 
         mock_ticket = Task(
             id="ABC-123",
@@ -118,6 +124,8 @@ class TestTicketAssignBasic:
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "linear"
         mock_adapter.adapter_display_name = "Linear"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
 
         # Ticket currently assigned to user1
         mock_ticket = Task(
@@ -161,6 +169,8 @@ class TestTicketUnassignment:
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "linear"
         mock_adapter.adapter_display_name = "Linear"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
 
         # Ticket currently assigned
         mock_ticket = Task(
@@ -204,6 +214,8 @@ class TestTicketUnassignment:
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "linear"
         mock_adapter.adapter_display_name = "Linear"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
 
         # Already unassigned
         mock_ticket = Task(
@@ -240,6 +252,8 @@ class TestTicketAssignWithComment:
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "linear"
         mock_adapter.adapter_display_name = "Linear"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
 
         mock_ticket = Task(
             id="TICKET-1",
@@ -286,6 +300,8 @@ class TestTicketAssignWithComment:
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "linear"
         mock_adapter.adapter_display_name = "Linear"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
 
         mock_ticket = Task(
             id="TICKET-1",
@@ -330,6 +346,8 @@ class TestTicketAssignWithComment:
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "linear"
         mock_adapter.adapter_display_name = "Linear"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
 
         mock_ticket = Task(
             id="TICKET-1",
@@ -376,6 +394,8 @@ class TestTicketAssignWithURLs:
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "linear"
         mock_adapter.adapter_display_name = "Linear"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
 
         mock_ticket = Task(
             id="ABC-123",
@@ -437,6 +457,8 @@ class TestTicketAssignWithURLs:
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "github"
         mock_adapter.adapter_display_name = "GitHub"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
 
         mock_ticket = Task(
             id="456",
@@ -483,6 +505,8 @@ class TestTicketAssignWithURLs:
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "jira"
         mock_adapter.adapter_display_name = "JIRA"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
 
         mock_ticket = Task(
             id="PROJ-789",
@@ -529,6 +553,8 @@ class TestTicketAssignWithURLs:
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "asana"
         mock_adapter.adapter_display_name = "Asana"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
 
         mock_ticket = Task(
             id="9876543210",
@@ -575,6 +601,8 @@ class TestTicketAssignWithURLs:
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "linear"
         mock_adapter.adapter_display_name = "Linear"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
 
         mock_ticket = Task(
             id="ABC-123",
@@ -631,6 +659,8 @@ class TestTicketAssignErrorCases:
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "linear"
         mock_adapter.adapter_display_name = "Linear"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
         mock_adapter.read.return_value = None
 
         with patch(
@@ -651,6 +681,8 @@ class TestTicketAssignErrorCases:
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "linear"
         mock_adapter.adapter_display_name = "Linear"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
 
         mock_ticket = Task(
             id="TICKET-1",
@@ -681,6 +713,8 @@ class TestTicketAssignErrorCases:
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "linear"
         mock_adapter.adapter_display_name = "Linear"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
 
         mock_ticket = Task(
             id="TICKET-1",
@@ -756,6 +790,8 @@ class TestTicketAssignResponseStructure:
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "linear"
         mock_adapter.adapter_display_name = "Linear"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
 
         mock_ticket = Task(
             id="TICKET-1",
@@ -810,6 +846,8 @@ class TestTicketAssignResponseStructure:
         mock_adapter = AsyncMock()
         mock_adapter.adapter_type = "linear"
         mock_adapter.adapter_display_name = "Linear"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
 
         mock_ticket = Task(
             id="TICKET-1",

@@ -48,6 +48,8 @@ async def test_assign_open_ticket_auto_transitions():
     # Mock adapter
     adapter = AsyncMock()
     adapter.adapter_display_name = "TestAdapter"
+    # Configure search_users to raise NotImplementedError to trigger fallback
+    adapter.search_users = AsyncMock(side_effect=NotImplementedError())
     adapter.read = AsyncMock(return_value=ticket)
 
     # Mock updated ticket with new state
@@ -108,6 +110,8 @@ async def test_assign_waiting_ticket_auto_transitions():
 
     adapter = AsyncMock()
     adapter.adapter_display_name = "TestAdapter"
+    # Configure search_users to raise NotImplementedError to trigger fallback
+    adapter.search_users = AsyncMock(side_effect=NotImplementedError())
     adapter.read = AsyncMock(return_value=ticket)
 
     updated_ticket = Task(
@@ -154,6 +158,8 @@ async def test_assign_blocked_ticket_auto_transitions():
 
     adapter = AsyncMock()
     adapter.adapter_display_name = "TestAdapter"
+    # Configure search_users to raise NotImplementedError to trigger fallback
+    adapter.search_users = AsyncMock(side_effect=NotImplementedError())
     adapter.read = AsyncMock(return_value=ticket)
 
     updated_ticket = Task(
@@ -200,6 +206,8 @@ async def test_assign_in_progress_no_transition():
 
     adapter = AsyncMock()
     adapter.adapter_display_name = "TestAdapter"
+    # Configure search_users to raise NotImplementedError to trigger fallback
+    adapter.search_users = AsyncMock(side_effect=NotImplementedError())
     adapter.read = AsyncMock(return_value=ticket)
 
     updated_ticket = Task(
@@ -251,6 +259,8 @@ async def test_assign_ready_no_backward_transition():
 
     adapter = AsyncMock()
     adapter.adapter_display_name = "TestAdapter"
+    # Configure search_users to raise NotImplementedError to trigger fallback
+    adapter.search_users = AsyncMock(side_effect=NotImplementedError())
     adapter.read = AsyncMock(return_value=ticket)
 
     updated_ticket = Task(
@@ -296,6 +306,8 @@ async def test_assign_done_no_transition():
 
     adapter = AsyncMock()
     adapter.adapter_display_name = "TestAdapter"
+    # Configure search_users to raise NotImplementedError to trigger fallback
+    adapter.search_users = AsyncMock(side_effect=NotImplementedError())
     adapter.read = AsyncMock(return_value=ticket)
 
     updated_ticket = Task(
@@ -341,6 +353,8 @@ async def test_unassign_no_state_change():
 
     adapter = AsyncMock()
     adapter.adapter_display_name = "TestAdapter"
+    # Configure search_users to raise NotImplementedError to trigger fallback
+    adapter.search_users = AsyncMock(side_effect=NotImplementedError())
     adapter.read = AsyncMock(return_value=ticket)
 
     updated_ticket = Task(
@@ -393,6 +407,8 @@ async def test_auto_transition_disabled():
 
     adapter = AsyncMock()
     adapter.adapter_display_name = "TestAdapter"
+    # Configure search_users to raise NotImplementedError to trigger fallback
+    adapter.search_users = AsyncMock(side_effect=NotImplementedError())
     adapter.read = AsyncMock(return_value=ticket)
 
     updated_ticket = Task(
@@ -445,6 +461,8 @@ async def test_auto_transition_adds_comment():
 
     adapter = AsyncMock()
     adapter.adapter_display_name = "TestAdapter"
+    # Configure search_users to raise NotImplementedError to trigger fallback
+    adapter.search_users = AsyncMock(side_effect=NotImplementedError())
     adapter.read = AsyncMock(return_value=ticket)
 
     updated_ticket = Task(
@@ -496,6 +514,8 @@ async def test_auto_transition_preserves_user_comment():
 
     adapter = AsyncMock()
     adapter.adapter_display_name = "TestAdapter"
+    # Configure search_users to raise NotImplementedError to trigger fallback
+    adapter.search_users = AsyncMock(side_effect=NotImplementedError())
     adapter.read = AsyncMock(return_value=ticket)
 
     updated_ticket = Task(
@@ -549,6 +569,8 @@ async def test_reassignment_in_progress_no_change():
 
     adapter = AsyncMock()
     adapter.adapter_display_name = "TestAdapter"
+    # Configure search_users to raise NotImplementedError to trigger fallback
+    adapter.search_users = AsyncMock(side_effect=NotImplementedError())
     adapter.read = AsyncMock(return_value=ticket)
 
     updated_ticket = Task(
@@ -605,6 +627,8 @@ async def test_assign_with_url_auto_transitions():
     # Mock adapter
     adapter = AsyncMock()
     adapter.adapter_display_name = "Linear"
+    # Configure search_users to raise NotImplementedError to trigger fallback
+    adapter.search_users = AsyncMock(side_effect=NotImplementedError())
     router._get_adapter = Mock(return_value=adapter)
 
     updated_ticket = Task(
@@ -655,6 +679,8 @@ async def test_assign_tested_no_transition():
 
     adapter = AsyncMock()
     adapter.adapter_display_name = "TestAdapter"
+    # Configure search_users to raise NotImplementedError to trigger fallback
+    adapter.search_users = AsyncMock(side_effect=NotImplementedError())
     adapter.read = AsyncMock(return_value=ticket)
 
     updated_ticket = Task(
@@ -700,6 +726,8 @@ async def test_assign_closed_no_transition():
 
     adapter = AsyncMock()
     adapter.adapter_display_name = "TestAdapter"
+    # Configure search_users to raise NotImplementedError to trigger fallback
+    adapter.search_users = AsyncMock(side_effect=NotImplementedError())
     adapter.read = AsyncMock(return_value=ticket)
 
     updated_ticket = Task(

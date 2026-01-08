@@ -4062,6 +4062,45 @@ class LinearAdapter(BaseAdapter[Task]):
             logger.error(f"Failed to get milestone issues {milestone_id}: {e}")
             return []
 
+    async def search_users(self, query: str) -> list[dict[str, Any]]:
+        """Search for users by name or email.
+
+        Args:
+        ----
+            query: Search query (name or email)
+
+        Returns:
+        -------
+            List of user dictionaries with keys: id, name, email
+
+        """
+        logger = logging.getLogger(__name__)
+
+        # Validate credentials
+        is_valid, error_message = self.validate_credentials()
+        if not is_valid:
+            raise ValueError(error_message)
+
+        await self.initialize()
+
+        try:
+            # Use existing client method to search users
+            users = await self.client.get_users_by_name(query)
+
+            # Transform to standard format
+            return [
+                {
+                    "id": user.get("id"),
+                    "name": user.get("displayName") or user.get("name"),
+                    "email": user.get("email"),
+                }
+                for user in users
+            ]
+
+        except Exception as e:
+            logger.error(f"Failed to search users with query '{query}': {e}")
+            return []
+
     def _cycle_to_milestone(
         self,
         cycle_data: dict[str, Any],

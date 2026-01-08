@@ -1438,8 +1438,46 @@ async def ticket_assign(
         if isinstance(current_state, str):
             current_state = TicketState(current_state)
 
+        # Resolve assignee with user disambiguation
+        resolved_assignee = assignee
+        if assignee is not None:
+            try:
+                # Try to search for users if adapter supports it
+                if hasattr(adapter, "search_users"):
+                    matches = await adapter.search_users(assignee)
+
+                    # Handle different match scenarios
+                    if len(matches) == 0:
+                        return {
+                            "status": "error",
+                            "error": f"No users found matching '{assignee}'",
+                        }
+                    elif len(matches) > 1:
+                        return {
+                            "status": "disambiguation_required",
+                            "message": f"Multiple users match '{assignee}'. Please be more specific:",
+                            "matches": matches,
+                            "hint": "Use exact email or full name",
+                        }
+                    else:
+                        # Exactly one match - use that user's ID
+                        resolved_assignee = matches[0]["id"]
+                        logging.info(
+                            f"Resolved assignee '{assignee}' to user ID '{resolved_assignee}'"
+                        )
+            except NotImplementedError:
+                # Adapter doesn't support search_users, fall back to direct assignment
+                logging.debug(
+                    f"Adapter {type(adapter).__name__} doesn't support search_users, using assignee directly"
+                )
+            except Exception as e:
+                # Log but don't fail - fall back to direct assignment
+                logging.warning(
+                    f"User search failed for '{assignee}': {e}. Using assignee directly."
+                )
+
         # Build updates dictionary
-        updates: dict[str, Any] = {"assignee": assignee}
+        updates: dict[str, Any] = {"assignee": resolved_assignee}
 
         # Auto-transition logic
         state_transitioned = False

@@ -1362,6 +1362,26 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         """
         raise NotImplementedError("Milestone support for AITrackdown coming in v2.1.0")
 
+    async def search_users(self, query: str) -> builtins.list[dict[str, Any]]:
+        """Search for users by name or email.
+
+        Args:
+        ----
+            query: Search query (name or email)
+
+        Returns:
+        -------
+            Empty list (user management not supported in file-based AITrackdown)
+
+        Note:
+        ----
+            AITrackdown is a file-based system without user management.
+            Returns empty list for all queries.
+
+        """
+        logger.info("search_users called but user management not supported in AITrackdown")
+        return []
+
 
 # Register the adapter
 AdapterRegistry.register("aitrackdown", AITrackdownAdapter)

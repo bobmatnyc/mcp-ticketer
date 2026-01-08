@@ -208,6 +208,8 @@ class TestTicketAssignWithURLNoRouter:
         mock_adapter.adapter_type = "asana"
         mock_adapter.adapter_display_name = "Asana"
         mock_adapter.__class__.__name__ = "AsanaAdapter"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
 
         mock_ticket = Task(
             id="9876543210",
@@ -215,15 +217,17 @@ class TestTicketAssignWithURLNoRouter:
             state=TicketState.OPEN,
             assignee=None,
         )
+        # Auto-transitions to IN_PROGRESS when assigned from OPEN
         mock_updated = Task(
             id="9876543210",
             title="Test task",
-            state=TicketState.OPEN,
+            state=TicketState.IN_PROGRESS,
             assignee="user@example.com",
         )
 
         mock_adapter.read.return_value = mock_ticket
         mock_adapter.update.return_value = mock_updated
+        mock_adapter.add_comment = AsyncMock()
 
         asana_url = "https://app.asana.com/0/1234567890/9876543210"
 
@@ -239,11 +243,15 @@ class TestTicketAssignWithURLNoRouter:
 
                 assert result["status"] == "completed"
                 assert result["new_assignee"] == "user@example.com"
+                assert result["state_auto_transitioned"] is True
+                assert result["previous_state"] == "open"
+                assert result["new_state"] == "in_progress"
 
                 # Verify adapter methods were called with extracted ID, not full URL
+                # Including auto-transition to IN_PROGRESS
                 mock_adapter.read.assert_called_once_with("9876543210")
                 mock_adapter.update.assert_called_once_with(
-                    "9876543210", {"assignee": "user@example.com"}
+                    "9876543210", {"assignee": "user@example.com", "state": TicketState.IN_PROGRESS}
                 )
 
     async def test_assign_with_url_and_comment_no_router(self) -> None:
@@ -252,6 +260,8 @@ class TestTicketAssignWithURLNoRouter:
         mock_adapter.adapter_type = "linear"
         mock_adapter.adapter_display_name = "Linear"
         mock_adapter.__class__.__name__ = "LinearAdapter"
+        # Configure search_users to raise NotImplementedError to trigger fallback
+        mock_adapter.search_users = AsyncMock(side_effect=NotImplementedError())
 
         mock_ticket = Task(
             id="ABC-123",
@@ -259,10 +269,11 @@ class TestTicketAssignWithURLNoRouter:
             state=TicketState.OPEN,
             assignee=None,
         )
+        # Auto-transitions to IN_PROGRESS when assigned from OPEN
         mock_updated = Task(
             id="ABC-123",
             title="Test",
-            state=TicketState.OPEN,
+            state=TicketState.IN_PROGRESS,
             assignee="user@example.com",
         )
 

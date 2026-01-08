@@ -2196,6 +2196,26 @@ Fixes #{issue_number}
         logger.info(f"Retrieved {len(issues)} issues from milestone {milestone_id}")
         return issues
 
+    async def search_users(self, query: str) -> list[dict[str, Any]]:
+        """Search for users by name or email.
+
+        Args:
+        ----
+            query: Search query (name or email)
+
+        Returns:
+        -------
+            Empty list (user search not yet implemented for GitHub)
+
+        Note:
+        ----
+            GitHub user search requires additional API permissions and implementation.
+            Returns empty list for now. Future enhancement: implement GitHub user search API.
+
+        """
+        logger.info("search_users called but not yet implemented for GitHub adapter")
+        return []
+
     def _github_milestone_to_milestone(
         self,
         gh_milestone: dict[str, Any],

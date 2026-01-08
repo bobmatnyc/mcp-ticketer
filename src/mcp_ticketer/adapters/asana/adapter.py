@@ -1532,6 +1532,26 @@ class AsanaAdapter(BaseAdapter[Task]):
         """
         raise NotImplementedError("Milestone support for Asana coming in v2.1.0")
 
+    async def search_users(self, query: str) -> list[dict[str, Any]]:
+        """Search for users by name or email.
+
+        Args:
+        ----
+            query: Search query (name or email)
+
+        Returns:
+        -------
+            Empty list (user search not yet implemented for Asana)
+
+        Note:
+        ----
+            Asana user search API implementation pending.
+            Returns empty list for now.
+
+        """
+        logger.info("search_users called but not yet implemented for Asana adapter")
+        return []
+
 
 # Register the adapter
 AdapterRegistry.register("asana", AsanaAdapter)
