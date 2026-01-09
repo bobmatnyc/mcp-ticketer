@@ -30,8 +30,10 @@ from ...core.models import (
     Milestone,
     ProjectUpdate,
     ProjectUpdateHealth,
+    RelationType,
     SearchQuery,
     Task,
+    TicketRelation,
     TicketState,
 )
 from ...core.registry import AdapterRegistry
@@ -50,11 +52,14 @@ from .queries import (
     ARCHIVE_CYCLE_MUTATION,
     CREATE_CYCLE_MUTATION,
     CREATE_ISSUE_MUTATION,
+    CREATE_ISSUE_RELATION_MUTATION,
     CREATE_LABEL_MUTATION,
     CREATE_PROJECT_UPDATE_MUTATION,
+    DELETE_ISSUE_RELATION_MUTATION,
     GET_CUSTOM_VIEW_QUERY,
     GET_CYCLE_ISSUES_QUERY,
     GET_CYCLE_QUERY,
+    GET_ISSUE_RELATIONS_QUERY,
     GET_ISSUE_STATUS_QUERY,
     GET_PROJECT_UPDATE_QUERY,
     LIST_CYCLES_QUERY,
@@ -68,10 +73,13 @@ from .queries import (
     WORKFLOW_STATES_QUERY,
 )
 from .types import (
+    LinearIssueRelationType,
     LinearStateMapping,
     build_issue_filter,
     get_linear_priority,
+    get_linear_relation_type,
     get_linear_state_type,
+    get_universal_relation_type,
 )
 
 
@@ -4186,6 +4194,199 @@ class LinearAdapter(BaseAdapter[Task]):
                 }
             },
         )
+
+    async def add_relation(
+        self, source_id: str, target_id: str, relation_type: RelationType
+    ) -> TicketRelation:
+        """Create relationship between Linear issues.
+
+        Args:
+        ----
+            source_id: Source issue identifier
+            target_id: Target issue identifier
+            relation_type: Type of relationship to create
+
+        Returns:
+        -------
+            Created TicketRelation with populated metadata
+
+        Raises:
+        ------
+            Exception: If relation creation fails
+
+        """
+        logger = logging.getLogger(__name__)
+        logger.debug(
+            f"Creating relation: {source_id} {relation_type.value} {target_id}"
+        )
+
+        # Convert universal relation type to Linear type
+        linear_relation_type = get_linear_relation_type(relation_type)
+
+        # Create the relation using GraphQL mutation
+        query = gql(CREATE_ISSUE_RELATION_MUTATION)
+        variables = {
+            "issueId": source_id,
+            "relatedIssueId": target_id,
+            "type": linear_relation_type,
+        }
+
+        try:
+            result = await self.client.execute(query, variable_values=variables)
+            if not result.get("issueRelationCreate", {}).get("success"):
+                error_msg = "Failed to create issue relation"
+                logger.error(error_msg)
+                raise Exception(error_msg)
+
+            relation_data = result["issueRelationCreate"]["issueRelation"]
+
+            # Convert to TicketRelation model
+            return TicketRelation(
+                id=relation_data["id"],
+                source_ticket_id=source_id,
+                target_ticket_id=target_id,
+                relation_type=get_universal_relation_type(relation_data["type"]),
+                created_at=datetime.fromisoformat(
+                    relation_data["createdAt"].replace("Z", "+00:00")
+                )
+                if relation_data.get("createdAt")
+                else None,
+                metadata={
+                    "linear": {
+                        "relation_id": relation_data["id"],
+                        "issue": relation_data.get("issue"),
+                        "related_issue": relation_data.get("relatedIssue"),
+                    }
+                },
+            )
+
+        except Exception as e:
+            logger.error(f"Error creating relation: {e}")
+            raise
+
+    async def remove_relation(
+        self, source_id: str, target_id: str, relation_type: RelationType
+    ) -> bool:
+        """Remove relationship between Linear issues.
+
+        Args:
+        ----
+            source_id: Source issue identifier
+            target_id: Target issue identifier
+            relation_type: Type of relationship to remove
+
+        Returns:
+        -------
+            True if removed successfully, False otherwise
+
+        """
+        logger = logging.getLogger(__name__)
+        logger.debug(
+            f"Removing relation: {source_id} {relation_type.value} {target_id}"
+        )
+
+        try:
+            # First, list relations to find the specific relation ID
+            relations = await self.list_relations(source_id, relation_type)
+
+            # Find the relation matching the target
+            relation_id = None
+            for relation in relations:
+                if relation.target_ticket_id == target_id:
+                    relation_id = relation.id
+                    break
+
+            if not relation_id:
+                logger.warning(
+                    f"No relation found: {source_id} {relation_type.value} {target_id}"
+                )
+                return False
+
+            # Delete the relation
+            query = gql(DELETE_ISSUE_RELATION_MUTATION)
+            variables = {"id": relation_id}
+
+            result = await self.client.execute(query, variable_values=variables)
+            success = result.get("issueRelationDelete", {}).get("success", False)
+
+            if success:
+                logger.info(f"Removed relation {relation_id}")
+            else:
+                logger.warning(f"Failed to remove relation {relation_id}")
+
+            return success
+
+        except Exception as e:
+            logger.error(f"Error removing relation: {e}")
+            return False
+
+    async def list_relations(
+        self, ticket_id: str, relation_type: RelationType | None = None
+    ) -> builtins.list[TicketRelation]:
+        """List relationships for a Linear issue.
+
+        Args:
+        ----
+            ticket_id: Issue identifier
+            relation_type: Optional filter for specific relation type
+
+        Returns:
+        -------
+            List of TicketRelation objects for the issue
+
+        """
+        logger = logging.getLogger(__name__)
+        logger.debug(f"Listing relations for issue: {ticket_id}")
+
+        try:
+            # Query for issue relations
+            query = gql(GET_ISSUE_RELATIONS_QUERY)
+            variables = {"issueId": ticket_id}
+
+            result = await self.client.execute(query, variable_values=variables)
+            issue_data = result.get("issue")
+
+            if not issue_data:
+                logger.warning(f"Issue not found: {ticket_id}")
+                return []
+
+            relations_data = issue_data.get("relations", {}).get("nodes", [])
+
+            # Convert to TicketRelation objects
+            relations = []
+            for relation_data in relations_data:
+                universal_type = get_universal_relation_type(relation_data["type"])
+
+                # Filter by type if specified
+                if relation_type and universal_type != relation_type:
+                    continue
+
+                related_issue = relation_data.get("relatedIssue", {})
+
+                relations.append(
+                    TicketRelation(
+                        id=relation_data["id"],
+                        source_ticket_id=ticket_id,
+                        target_ticket_id=related_issue.get("id", ""),
+                        relation_type=universal_type,
+                        metadata={
+                            "linear": {
+                                "relation_id": relation_data["id"],
+                                "related_issue_identifier": related_issue.get(
+                                    "identifier"
+                                ),
+                                "related_issue_title": related_issue.get("title"),
+                            }
+                        },
+                    )
+                )
+
+            logger.info(f"Found {len(relations)} relations for {ticket_id}")
+            return relations
+
+        except Exception as e:
+            logger.error(f"Error listing relations: {e}")
+            return []
 
     async def close(self) -> None:
         """Close the adapter and clean up resources."""

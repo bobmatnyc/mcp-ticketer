@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from ....core.adapter import BaseAdapter
-from ....core.models import Epic, Priority, Task, TicketType
+from ....core.models import Epic, Priority, RelationType, Task, TicketRelation, TicketType
 from ....core.project_config import ConfigResolver, TicketerConfig
 from ..server_sdk import get_adapter, mcp
 from .ticket_tools import detect_and_apply_labels
@@ -62,6 +62,9 @@ async def hierarchy(
         "get_children",
         "get_parent",
         "get_tree",
+        "add_relation",
+        "remove_relation",
+        "list_relations",
     ],
     # Entity identification
     entity_id: str | None = None,
@@ -88,6 +91,10 @@ async def hierarchy(
     tags: list[str] | None = None,
     auto_detect_labels: bool = True,
     max_auto_labels: int = 4,
+    # Relationship parameters
+    source_id: str | None = None,
+    target_id: str | None = None,
+    relation_type: str | None = None,
 ) -> dict[str, Any]:
     """Unified hierarchy management tool for epics, issues, and tasks.
 
@@ -104,8 +111,9 @@ async def hierarchy(
     Args:
         entity_type: Type of entity - "epic", "issue", or "task"
         action: Operation to perform - create, get, list, update, delete,
-                get_children, get_parent, or get_tree
-        entity_id: ID for get/update/delete operations
+                get_children, get_parent, get_tree, add_relation, remove_relation,
+                or list_relations
+        entity_id: ID for get/update/delete/list_relations operations
         epic_id: Parent epic ID (for issues/tasks/get_children)
         issue_id: Parent issue ID (for tasks/get_parent/get_children)
         title: Title for create/update operations
@@ -124,6 +132,10 @@ async def hierarchy(
         tags: Tags/labels for issues/tasks
         auto_detect_labels: Auto-detect labels from title/description (default: True)
         max_auto_labels: Maximum number of auto-detected labels to apply (default: 4)
+        source_id: Source ticket ID for relationship operations
+        target_id: Target ticket ID for relationship operations
+        relation_type: Type of relationship - blocks, blocked_by, relates_to,
+                      duplicates, or duplicated_by
 
     Returns:
         Operation results in standard format with status, data, and metadata
@@ -221,6 +233,39 @@ async def hierarchy(
             entity_id="EPIC-123"
         )
 
+        # Add relationship (blocking dependency)
+        await hierarchy(
+            entity_type="epic",
+            action="add_relation",
+            source_id="ISSUE-123",
+            target_id="ISSUE-456",
+            relation_type="blocks"
+        )
+
+        # Remove relationship
+        await hierarchy(
+            entity_type="issue",
+            action="remove_relation",
+            source_id="ISSUE-123",
+            target_id="ISSUE-456",
+            relation_type="blocks"
+        )
+
+        # List all relationships for a ticket
+        await hierarchy(
+            entity_type="task",
+            action="list_relations",
+            entity_id="TASK-789"
+        )
+
+        # List specific relationship type
+        await hierarchy(
+            entity_type="epic",
+            action="list_relations",
+            entity_id="EPIC-123",
+            relation_type="blocks"
+        )
+
     Migration from old tools:
         epic_create(...) → hierarchy(entity_type="epic", action="create", ...)
         epic_get(epic_id) → hierarchy(entity_type="epic", action="get", entity_id=epic_id)
@@ -244,6 +289,120 @@ async def hierarchy(
     try:
         adapter = get_adapter()
 
+        # Relationship operations (entity_type independent) - check FIRST
+        if action_lower == "add_relation":
+            if not source_id or not target_id or not relation_type:
+                return {
+                    "status": "error",
+                    "error": "source_id, target_id, and relation_type required for add_relation",
+                    "hint": "Example: hierarchy(entity_type='epic', action='add_relation', source_id='ISSUE-123', target_id='ISSUE-456', relation_type='blocks')",
+                }
+            try:
+                rel_type = RelationType(relation_type)
+            except ValueError:
+                valid_types = [r.value for r in RelationType]
+                return {
+                    "status": "error",
+                    "error": f"Invalid relation_type '{relation_type}'. Must be one of: {valid_types}",
+                }
+            try:
+                relation = await adapter.add_relation(source_id, target_id, rel_type)
+                return {
+                    "status": "completed",
+                    "operation": "add_relation",
+                    **_build_adapter_metadata(adapter),
+                    "relation": relation.model_dump(),
+                }
+            except NotImplementedError:
+                return {
+                    "status": "error",
+                    "error": f"Ticket relationships not supported by {adapter.adapter_display_name} adapter",
+                    **_build_adapter_metadata(adapter),
+                    "note": "This adapter does not implement relationship support",
+                }
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "error": f"Failed to add relation: {str(e)}",
+                    **_build_adapter_metadata(adapter),
+                }
+
+        elif action_lower == "remove_relation":
+            if not source_id or not target_id or not relation_type:
+                return {
+                    "status": "error",
+                    "error": "source_id, target_id, and relation_type required for remove_relation",
+                    "hint": "Example: hierarchy(entity_type='issue', action='remove_relation', source_id='ISSUE-123', target_id='ISSUE-456', relation_type='blocks')",
+                }
+            try:
+                rel_type = RelationType(relation_type)
+            except ValueError:
+                valid_types = [r.value for r in RelationType]
+                return {
+                    "status": "error",
+                    "error": f"Invalid relation_type '{relation_type}'. Must be one of: {valid_types}",
+                }
+            try:
+                success = await adapter.remove_relation(source_id, target_id, rel_type)
+                return {
+                    "status": "completed",
+                    "operation": "remove_relation",
+                    **_build_adapter_metadata(adapter),
+                    "removed": success,
+                }
+            except NotImplementedError:
+                return {
+                    "status": "error",
+                    "error": f"Ticket relationships not supported by {adapter.adapter_display_name} adapter",
+                    **_build_adapter_metadata(adapter),
+                    "note": "This adapter does not implement relationship support",
+                }
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "error": f"Failed to remove relation: {str(e)}",
+                    **_build_adapter_metadata(adapter),
+                }
+
+        elif action_lower == "list_relations":
+            if not entity_id:
+                return {
+                    "status": "error",
+                    "error": "entity_id required for list_relations",
+                    "hint": "Example: hierarchy(entity_type='task', action='list_relations', entity_id='TASK-789')",
+                }
+            try:
+                rel_type = RelationType(relation_type) if relation_type else None
+                relations = await adapter.list_relations(entity_id, rel_type)
+                return {
+                    "status": "completed",
+                    "operation": "list_relations",
+                    **_build_adapter_metadata(adapter, entity_id),
+                    "relations": [r.model_dump() for r in relations],
+                    "count": len(relations),
+                    "filter_applied": rel_type.value if rel_type else None,
+                }
+            except ValueError:
+                valid_types = [r.value for r in RelationType]
+                return {
+                    "status": "error",
+                    "error": f"Invalid relation_type '{relation_type}'. Must be one of: {valid_types}",
+                }
+            except NotImplementedError:
+                return {
+                    "status": "error",
+                    "error": f"Ticket relationships not supported by {adapter.adapter_display_name} adapter",
+                    **_build_adapter_metadata(adapter, entity_id),
+                    "note": "This adapter does not implement relationship support",
+                }
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "error": f"Failed to list relations: {str(e)}",
+                    **_build_adapter_metadata(adapter, entity_id),
+                }
+
+        # Entity-specific operations
         if entity_type_lower == "epic":
             if action_lower == "create":
                 # Inline implementation of epic_create
@@ -617,6 +776,9 @@ async def hierarchy(
                     "delete",
                     "get_children",
                     "get_tree",
+                    "add_relation",
+                    "remove_relation",
+                    "list_relations",
                 ]
                 return {
                     "status": "error",
@@ -854,7 +1016,14 @@ async def hierarchy(
                         "error": f"Failed to get issue tasks: {str(e)}",
                     }
             else:
-                valid_actions = ["create", "get_parent", "get_children"]
+                valid_actions = [
+                    "create",
+                    "get_parent",
+                    "get_children",
+                    "add_relation",
+                    "remove_relation",
+                    "list_relations",
+                ]
                 return {
                     "status": "error",
                     "error": f"Invalid action '{action}' for entity_type 'issue'",
@@ -917,13 +1086,18 @@ async def hierarchy(
                         "error": f"Failed to create task: {str(e)}",
                     }
             else:
-                valid_actions = ["create"]
+                valid_actions = [
+                    "create",
+                    "add_relation",
+                    "remove_relation",
+                    "list_relations",
+                ]
                 return {
                     "status": "error",
                     "error": f"Invalid action '{action}' for entity_type 'task'",
                     "valid_actions": valid_actions,
-                    "hint": "Use hierarchy(entity_type='task', action='create', ...)",
-                    "note": "Tasks support only create operation. Use ticket_read/ticket_update for other operations.",
+                    "hint": "Use hierarchy(entity_type='task', action='create', ...) or relationship actions",
+                    "note": "Tasks support create and relationship operations. Use ticket() tool for read/update/delete.",
                 }
 
         else:

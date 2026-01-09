@@ -15,8 +15,10 @@ from .models import (
     ProjectScope,
     ProjectState,
     ProjectStatistics,
+    RelationType,
     SearchQuery,
     Task,
+    TicketRelation,
     TicketState,
     TicketType,
 )
@@ -993,3 +995,68 @@ class BaseAdapter(ABC, Generic[T]):
 
         """
         pass
+
+    async def add_relation(
+        self, source_id: str, target_id: str, relation_type: RelationType
+    ) -> TicketRelation:
+        """Create relationship between tickets.
+
+        Args:
+        ----
+            source_id: Source ticket identifier
+            target_id: Target ticket identifier
+            relation_type: Type of relationship to create
+
+        Returns:
+        -------
+            Created TicketRelation with populated metadata
+
+        Raises:
+        ------
+            NotImplementedError: If adapter does not support relationships
+
+        """
+        raise NotImplementedError("Adapter does not support relationships")
+
+    async def remove_relation(
+        self, source_id: str, target_id: str, relation_type: RelationType
+    ) -> bool:
+        """Remove relationship between tickets.
+
+        Args:
+        ----
+            source_id: Source ticket identifier
+            target_id: Target ticket identifier
+            relation_type: Type of relationship to remove
+
+        Returns:
+        -------
+            True if removed successfully, False otherwise
+
+        Raises:
+        ------
+            NotImplementedError: If adapter does not support relationships
+
+        """
+        raise NotImplementedError("Adapter does not support relationships")
+
+    async def list_relations(
+        self, ticket_id: str, relation_type: RelationType | None = None
+    ) -> builtins.list[TicketRelation]:
+        """List relationships for ticket, optionally filtered by type.
+
+        Args:
+        ----
+            ticket_id: Ticket identifier
+            relation_type: Optional filter for specific relation type
+
+        Returns:
+        -------
+            List of TicketRelation objects for the ticket
+
+        Raises:
+        ------
+            NotImplementedError: If adapter does not support relationships
+
+        """
+        raise NotImplementedError("Adapter does not support relationships")

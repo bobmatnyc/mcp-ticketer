@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
-from mcp_ticketer.core.models import Priority, TicketState
+from mcp_ticketer.core.models import Priority, RelationType, TicketState
 
 
 class LinearPriorityMapping:
@@ -398,3 +398,43 @@ def extract_linear_metadata(issue_data: dict[str, Any]) -> dict[str, Any]:
         metadata["customer_ticket_count"] = issue_data["customerTicketCount"]
 
     return metadata
+
+
+def get_linear_relation_type(relation_type: RelationType) -> str:
+    """Convert universal RelationType to Linear relation type.
+
+    Args:
+        relation_type: Universal relation type enum
+
+    Returns:
+        Linear relation type string
+
+    """
+    mapping = {
+        RelationType.BLOCKS: LinearIssueRelationType.BLOCKS.value,
+        RelationType.BLOCKED_BY: LinearIssueRelationType.BLOCKED_BY.value,
+        RelationType.DUPLICATES: LinearIssueRelationType.DUPLICATE.value,
+        RelationType.DUPLICATED_BY: LinearIssueRelationType.DUPLICATED_BY.value,
+        RelationType.RELATES_TO: LinearIssueRelationType.RELATES.value,
+    }
+    return mapping.get(relation_type, LinearIssueRelationType.RELATES.value)
+
+
+def get_universal_relation_type(linear_relation_type: str) -> RelationType:
+    """Convert Linear relation type to universal RelationType.
+
+    Args:
+        linear_relation_type: Linear relation type string
+
+    Returns:
+        Universal relation type enum
+
+    """
+    mapping = {
+        LinearIssueRelationType.BLOCKS.value: RelationType.BLOCKS,
+        LinearIssueRelationType.BLOCKED_BY.value: RelationType.BLOCKED_BY,
+        LinearIssueRelationType.DUPLICATE.value: RelationType.DUPLICATES,
+        LinearIssueRelationType.DUPLICATED_BY.value: RelationType.DUPLICATED_BY,
+        LinearIssueRelationType.RELATES.value: RelationType.RELATES_TO,
+    }
+    return mapping.get(linear_relation_type, RelationType.RELATES_TO)

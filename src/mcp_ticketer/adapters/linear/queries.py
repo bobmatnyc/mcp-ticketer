@@ -664,3 +664,60 @@ GET_CYCLE_ISSUES_QUERY = """
         }
     }
 """
+
+# Issue Relation Operations
+
+CREATE_ISSUE_RELATION_MUTATION = """
+    mutation CreateIssueRelation($issueId: String!, $relatedIssueId: String!, $type: IssueRelationType!) {
+        issueRelationCreate(input: {
+            issueId: $issueId
+            relatedIssueId: $relatedIssueId
+            type: $type
+        }) {
+            success
+            issueRelation {
+                id
+                type
+                issue {
+                    id
+                    identifier
+                    title
+                }
+                relatedIssue {
+                    id
+                    identifier
+                    title
+                }
+                createdAt
+            }
+        }
+    }
+"""
+
+DELETE_ISSUE_RELATION_MUTATION = """
+    mutation DeleteIssueRelation($id: String!) {
+        issueRelationDelete(id: $id) {
+            success
+        }
+    }
+"""
+
+GET_ISSUE_RELATIONS_QUERY = """
+    query GetIssueRelations($issueId: String!) {
+        issue(id: $issueId) {
+            id
+            identifier
+            relations {
+                nodes {
+                    id
+                    type
+                    relatedIssue {
+                        id
+                        identifier
+                        title
+                    }
+                }
+            }
+        }
+    }
+"""

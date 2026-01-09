@@ -22,7 +22,9 @@ from .models import (
     ProjectUpdate,
     ProjectUpdateHealth,
     ProjectVisibility,
+    RelationType,
     Task,
+    TicketRelation,
     TicketState,
     TicketType,
 )
@@ -45,6 +47,7 @@ __all__ = [
     "Comment",
     "Attachment",
     "Milestone",
+    "TicketRelation",
     # Project models
     "Project",
     "ProjectScope",
@@ -60,6 +63,7 @@ __all__ = [
     "TicketState",
     "Priority",
     "TicketType",
+    "RelationType",
     # Adapters
     "BaseAdapter",
     "AdapterRegistry",

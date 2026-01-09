@@ -192,6 +192,159 @@ class TicketState(str, Enum):
         return levels.get(self, 0)
 
 
+class RelationType(str, Enum):
+    """Universal relation types for ticket relationships.
+
+    Defines the types of relationships that can exist between tickets across
+    all platforms. These relationships help track dependencies, duplicates,
+    and related work.
+
+    Platform Mappings:
+    - Linear: blocks, blockedBy, duplicate, duplicatedBy, relates
+    - JIRA: Blocks, is blocked by, Duplicates, is duplicated by, Relates to
+    - GitHub: Uses labels or custom fields (no native relation support)
+    - Asana: Uses dependencies (blocks/blocked_by mapping)
+
+    Attributes:
+        BLOCKS: This ticket blocks another ticket (dependency)
+        BLOCKED_BY: This ticket is blocked by another ticket (dependency)
+        RELATES_TO: This ticket is related to another ticket (general relationship)
+        DUPLICATES: This ticket duplicates another ticket
+        DUPLICATED_BY: This ticket is duplicated by another ticket
+
+    Example:
+        >>> relation = TicketRelation(
+        ...     source_ticket_id="ISSUE-123",
+        ...     target_ticket_id="ISSUE-456",
+        ...     relation_type=RelationType.BLOCKS
+        ... )
+
+    """
+
+    BLOCKS = "blocks"
+    BLOCKED_BY = "blocked_by"
+    RELATES_TO = "relates_to"
+    DUPLICATES = "duplicates"
+    DUPLICATED_BY = "duplicated_by"
+
+
+class TicketRelation(BaseModel):
+    """Represents a relationship between two tickets.
+
+    Models relationships like blocking dependencies, duplicates, and general
+    associations between tickets. Provides a unified interface across platforms.
+
+    The relationship is directional: source_ticket_id relates to target_ticket_id
+    via the specified relation_type.
+
+    Attributes:
+        id: Unique identifier for this relation (optional, platform-specific)
+        source_ticket_id: ID of the ticket that has this relation
+        target_ticket_id: ID of the ticket being related to
+        relation_type: Type of relationship (blocks, duplicates, etc.)
+        created_at: When this relation was created
+        created_by: User who created this relation
+        metadata: Platform-specific relation data
+
+    Example:
+        >>> # ISSUE-123 blocks ISSUE-456
+        >>> relation = TicketRelation(
+        ...     source_ticket_id="ISSUE-123",
+        ...     target_ticket_id="ISSUE-456",
+        ...     relation_type=RelationType.BLOCKS
+        ... )
+        >>> # ISSUE-456 is blocked by ISSUE-123 (inverse relationship)
+        >>> inverse = TicketRelation(
+        ...     source_ticket_id="ISSUE-456",
+        ...     target_ticket_id="ISSUE-123",
+        ...     relation_type=RelationType.BLOCKED_BY
+        ... )
+
+    Note:
+        Some platforms automatically create inverse relationships (e.g., Linear),
+        while others require explicit creation of both directions.
+
+    """
+
+    model_config = ConfigDict(use_enum_values=True)
+
+    id: str | None = Field(None, description="Unique relation identifier")
+    source_ticket_id: str = Field(..., description="Source ticket ID")
+    target_ticket_id: str = Field(..., description="Target ticket ID")
+    relation_type: RelationType = Field(..., description="Type of relationship")
+    created_at: datetime | None = Field(None, description="Creation timestamp")
+    created_by: str | None = Field(None, description="Creator user ID")
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Platform-specific relation metadata"
+    )
+
+    def get_inverse_type(self) -> RelationType | None:
+        """Get the inverse relation type if applicable.
+
+        For directional relationships like BLOCKS/BLOCKED_BY and
+        DUPLICATES/DUPLICATED_BY, returns the opposite direction.
+        For symmetric relationships like RELATES_TO, returns the same type.
+
+        Returns:
+            Inverse relation type, or None if no inverse exists
+
+        Example:
+            >>> relation = TicketRelation(
+            ...     source_ticket_id="A",
+            ...     target_ticket_id="B",
+            ...     relation_type=RelationType.BLOCKS
+            ... )
+            >>> relation.get_inverse_type()
+            RelationType.BLOCKED_BY
+
+        """
+        inverse_map = {
+            RelationType.BLOCKS: RelationType.BLOCKED_BY,
+            RelationType.BLOCKED_BY: RelationType.BLOCKS,
+            RelationType.DUPLICATES: RelationType.DUPLICATED_BY,
+            RelationType.DUPLICATED_BY: RelationType.DUPLICATES,
+            RelationType.RELATES_TO: RelationType.RELATES_TO,
+        }
+        return inverse_map.get(self.relation_type)
+
+    def create_inverse(self) -> "TicketRelation":
+        """Create the inverse relationship.
+
+        Creates a new TicketRelation with swapped source/target and
+        inverse relation type.
+
+        Returns:
+            New TicketRelation representing the inverse relationship
+
+        Example:
+            >>> relation = TicketRelation(
+            ...     source_ticket_id="A",
+            ...     target_ticket_id="B",
+            ...     relation_type=RelationType.BLOCKS
+            ... )
+            >>> inverse = relation.create_inverse()
+            >>> inverse.source_ticket_id
+            'B'
+            >>> inverse.target_ticket_id
+            'A'
+            >>> inverse.relation_type
+            RelationType.BLOCKED_BY
+
+        """
+        inverse_type = self.get_inverse_type()
+        if not inverse_type:
+            inverse_type = self.relation_type
+
+        return TicketRelation(
+            source_ticket_id=self.target_ticket_id,
+            target_ticket_id=self.source_ticket_id,
+            relation_type=inverse_type,
+            created_at=self.created_at,
+            created_by=self.created_by,
+            metadata=self.metadata.copy(),
+        )
+
+
 class BaseTicket(BaseModel):
     """Base model for all ticket types with universal field mapping.
 
