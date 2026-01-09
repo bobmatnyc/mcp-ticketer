@@ -107,7 +107,7 @@ class LinearIssueRelationType(Enum):
     BLOCKED_BY = "blockedBy"
     DUPLICATE = "duplicate"
     DUPLICATED_BY = "duplicatedBy"
-    RELATES = "relates"
+    RELATES = "related"
 
 
 class LinearCommentType(Enum):

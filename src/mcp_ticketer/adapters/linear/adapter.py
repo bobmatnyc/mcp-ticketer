@@ -4232,7 +4232,7 @@ class LinearAdapter(BaseAdapter[Task]):
         }
 
         try:
-            result = await self.client.execute(query, variable_values=variables)
+            result = await self.client.execute_mutation(query, variables)
             if not result.get("issueRelationCreate", {}).get("success"):
                 error_msg = "Failed to create issue relation"
                 logger.error(error_msg)
@@ -4289,11 +4289,17 @@ class LinearAdapter(BaseAdapter[Task]):
             # First, list relations to find the specific relation ID
             relations = await self.list_relations(source_id, relation_type)
 
-            # Find the relation matching the target
+            # Find the relation matching the target (check both UUID and identifier)
             relation_id = None
             for relation in relations:
+                # Match by UUID
                 if relation.target_ticket_id == target_id:
-                    relation_id = relation.id
+                    relation_id = relation.metadata.get("linear", {}).get("relation_id")
+                    break
+                # Match by human-readable identifier (e.g., "1M-625")
+                related_identifier = relation.metadata.get("linear", {}).get("related_issue_identifier")
+                if related_identifier and related_identifier == target_id:
+                    relation_id = relation.metadata.get("linear", {}).get("relation_id")
                     break
 
             if not relation_id:
@@ -4306,7 +4312,7 @@ class LinearAdapter(BaseAdapter[Task]):
             query = gql(DELETE_ISSUE_RELATION_MUTATION)
             variables = {"id": relation_id}
 
-            result = await self.client.execute(query, variable_values=variables)
+            result = await self.client.execute_mutation(query, variables)
             success = result.get("issueRelationDelete", {}).get("success", False)
 
             if success:
@@ -4343,7 +4349,7 @@ class LinearAdapter(BaseAdapter[Task]):
             query = gql(GET_ISSUE_RELATIONS_QUERY)
             variables = {"issueId": ticket_id}
 
-            result = await self.client.execute(query, variable_values=variables)
+            result = await self.client.execute_query(query, variables)
             issue_data = result.get("issue")
 
             if not issue_data:

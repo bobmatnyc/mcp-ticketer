@@ -47,7 +47,7 @@ class TestLinearAdapterAddRelation:
             }
         }
 
-        linear_adapter.client.execute = AsyncMock(return_value=mock_result)
+        linear_adapter.client.execute_mutation = AsyncMock(return_value=mock_result)
 
         result = await linear_adapter.add_relation(
             "issue-source",
@@ -66,9 +66,11 @@ class TestLinearAdapterAddRelation:
         assert result.metadata["linear"]["relation_id"] == "rel-123"
 
         # Verify GraphQL call
-        linear_adapter.client.execute.assert_called_once()
-        call_args = linear_adapter.client.execute.call_args
-        variables = call_args[1]["variable_values"]
+        linear_adapter.client.execute_mutation.assert_called_once()
+        call_args = linear_adapter.client.execute_mutation.call_args
+        # call_args is a tuple: (positional_args, keyword_args)
+        # execute_mutation(query, variables) - so variables is positional arg [1]
+        variables = call_args[0][1]
         assert variables["issueId"] == "issue-source"
         assert variables["relatedIssueId"] == "issue-target"
         assert variables["type"] == "blocks"
@@ -88,7 +90,7 @@ class TestLinearAdapterAddRelation:
             }
         }
 
-        linear_adapter.client.execute = AsyncMock(return_value=mock_result)
+        linear_adapter.client.execute_mutation = AsyncMock(return_value=mock_result)
 
         result = await linear_adapter.add_relation(
             "issue-1",
@@ -99,8 +101,8 @@ class TestLinearAdapterAddRelation:
         assert result.relation_type == RelationType.BLOCKED_BY
 
         # Verify type mapping - Linear uses camelCase
-        call_args = linear_adapter.client.execute.call_args
-        variables = call_args[1]["variable_values"]
+        call_args = linear_adapter.client.execute_mutation.call_args
+        variables = call_args[0][1]
         assert variables["type"] == "blockedBy"
 
     async def test_add_relation_duplicates(self, linear_adapter: LinearAdapter) -> None:
@@ -118,7 +120,7 @@ class TestLinearAdapterAddRelation:
             }
         }
 
-        linear_adapter.client.execute = AsyncMock(return_value=mock_result)
+        linear_adapter.client.execute_mutation = AsyncMock(return_value=mock_result)
 
         result = await linear_adapter.add_relation(
             "issue-1",
@@ -129,8 +131,8 @@ class TestLinearAdapterAddRelation:
         assert result.relation_type == RelationType.DUPLICATES
 
         # Verify type mapping
-        call_args = linear_adapter.client.execute.call_args
-        variables = call_args[1]["variable_values"]
+        call_args = linear_adapter.client.execute_mutation.call_args
+        variables = call_args[0][1]
         assert variables["type"] == "duplicate"  # Should be mapped to Linear type
 
     async def test_add_relation_relates_to(self, linear_adapter: LinearAdapter) -> None:
@@ -140,7 +142,7 @@ class TestLinearAdapterAddRelation:
                 "success": True,
                 "issueRelation": {
                     "id": "rel-999",
-                    "type": "relates",  # Linear uses "relates" not "relates_to"
+                    "type": "related",  # Linear uses "related" not "relates"
                     "createdAt": "2024-01-15T10:00:00.000Z",
                     "issue": {"id": "issue-1", "identifier": "TEST-1"},
                     "relatedIssue": {"id": "issue-2", "identifier": "TEST-2"},
@@ -148,7 +150,7 @@ class TestLinearAdapterAddRelation:
             }
         }
 
-        linear_adapter.client.execute = AsyncMock(return_value=mock_result)
+        linear_adapter.client.execute_mutation = AsyncMock(return_value=mock_result)
 
         result = await linear_adapter.add_relation(
             "issue-1",
@@ -159,9 +161,9 @@ class TestLinearAdapterAddRelation:
         assert result.relation_type == RelationType.RELATES_TO
 
         # Verify type mapping
-        call_args = linear_adapter.client.execute.call_args
-        variables = call_args[1]["variable_values"]
-        assert variables["type"] == "relates"
+        call_args = linear_adapter.client.execute_mutation.call_args
+        variables = call_args[0][1]
+        assert variables["type"] == "related"
 
     async def test_add_relation_failure(self, linear_adapter: LinearAdapter) -> None:
         """Test add_relation when API returns failure."""
@@ -171,7 +173,7 @@ class TestLinearAdapterAddRelation:
             }
         }
 
-        linear_adapter.client.execute = AsyncMock(return_value=mock_result)
+        linear_adapter.client.execute_mutation = AsyncMock(return_value=mock_result)
 
         with pytest.raises(Exception) as exc_info:
             await linear_adapter.add_relation(
@@ -184,7 +186,7 @@ class TestLinearAdapterAddRelation:
 
     async def test_add_relation_api_exception(self, linear_adapter: LinearAdapter) -> None:
         """Test add_relation when API raises exception."""
-        linear_adapter.client.execute = AsyncMock(
+        linear_adapter.client.execute_mutation = AsyncMock(
             side_effect=Exception("Network error")
         )
 
@@ -221,6 +223,7 @@ class TestLinearAdapterRemoveRelation:
             source_ticket_id="issue-1",
             target_ticket_id="issue-2",
             relation_type=RelationType.BLOCKS,
+            metadata={"linear": {"relation_id": "rel-123"}},
         )
         linear_adapter.list_relations = AsyncMock(return_value=[existing_relation])
 
@@ -230,7 +233,7 @@ class TestLinearAdapterRemoveRelation:
                 "success": True,
             }
         }
-        linear_adapter.client.execute = AsyncMock(return_value=mock_delete_result)
+        linear_adapter.client.execute_mutation = AsyncMock(return_value=mock_delete_result)
 
         result = await linear_adapter.remove_relation(
             "issue-1",
@@ -246,8 +249,8 @@ class TestLinearAdapterRemoveRelation:
         )
 
         # Verify delete mutation was called with correct relation ID
-        call_args = linear_adapter.client.execute.call_args
-        variables = call_args[1]["variable_values"]
+        call_args = linear_adapter.client.execute_mutation.call_args
+        variables = call_args[0][1]
         assert variables["id"] == "rel-123"
 
     async def test_remove_relation_not_found(self, linear_adapter: LinearAdapter) -> None:
@@ -266,8 +269,9 @@ class TestLinearAdapterRemoveRelation:
         # Verify list_relations was called
         linear_adapter.list_relations.assert_called_once()
 
-        # Verify delete mutation was NOT called
-        linear_adapter.client.execute.assert_not_called()
+        # Verify delete mutation was NOT called (no execute_mutation attribute exists yet)
+        assert not hasattr(linear_adapter.client, 'execute_mutation') or \
+               not linear_adapter.client.execute_mutation.called
 
     async def test_remove_relation_wrong_target(self, linear_adapter: LinearAdapter) -> None:
         """Test removing a relation with non-matching target."""
@@ -336,7 +340,7 @@ class TestLinearAdapterListRelations:
                         },
                         {
                             "id": "rel-2",
-                            "type": "relates",
+                            "type": "related",
                             "relatedIssue": {
                                 "id": "issue-789",
                                 "identifier": "TEST-789",
@@ -347,7 +351,7 @@ class TestLinearAdapterListRelations:
             }
         }
 
-        linear_adapter.client.execute = AsyncMock(return_value=mock_result)
+        linear_adapter.client.execute_query = AsyncMock(return_value=mock_result)
 
         result = await linear_adapter.list_relations("issue-123")
 
@@ -362,8 +366,8 @@ class TestLinearAdapterListRelations:
         assert result[1].relation_type == RelationType.RELATES_TO
 
         # Verify GraphQL call
-        call_args = linear_adapter.client.execute.call_args
-        variables = call_args[1]["variable_values"]
+        call_args = linear_adapter.client.execute_query.call_args
+        variables = call_args[0][1]
         assert variables["issueId"] == "issue-123"
 
     async def test_list_relations_filtered(self, linear_adapter: LinearAdapter) -> None:
@@ -384,7 +388,7 @@ class TestLinearAdapterListRelations:
                         },
                         {
                             "id": "rel-2",
-                            "type": "relates",
+                            "type": "related",
                             "relatedIssue": {
                                 "id": "issue-789",
                                 "identifier": "TEST-789",
@@ -395,7 +399,7 @@ class TestLinearAdapterListRelations:
             }
         }
 
-        linear_adapter.client.execute = AsyncMock(return_value=mock_result)
+        linear_adapter.client.execute_query = AsyncMock(return_value=mock_result)
 
         # Filter for BLOCKS only
         result = await linear_adapter.list_relations("issue-123", RelationType.BLOCKS)
@@ -416,7 +420,7 @@ class TestLinearAdapterListRelations:
             }
         }
 
-        linear_adapter.client.execute = AsyncMock(return_value=mock_result)
+        linear_adapter.client.execute_query = AsyncMock(return_value=mock_result)
 
         result = await linear_adapter.list_relations("issue-123")
 
@@ -429,7 +433,7 @@ class TestLinearAdapterListRelations:
             "issue": None
         }
 
-        linear_adapter.client.execute = AsyncMock(return_value=mock_result)
+        linear_adapter.client.execute_query = AsyncMock(return_value=mock_result)
 
         result = await linear_adapter.list_relations("nonexistent-issue")
 
@@ -442,7 +446,7 @@ class TestLinearAdapterListRelations:
         Note: The implementation catches exceptions and returns empty list
         instead of raising. This is intentional behavior.
         """
-        linear_adapter.client.execute = AsyncMock(
+        linear_adapter.client.execute_query = AsyncMock(
             side_effect=Exception("GraphQL error")
         )
 
@@ -479,7 +483,7 @@ class TestLinearTypeMappings:
     def test_get_linear_relation_type_relates_to(self) -> None:
         """Test mapping RELATES_TO to Linear type."""
         result = get_linear_relation_type(RelationType.RELATES_TO)
-        assert result == "relates"  # Linear uses "relates"
+        assert result == "related"  # Linear uses "related"
 
     def test_get_universal_relation_type_blocks(self) -> None:
         """Test mapping Linear 'blocks' to universal type."""
@@ -502,8 +506,8 @@ class TestLinearTypeMappings:
         assert result == RelationType.DUPLICATED_BY
 
     def test_get_universal_relation_type_relates(self) -> None:
-        """Test mapping Linear 'relates' to universal type."""
-        result = get_universal_relation_type("relates")
+        """Test mapping Linear 'related' to universal type."""
+        result = get_universal_relation_type("related")
         assert result == RelationType.RELATES_TO
 
     def test_round_trip_mapping(self) -> None:
