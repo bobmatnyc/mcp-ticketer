@@ -1043,7 +1043,7 @@ async def ticket_list(
         stacklevel=2,
     )
     try:
-        # Validate project context (NEW: Required for list operations)
+        # Validate project context (Optional for list operations)
         from pathlib import Path
 
         from ....core.project_config import ConfigResolver
@@ -1051,14 +1051,6 @@ async def ticket_list(
         resolver = ConfigResolver(project_path=Path.cwd())
         config = resolver.load_project_config()
         final_project = project_id or (config.default_project if config else None)
-
-        if not final_project:
-            return {
-                "status": "error",
-                "error": "project_id required. Provide project_id parameter or configure default_project.",
-                "help": "Use config_set_default_project(project_id='YOUR-PROJECT') to set default project",
-                "check_config": "Use config_get() to view current configuration",
-            }
 
         adapter = get_adapter()
 
@@ -1071,15 +1063,17 @@ async def ticket_list(
             )
 
         # Add warning for large unscoped queries
-        if limit > 50 and not (state or priority or assignee):
+        if limit > 50 and not (state or priority or assignee or final_project):
             logging.warning(
                 f"Large unscoped query: limit={limit} with no filters. "
                 f"Consider using state, priority, or assignee filters to reduce result set. "
                 f"Tip: Configure default_team or default_project for automatic scoping."
             )
 
-        # Build filters dictionary with required project scoping
-        filters: dict[str, Any] = {"project": final_project}
+        # Build filters dictionary (only add project if provided)
+        filters: dict[str, Any] = {}
+        if final_project:
+            filters["project"] = final_project
 
         if state is not None:
             try:
