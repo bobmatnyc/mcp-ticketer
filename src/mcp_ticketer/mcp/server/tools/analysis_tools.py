@@ -46,7 +46,9 @@ from ..server_sdk import get_adapter, mcp
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Analyze ticket workload - retrieve tickets for a user/project with priority filtering, status breakdown, and work item summaries"
+)
 async def ticket_analyze(
     action: str,
     # Find similar parameters

@@ -86,7 +86,9 @@ def _build_adapter_metadata(
     return metadata
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Update GitHub project items - add tickets to projects, update field values, modify project board item properties"
+)
 async def project_update(
     action: Literal["create", "get", "list"],
     project_id: str | None = None,

@@ -135,8 +135,10 @@ async def _check_adapter_health(adapter_name: str | None = None) -> dict[str, An
     }
 
 
-@mcp.tool()
-async def diagnostics(
+@mcp.tool(
+    description="Run adapter diagnostics and health checks - verify platform configuration, credentials, permissions, and troubleshoot connection issues"
+)
+async def adapter_diagnostics(
     action: str,
     simple: bool = False,
     adapter_name: str | None = None,
@@ -164,22 +166,22 @@ async def diagnostics(
 
     Examples:
         # Run full system diagnostics
-        await diagnostics(action="system")
+        await adapter_diagnostics(action="system")
 
         # Run simple system diagnostics
-        await diagnostics(action="system", simple=True)
+        await adapter_diagnostics(action="system", simple=True)
 
         # Check all adapters
-        await diagnostics(action="adapter")
+        await adapter_diagnostics(action="adapter")
 
         # Check specific adapter
-        await diagnostics(action="adapter", adapter_name="linear")
+        await adapter_diagnostics(action="adapter", adapter_name="linear")
 
     Migration from deprecated tools:
-        - system_diagnostics() → diagnostics(action="system")
-        - system_diagnostics(simple=True) → diagnostics(action="system", simple=True)
-        - check_adapter_health() → diagnostics(action="adapter")
-        - check_adapter_health(adapter_name="linear") → diagnostics(action="adapter", adapter_name="linear")
+        - system_diagnostics() → adapter_diagnostics(action="system")
+        - system_diagnostics(simple=True) → adapter_diagnostics(action="system", simple=True)
+        - check_adapter_health() → adapter_diagnostics(action="adapter")
+        - check_adapter_health(adapter_name="linear") → adapter_diagnostics(action="adapter", adapter_name="linear")
 
     See: docs/mcp-api-reference.md for detailed response formats
     """

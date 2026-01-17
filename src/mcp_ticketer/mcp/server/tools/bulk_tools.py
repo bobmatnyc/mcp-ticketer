@@ -20,7 +20,9 @@ from ....core.models import Priority, Task, TicketState, TicketType
 from ..server_sdk import get_adapter, mcp
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Bulk ticket operations - update multiple tickets at once (state transitions, priority changes, assignments, tag management)"
+)
 async def ticket_bulk(
     action: str,
     tickets: list[dict[str, Any]] | None = None,

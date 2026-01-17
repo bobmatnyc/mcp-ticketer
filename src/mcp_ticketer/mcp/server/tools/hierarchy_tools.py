@@ -50,8 +50,10 @@ def _build_adapter_metadata(
     return metadata
 
 
-@mcp.tool()
-async def hierarchy(
+@mcp.tool(
+    description="Manage ticket hierarchy - create/read/update/delete epics, issues, tasks; navigate parent-child relationships; build tree views of epic→issue→task structure"
+)
+async def ticket_hierarchy(
     entity_type: Literal["epic", "issue", "task"],
     action: Literal[
         "create",
@@ -106,7 +108,7 @@ async def hierarchy(
     - epic_create, epic_get, epic_list, epic_update, epic_delete, epic_issues
     - issue_create, issue_get_parent, issue_tasks
     - task_create
-    - hierarchy_tree
+    - hierarchy_tree (deprecated name: hierarchy)
 
     Args:
         entity_type: Type of entity - "epic", "issue", or "task"
@@ -145,7 +147,7 @@ async def hierarchy(
 
     Examples:
         # Create epic
-        await hierarchy(
+        await ticket_hierarchy(
             entity_type="epic",
             action="create",
             title="Q4 Features",
@@ -154,14 +156,14 @@ async def hierarchy(
         )
 
         # Get epic details
-        await hierarchy(
+        await ticket_hierarchy(
             entity_type="epic",
             action="get",
             entity_id="EPIC-123"
         )
 
         # List epics in project
-        await hierarchy(
+        await ticket_hierarchy(
             entity_type="epic",
             action="list",
             project_id="PROJECT-1",
@@ -169,14 +171,14 @@ async def hierarchy(
         )
 
         # Get epic's child issues
-        await hierarchy(
+        await ticket_hierarchy(
             entity_type="epic",
             action="get_children",
             entity_id="EPIC-123"
         )
 
         # Create issue under epic
-        await hierarchy(
+        await ticket_hierarchy(
             entity_type="issue",
             action="create",
             title="User authentication",
@@ -186,14 +188,14 @@ async def hierarchy(
         )
 
         # Get issue's parent
-        await hierarchy(
+        await ticket_hierarchy(
             entity_type="issue",
             action="get_parent",
             entity_id="ISSUE-456"
         )
 
         # Get issue's child tasks
-        await hierarchy(
+        await ticket_hierarchy(
             entity_type="issue",
             action="get_children",
             entity_id="ISSUE-456",
@@ -201,7 +203,7 @@ async def hierarchy(
         )
 
         # Create task under issue
-        await hierarchy(
+        await ticket_hierarchy(
             entity_type="task",
             action="create",
             title="Write tests",
@@ -210,7 +212,7 @@ async def hierarchy(
         )
 
         # Get full hierarchy tree
-        await hierarchy(
+        await ticket_hierarchy(
             entity_type="epic",
             action="get_tree",
             entity_id="EPIC-123",
@@ -218,7 +220,7 @@ async def hierarchy(
         )
 
         # Update epic
-        await hierarchy(
+        await ticket_hierarchy(
             entity_type="epic",
             action="update",
             entity_id="EPIC-123",
@@ -227,14 +229,14 @@ async def hierarchy(
         )
 
         # Delete epic
-        await hierarchy(
+        await ticket_hierarchy(
             entity_type="epic",
             action="delete",
             entity_id="EPIC-123"
         )
 
         # Add relationship (blocking dependency)
-        await hierarchy(
+        await ticket_hierarchy(
             entity_type="epic",
             action="add_relation",
             source_id="ISSUE-123",
@@ -243,7 +245,7 @@ async def hierarchy(
         )
 
         # Remove relationship
-        await hierarchy(
+        await ticket_hierarchy(
             entity_type="issue",
             action="remove_relation",
             source_id="ISSUE-123",
@@ -252,14 +254,14 @@ async def hierarchy(
         )
 
         # List all relationships for a ticket
-        await hierarchy(
+        await ticket_hierarchy(
             entity_type="task",
             action="list_relations",
             entity_id="TASK-789"
         )
 
         # List specific relationship type
-        await hierarchy(
+        await ticket_hierarchy(
             entity_type="epic",
             action="list_relations",
             entity_id="EPIC-123",
@@ -267,17 +269,17 @@ async def hierarchy(
         )
 
     Migration from old tools:
-        epic_create(...) → hierarchy(entity_type="epic", action="create", ...)
-        epic_get(epic_id) → hierarchy(entity_type="epic", action="get", entity_id=epic_id)
-        epic_list(...) → hierarchy(entity_type="epic", action="list", ...)
-        epic_update(...) → hierarchy(entity_type="epic", action="update", ...)
-        epic_delete(epic_id) → hierarchy(entity_type="epic", action="delete", entity_id=epic_id)
-        epic_issues(epic_id) → hierarchy(entity_type="epic", action="get_children", entity_id=epic_id)
-        issue_create(...) → hierarchy(entity_type="issue", action="create", ...)
-        issue_get_parent(issue_id) → hierarchy(entity_type="issue", action="get_parent", entity_id=issue_id)
-        issue_tasks(issue_id) → hierarchy(entity_type="issue", action="get_children", entity_id=issue_id)
-        task_create(...) → hierarchy(entity_type="task", action="create", ...)
-        hierarchy_tree(epic_id) → hierarchy(entity_type="epic", action="get_tree", entity_id=epic_id)
+        epic_create(...) → ticket_hierarchy(entity_type="epic", action="create", ...)
+        epic_get(epic_id) → ticket_hierarchy(entity_type="epic", action="get", entity_id=epic_id)
+        epic_list(...) → ticket_hierarchy(entity_type="epic", action="list", ...)
+        epic_update(...) → ticket_hierarchy(entity_type="epic", action="update", ...)
+        epic_delete(epic_id) → ticket_hierarchy(entity_type="epic", action="delete", entity_id=epic_id)
+        epic_issues(epic_id) → ticket_hierarchy(entity_type="epic", action="get_children", entity_id=epic_id)
+        issue_create(...) → ticket_hierarchy(entity_type="issue", action="create", ...)
+        issue_get_parent(issue_id) → ticket_hierarchy(entity_type="issue", action="get_parent", entity_id=issue_id)
+        issue_tasks(issue_id) → ticket_hierarchy(entity_type="issue", action="get_children", entity_id=issue_id)
+        task_create(...) → ticket_hierarchy(entity_type="task", action="create", ...)
+        hierarchy_tree(epic_id) → ticket_hierarchy(entity_type="epic", action="get_tree", entity_id=epic_id)
 
     See: docs/mcp-api-reference.md for detailed response formats
     """
@@ -295,7 +297,7 @@ async def hierarchy(
                 return {
                     "status": "error",
                     "error": "source_id, target_id, and relation_type required for add_relation",
-                    "hint": "Example: hierarchy(entity_type='epic', action='add_relation', source_id='ISSUE-123', target_id='ISSUE-456', relation_type='blocks')",
+                    "hint": "Example: ticket_hierarchy(entity_type='epic', action='add_relation', source_id='ISSUE-123', target_id='ISSUE-456', relation_type='blocks')",
                 }
             try:
                 rel_type = RelationType(relation_type)
@@ -332,7 +334,7 @@ async def hierarchy(
                 return {
                     "status": "error",
                     "error": "source_id, target_id, and relation_type required for remove_relation",
-                    "hint": "Example: hierarchy(entity_type='issue', action='remove_relation', source_id='ISSUE-123', target_id='ISSUE-456', relation_type='blocks')",
+                    "hint": "Example: ticket_hierarchy(entity_type='issue', action='remove_relation', source_id='ISSUE-123', target_id='ISSUE-456', relation_type='blocks')",
                 }
             try:
                 rel_type = RelationType(relation_type)
@@ -369,7 +371,7 @@ async def hierarchy(
                 return {
                     "status": "error",
                     "error": "entity_id required for list_relations",
-                    "hint": "Example: hierarchy(entity_type='task', action='list_relations', entity_id='TASK-789')",
+                    "hint": "Example: ticket_hierarchy(entity_type='task', action='list_relations', entity_id='TASK-789')",
                 }
             try:
                 rel_type = RelationType(relation_type) if relation_type else None
@@ -784,7 +786,7 @@ async def hierarchy(
                     "status": "error",
                     "error": f"Invalid action '{action}' for entity_type 'epic'",
                     "valid_actions": valid_actions,
-                    "hint": f"Use hierarchy(entity_type='epic', action=<one of {valid_actions}>, ...)",
+                    "hint": f"Use ticket_hierarchy(entity_type='epic', action=<one of {valid_actions}>, ...)",
                 }
 
         elif entity_type_lower == "issue":
@@ -1028,7 +1030,7 @@ async def hierarchy(
                     "status": "error",
                     "error": f"Invalid action '{action}' for entity_type 'issue'",
                     "valid_actions": valid_actions,
-                    "hint": f"Use hierarchy(entity_type='issue', action=<one of {valid_actions}>, ...)",
+                    "hint": f"Use ticket_hierarchy(entity_type='issue', action=<one of {valid_actions}>, ...)",
                 }
 
         elif entity_type_lower == "task":
@@ -1096,7 +1098,7 @@ async def hierarchy(
                     "status": "error",
                     "error": f"Invalid action '{action}' for entity_type 'task'",
                     "valid_actions": valid_actions,
-                    "hint": "Use hierarchy(entity_type='task', action='create', ...) or relationship actions",
+                    "hint": "Use ticket_hierarchy(entity_type='task', action='create', ...) or relationship actions",
                     "note": "Tasks support create and relationship operations. Use ticket() tool for read/update/delete.",
                 }
 
@@ -1106,7 +1108,7 @@ async def hierarchy(
                 "status": "error",
                 "error": f"Invalid entity_type: {entity_type}",
                 "valid_entity_types": valid_types,
-                "hint": f"Use hierarchy(entity_type=<one of {valid_types}>, action=..., ...)",
+                "hint": f"Use ticket_hierarchy(entity_type=<one of {valid_types}>, action=..., ...)",
             }
 
     except Exception as e:

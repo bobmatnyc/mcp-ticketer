@@ -53,7 +53,9 @@ def _build_adapter_metadata(adapter: Any) -> dict[str, Any]:
     }
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Manage labels and tags - create, list, search, update, delete labels; organize and categorize tickets with metadata"
+)
 async def label(
     action: str,
     adapter_name: str | None = None,

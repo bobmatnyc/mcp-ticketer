@@ -44,7 +44,9 @@ def _build_adapter_metadata(
     return metadata
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Manage custom workflows - create, update, delete workflow states; configure state transitions and workflow automation rules"
+)
 async def workflow(
     action: str,
     ticket_id: str,
