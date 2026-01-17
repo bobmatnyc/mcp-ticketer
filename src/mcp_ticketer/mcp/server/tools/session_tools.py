@@ -22,7 +22,9 @@ from ..server_sdk import mcp
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Manage work session context - attach tickets to sessions, track current work item, opt in/out of session tracking"
+)
 async def user_session(
     action: Literal[
         "get_my_tickets",

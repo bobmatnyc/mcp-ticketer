@@ -26,7 +26,9 @@ from ..server_sdk import get_adapter, mcp
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Manage GitHub project status fields - create, update, delete custom status field options for project boards and workflows"
+)
 async def project_status(project_id: str | None = None) -> dict[str, Any]:
     """Analyze project/epic status and generate work plan with recommendations.
 

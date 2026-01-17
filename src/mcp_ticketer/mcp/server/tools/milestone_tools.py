@@ -46,7 +46,9 @@ def _build_adapter_metadata(
     return metadata
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Manage milestones and sprints - create, read, update, list milestones; track progress and completion; organize work into time-boxed iterations"
+)
 async def milestone(
     action: Literal["create", "get", "list", "update", "delete", "get_issues"],
     # Entity identification

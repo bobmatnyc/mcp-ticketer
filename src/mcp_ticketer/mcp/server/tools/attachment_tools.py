@@ -214,7 +214,9 @@ async def _handle_list_attachments(ticket_id: str) -> dict[str, Any]:
         }
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Manage ticket attachments - add files to tickets, list attachments, manage file uploads and downloads (where supported by platform)"
+)
 async def attachment(
     action: str,
     ticket_id: str,

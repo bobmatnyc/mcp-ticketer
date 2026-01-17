@@ -135,7 +135,9 @@ def _safe_load_config() -> TicketerConfig:
     return TicketerConfig()
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Manage configuration settings - get/set default project, team, user, tags; configure workflow defaults and adapter preferences"
+)
 async def config(
     action: str,
     key: str | None = None,
@@ -1007,7 +1009,9 @@ async def config_test_adapter(adapter_name: str) -> dict[str, Any]:
             }
 
         # Use existing health check infrastructure
-        result = await diagnostics(action="adapter", adapter_name=adapter_name)
+        from .diagnostic_tools import adapter_diagnostics
+
+        result = await adapter_diagnostics(action="adapter", adapter_name=adapter_name)
 
         if result["status"] == "error":
             return result

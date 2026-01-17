@@ -376,7 +376,9 @@ async def _handle_list_updates(
 # ============================================================================
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Manage projects - create, read, update, delete, list projects; organize tickets into project workspaces and teams"
+)
 async def project(
     action: Literal["status", "create_update", "get_update", "list_updates"],
     project_id: str | None = None,

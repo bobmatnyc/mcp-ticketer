@@ -14,7 +14,9 @@ from ..server_sdk import get_adapter, mcp
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Search and filter tickets - query by text, state, priority, tags, assignee, project, milestone; support time-based filters and hierarchy traversal"
+)
 async def ticket_search(
     query: str | None = None,
     state: str | None = None,

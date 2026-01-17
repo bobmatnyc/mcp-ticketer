@@ -227,7 +227,9 @@ async def detect_and_apply_labels(
     return final_labels
 
 
-@mcp.tool()
+@mcp.tool(
+    description="Unified ticket operations - create, read, update, delete, list, summarize tickets; manage assignments, comments, and activity tracking"
+)
 async def ticket(
     action: Literal[
         "create",
