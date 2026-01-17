@@ -2514,6 +2514,10 @@ class LinearAdapter(BaseAdapter[Task]):
         if query.tags:
             issue_filter["labels"] = {"some": {"name": {"in": query.tags}}}
 
+        # Updated after filter
+        if query.updated_after:
+            issue_filter["updatedAt"] = {"gte": query.updated_after.isoformat()}
+
         # Exclude archived by default
         issue_filter["archivedAt"] = {"null": True}
 

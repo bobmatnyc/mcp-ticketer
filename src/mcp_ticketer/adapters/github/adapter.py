@@ -621,6 +621,15 @@ class GitHubAdapter(BaseAdapter[Task]):
             for tag in query.tags:
                 search_parts.append(f'label:"{tag}"')
 
+        # Updated after filter
+        if query.updated_after:
+            # Convert datetime to ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)
+            # GitHub search supports updated:>YYYY-MM-DD or updated:>=YYYY-MM-DD
+            iso_date = query.updated_after.isoformat()
+            # Extract just the date part for GitHub search (YYYY-MM-DD)
+            date_str = iso_date.split("T")[0] if "T" in iso_date else iso_date
+            search_parts.append(f"updated:>={date_str}")
+
         # Build final search query
         github_query = " ".join(search_parts)
 

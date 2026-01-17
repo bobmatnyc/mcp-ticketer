@@ -8,6 +8,7 @@ import logging
 from typing import Any
 
 from ....core.models import Priority, SearchQuery, TicketState
+from ....utils.time_utils import parse_time_filter
 from ..server_sdk import get_adapter, mcp
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,12 @@ async def ticket_search(
     assignee: str | None = None,
     project_id: str | None = None,
     milestone_id: str | None = None,
+    updated_after: str | None = None,
+    updated_before: str | None = None,
+    since: str | None = None,
+    include_activity: bool = False,
+    include_comments: bool = False,
+    activity_limit: int = 5,
     limit: int = 10,
     include_hierarchy: bool = False,
     include_children: bool = True,
@@ -48,6 +55,14 @@ async def ticket_search(
     - assignee: Filter by assigned user
     - project_id: Scope to specific project
     - milestone_id: Filter by milestone (NEW in 1M-607)
+    - updated_after: Filter tickets updated after this time (ISO datetime or relative like "24h", "7d")
+    - updated_before: Filter tickets updated before this time (ISO datetime, optional)
+    - since: Alias for updated_after (relative time shorthand)
+
+    **Activity Options:**
+    - include_activity: Include activity/comments per ticket (default: False)
+    - include_comments: Include comment previews (default: False)
+    - activity_limit: Max activity items per ticket (default: 5)
 
     **Hierarchy Options:**
     - include_hierarchy: Include parent/child relationships (default: False)
@@ -62,6 +77,12 @@ async def ticket_search(
         assignee: Filter by assigned user ID or email
         project_id: Project/epic ID (required unless default_project configured)
         milestone_id: Filter by milestone ID (NEW in 1M-607)
+        updated_after: ISO datetime or relative time (e.g., "24h", "7d", "2w", "1m")
+        updated_before: ISO datetime (optional upper bound)
+        since: Alias for updated_after (relative time shorthand)
+        include_activity: Include activity/comments for each ticket
+        include_comments: Include comment previews in results
+        activity_limit: Maximum number of activity items per ticket
         limit: Maximum number of results to return (default: 10, max: 100)
         include_hierarchy: Include parent/child relationships (default: False)
         include_children: Include child tickets in hierarchy (default: True)
@@ -73,6 +94,19 @@ async def ticket_search(
     Examples:
         # Simple search (backward compatible)
         await ticket_search(query="authentication bug", state="open", limit=5)
+
+        # Search with time filter (last 24 hours)
+        await ticket_search(updated_after="24h", state="open")
+
+        # Search with time filter (since last week)
+        await ticket_search(since="7d", project_id="proj-123")
+
+        # Search with activity included
+        await ticket_search(
+            query="critical bug",
+            include_activity=True,
+            activity_limit=10
+        )
 
         # Search with hierarchy
         await ticket_search(
@@ -139,6 +173,23 @@ async def ticket_search(
                     "error": f"Invalid priority '{priority}'. Must be one of: low, medium, high, critical",
                 }
 
+        # Parse time filter (supports both ISO datetime and relative time like "24h", "7d")
+        parsed_time_filter = None
+        query_period = None
+        try:
+            parsed_time_filter = parse_time_filter(
+                updated_after=updated_after, since=since
+            )
+            if parsed_time_filter:
+                # Format query period for response
+                time_source = updated_after or since
+                query_period = time_source
+        except ValueError as e:
+            return {
+                "status": "error",
+                "error": f"Invalid time filter: {str(e)}",
+            }
+
         # Create search query with project scoping
         search_query = SearchQuery(
             query=query,
@@ -147,11 +198,47 @@ async def ticket_search(
             tags=tags,
             assignee=assignee,
             project=final_project,  # Always required for search operations
+            updated_after=parsed_time_filter,
             limit=min(limit, 100),  # Enforce max limit
         )
 
         # Execute search via adapter
         results = await adapter.search(search_query)
+
+        # Build activity/comments map if requested
+        ticket_activities = {}
+        ticket_comments = {}
+        if include_activity or include_comments:
+            for ticket in results:
+                try:
+                    # Get comments using adapter's get_comments method
+                    if hasattr(adapter, "get_comments"):
+                        comments = await adapter.get_comments(
+                            ticket.id, limit=activity_limit, offset=0
+                        )
+                        # Store activity data separately
+                        if include_activity:
+                            ticket_activities[ticket.id] = [
+                                comment.model_dump() for comment in comments
+                            ]
+                        if include_comments:
+                            # Store just the text preview for comments
+                            ticket_comments[ticket.id] = [
+                                {
+                                    "author": comment.author,
+                                    "text": comment.text[:200]
+                                    + ("..." if len(comment.text) > 200 else ""),
+                                    "created_at": comment.created_at.isoformat()
+                                    if comment.created_at
+                                    else None,
+                                }
+                                for comment in comments
+                            ]
+                except Exception as e:
+                    # Log error but don't fail the search
+                    logger.warning(
+                        f"Failed to fetch comments for ticket {ticket.id}: {e}"
+                    )
 
         # Filter by milestone if requested (NEW in 1M-607)
         if milestone_id:
@@ -182,8 +269,16 @@ async def ticket_search(
             # Build hierarchical results
             hierarchical_results = []
             for ticket in results:
+                ticket_dict = ticket.model_dump()
+                # Add activity if requested
+                if include_activity and ticket.id in ticket_activities:
+                    ticket_dict["activity"] = ticket_activities[ticket.id]
+                # Add comment previews if requested
+                if include_comments and ticket.id in ticket_comments:
+                    ticket_dict["comment_preview"] = ticket_comments[ticket.id]
+
                 ticket_data = {
-                    "ticket": ticket.model_dump(),
+                    "ticket": ticket_dict,
                     "hierarchy": {},
                 }
 
@@ -240,7 +335,7 @@ async def ticket_search(
 
                 hierarchical_results.append(ticket_data)
 
-            return {
+            hierarchical_response = {
                 "status": "completed",
                 "results": hierarchical_results,
                 "count": len(hierarchical_results),
@@ -248,10 +343,27 @@ async def ticket_search(
                 "max_depth": max_depth,
             }
 
-        # Standard search response
-        return {
+            # Add query_period if time filter was used
+            if query_period:
+                hierarchical_response["query_period"] = query_period
+
+            return hierarchical_response
+
+        # Standard search response - build ticket dicts with optional activity/comments
+        ticket_dicts = []
+        for ticket in results:
+            ticket_dict = ticket.model_dump()
+            # Add activity if requested
+            if include_activity and ticket.id in ticket_activities:
+                ticket_dict["activity"] = ticket_activities[ticket.id]
+            # Add comment previews if requested
+            if include_comments and ticket.id in ticket_comments:
+                ticket_dict["comment_preview"] = ticket_comments[ticket.id]
+            ticket_dicts.append(ticket_dict)
+
+        response = {
             "status": "completed",
-            "tickets": [ticket.model_dump() for ticket in results],
+            "tickets": ticket_dicts,
             "count": len(results),
             "query": {
                 "text": query,
@@ -262,6 +374,12 @@ async def ticket_search(
                 "project": final_project,
             },
         }
+
+        # Add query_period if time filter was used
+        if query_period:
+            response["query_period"] = query_period
+
+        return response
     except Exception as e:
         return {
             "status": "error",

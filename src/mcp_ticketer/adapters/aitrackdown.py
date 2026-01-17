@@ -516,6 +516,25 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             if query.assignee and task.assignee != query.assignee:
                 continue
 
+            # Updated after filtering
+            if query.updated_after:
+                # Ensure both datetimes are timezone-aware or both are naive
+                task_updated = task.updated_at
+                query_updated = query.updated_after
+
+                if task_updated is None:
+                    # Skip tasks without updated_at timestamp
+                    continue
+
+                # Normalize timezones: convert both to naive UTC for comparison
+                if task_updated.tzinfo is not None:
+                    task_updated = task_updated.replace(tzinfo=None)
+                if query_updated.tzinfo is not None:
+                    query_updated = query_updated.replace(tzinfo=None)
+
+                if task_updated < query_updated:
+                    continue
+
             results.append(task)
 
         # Apply pagination

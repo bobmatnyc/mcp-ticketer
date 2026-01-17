@@ -1026,5 +1026,8 @@ class SearchQuery(BaseModel):
     tags: list[str] | None = Field(None, description="Filter by tags")
     assignee: str | None = Field(None, description="Filter by assignee")
     project: str | None = Field(None, description="Filter by project/epic ID or name")
+    updated_after: datetime | None = Field(
+        None, description="Filter tickets updated after this datetime"
+    )
     limit: int = Field(10, gt=0, le=100, description="Maximum results")
     offset: int = Field(0, ge=0, description="Result offset for pagination")
