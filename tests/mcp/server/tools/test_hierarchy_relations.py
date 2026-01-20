@@ -83,7 +83,9 @@ class TestAddRelation:
         assert result["relation"]["relation_type"] == "blocks"
 
         # Verify adapter method was called correctly
-        mock_adapter.add_relation.assert_called_once_with("SRC-1", "TGT-2", RelationType.BLOCKS)
+        mock_adapter.add_relation.assert_called_once_with(
+            "SRC-1", "TGT-2", RelationType.BLOCKS
+        )
 
     async def test_add_relation_works_with_issue(self, mock_adapter: MagicMock) -> None:
         """Test add_relation works with entity_type='issue'."""
@@ -134,7 +136,9 @@ class TestAddRelation:
 
         assert result["status"] == "completed"
 
-    async def test_add_relation_missing_source_id(self, mock_adapter: MagicMock) -> None:
+    async def test_add_relation_missing_source_id(
+        self, mock_adapter: MagicMock
+    ) -> None:
         """Test error when source_id is missing."""
         with patch(
             "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter",
@@ -151,7 +155,9 @@ class TestAddRelation:
         assert "source_id, target_id, and relation_type required" in result["error"]
         assert "hint" in result
 
-    async def test_add_relation_missing_target_id(self, mock_adapter: MagicMock) -> None:
+    async def test_add_relation_missing_target_id(
+        self, mock_adapter: MagicMock
+    ) -> None:
         """Test error when target_id is missing."""
         with patch(
             "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter",
@@ -167,7 +173,9 @@ class TestAddRelation:
         assert result["status"] == "error"
         assert "source_id, target_id, and relation_type required" in result["error"]
 
-    async def test_add_relation_missing_relation_type(self, mock_adapter: MagicMock) -> None:
+    async def test_add_relation_missing_relation_type(
+        self, mock_adapter: MagicMock
+    ) -> None:
         """Test error when relation_type is missing."""
         with patch(
             "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter",
@@ -183,7 +191,9 @@ class TestAddRelation:
         assert result["status"] == "error"
         assert "source_id, target_id, and relation_type required" in result["error"]
 
-    async def test_add_relation_invalid_relation_type(self, mock_adapter: MagicMock) -> None:
+    async def test_add_relation_invalid_relation_type(
+        self, mock_adapter: MagicMock
+    ) -> None:
         """Test error when relation_type is invalid."""
         with patch(
             "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter",
@@ -275,7 +285,9 @@ class TestRemoveRelation:
             "ISSUE-123", "ISSUE-456", RelationType.BLOCKS
         )
 
-    async def test_remove_relation_missing_params(self, mock_adapter: MagicMock) -> None:
+    async def test_remove_relation_missing_params(
+        self, mock_adapter: MagicMock
+    ) -> None:
         """Test error when parameters are missing."""
         with patch(
             "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter",
@@ -308,7 +320,9 @@ class TestRemoveRelation:
         assert result["status"] == "error"
         assert "Invalid relation_type 'not_a_real_type'" in result["error"]
 
-    async def test_remove_relation_not_implemented(self, mock_adapter: MagicMock) -> None:
+    async def test_remove_relation_not_implemented(
+        self, mock_adapter: MagicMock
+    ) -> None:
         """Test handling when adapter doesn't support relationships."""
         mock_adapter.remove_relation = AsyncMock(side_effect=NotImplementedError())
 
@@ -395,7 +409,9 @@ class TestListRelations:
         assert result["filter_applied"] == "blocks"
 
         # Verify adapter method was called with filter
-        mock_adapter.list_relations.assert_called_once_with("ISSUE-123", RelationType.BLOCKS)
+        mock_adapter.list_relations.assert_called_once_with(
+            "ISSUE-123", RelationType.BLOCKS
+        )
 
     async def test_list_relations_empty_result(self, mock_adapter: MagicMock) -> None:
         """Test list_relations with no relations found."""
@@ -415,7 +431,9 @@ class TestListRelations:
         assert result["count"] == 0
         assert result["relations"] == []
 
-    async def test_list_relations_missing_entity_id(self, mock_adapter: MagicMock) -> None:
+    async def test_list_relations_missing_entity_id(
+        self, mock_adapter: MagicMock
+    ) -> None:
         """Test error when entity_id is missing."""
         with patch(
             "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter",
@@ -430,7 +448,9 @@ class TestListRelations:
         assert "entity_id required for list_relations" in result["error"]
         assert "hint" in result
 
-    async def test_list_relations_invalid_filter_type(self, mock_adapter: MagicMock) -> None:
+    async def test_list_relations_invalid_filter_type(
+        self, mock_adapter: MagicMock
+    ) -> None:
         """Test error for invalid relation_type filter."""
         with patch(
             "mcp_ticketer.mcp.server.tools.hierarchy_tools.get_adapter",
@@ -446,7 +466,9 @@ class TestListRelations:
         assert result["status"] == "error"
         assert "Invalid relation_type 'invalid_filter'" in result["error"]
 
-    async def test_list_relations_not_implemented(self, mock_adapter: MagicMock) -> None:
+    async def test_list_relations_not_implemented(
+        self, mock_adapter: MagicMock
+    ) -> None:
         """Test handling when adapter doesn't support relationships."""
         mock_adapter.list_relations = AsyncMock(side_effect=NotImplementedError())
 
@@ -520,8 +542,14 @@ class TestRelationshipActionIntegration:
         """Test that relationship actions work with any entity_type."""
         entity_types = ["epic", "issue", "task"]
         actions = [
-            ("add_relation", {"source_id": "A", "target_id": "B", "relation_type": "blocks"}),
-            ("remove_relation", {"source_id": "A", "target_id": "B", "relation_type": "blocks"}),
+            (
+                "add_relation",
+                {"source_id": "A", "target_id": "B", "relation_type": "blocks"},
+            ),
+            (
+                "remove_relation",
+                {"source_id": "A", "target_id": "B", "relation_type": "blocks"},
+            ),
             ("list_relations", {"entity_id": "A"}),
         ]
 
@@ -542,11 +570,13 @@ class TestRelationshipActionIntegration:
         ):
             for entity_type in entity_types:
                 for action, params in actions:
-                    result = await hierarchy(entity_type=entity_type, action=action, **params)
-
-                    assert result["status"] == "completed", (
-                        f"Failed for entity_type={entity_type}, action={action}"
+                    result = await hierarchy(
+                        entity_type=entity_type, action=action, **params
                     )
+
+                    assert (
+                        result["status"] == "completed"
+                    ), f"Failed for entity_type={entity_type}, action={action}"
                     assert result["operation"] == action
 
 
@@ -585,7 +615,10 @@ class TestRelationshipCodeStructure:
         assert 'elif action_lower == "list_relations":' in content
 
         # Verify comment showing they're checked first
-        assert "# Relationship operations (entity_type independent) - check FIRST" in content
+        assert (
+            "# Relationship operations (entity_type independent) - check FIRST"
+            in content
+        )
 
         lines = content.split("\n")
 
@@ -593,19 +626,24 @@ class TestRelationshipCodeStructure:
         relationship_comment_line = next(
             i
             for i, line in enumerate(lines, 1)
-            if "# Relationship operations (entity_type independent) - check FIRST" in line
+            if "# Relationship operations (entity_type independent) - check FIRST"
+            in line
         )
         add_relation_line = next(
-            i for i, line in enumerate(lines, 1) if 'if action_lower == "add_relation":' in line
+            i
+            for i, line in enumerate(lines, 1)
+            if 'if action_lower == "add_relation":' in line
         )
         entity_epic_line = next(
-            i for i, line in enumerate(lines, 1) if 'if entity_type_lower == "epic":' in line
+            i
+            for i, line in enumerate(lines, 1)
+            if 'if entity_type_lower == "epic":' in line
         )
 
         # Relationship checks come BEFORE entity checks (fixed!)
-        assert add_relation_line < entity_epic_line, (
-            "Relationship actions should be checked before entity_type branches"
-        )
+        assert (
+            add_relation_line < entity_epic_line
+        ), "Relationship actions should be checked before entity_type branches"
         assert relationship_comment_line < add_relation_line
         assert add_relation_line < entity_epic_line
 
@@ -631,7 +669,7 @@ class TestRelationshipCodeStructure:
         actions_in_list = []
 
         for line in lines:
-            if 'action: Literal[' in line or action_list_started:
+            if "action: Literal[" in line or action_list_started:
                 action_list_started = True
                 if '"add_relation"' in line:
                     actions_in_list.append("add_relation")

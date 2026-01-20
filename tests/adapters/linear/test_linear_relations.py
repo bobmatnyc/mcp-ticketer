@@ -1,12 +1,14 @@
 """Unit tests for Linear adapter relationship methods."""
 
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from mcp_ticketer.adapters.linear.adapter import LinearAdapter
-from mcp_ticketer.adapters.linear.types import get_linear_relation_type, get_universal_relation_type
+from mcp_ticketer.adapters.linear.types import (
+    get_linear_relation_type,
+    get_universal_relation_type,
+)
 from mcp_ticketer.core.models import RelationType, TicketRelation
 
 
@@ -184,7 +186,9 @@ class TestLinearAdapterAddRelation:
 
         assert "Failed to create issue relation" in str(exc_info.value)
 
-    async def test_add_relation_api_exception(self, linear_adapter: LinearAdapter) -> None:
+    async def test_add_relation_api_exception(
+        self, linear_adapter: LinearAdapter
+    ) -> None:
         """Test add_relation when API raises exception."""
         linear_adapter.client.execute_mutation = AsyncMock(
             side_effect=Exception("Network error")
@@ -233,7 +237,9 @@ class TestLinearAdapterRemoveRelation:
                 "success": True,
             }
         }
-        linear_adapter.client.execute_mutation = AsyncMock(return_value=mock_delete_result)
+        linear_adapter.client.execute_mutation = AsyncMock(
+            return_value=mock_delete_result
+        )
 
         result = await linear_adapter.remove_relation(
             "issue-1",
@@ -253,7 +259,9 @@ class TestLinearAdapterRemoveRelation:
         variables = call_args[0][1]
         assert variables["id"] == "rel-123"
 
-    async def test_remove_relation_not_found(self, linear_adapter: LinearAdapter) -> None:
+    async def test_remove_relation_not_found(
+        self, linear_adapter: LinearAdapter
+    ) -> None:
         """Test removing a relation that doesn't exist."""
         # Mock list_relations to return empty list
         linear_adapter.list_relations = AsyncMock(return_value=[])
@@ -270,10 +278,14 @@ class TestLinearAdapterRemoveRelation:
         linear_adapter.list_relations.assert_called_once()
 
         # Verify delete mutation was NOT called (no execute_mutation attribute exists yet)
-        assert not hasattr(linear_adapter.client, 'execute_mutation') or \
-               not linear_adapter.client.execute_mutation.called
+        assert (
+            not hasattr(linear_adapter.client, "execute_mutation")
+            or not linear_adapter.client.execute_mutation.called
+        )
 
-    async def test_remove_relation_wrong_target(self, linear_adapter: LinearAdapter) -> None:
+    async def test_remove_relation_wrong_target(
+        self, linear_adapter: LinearAdapter
+    ) -> None:
         """Test removing a relation with non-matching target."""
         # Mock list_relations to return relation with different target
         existing_relation = TicketRelation(
@@ -292,11 +304,11 @@ class TestLinearAdapterRemoveRelation:
 
         assert result is False
 
-    async def test_remove_relation_api_exception(self, linear_adapter: LinearAdapter) -> None:
+    async def test_remove_relation_api_exception(
+        self, linear_adapter: LinearAdapter
+    ) -> None:
         """Test remove_relation when API raises exception."""
-        linear_adapter.list_relations = AsyncMock(
-            side_effect=Exception("API error")
-        )
+        linear_adapter.list_relations = AsyncMock(side_effect=Exception("API error"))
 
         result = await linear_adapter.remove_relation(
             "issue-1",
@@ -414,9 +426,7 @@ class TestLinearAdapterListRelations:
             "issue": {
                 "id": "issue-123",
                 "identifier": "TEST-123",
-                "relations": {
-                    "nodes": []
-                },
+                "relations": {"nodes": []},
             }
         }
 
@@ -427,11 +437,11 @@ class TestLinearAdapterListRelations:
         assert len(result) == 0
         assert result == []
 
-    async def test_list_relations_issue_not_found(self, linear_adapter: LinearAdapter) -> None:
+    async def test_list_relations_issue_not_found(
+        self, linear_adapter: LinearAdapter
+    ) -> None:
         """Test listing relationships when issue doesn't exist."""
-        mock_result = {
-            "issue": None
-        }
+        mock_result = {"issue": None}
 
         linear_adapter.client.execute_query = AsyncMock(return_value=mock_result)
 
@@ -440,7 +450,9 @@ class TestLinearAdapterListRelations:
         assert len(result) == 0
         assert result == []
 
-    async def test_list_relations_api_exception(self, linear_adapter: LinearAdapter) -> None:
+    async def test_list_relations_api_exception(
+        self, linear_adapter: LinearAdapter
+    ) -> None:
         """Test list_relations when API raises exception.
 
         Note: The implementation catches exceptions and returns empty list

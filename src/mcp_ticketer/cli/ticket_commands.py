@@ -200,8 +200,8 @@ def create(
     tags: list[str] | None = typer.Option(
         None,
         "--tags",  # PRIMARY (matches MCP)
-        "--tag",   # ALIAS (backward compatibility)
-        "-t",      # SHORT FORM
+        "--tag",  # ALIAS (backward compatibility)
+        "-t",  # SHORT FORM
         help="Tags (can be specified multiple times)",
     ),
     assignee: str | None = typer.Option(
@@ -210,9 +210,9 @@ def create(
     parent_epic: str | None = typer.Option(
         None,
         "--parent-epic",  # PRIMARY (matches MCP)
-        "--epic",         # ALIAS (backward compatibility)
-        "--project",      # ALIAS (backward compatibility)
-        "-e",             # SHORT FORM
+        "--epic",  # ALIAS (backward compatibility)
+        "--project",  # ALIAS (backward compatibility)
+        "-e",  # SHORT FORM
         help="Parent epic/project ID",
     ),
     wait: bool = typer.Option(

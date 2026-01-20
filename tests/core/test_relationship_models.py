@@ -28,7 +28,13 @@ class TestRelationType:
 
     def test_all_relation_types_exist(self) -> None:
         """Test that all expected relation types exist."""
-        expected_types = {"blocks", "blocked_by", "relates_to", "duplicates", "duplicated_by"}
+        expected_types = {
+            "blocks",
+            "blocked_by",
+            "relates_to",
+            "duplicates",
+            "duplicated_by",
+        }
         actual_types = {rt.value for rt in RelationType}
         assert actual_types == expected_types
 

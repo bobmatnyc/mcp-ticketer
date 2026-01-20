@@ -46,7 +46,10 @@ async def test_max_auto_labels_default():
     # Should have exactly 4 labels (default limit)
     assert len(result) == 4
     # Should include the first 4 matched labels
-    assert all(label in ["bug", "critical", "security", "high-priority", "fix"] for label in result)
+    assert all(
+        label in ["bug", "critical", "security", "high-priority", "fix"]
+        for label in result
+    )
 
 
 async def test_max_auto_labels_explicit_limit():
@@ -65,7 +68,11 @@ async def test_max_auto_labels_explicit_limit():
 
     # Set explicit limit of 2
     result = await detect_and_apply_labels(
-        adapter, content_title, content_description, existing_labels=[], max_auto_labels=2
+        adapter,
+        content_title,
+        content_description,
+        existing_labels=[],
+        max_auto_labels=2,
     )
 
     # Should have exactly 2 labels
@@ -87,8 +94,11 @@ async def test_max_auto_labels_does_not_limit_user_labels():
     # User provides 3 labels + 3 auto-detected, but max_auto_labels=2
     user_labels = ["user-tag-1", "user-tag-2", "user-tag-3"]
     result = await detect_and_apply_labels(
-        adapter, content_title, content_description,
-        existing_labels=user_labels, max_auto_labels=2
+        adapter,
+        content_title,
+        content_description,
+        existing_labels=user_labels,
+        max_auto_labels=2,
     )
 
     # Should have all 3 user labels + max 2 auto-detected = 5 total
@@ -105,7 +115,10 @@ async def test_hierarchical_labels_filtered_unless_exact_match():
     # Mix of hierarchical and non-hierarchical labels
     available_labels = [
         {"id": "1", "name": "test"},  # Should match
-        {"id": "2", "name": "Test Suite/Unit Tests"},  # Should NOT match (has "/" and not exact)
+        {
+            "id": "2",
+            "name": "Test Suite/Unit Tests",
+        },  # Should NOT match (has "/" and not exact)
         {"id": "3", "name": "Test Suite/Integration Tests"},  # Should NOT match
         {"id": "4", "name": "Test Suite/Authentication"},  # Should NOT match
         {"id": "5", "name": "authentication"},  # Should match
@@ -133,7 +146,10 @@ async def test_hierarchical_labels_exact_match_included():
     content_description = "Broken test suite/authentication module"
 
     available_labels = [
-        {"id": "1", "name": "Test Suite/Authentication"},  # Should match (exact in title)
+        {
+            "id": "1",
+            "name": "Test Suite/Authentication",
+        },  # Should match (exact in title)
         {"id": "2", "name": "Test Suite/Unit Tests"},  # Should NOT match
         {"id": "3", "name": "authentication"},  # Should match
     ]
@@ -157,7 +173,10 @@ async def test_hierarchical_labels_case_insensitive_exact_match():
     content_description = ""
 
     available_labels = [
-        {"id": "1", "name": "Test Suite/Authentication"},  # Should match (case-insensitive exact)
+        {
+            "id": "1",
+            "name": "Test Suite/Authentication",
+        },  # Should match (case-insensitive exact)
         {"id": "2", "name": "Test Suite/Integration"},  # Should NOT match
     ]
     adapter = MockAdapter(available_labels)
@@ -184,8 +203,11 @@ async def test_max_auto_labels_zero():
     adapter = MockAdapter(available_labels)
 
     result = await detect_and_apply_labels(
-        adapter, content_title, content_description,
-        existing_labels=[], max_auto_labels=0
+        adapter,
+        content_title,
+        content_description,
+        existing_labels=[],
+        max_auto_labels=0,
     )
 
     # Should have no auto-detected labels
@@ -205,8 +227,11 @@ async def test_max_auto_labels_with_user_labels():
 
     user_labels = ["my-custom-tag"]
     result = await detect_and_apply_labels(
-        adapter, content_title, content_description,
-        existing_labels=user_labels, max_auto_labels=0
+        adapter,
+        content_title,
+        content_description,
+        existing_labels=user_labels,
+        max_auto_labels=0,
     )
 
     # Should have user label but no auto-detected
@@ -221,9 +246,15 @@ async def test_combined_hierarchical_filter_and_max_labels():
 
     available_labels = [
         {"id": "1", "name": "bug"},
-        {"id": "2", "name": "Test Suite/Unit"},  # Filtered (hierarchical, no exact match)
+        {
+            "id": "2",
+            "name": "Test Suite/Unit",
+        },  # Filtered (hierarchical, no exact match)
         {"id": "3", "name": "critical"},
-        {"id": "4", "name": "Feature/Security"},  # Filtered (hierarchical, no exact match)
+        {
+            "id": "4",
+            "name": "Feature/Security",
+        },  # Filtered (hierarchical, no exact match)
         {"id": "5", "name": "security"},
         {"id": "6", "name": "test"},
         {"id": "7", "name": "feature"},
@@ -232,8 +263,11 @@ async def test_combined_hierarchical_filter_and_max_labels():
 
     # Set max to 3, but hierarchical labels should already be filtered
     result = await detect_and_apply_labels(
-        adapter, content_title, content_description,
-        existing_labels=[], max_auto_labels=3
+        adapter,
+        content_title,
+        content_description,
+        existing_labels=[],
+        max_auto_labels=3,
     )
 
     # Should have max 3 non-hierarchical labels
@@ -280,7 +314,10 @@ async def test_backward_compatibility_no_max_param():
 
     # Old code calling without max_auto_labels parameter should use default (4)
     result = await detect_and_apply_labels(
-        adapter, content_title, content_description, existing_labels=[]
+        adapter,
+        content_title,
+        content_description,
+        existing_labels=[],
         # No max_auto_labels parameter - should use default
     )
 

@@ -3,7 +3,6 @@
 Related to Issue #55: Auto-detect project URLs when creating tickets.
 """
 
-import pytest
 
 from mcp_ticketer.mcp.server.tools.ticket_tools import extract_project_url_from_text
 
@@ -167,7 +166,9 @@ class TestExtractProjectUrlFromText:
     # Whitespace and formatting tests
     def test_url_with_newlines(self):
         """Test extraction with URL on separate line."""
-        text = "Bug description\n\nhttps://linear.app/acme/project/bugs-v2\n\nMore details"
+        text = (
+            "Bug description\n\nhttps://linear.app/acme/project/bugs-v2\n\nMore details"
+        )
         result = extract_project_url_from_text(text)
         assert result == "https://linear.app/acme/project/bugs-v2"
 

@@ -1,6 +1,6 @@
-"""Comprehensive tests for MCP ticket_attach tool.
+"""Comprehensive tests for MCP attachment tool.
 
-Tests the ticket_attach MCP tool endpoint including:
+Tests the attachment MCP tool endpoint including:
 - Multi-tier attachment support (Linear native, adapter native, comment fallback)
 - File validation and error handling
 - Response format verification
@@ -21,7 +21,7 @@ from mcp_ticketer.mcp.server.tools.attachment_tools import attachment
 
 
 class TestTicketAttachMCPTool:
-    """Test suite for ticket_attach MCP tool."""
+    """Test suite for attachment MCP tool."""
 
     @pytest.fixture
     def temp_test_file(self) -> Path:
@@ -135,7 +135,7 @@ class TestTicketAttachMCPTool:
             "mcp_ticketer.mcp.server.tools.attachment_tools.get_adapter",
             return_value=mock_linear_adapter,
         ):
-            result = await ticket_attach(
+            result = await attachment(
                 ticket_id=epic_id,
                 file_path=str(temp_test_file),
             )
@@ -314,7 +314,7 @@ class TestTicketAttachMCPTool:
     async def test_attach_file_response_structure(
         self, mock_linear_adapter: LinearAdapter, temp_test_file: Path
     ) -> None:
-        """Test that ticket_attach returns proper MCP response structure."""
+        """Test that attachment returns proper MCP response structure."""
         ticket_id = "TEST-123"
 
         mock_task = Task(

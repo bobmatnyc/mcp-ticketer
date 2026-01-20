@@ -37,7 +37,8 @@ class TestSemanticTransitionMCP:
 
         try:
             # Use natural language to transition
-            result = await workflow(action="transition", 
+            result = await workflow(
+                action="transition",
                 ticket_id=ticket_id,
                 to_state="working on it",  # Natural language!
                 comment="Started implementation",
@@ -68,7 +69,8 @@ class TestSemanticTransitionMCP:
 
         try:
             # Use "review" synonym for READY
-            result = await workflow(action="transition", 
+            result = await workflow(
+                action="transition",
                 ticket_id=ticket_id,
                 to_state="needs review",
             )
@@ -95,7 +97,8 @@ class TestSemanticTransitionMCP:
 
         try:
             # Typo: "reviw" instead of "review"
-            result = await workflow(action="transition", 
+            result = await workflow(
+                action="transition",
                 ticket_id=ticket_id,
                 to_state="reviw",  # Typo!
             )
@@ -123,7 +126,8 @@ class TestSemanticTransitionMCP:
 
         try:
             # Very short/ambiguous input
-            result = await workflow(action="transition", 
+            result = await workflow(
+                action="transition",
                 ticket_id=ticket_id,
                 to_state="x",  # Ambiguous!
             )
@@ -155,7 +159,8 @@ class TestSemanticTransitionMCP:
 
         try:
             # Use a slightly misspelled input
-            result = await workflow(action="transition", 
+            result = await workflow(
+                action="transition",
                 ticket_id=ticket_id,
                 to_state="redy",  # Misspelled
                 auto_confirm=False,
@@ -183,7 +188,8 @@ class TestSemanticTransitionMCP:
 
         try:
             # Try invalid transition: OPEN -> TESTED (not allowed)
-            result = await workflow(action="transition", 
+            result = await workflow(
+                action="transition",
                 ticket_id=ticket_id,
                 to_state="tested",  # Invalid from OPEN
             )
@@ -212,31 +218,37 @@ class TestSemanticTransitionMCP:
 
         try:
             # 1. Start work: OPEN -> IN_PROGRESS
-            result1 = await workflow(action="transition", 
-                ticket_id=ticket_id, to_state="started working"
+            result1 = await workflow(
+                action="transition", ticket_id=ticket_id, to_state="started working"
             )
             assert result1["status"] == "completed"
             assert result1["new_state"] == "in_progress"
 
             # 2. Complete work: IN_PROGRESS -> READY
-            result2 = await workflow(action="transition", 
-                ticket_id=ticket_id, to_state="needs review"
+            result2 = await workflow(
+                action="transition", ticket_id=ticket_id, to_state="needs review"
             )
             assert result2["status"] == "completed"
             assert result2["new_state"] == "ready"
 
             # 3. Test: READY -> TESTED
-            result3 = await workflow(action="transition", ticket_id=ticket_id, to_state="qa passed")
+            result3 = await workflow(
+                action="transition", ticket_id=ticket_id, to_state="qa passed"
+            )
             assert result3["status"] == "completed"
             assert result3["new_state"] == "tested"
 
             # 4. Complete: TESTED -> DONE
-            result4 = await workflow(action="transition", ticket_id=ticket_id, to_state="finished")
+            result4 = await workflow(
+                action="transition", ticket_id=ticket_id, to_state="finished"
+            )
             assert result4["status"] == "completed"
             assert result4["new_state"] == "done"
 
             # 5. Close: DONE -> CLOSED
-            result5 = await workflow(action="transition", ticket_id=ticket_id, to_state="archived")
+            result5 = await workflow(
+                action="transition", ticket_id=ticket_id, to_state="archived"
+            )
             assert result5["status"] == "completed"
             assert result5["new_state"] == "closed"
 
@@ -257,7 +269,8 @@ class TestSemanticTransitionMCP:
 
         try:
             # Use exact state name (old behavior)
-            result = await workflow(action="transition", 
+            result = await workflow(
+                action="transition",
                 ticket_id=ticket_id,
                 to_state="in_progress",  # Exact state name
             )
@@ -284,7 +297,8 @@ class TestSemanticTransitionMCP:
 
         try:
             # Use mixed case
-            result = await workflow(action="transition", 
+            result = await workflow(
+                action="transition",
                 ticket_id=ticket_id,
                 to_state="WORKING ON IT",  # UPPERCASE
             )
@@ -309,7 +323,8 @@ class TestSemanticTransitionMCP:
 
         try:
             # Use extra whitespace
-            result = await workflow(action="transition", 
+            result = await workflow(
+                action="transition",
                 ticket_id=ticket_id,
                 to_state="  working   on   it  ",  # Extra whitespace
             )
@@ -333,8 +348,8 @@ class TestSemanticTransitionMCP:
         ticket_id = created.id
 
         try:
-            result = await workflow(action="transition", 
-                ticket_id=ticket_id, to_state="working on it"
+            result = await workflow(
+                action="transition", ticket_id=ticket_id, to_state="working on it"
             )
 
             # Response should include confidence metrics
@@ -376,7 +391,8 @@ class TestSemanticTransitionMCP:
                 if not current_state.can_transition_to(target_state):
                     continue
 
-                result = await workflow(action="transition", 
+                result = await workflow(
+                    action="transition",
                     ticket_id=ticket_id,
                     to_state=input_term,
                 )
@@ -406,7 +422,8 @@ class TestSemanticTransitionEdgeCases:
         ticket_id = created.id
 
         try:
-            result = await workflow(action="transition", 
+            result = await workflow(
+                action="transition",
                 ticket_id=ticket_id,
                 to_state="",  # Empty!
             )
@@ -421,7 +438,8 @@ class TestSemanticTransitionEdgeCases:
         """Test semantic transition with non-existent ticket."""
         from mcp_ticketer.mcp.server.tools.user_ticket_tools import workflow
 
-        result = await workflow(action="transition", 
+        result = await workflow(
+            action="transition",
             ticket_id="NONEXISTENT-123",
             to_state="working on it",
         )
@@ -442,7 +460,8 @@ class TestSemanticTransitionEdgeCases:
         ticket_id = created.id
 
         try:
-            result = await workflow(action="transition", 
+            result = await workflow(
+                action="transition",
                 ticket_id=ticket_id,
                 to_state="working on it",
             )
@@ -472,7 +491,8 @@ class TestCommentIntegration:
         ticket_id = created.id
 
         try:
-            result = await workflow(action="transition", 
+            result = await workflow(
+                action="transition",
                 ticket_id=ticket_id,
                 to_state="working on it",
                 comment="Started implementation of feature X",

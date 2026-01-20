@@ -1586,6 +1586,7 @@ async def ticket_assign(
 
         return error_response
 
+
 async def _ticket_add_comment(ticket_id: str, text: str) -> dict[str, Any]:
     """Add a comment to a ticket (internal helper for ticket tool).
 

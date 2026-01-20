@@ -16,7 +16,13 @@ from pathlib import Path
 from typing import Any, Literal
 
 from ....core.adapter import BaseAdapter
-from ....core.models import Epic, Priority, RelationType, Task, TicketRelation, TicketType
+from ....core.models import (
+    Epic,
+    Priority,
+    RelationType,
+    Task,
+    TicketType,
+)
 from ....core.project_config import ConfigResolver, TicketerConfig
 from ..server_sdk import get_adapter, mcp
 from .ticket_tools import detect_and_apply_labels
@@ -830,7 +836,11 @@ async def ticket_hierarchy(
                     final_tags = tags
                     if auto_detect_labels:
                         final_tags = await detect_and_apply_labels(
-                            adapter, title or "", description or "", tags, max_auto_labels
+                            adapter,
+                            title or "",
+                            description or "",
+                            tags,
+                            max_auto_labels,
                         )
 
                     # Create issue (Task with ISSUE type)
@@ -1058,7 +1068,11 @@ async def ticket_hierarchy(
                     final_tags = tags
                     if auto_detect_labels:
                         final_tags = await detect_and_apply_labels(
-                            adapter, title or "", description or "", tags, max_auto_labels
+                            adapter,
+                            title or "",
+                            description or "",
+                            tags,
+                            max_auto_labels,
                         )
 
                     # Create task (Task with TASK type)

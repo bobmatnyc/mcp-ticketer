@@ -8,11 +8,7 @@ This test module verifies that tokens can be loaded from:
 """
 
 import os
-import tempfile
-from pathlib import Path
 from unittest import mock
-
-import pytest
 
 from mcp_ticketer.core.config import (
     GitHubConfig,
@@ -327,6 +323,4 @@ class TestAdapterValidation:
             is_valid, error_msg = adapter.validate_credentials()
             assert not is_valid
             # Error message should mention token/credentials
-            assert (
-                "token" in error_msg.lower() or "credential" in error_msg.lower()
-            )
+            assert "token" in error_msg.lower() or "credential" in error_msg.lower()

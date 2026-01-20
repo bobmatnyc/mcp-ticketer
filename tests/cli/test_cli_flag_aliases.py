@@ -60,7 +60,9 @@ class TestTagsFlag:
         assert "--tags" in result.stdout or "--tag" in result.stdout
         assert "-t" in result.stdout
 
-    def test_tags_primary_flag_parsed(self, test_project_dir: Path, monkeypatch) -> None:
+    def test_tags_primary_flag_parsed(
+        self, test_project_dir: Path, monkeypatch
+    ) -> None:
         """Test that --tags flag is accepted by parser."""
         monkeypatch.chdir(test_project_dir)
 
@@ -124,8 +126,7 @@ class TestParentEpicFlag:
         help_lower = result.stdout.lower()
         # Should show at least one of the epic flags
         assert any(
-            flag in help_lower
-            for flag in ["--parent-epic", "--epic", "--project"]
+            flag in help_lower for flag in ["--parent-epic", "--epic", "--project"]
         )
 
     def test_parent_epic_primary_flag_parsed(
@@ -140,9 +141,7 @@ class TestParentEpicFlag:
         )
         assert result.exit_code == 0
 
-    def test_epic_alias_flag_parsed(
-        self, test_project_dir: Path, monkeypatch
-    ) -> None:
+    def test_epic_alias_flag_parsed(self, test_project_dir: Path, monkeypatch) -> None:
         """Test that --epic alias is accepted by parser."""
         monkeypatch.chdir(test_project_dir)
 
@@ -164,9 +163,7 @@ class TestParentEpicFlag:
         )
         assert result.exit_code == 0
 
-    def test_e_short_form_parsed(
-        self, test_project_dir: Path, monkeypatch
-    ) -> None:
+    def test_e_short_form_parsed(self, test_project_dir: Path, monkeypatch) -> None:
         """Test that -e short form is accepted by parser."""
         monkeypatch.chdir(test_project_dir)
 
@@ -262,9 +259,7 @@ class TestBackwardCompatibility:
         )
         assert result.exit_code == 0
 
-    def test_short_forms_still_work(
-        self, test_project_dir: Path, monkeypatch
-    ) -> None:
+    def test_short_forms_still_work(self, test_project_dir: Path, monkeypatch) -> None:
         """Test that short forms -t and -e still work."""
         monkeypatch.chdir(test_project_dir)
 
@@ -303,6 +298,5 @@ class TestHelpText:
         # Help should mention at least one of the epic/project forms
         help_lower = result.stdout.lower()
         assert any(
-            flag in help_lower
-            for flag in ["--parent-epic", "--epic", "--project"]
+            flag in help_lower for flag in ["--parent-epic", "--epic", "--project"]
         )

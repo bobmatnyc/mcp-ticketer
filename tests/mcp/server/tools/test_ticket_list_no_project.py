@@ -6,8 +6,9 @@ project_id when using adapters like GitHub that don't use project scoping.
 Reproduces issue #64: MCP ticket list returns empty while CLI works.
 """
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from mcp_ticketer.core.models import Priority, Task, TicketState
 from mcp_ticketer.mcp.server.tools.ticket_tools import ticket
@@ -42,7 +43,10 @@ async def test_ticket_list_without_project_id():
     mock_adapter.adapter_display_name = "GitHub"
 
     # Mock get_adapter to return our mock
-    with patch("mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=mock_adapter):
+    with patch(
+        "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
+        return_value=mock_adapter,
+    ):
         # Call ticket list WITHOUT project_id (like GitHub adapter case)
         result = await ticket(
             action="list",
@@ -91,7 +95,10 @@ async def test_ticket_list_with_project_id():
     mock_adapter.adapter_display_name = "Linear"
 
     # Mock get_adapter to return our mock
-    with patch("mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=mock_adapter):
+    with patch(
+        "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
+        return_value=mock_adapter,
+    ):
         # Call ticket list WITH project_id (like Linear adapter case)
         result = await ticket(
             action="list",
@@ -136,7 +143,10 @@ async def test_ticket_list_matches_cli_behavior():
     mock_adapter.adapter_display_name = "GitHub"
 
     # Mock get_adapter
-    with patch("mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter", return_value=mock_adapter):
+    with patch(
+        "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
+        return_value=mock_adapter,
+    ):
         # Call like the CLI does: with state/priority filters, but no project
         result = await ticket(
             action="list",

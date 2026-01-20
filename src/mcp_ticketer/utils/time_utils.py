@@ -16,12 +16,10 @@ Memory: O(1) auxiliary space (no allocations beyond datetime objects)
 
 import re
 from datetime import datetime, timedelta, timezone
-from typing import Optional
-
 
 # Regex pattern for relative time expressions (e.g., "24h", "7d", "2w", "1m")
 # Format: <number><unit> where unit is h/d/w/m
-RELATIVE_TIME_PATTERN = re.compile(r'^(\d+)([hdwm])$', re.IGNORECASE)
+RELATIVE_TIME_PATTERN = re.compile(r"^(\d+)([hdwm])$", re.IGNORECASE)
 
 
 def parse_relative_time(value: str) -> datetime:
@@ -90,13 +88,13 @@ def parse_relative_time(value: str) -> datetime:
     now = datetime.now(timezone.utc)
 
     # Calculate timedelta based on unit
-    if unit == 'h':
+    if unit == "h":
         delta = timedelta(hours=amount)
-    elif unit == 'd':
+    elif unit == "d":
         delta = timedelta(days=amount)
-    elif unit == 'w':
+    elif unit == "w":
         delta = timedelta(weeks=amount)
-    elif unit == 'm':
+    elif unit == "m":
         # Approximate month as 30 days
         # Trade-off: Simple approximation vs. exact calendar months
         delta = timedelta(days=amount * 30)
@@ -108,9 +106,9 @@ def parse_relative_time(value: str) -> datetime:
 
 
 def parse_time_filter(
-    updated_after: Optional[str] = None,
-    since: Optional[str] = None,
-) -> Optional[datetime]:
+    updated_after: str | None = None,
+    since: str | None = None,
+) -> datetime | None:
     """Parse time filter parameters into a single datetime.
 
     Combined parser for common API filter patterns like updated_after/since.
@@ -170,7 +168,7 @@ def parse_time_filter(
 
     # Try parsing as ISO timestamp
     try:
-        dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
         # Ensure timezone-aware (convert naive to UTC if needed)
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)

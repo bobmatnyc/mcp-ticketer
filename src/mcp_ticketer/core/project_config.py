@@ -539,7 +539,7 @@ class ConfigResolver:
                 logger.error(
                     f"Failed to load project config from {config_path}: "
                     f"{type(e).__name__}: {e}",
-                    exc_info=True
+                    exc_info=True,
                 )
 
         return None

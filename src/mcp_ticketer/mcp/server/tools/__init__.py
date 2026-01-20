@@ -41,9 +41,9 @@ from . import (
     # instruction_tools removed - CLI-only (Phase 2 Sprint 2.3)
     label_tools,  # noqa: F401
     milestone_tools,  # noqa: F401
+    project_status_tools,  # noqa: F401 - DEPRECATED, kept for backward compatibility
     # pr_tools removed - CLI-only (Phase 2 Sprint 1.3 - use GitHub MCP)
     project_tools,  # noqa: F401 - v2.1.0 unified project management
-    project_status_tools,  # noqa: F401 - DEPRECATED, kept for backward compatibility
     project_update_tools,  # noqa: F401 - DEPRECATED, kept for backward compatibility
     search_tools,  # noqa: F401
     session_tools,  # noqa: F401

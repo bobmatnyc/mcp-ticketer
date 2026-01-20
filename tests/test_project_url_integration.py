@@ -3,10 +3,11 @@
 Tests the full flow of ticket_create with auto-detected project URLs.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from mcp_ticketer.core.models import Task, Priority
+import pytest
+
+from mcp_ticketer.core.models import Priority, Task
 from mcp_ticketer.mcp.server.tools.ticket_tools import ticket_create
 
 
@@ -74,7 +75,8 @@ async def test_ticket_create_with_linear_project_url_in_description():
     mock_adapter.create.assert_called_once()
     call_args = mock_adapter.create.call_args[0][0]
     assert (
-        call_args.parent_epic == "https://linear.app/hello-recess/project/v2-f7a18fae1c21"
+        call_args.parent_epic
+        == "https://linear.app/hello-recess/project/v2-f7a18fae1c21"
     )
 
 

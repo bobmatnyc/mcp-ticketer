@@ -211,12 +211,12 @@ class TestCreateWithLabelTracking:
         # Set up side effects for POST calls
         # Note: labels are checked twice - once explicitly, once in the loop
         github_adapter.client.post.side_effect = [
-            state_response,     # Explicit check for state label
+            state_response,  # Explicit check for state label
             priority_response,  # Explicit check for priority label
-            state_response,     # Loop check for state label (in labels list)
+            state_response,  # Loop check for state label (in labels list)
             # priority_label skipped in loop (already in cache)
-            tag_response,       # Loop check for custom-tag
-            issue_response,     # Issue creation
+            tag_response,  # Loop check for custom-tag
+            issue_response,  # Issue creation
         ]
 
         # Create ticket with tags
@@ -239,7 +239,9 @@ class TestCreateWithLabelTracking:
 
             # Check that warning mentions failed labels
             warning_calls = [str(call) for call in mock_logger.warning.call_args_list]
-            assert any("Failed to ensure existence of labels" in call for call in warning_calls)
+            assert any(
+                "Failed to ensure existence of labels" in call for call in warning_calls
+            )
 
     @pytest.mark.asyncio
     async def test_create_no_warning_when_all_labels_succeed(
@@ -254,7 +256,10 @@ class TestCreateWithLabelTracking:
 
         label_response = MagicMock()
         label_response.status_code = 201
-        label_response.json.return_value = {"name": "P3", "color": "d73a4a"}  # LOW priority = P3
+        label_response.json.return_value = {
+            "name": "P3",
+            "color": "d73a4a",
+        }  # LOW priority = P3
 
         issue_response = MagicMock()
         issue_response.status_code = 201
@@ -289,7 +294,11 @@ class TestCreateWithLabelTracking:
 
             # Verify: No warning about failed labels
             assert result is not None
-            warning_calls = [call for call in mock_logger.warning.call_args_list if "Failed to ensure existence" in str(call)]
+            warning_calls = [
+                call
+                for call in mock_logger.warning.call_args_list
+                if "Failed to ensure existence" in str(call)
+            ]
             assert len(warning_calls) == 0
 
 

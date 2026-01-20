@@ -1620,7 +1620,9 @@ class TestConfigErrorHandling:
             assert "JSON parse error" in result["error"]
             # Should not say "corrupted or invalid JSON file" (old misleading message)
 
-    async def test_config_set_with_valid_json_invalid_config(self, tmp_path: Path) -> None:
+    async def test_config_set_with_valid_json_invalid_config(
+        self, tmp_path: Path
+    ) -> None:
         """Test that config set fails with clear error when JSON is valid but config is invalid."""
         # Create valid JSON but invalid config structure
         config_dir = tmp_path / ".mcp-ticketer"
@@ -1636,7 +1638,7 @@ class TestConfigErrorHandling:
                     "adapter": "linear",
                     # Missing required fields like api_key
                 }
-            }
+            },
         }
         with open(config_path, "w") as f:
             json.dump(invalid_config, f)
@@ -1650,7 +1652,10 @@ class TestConfigErrorHandling:
             # Should succeed or fail with validation error, not "corrupted JSON" error
             # If it fails, error should mention validation, not JSON corruption
             if result["status"] == "error":
-                assert "valid JSON" in result["error"] or "validation" in result["error"].lower()
+                assert (
+                    "valid JSON" in result["error"]
+                    or "validation" in result["error"].lower()
+                )
                 assert "JSON parse error" not in result["error"]
 
     async def test_config_set_with_valid_config(self, tmp_path: Path) -> None:
@@ -1667,9 +1672,9 @@ class TestConfigErrorHandling:
                 "linear": {
                     "adapter": "linear",
                     "api_key": "lin_api_test123456789012345678901234567890",
-                    "team_key": "ENG"
+                    "team_key": "ENG",
                 }
-            }
+            },
         }
         with open(config_path, "w") as f:
             json.dump(valid_config, f)
@@ -1687,5 +1692,8 @@ class TestConfigErrorHandling:
             # Verify adapter config was preserved
             with open(config_path) as f:
                 config_data = json.load(f)
-            assert config_data["adapters"]["linear"]["api_key"] == "lin_api_test123456789012345678901234567890"
+            assert (
+                config_data["adapters"]["linear"]["api_key"]
+                == "lin_api_test123456789012345678901234567890"
+            )
             assert config_data["default_project"] == "NEW-PROJ"

@@ -73,7 +73,6 @@ from .queries import (
     WORKFLOW_STATES_QUERY,
 )
 from .types import (
-    LinearIssueRelationType,
     LinearStateMapping,
     build_issue_filter,
     get_linear_priority,
@@ -4250,11 +4249,13 @@ class LinearAdapter(BaseAdapter[Task]):
                 source_ticket_id=source_id,
                 target_ticket_id=target_id,
                 relation_type=get_universal_relation_type(relation_data["type"]),
-                created_at=datetime.fromisoformat(
-                    relation_data["createdAt"].replace("Z", "+00:00")
-                )
-                if relation_data.get("createdAt")
-                else None,
+                created_at=(
+                    datetime.fromisoformat(
+                        relation_data["createdAt"].replace("Z", "+00:00")
+                    )
+                    if relation_data.get("createdAt")
+                    else None
+                ),
                 metadata={
                     "linear": {
                         "relation_id": relation_data["id"],
@@ -4301,7 +4302,9 @@ class LinearAdapter(BaseAdapter[Task]):
                     relation_id = relation.metadata.get("linear", {}).get("relation_id")
                     break
                 # Match by human-readable identifier (e.g., "1M-625")
-                related_identifier = relation.metadata.get("linear", {}).get("related_issue_identifier")
+                related_identifier = relation.metadata.get("linear", {}).get(
+                    "related_issue_identifier"
+                )
                 if related_identifier and related_identifier == target_id:
                     relation_id = relation.metadata.get("linear", {}).get("relation_id")
                     break

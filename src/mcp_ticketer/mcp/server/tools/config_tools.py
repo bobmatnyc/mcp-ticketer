@@ -100,7 +100,7 @@ def _safe_load_config() -> TicketerConfig:
         # to provide accurate error messages (not assume corruption)
         try:
             with open(config_path) as f:
-                data = json.load(f)
+                json.load(f)
             # JSON is valid, but TicketerConfig construction failed
             # This suggests validation error, not corruption
             raise RuntimeError(
@@ -109,7 +109,7 @@ def _safe_load_config() -> TicketerConfig:
                 f"invalid configuration values or a validation error during initialization. "
                 f"Check the application logs for specific error details. "
                 f"To prevent data loss, this operation was aborted."
-            )
+            ) from None
         except json.JSONDecodeError as e:
             # File contains corrupted JSON
             raise RuntimeError(
@@ -117,7 +117,7 @@ def _safe_load_config() -> TicketerConfig:
                 f"JSON parse error: {e}. "
                 f"Please check the file manually before retrying. "
                 f"To prevent data loss, this operation was aborted."
-            )
+            ) from e
         except RuntimeError:
             # Re-raise our own RuntimeError from above
             raise
@@ -128,7 +128,7 @@ def _safe_load_config() -> TicketerConfig:
                 f"Error: {type(e).__name__}: {e}. "
                 f"Check the application logs for details. "
                 f"To prevent data loss, this operation was aborted."
-            )
+            ) from e
 
     # File doesn't exist - first-time setup, safe to create new config
     logger.info(f"No configuration file found at {config_path}, creating new config")
@@ -997,7 +997,6 @@ async def config_test_adapter(adapter_name: str) -> dict[str, Any]:
     )
     try:
         # Import diagnostic tool
-        from .diagnostic_tools import diagnostics
 
         # Validate adapter name
         valid_adapters = [adapter_type.value for adapter_type in AdapterType]

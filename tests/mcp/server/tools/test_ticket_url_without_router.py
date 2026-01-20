@@ -251,7 +251,8 @@ class TestTicketAssignWithURLNoRouter:
                 # Including auto-transition to IN_PROGRESS
                 mock_adapter.read.assert_called_once_with("9876543210")
                 mock_adapter.update.assert_called_once_with(
-                    "9876543210", {"assignee": "user@example.com", "state": TicketState.IN_PROGRESS}
+                    "9876543210",
+                    {"assignee": "user@example.com", "state": TicketState.IN_PROGRESS},
                 )
 
     async def test_assign_with_url_and_comment_no_router(self) -> None:

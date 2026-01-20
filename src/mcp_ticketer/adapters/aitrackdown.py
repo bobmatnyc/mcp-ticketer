@@ -1398,7 +1398,9 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             Returns empty list for all queries.
 
         """
-        logger.info("search_users called but user management not supported in AITrackdown")
+        logger.info(
+            "search_users called but user management not supported in AITrackdown"
+        )
         return []
 
 

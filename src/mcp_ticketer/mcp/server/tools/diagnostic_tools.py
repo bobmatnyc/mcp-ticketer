@@ -51,7 +51,9 @@ async def _run_system_diagnostics(simple: bool = False) -> dict[str, Any]:
             issues.append("queue system unhealthy")
 
         if issues:
-            summary = f"Issues detected: {', '.join(issues)}. See recommendations for fixes."
+            summary = (
+                f"Issues detected: {', '.join(issues)}. See recommendations for fixes."
+            )
         else:
             summary = "All systems healthy. No issues detected."
 
