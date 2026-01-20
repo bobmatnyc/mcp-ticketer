@@ -191,16 +191,32 @@ class GitHubAdapter(BaseAdapter[Task]):
 
     async def _ensure_label_exists(
         self, label_name: str, color: str = "0366d6"
-    ) -> None:
-        """Ensure a label exists in the repository."""
+    ) -> bool:
+        """Ensure a label exists in the repository.
+
+        Args:
+            label_name: Name of the label to ensure exists
+            color: Hex color code (without #) for the label
+
+        Returns:
+            True if label exists or was created successfully, False otherwise
+        """
         cache_key = "github_labels"
         cached_labels = await self._labels_cache.get(cache_key)
 
         if cached_labels is None:
-            response = await self.client.get(f"/repos/{self.owner}/{self.repo}/labels")
-            response.raise_for_status()
-            cached_labels = response.json()
-            await self._labels_cache.set(cache_key, cached_labels)
+            try:
+                response = await self.client.get(
+                    f"/repos/{self.owner}/{self.repo}/labels"
+                )
+                response.raise_for_status()
+                cached_labels = response.json()
+                await self._labels_cache.set(cache_key, cached_labels)
+            except Exception as e:
+                logger.warning(
+                    f"Failed to fetch labels cache for {self.owner}/{self.repo}: {e}"
+                )
+                return False
 
         # Check if label exists
         existing_labels = [label["name"].lower() for label in cached_labels]
@@ -210,9 +226,37 @@ class GitHubAdapter(BaseAdapter[Task]):
                 f"/repos/{self.owner}/{self.repo}/labels",
                 json={"name": label_name, "color": color},
             )
+
             if response.status_code == 201:
+                # Successfully created
                 cached_labels.append(response.json())
                 await self._labels_cache.set(cache_key, cached_labels)
+                return True
+            elif response.status_code == 422:
+                # Label already exists (race condition)
+                # Another process created it between our check and create
+                logger.info(
+                    f"Label '{label_name}' already exists in {self.owner}/{self.repo} "
+                    "(created by another process)"
+                )
+                return True
+            elif response.status_code == 403:
+                # Permission denied
+                logger.warning(
+                    f"Permission denied creating label '{label_name}' in "
+                    f"{self.owner}/{self.repo}: insufficient permissions"
+                )
+                return False
+            else:
+                # Other error
+                logger.warning(
+                    f"Failed to create label '{label_name}' in {self.owner}/{self.repo}: "
+                    f"status {response.status_code}"
+                )
+                return False
+
+        # Label already exists
+        return True
 
     async def _graphql_request(
         self, query: str, variables: dict[str, Any]
@@ -238,21 +282,33 @@ class GitHubAdapter(BaseAdapter[Task]):
 
         # Prepare labels
         labels = ticket.tags.copy() if ticket.tags else []
+        failed_labels: list[str] = []
 
         # Add state label if needed
         state_label = self._get_state_label(ticket.state)
         if state_label:
             labels.append(state_label)
-            await self._ensure_label_exists(state_label, "fbca04")
+            if not await self._ensure_label_exists(state_label, "fbca04"):
+                failed_labels.append(state_label)
 
         # Add priority label
         priority_label = self._get_priority_label(ticket.priority)
         labels.append(priority_label)
-        await self._ensure_label_exists(priority_label, "d73a4a")
+        if not await self._ensure_label_exists(priority_label, "d73a4a"):
+            failed_labels.append(priority_label)
 
         # Ensure all labels exist
         for label in labels:
-            await self._ensure_label_exists(label)
+            if not await self._ensure_label_exists(label):
+                if label not in failed_labels:
+                    failed_labels.append(label)
+
+        # Log warning if any labels failed to create
+        if failed_labels:
+            logger.warning(
+                f"Failed to ensure existence of labels {failed_labels} in "
+                f"{self.owner}/{self.repo}. Issue will still be created with available labels."
+            )
 
         # Build issue data
         issue_data = {
@@ -394,6 +450,7 @@ class GitHubAdapter(BaseAdapter[Task]):
 
         # Build update data
         update_data = {}
+        failed_labels: list[str] = []
 
         if "title" in updates:
             update_data["title"] = updates["title"]
@@ -418,7 +475,8 @@ class GitHubAdapter(BaseAdapter[Task]):
             # Add new state label if needed
             state_label = self._get_state_label(new_state)
             if state_label:
-                await self._ensure_label_exists(state_label, "fbca04")
+                if not await self._ensure_label_exists(state_label, "fbca04"):
+                    failed_labels.append(state_label)
                 labels_to_update.append(state_label)
 
             update_data["labels"] = labels_to_update
@@ -450,7 +508,8 @@ class GitHubAdapter(BaseAdapter[Task]):
 
             # Add new priority label
             priority_label = self._get_priority_label(new_priority)
-            await self._ensure_label_exists(priority_label, "d73a4a")
+            if not await self._ensure_label_exists(priority_label, "d73a4a"):
+                failed_labels.append(priority_label)
             labels_to_update.append(priority_label)
 
             update_data["labels"] = labels_to_update
@@ -481,9 +540,18 @@ class GitHubAdapter(BaseAdapter[Task]):
 
             # Add new tags
             for tag in updates["tags"]:
-                await self._ensure_label_exists(tag)
+                if not await self._ensure_label_exists(tag):
+                    if tag not in failed_labels:
+                        failed_labels.append(tag)
 
             update_data["labels"] = preserved_labels + updates["tags"]
+
+        # Log warning if any labels failed to create
+        if failed_labels:
+            logger.warning(
+                f"Failed to ensure existence of labels {failed_labels} in "
+                f"{self.owner}/{self.repo}. Issue will still be updated with available labels."
+            )
 
         # Apply updates
         if update_data:
