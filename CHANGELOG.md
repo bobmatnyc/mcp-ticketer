@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.3.8] - 2026-01-20
+
+### Fixed
+- Code quality: Fixed exception chaining in config_tools.py
+- Tests: Updated test using deprecated attachment function name
+- Removed unused imports and variables
+
 ## [2.3.7] - 2026-01-20
 
 ### Fixed
