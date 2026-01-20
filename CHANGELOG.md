@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.3.7] - 2026-01-20
+
+### Fixed
+- GitHub adapter: Improved label handling with proper error reporting and validation
+- Enhanced error messages for label operations to help diagnose issues
+
 ## [2.3.0] - 2025-12-27
 
 ### Added
