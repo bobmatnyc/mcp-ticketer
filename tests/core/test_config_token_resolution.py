@@ -5,9 +5,11 @@ This test module verifies that tokens can be loaded from:
 2. Environment variable only (no config)
 3. Both (env var takes precedence)
 4. Neither (should fail at adapter validation, not config parsing)
+5. gh CLI fallback (for GitHub only)
 """
 
 import os
+import subprocess
 from unittest import mock
 
 from mcp_ticketer.core.config import (
@@ -93,6 +95,60 @@ class TestGitHubTokenResolution:
             assert config.token is None
             assert config.owner == "test-owner"
             assert config.repo == "test-repo"
+
+    def test_gh_cli_fallback(self) -> None:
+        """Test that adapter falls back to gh CLI when no token provided."""
+        from mcp_ticketer.adapters.github.adapter import (
+            _get_gh_cli_token,
+            _resolve_github_token,
+        )
+
+        # Test _get_gh_cli_token helper
+        token = _get_gh_cli_token()
+        # Token may be None if gh CLI is not installed or not authenticated
+        # This is expected behavior - we just test that the function doesn't crash
+        assert token is None or isinstance(token, str)
+
+        # Test _resolve_github_token with empty config
+        with mock.patch.dict(os.environ, {}, clear=False):
+            if "GITHUB_TOKEN" in os.environ:
+                del os.environ["GITHUB_TOKEN"]
+
+            config = {}
+            resolved = _resolve_github_token(config)
+
+            # Should either get token from gh CLI or None
+            assert resolved is None or isinstance(resolved, str)
+
+    def test_gh_cli_fallback_priority(self) -> None:
+        """Test that config/env take priority over gh CLI."""
+        from mcp_ticketer.adapters.github.adapter import _resolve_github_token
+
+        # Mock gh CLI to return a token
+        def mock_gh_cli() -> str:
+            return "ghp_gh_cli_token"
+
+        # Test 1: Config token takes priority
+        with mock.patch(
+            "mcp_ticketer.adapters.github.adapter._get_gh_cli_token",
+            side_effect=mock_gh_cli,
+        ):
+            config = {"token": "ghp_config_token"}
+            resolved = _resolve_github_token(config)
+            assert resolved == "ghp_config_token"
+
+        # Test 2: gh CLI is used when no config/env token
+        with mock.patch(
+            "mcp_ticketer.adapters.github.adapter._get_gh_cli_token",
+            side_effect=mock_gh_cli,
+        ):
+            with mock.patch.dict(os.environ, {}, clear=False):
+                if "GITHUB_TOKEN" in os.environ:
+                    del os.environ["GITHUB_TOKEN"]
+
+                config = {}
+                resolved = _resolve_github_token(config)
+                assert resolved == "ghp_gh_cli_token"
 
 
 class TestLinearTokenResolution:

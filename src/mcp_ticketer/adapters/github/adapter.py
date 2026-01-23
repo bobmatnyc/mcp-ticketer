@@ -5,6 +5,7 @@ from __future__ import annotations
 import builtins
 import logging
 import re
+import subprocess
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -58,6 +59,75 @@ from .types import (
 logger = logging.getLogger(__name__)
 
 
+def _get_gh_cli_token() -> str | None:
+    """Get GitHub token from gh CLI as a fallback.
+
+    Returns:
+        GitHub token from gh CLI, or None if gh is not available or fails.
+
+    """
+    try:
+        result = subprocess.run(
+            ["gh", "auth", "token"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            token = result.stdout.strip()
+            logger.debug("Retrieved GitHub token from gh CLI")
+            return token
+        else:
+            logger.debug(
+                f"gh CLI failed: returncode={result.returncode}, "
+                f"stderr={result.stderr.strip()}"
+            )
+            return None
+    except FileNotFoundError:
+        logger.debug("gh CLI not found in PATH")
+        return None
+    except subprocess.TimeoutExpired:
+        logger.debug("gh CLI timeout after 5 seconds")
+        return None
+    except Exception as e:
+        logger.debug(f"Failed to get token from gh CLI: {e}")
+        return None
+
+
+def _resolve_github_token(config: dict[str, Any]) -> str | None:
+    """Resolve GitHub token from multiple sources.
+
+    Tries in order:
+    1. Provided config (api_key or token)
+    2. Environment variables (GITHUB_TOKEN, etc.)
+    3. gh CLI (gh auth token)
+
+    Args:
+        config: Configuration dictionary with potential token values
+
+    Returns:
+        Resolved GitHub token, or None if not found
+
+    """
+    # Try config first (already includes environment variable resolution)
+    token = config.get("api_key") or config.get("token")
+    if token:
+        logger.debug("Using GitHub token from config/environment")
+        return token
+
+    # Fallback to gh CLI
+    token = _get_gh_cli_token()
+    if token:
+        logger.info("Using GitHub token from gh CLI")
+        return token
+
+    logger.warning(
+        "No GitHub token found. Tried: config, environment variables, gh CLI"
+    )
+    return None
+
+
 class GitHubAdapter(BaseAdapter[Task]):
     """Adapter for GitHub Issues tracking system."""
 
@@ -67,7 +137,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         Args:
         ----
             config: Configuration with:
-                - token: GitHub PAT (or GITHUB_TOKEN env var)
+                - token: GitHub PAT (or GITHUB_TOKEN env var, or gh CLI fallback)
                 - owner: Repository owner (or GITHUB_OWNER env var)
                 - repo: Repository name (or GITHUB_REPO env var)
                 - api_url: Optional API URL for GitHub Enterprise
@@ -89,12 +159,9 @@ class GitHubAdapter(BaseAdapter[Task]):
                 f"GitHub adapter missing required configuration: {missing}"
             )
 
-        # Get authentication token - support 'api_key' and 'token'
-        self.token = (
-            full_config.get("api_key")
-            or full_config.get("token")
-            or full_config.get("token")
-        )
+        # Resolve authentication token from multiple sources
+        # (config, environment variables, gh CLI)
+        self.token = _resolve_github_token(full_config)
 
         # Get repository information
         self.owner = full_config.get("owner")
@@ -143,7 +210,8 @@ class GitHubAdapter(BaseAdapter[Task]):
         if not self.token:
             return (
                 False,
-                "GITHUB_TOKEN is required. Set it in .env.local or environment.",
+                "GITHUB_TOKEN is required. Set it in .env.local, environment, "
+                "or authenticate with 'gh auth login'.",
             )
         if not self.owner:
             return (
@@ -1021,11 +1089,11 @@ class GitHubAdapter(BaseAdapter[Task]):
 This PR addresses issue #{issue_number}.
 
 **Issue:** #{issue_number} - {issue.title}
-**Link:** {issue.metadata.get('github', {}).get('url', '')}
+**Link:** {issue.metadata.get("github", {}).get("url", "")}
 
 ## Description
 
-{issue.description or 'No description provided.'}
+{issue.description or "No description provided."}
 
 ## Changes
 
@@ -1121,7 +1189,7 @@ Fixes #{issue_number}
         pr = pr_response.json()
 
         # Add a comment to the issue about the PR
-        pr_msg = f"Pull request #{pr['number']} has been created: " f"{pr['html_url']}"
+        pr_msg = f"Pull request #{pr['number']} has been created: {pr['html_url']}"
         await self.add_comment(
             Comment(
                 ticket_id=ticket_id,
