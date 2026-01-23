@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.3.9] - 2026-01-23
+
+### Added
+- GitHub adapter: `gh` CLI token fallback for authentication when environment variables are not available
+- Improved authentication flow with automatic fallback to `gh` CLI credentials
+
 ## [2.3.8] - 2026-01-20
 
 ### Fixed
