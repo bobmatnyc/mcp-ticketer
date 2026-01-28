@@ -386,19 +386,21 @@ test_section("4. BACKWARD COMPATIBILITY")
 
 # Test that old import paths still work
 try:
-    from mcp_ticketer.adapters import GitHubAdapter as GHA2
-    from mcp_ticketer.adapters.github import GitHubAdapter as GHA1
+    from mcp_ticketer.adapters import GitHubAdapter as GitHubAdapter2  # noqa: N811
+    from mcp_ticketer.adapters.github import (
+        GitHubAdapter as GitHubAdapter1,  # noqa: N811
+    )
 
-    same_class = GHA1 is GHA2
+    same_class = GitHubAdapter1 is GitHubAdapter2
     record_test("GitHub adapter accessible from both import paths", same_class)
 except Exception as e:
     record_test("GitHub adapter accessible from both import paths", False, str(e))
 
 try:
-    from mcp_ticketer.adapters import JiraAdapter as JA2
-    from mcp_ticketer.adapters.jira import JiraAdapter as JA1
+    from mcp_ticketer.adapters import JiraAdapter as JiraAdapter2  # noqa: N811
+    from mcp_ticketer.adapters.jira import JiraAdapter as JiraAdapter1  # noqa: N811
 
-    same_class = JA1 is JA2
+    same_class = JiraAdapter1 is JiraAdapter2
     record_test("Jira adapter accessible from both import paths", same_class)
 except Exception as e:
     record_test("Jira adapter accessible from both import paths", False, str(e))
