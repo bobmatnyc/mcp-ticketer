@@ -9,7 +9,6 @@ This test module verifies that tokens can be loaded from:
 """
 
 import os
-import subprocess
 from unittest import mock
 
 from mcp_ticketer.core.config import (

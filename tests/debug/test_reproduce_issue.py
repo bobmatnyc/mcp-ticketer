@@ -59,7 +59,7 @@ async def test_issue_creation():
     )
 
     try:
-        print(f"\nInput Task:")
+        print("\nInput Task:")
         print(f"  title: {task.title}")
         print(f"  parent_epic: {task.parent_epic}")
         print(f"  state: {task.state}")
@@ -89,7 +89,7 @@ async def test_issue_creation():
     )
 
     try:
-        print(f"\nInput Task:")
+        print("\nInput Task:")
         print(f"  title: {task2.title}")
         print(f"  parent_epic: {task2.parent_epic}")
 

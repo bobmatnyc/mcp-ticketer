@@ -10,13 +10,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Enable debug logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(levelname)s [%(name)s] %(message)s"
-)
+logging.basicConfig(level=logging.DEBUG, format="%(levelname)s [%(name)s] %(message)s")
 
 from mcp_ticketer.adapters.linear.adapter import LinearAdapter
-from mcp_ticketer.core.models import Task, Priority, TicketState
+from mcp_ticketer.core.models import Priority, Task, TicketState
 
 
 async def debug_create_ticket():
@@ -26,10 +23,9 @@ async def debug_create_ticket():
     print("=" * 80)
 
     # Create adapter
-    adapter = LinearAdapter({
-        "team_key": "1M",
-        "api_key": None  # Will use LINEAR_API_KEY from env
-    })
+    adapter = LinearAdapter(
+        {"team_key": "1M", "api_key": None}  # Will use LINEAR_API_KEY from env
+    )
 
     print("\n1. Initializing adapter...")
     await adapter.initialize()
@@ -49,11 +45,12 @@ async def debug_create_ticket():
         description="Testing with debug logging enabled",
         priority=Priority.HIGH,
         state=TicketState.OPEN,
-        tags=["debug-test"]
+        tags=["debug-test"],
     )
 
     print("\n3. Building issue input...")
     from mcp_ticketer.adapters.linear.mappers import build_linear_issue_input
+
     issue_input = build_linear_issue_input(task, team_id)
 
     print("\n4. Issue input BEFORE label resolution:")
@@ -86,7 +83,9 @@ async def debug_create_ticket():
         for label_id in issue_input["labelIds"]:
             if not isinstance(label_id, str) or len(label_id) != 36:
                 invalid_labels.append(label_id)
-                print(f"✗ Invalid label ID: '{label_id}' (type={type(label_id)}, len={len(str(label_id))})")
+                print(
+                    f"✗ Invalid label ID: '{label_id}' (type={type(label_id)}, len={len(str(label_id))})"
+                )
 
         if invalid_labels:
             print(f"✗ Removing invalid labels: {invalid_labels}")
@@ -103,9 +102,9 @@ async def debug_create_ticket():
     print("\n10. Executing GraphQL mutation...")
     try:
         from mcp_ticketer.adapters.linear.queries import CREATE_ISSUE_MUTATION
+
         result = await adapter.client.execute_mutation(
-            CREATE_ISSUE_MUTATION,
-            {"input": issue_input}
+            CREATE_ISSUE_MUTATION, {"input": issue_input}
         )
         print("✓ SUCCESS!")
         print(json.dumps(result, indent=2))
@@ -113,6 +112,7 @@ async def debug_create_ticket():
         print(f"✗ FAILED: {e}")
         print(f"  Error type: {type(e).__name__}")
         import traceback
+
         traceback.print_exc()
 
 

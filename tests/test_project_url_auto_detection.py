@@ -3,7 +3,6 @@
 Related to Issue #55: Auto-detect project URLs when creating tickets.
 """
 
-
 from mcp_ticketer.mcp.server.tools.ticket_tools import extract_project_url_from_text
 
 

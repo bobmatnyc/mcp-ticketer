@@ -23,7 +23,7 @@ async def test_happy_path():
         adapter = LinearAdapter(team_key="1M")
         await adapter.initialize()
 
-        print(f"✓ Adapter initialized successfully")
+        print("✓ Adapter initialized successfully")
         print(f"  Team Key: {adapter.team_key}")
         print(f"  Team ID: {adapter.team_id}")
 
@@ -36,7 +36,7 @@ async def test_happy_path():
             print("✗ FAIL: team_id is empty (should not happen)")
             return False
 
-        print(f"✓ Validation check passed: team_id is present")
+        print("✓ Validation check passed: team_id is present")
         print("\n✅ TEST 1 PASSED: Epic creation should work with this configuration")
         return True
 
@@ -54,7 +54,7 @@ async def test_error_path_no_team_key():
         adapter = LinearAdapter()
         await adapter.initialize()
 
-        print(f"✗ FAIL: Adapter initialized without team_key (should fail)")
+        print("✗ FAIL: Adapter initialized without team_key (should fail)")
         return False
 
     except ValueError as e:
@@ -63,7 +63,7 @@ async def test_error_path_no_team_key():
 
         # Check if error message is helpful
         if "team_id" in error_msg.lower() or "team_key" in error_msg.lower():
-            print(f"✓ Error message mentions team configuration")
+            print("✓ Error message mentions team configuration")
 
         print("\n✅ TEST 2 PASSED: Proper error handling for missing team_key")
         return True
@@ -89,7 +89,7 @@ async def test_team_id_validation():
         # Try to ensure team_id - should raise error from _ensure_team_id
         try:
             await adapter._ensure_team_id()
-            print(f"✗ FAIL: _ensure_team_id() did not raise error for None team_id")
+            print("✗ FAIL: _ensure_team_id() did not raise error for None team_id")
             return False
         except ValueError as e:
             print(f"✓ _ensure_team_id() correctly raises ValueError: {e}")
