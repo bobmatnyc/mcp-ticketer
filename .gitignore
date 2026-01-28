@@ -44,6 +44,7 @@ pip-wheel-metadata/
 .cache
 nosetests.xml
 coverage.xml
+coverage.json
 *.cover
 *.py,cover
 .hypothesis/
@@ -125,6 +126,14 @@ Thumbs.db
 .test_aitrackdown/
 .mcp-ticketer/
 test-tickets/
+
+# Vector search artifacts
+chunk-graph.json
+.mcp-vector-search.bak*/
+
+# Session artifacts
+SESSION_SUMMARY_*.md
+test_execution_report_*.md
 
 # Test artifacts (generated during development)
 # Moved to docs/dev/test-reports/ - do not ignore committed reports
