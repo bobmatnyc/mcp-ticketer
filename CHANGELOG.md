@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.3.10] - 2026-01-28
+
+### Changed
+- **Project cleanup**: Reduced root directory from 39 files to 16 essential files
+- Archived 6 implementation summaries to `docs/_archive/implementations/`
+- Moved misplaced test files to proper directories (`tests/adapters/`, `tests/debug/`)
+- Updated `.gitignore` with patterns for coverage, vector search, and session artifacts
+
+### Removed
+- One-time fix scripts (fix_*.py, validate_*.py, batch_fix_mypy.py)
+- Coverage artifacts and vector search backups from repository root
+- Legacy `.aitrackdown/` directory (superseded by `.ai-trackdown/`)
+
 ## [2.3.9] - 2026-01-23
 
 ### Added
