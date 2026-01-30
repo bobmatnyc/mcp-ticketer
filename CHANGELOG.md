@@ -6,28 +6,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.3.11] - 2026-01-30
+
+### Fixed
+
+- **GitHub adapter**: Fixed GraphQL fragment duplication in `ticket_search` that caused "There can be only one fragment named 'IssueFields'" error ([#72](https://github.com/bobmatnyc/mcp-ticketer/issues/72))
+- **Pre-commit hooks**: Replaced deprecated `types-all` with specific type stubs to fix mypy environment build failures
+
 ## [2.3.10] - 2026-01-28
 
 ### Changed
+
 - **Project cleanup**: Reduced root directory from 39 files to 16 essential files
 - Archived 6 implementation summaries to `docs/_archive/implementations/`
 - Moved misplaced test files to proper directories (`tests/adapters/`, `tests/debug/`)
 - Updated `.gitignore` with patterns for coverage, vector search, and session artifacts
 
 ### Removed
-- One-time fix scripts (fix_*.py, validate_*.py, batch_fix_mypy.py)
+
+- One-time fix scripts (fix*\*.py, validate*\*.py, batch_fix_mypy.py)
 - Coverage artifacts and vector search backups from repository root
 - Legacy `.aitrackdown/` directory (superseded by `.ai-trackdown/`)
 
 ## [2.3.9] - 2026-01-23
 
 ### Added
+
 - GitHub adapter: `gh` CLI token fallback for authentication when environment variables are not available
 - Improved authentication flow with automatic fallback to `gh` CLI credentials
 
 ## [2.3.8] - 2026-01-20
 
 ### Fixed
+
 - Code quality: Fixed exception chaining in config_tools.py
 - Tests: Updated test using deprecated attachment function name
 - Removed unused imports and variables
@@ -35,12 +46,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [2.3.7] - 2026-01-20
 
 ### Fixed
+
 - GitHub adapter: Improved label handling with proper error reporting and validation
 - Enhanced error messages for label operations to help diagnose issues
 
 ## [2.3.0] - 2025-12-27
 
 ### Added
+
 - Unified `workflow` tool consolidating `get_available_transitions` and `ticket_transition`
 - Unified `attachment` tool consolidating `ticket_attach` and `ticket_attachments`
 - Unified `project` tool consolidating `project_status` and `project_update`
@@ -49,19 +62,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Session actions (`attach_ticket`, `detach_ticket`, `get_attached`, `opt_out`) added to `user_session`
 
 ### Removed
+
 - `ticket_search_hierarchy` (use `ticket_search(include_hierarchy=True)` instead)
 
 ### Changed
+
 - MCP tool count reduced from 18 to 11 (39% reduction)
 - Token footprint reduced by ~6,000-8,000 tokens (25-33% reduction)
 - All tools now use consistent action-based routing pattern
 
 ### Migration Guide
+
 See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration examples.
 
 ## [2.2.3] - 2025-12-05
 
 ### Added
+
 - **Synchronous operations**: `--wait` flag for ticket create/update/transition commands
 - `Queue.poll_until_complete()` method for synchronous queue polling
 - `--timeout` option to customize wait duration (default: 30 seconds)
@@ -77,16 +94,19 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
 - Test helpers and utilities (CLIHelper, MCPHelper)
 
 ### Changed
+
 - Ticket operations now support both async (default) and sync (--wait) modes
 - Queue-based operations can now return actual ticket IDs instead of queue IDs
 - CLI commands provide immediate results when --wait flag is used
 
 ### Fixed
+
 - CLI JSON output enables automated testing (unblocks 75% of tests)
 - GitHub queue system integration (unblocks 100% of GitHub tests)
 - Linting issues in integration tests
 
 ### Documentation
+
 - Added comprehensive GitHub synchronous operations guide
 - Added CLI_JSON_OUTPUT.md - Complete JSON format guide
 - Added GITHUB_SYNC_OPERATIONS.md - Synchronous operations guide
@@ -98,12 +118,14 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
 ## [2.2.2] - 2025-12-05
 
 ### Fixed
+
 - Linear adapter: Fixed 'already exists' error for teams with >250 labels
 - Implemented cursor-based pagination for Linear label queries
-- Added full pagination support to _load_team_labels() (10 page limit)
-- Added early exit optimization to _find_label_by_name() with pagination
+- Added full pagination support to \_load_team_labels() (10 page limit)
+- Added early exit optimization to \_find_label_by_name() with pagination
 
 ### Added
+
 - Project URL validation with auto-configuration via config() MCP tool
 - New 'set_project_from_url' action for intelligent project setup
 - ProjectValidator for comprehensive URL-based project configuration
@@ -112,6 +134,7 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
 - Optional connectivity testing to verify project access before setup
 
 ### Changed
+
 - Organized 68 documentation files into proper subdirectories
 - Moved documentation from root to: implementation, testing, analysis, demos, consolidation
 - Root directory now contains only core docs (README, CHANGELOG, CLAUDE, LICENSE)
@@ -119,6 +142,7 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
 - Improved security with credential masking in error responses
 
 ### Documentation
+
 - Added comprehensive project URL validation user guide
 - Added 5 detailed error scenario walkthroughs
 - Added API reference for project validation
@@ -127,6 +151,7 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
 - Improved project documentation organization (96% cleaner root directory)
 
 ### Performance
+
 - Fast validation (no network): <100ms
 - Deep validation (with connectivity test): 200ms-2s
 - Improved cache efficiency for all teams with label pagination
@@ -134,22 +159,26 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
 ## [2.2.1] - 2025-12-05
 
 ### Fixed
+
 - Quality gate violations: removed unused imports and variables
 - Line length violations in config_manager.py
 - Missing milestone methods in test MockAdapter
 - All linting and type-checking issues resolved
 
 ### Changed
+
 - Reorganized integration test documentation into docs/integration-testing/
 - Updated py_mcp_installer submodule with quality improvements
 
 ### Documentation
+
 - Moved integration test files to proper docs/ structure
 - Enhanced organization of test documentation and examples
 
 ## [2.2.0] - 2025-12-05
 
 ### Added
+
 - **GitHub Projects V2 Support**: Complete implementation of GitHub Projects V2 adapter (Phase 2)
   - 9 new project management methods for full CRUD operations
   - `project_list()` - List projects with pagination and filtering
@@ -172,7 +201,7 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
   - Added health status field
   - Maintained backward compatibility with legacy field names
 - **Flexible ID System**: Smart ID handling across all operations
-  - Auto-detection of ID formats (PVT_ node IDs vs numeric project numbers)
+  - Auto-detection of ID formats (PVT\_ node IDs vs numeric project numbers)
   - Support for multiple ID types (I_kwDO, PR_kwDO, PVTI_kwDO)
   - Support for owner/repo#number format with auto-resolution
 - **Comprehensive Test Suite**: 82 unit tests with 100% pass rate
@@ -187,6 +216,7 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
   - Ready for live API testing
 
 ### Changed
+
 - **State Mapping**: Unified ProjectState to GitHub's closed boolean
   - Maps ACTIVE, COMPLETED, ARCHIVED states intelligently
   - Differentiates COMPLETED vs ARCHIVED based on closure time (<30 days)
@@ -197,11 +227,13 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
   - Comprehensive logging (debug, info, warning, error levels)
 
 ### Fixed
+
 - **Async/Await Integration**: Fixed coroutine handling in integration tests
   - All 9 adapter methods properly awaited
   - asyncio.run() invocation for main test function
 
 ### Documentation
+
 - **Phase 2 Complete**: Comprehensive completion summary (411 lines)
   - Implementation timeline and metrics
   - Technical architecture decisions
@@ -219,6 +251,7 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
   - Implementation strategy
 
 ### Known Limitations
+
 - **USER Scope Projects**: `project_create()` currently only supports organization-level projects
   - Workaround: Use organization projects or create user projects manually via GitHub UI
   - Planned fix in future release (estimated 2 hours)
@@ -229,12 +262,14 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
   - Planned for Phase 3 enhancement
 
 ### Performance
+
 - **Time Complexity**: O(n) for list operations with pagination, O(1) for CRUD
 - **Space Complexity**: O(n) with pagination support to limit memory usage
 - **Optimization**: 1000 issue limit in statistics calculation for reasonable performance
 - **Test Execution**: ~5 seconds for full GitHub adapter test suite (82 tests)
 
 ### Migration Notes
+
 - All new methods are additions - no breaking changes to existing APIs
 - Backward compatible with existing GitHub adapter usage
 - ProjectStatistics model enhanced with priority fields (backward compatible)
@@ -243,14 +278,16 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
 ## [2.1.3] - 2025-12-04
 
 ### Changed
+
 - **Adapter Refactoring (1M-621)**: Refactored GitHub and Jira adapters to modular structure
-  - GitHub adapter split into 6 modules (client, mappers, queries, types, adapter, __init__)
-  - Jira adapter split into 6 modules (client, mappers, queries, types, adapter, __init__)
+  - GitHub adapter split into 6 modules (client, mappers, queries, types, adapter, **init**)
+  - Jira adapter split into 6 modules (client, mappers, queries, types, adapter, **init**)
   - Improved maintainability with clear separation of concerns
   - Reduced main adapter files by 14-29% in size
   - All three major adapters (Linear, GitHub, Jira) now follow consistent architecture
 
 ### Added
+
 - **Label Caching (1M-622)**: TTL-based label caching for GitHub and Linear adapters
   - 5-minute default cache TTL with configurable duration
   - Automatic cache invalidation on expiration
@@ -258,13 +295,15 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
   - Reduces redundant API calls for label operations
 
 ### Fixed
+
 - Fixed runtime errors in GitHub adapter compact format functions (1M-621)
   - `task_to_compact_format()` now handles both string and enum state/priority values
   - `epic_to_compact_format()` now handles both string and enum state/priority values
   - Resolved AttributeError when Pydantic converts enums to strings
-- Fixed missing GitHubStateMapping export in GitHub adapter __init__.py (1M-621)
+- Fixed missing GitHubStateMapping export in GitHub adapter **init**.py (1M-621)
 
 ### Documentation
+
 - Added README.md files for GitHub and Jira API skills
 - Added YAML frontmatter to all three API skills (GitHub, Jira, Linear)
 - Created PR submission guide for contributing skills to awesome-claude-skills
@@ -274,18 +313,21 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
 ## [2.1.2] - 2025-12-04
 
 ### Added
+
 - **GitHub REST API Skill**: Comprehensive skill for GitHub API integration with hybrid REST/GraphQL patterns, label-based state management, and PR automation (1,260 lines)
 - **Jira REST API Skill**: Complete skill for Jira API v3 with JQL optimization, 2025 rate limiting updates, and 50+ query examples (2,093 lines)
 - **Linear GraphQL API Skill**: Production-ready skill for Linear GraphQL API with fragment composition, team-scoped architecture, and cycle management (1,361 lines)
 - **PM Adapter Detection Guide**: Documentation to prevent adapter configuration detection issues
 
 ### Documentation
+
 - Added comprehensive research documents for GitHub, Jira, and Linear API patterns
 - Added code review findings for core functionality and adapter architecture
 
 ## [2.1.1] - 2025-12-04
 
 ### Fixed
+
 - **config tool validation error**: Fixed FastMCP validation error where `config(action="get")` failed with "kwargs field required". Replaced `**kwargs: Any` with explicit optional parameters (`project_key`, `user_email`) for better type safety and to resolve FastMCP schema generation issue. [#2b68fb4]
 - **Linear API key length validation**: Fixed test failures by correcting Linear API key length requirement in setup wizard tests. API keys must be exactly 40 characters after `lin_api_` prefix. [#8f22a27]
 
@@ -294,34 +336,40 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
 ### Added - Milestone Support (1M-607)
 
 **Cross-Platform Milestone Management**
+
 - Universal milestone model with label-based grouping and target dates
 - Progress tracking (closed/total issues) with percentage calculation
 - 6 milestone operations: create, get, list, update, delete, get_issues
 
 **Platform Support**
+
 - ✅ **GitHub**: Native milestone API integration with repository-scoped milestones
 - ✅ **Linear**: Cycles API mapping with date-based state transitions
 - ⏳ **Jira/Asana/AITrackdown**: NotImplementedError stubs (coming soon)
 
 **MCP Tools**
+
 - Unified `milestone()` tool with action-based interface
 - Milestone filtering in `ticket_search()` tool
 - ISO date format support (YYYY-MM-DD)
 - Comprehensive error handling and validation
 
 **Core Infrastructure**
+
 - Milestone data model (Pydantic-based validation)
 - Local milestone storage (`.mcp-ticketer/milestones.json`)
 - BaseAdapter milestone methods (all adapters)
 - MilestoneManager for CRUD operations
 
 **Documentation**
+
 - Complete API reference for milestone operations
 - Platform-specific guides (GitHub, Linear)
 - MCP tool usage examples with real-world scenarios
 - QA reports with 96.58% test coverage
 
 **Technical Details**
+
 - Files modified: 12 (adapters, tools, models)
 - Files created: 15 (tests, docs, tools)
 - Lines added: ~5,000 (production code, tests, docs)
@@ -329,12 +377,14 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
 - Tests added: 80+ comprehensive tests
 
 ### Fixed
+
 - Legacy adapter compatibility (NotImplementedError stubs for milestone methods)
 - Type annotation issues for Python 3.9+ compatibility
 - GitHub adapter date parsing and state mapping
 - Security: Redacted real API keys from documentation
 
 ### Changed
+
 - Enhanced BaseAdapter with milestone method signatures
 - Updated ticket search to support milestone filtering
 - Improved error messages for unsupported adapter operations
@@ -342,12 +392,14 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
 ## [2.0.7] - 2025-12-04
 
 ### Fixed
+
 - **Setup Platform Selection**: Removed Claude Desktop from CLI setup wizard (closes #1M-609)
   - Added `exclude_desktop=True` parameter to platform detection in setup_command.py
   - Claude Desktop should only be configured via MCP server, not through CLI setup
   - Prevents confusion where Claude Desktop appears as a platform option but cannot be configured via CLI
 
 ### Technical Details
+
 - **File**: `src/mcp_ticketer/cli/setup_command.py:355`
 - **Change**: `detector.detect_all(project_path=proj_path, exclude_desktop=True)`
 - **Commit**: f23ded0
@@ -355,6 +407,7 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
 ## [2.0.6] - 2025-12-03
 
 ### Fixed
+
 - **Setuptools Warnings**: Resolved deprecation warnings for setuptools 77.0+ compatibility
   - Removed setuptools-scm from build dependencies (uses manual versioning)
   - Added [tool.setuptools_scm] section to satisfy missing section warning
@@ -369,6 +422,7 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
   - Users can work for hours without session reset
 
 ### Technical Details
+
 - Session state persists to disk on every load
 - Build completes without setuptools warnings
 - Backward compatible, no breaking changes
@@ -376,6 +430,7 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
 ## [2.0.5] - 2025-12-03
 
 ### Fixed
+
 - **Label ID Retrieval**: Enhanced retry logic for Linear label creation
   - Increased retry attempts from 3 to 5 for better eventual consistency handling
   - Added comprehensive exception handling for network errors during recovery
@@ -384,6 +439,7 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
   - Resolves "Label already exists but could not retrieve ID" errors
 
 ### Changed
+
 - Extended backoff delays: [0.1, 0.2, 0.5, 1.0, 1.5] seconds (3.3s max)
 - Network errors during label recovery now trigger retry instead of immediate failure
 
@@ -453,6 +509,7 @@ See `docs/research/mcp-tools-consolidation-analysis-2025-12-27.md` for migration
 No breaking changes. All fixes are backward compatible and improve existing behavior.
 
 **Users experiencing issues should upgrade immediately**:
+
 ```bash
 pip install --upgrade mcp-ticketer
 # or
@@ -476,24 +533,28 @@ pipx upgrade mcp-ticketer
 **Root Cause**: The `_get_state_mapping()` method was accessing `_workflow_states` dictionary with Linear state types ("unstarted", "started") instead of universal state values ("open", "in_progress"). This caused it to return state type strings instead of UUID values, resulting in GraphQL validation errors.
 
 **Solution**:
+
 - Fixed `_get_state_mapping()` to correctly access workflow state UUIDs using universal state values ("open", "in_progress", etc.)
 - Verified state mapping returns proper UUID strings for all state transitions
 - Added comprehensive team_id validation across 11 adapter methods for better error messages
 
 **Changes**:
+
 - Fixed state UUID resolution in `_get_state_mapping()` method
-- Added team_id validation to: initialize(), _create_task(), _create_epic(), list_tasks(), search(), list_labels(), list_cycles(), list_epics(), list_issue_statuses(), _resolve_label_ids()
+- Added team_id validation to: initialize(), \_create_task(), \_create_epic(), list_tasks(), search(), list_labels(), list_cycles(), list_epics(), list_issue_statuses(), \_resolve_label_ids()
 - Enhanced GraphQL debug logging in Linear client for easier troubleshooting
 - File: `src/mcp_ticketer/adapters/linear/adapter.py`
 - File: `src/mcp_ticketer/adapters/linear/client.py`
 
 **Testing**:
+
 - Verified issue creation with ticket 1M-584
 - Verified task creation works correctly
 - All existing tests pass with updated state mapping logic
 - File: `tests/adapters/linear/test_adapter.py`
 
 **Impact**:
+
 - ✅ Issue creation now works correctly
 - ✅ Task creation now works correctly
 - ✅ Epic creation continues to work
@@ -517,10 +578,12 @@ pipx upgrade mcp-ticketer
 **Root Cause**: The adapter assumed 1:1 mapping between state types (unstarted, started) and workflow states, but Linear allows multiple states per type (e.g., "Todo", "Backlog", "Ready" all being "unstarted"). The old implementation always selected the lowest-position state for each type, causing invalid transitions.
 
 **Solution**: Implemented semantic name matching with two-level fallback strategy:
+
 1. **Primary**: Match state names to universal states using predefined semantic mappings (e.g., "ready" → READY, "in review" → TESTED)
 2. **Fallback**: Use type-based matching for unmapped states (backward compatible)
 
 **Changes**:
+
 - Added `SEMANTIC_NAMES` mapping to `LinearStateMapping` class
 - Rewrote `_load_workflow_states()` method with name-first matching logic
 - Added logging for multi-state-type workflows and matching strategy
@@ -528,6 +591,7 @@ pipx upgrade mcp-ticketer
 - File: `src/mcp_ticketer/adapters/linear/adapter.py`
 
 **Testing**:
+
 - Added 4 comprehensive unit tests (100% pass rate)
 - Tests verify: semantic matching, backward compatibility, case-insensitivity
 - All existing Linear adapter tests pass
@@ -544,18 +608,21 @@ pipx upgrade mcp-ticketer
 **Root Cause**: The `LIST_PROJECTS_QUERY` GraphQL query was missing the `$after` cursor parameter and `pageInfo` fields required for proper cursor-based pagination. The query structure didn't support iterating through multiple pages of results.
 
 **Solution**: Added complete pagination support to the GraphQL query:
+
 - Added `$after: String` parameter to query signature
 - Included `pageInfo { hasNextPage, endCursor }` in response
 - Updated query to accept and use the `after` cursor parameter
 - Aligned with Linear's standard pagination pattern
 
 **Changes**:
+
 - Updated `LIST_PROJECTS_QUERY` in `src/mcp_ticketer/adapters/linear/queries.py`
 - Modified query structure tests to verify pagination fields
 - File: `src/mcp_ticketer/adapters/linear/queries.py`
 - File: `tests/adapters/linear/test_queries.py`
 
 **Testing**:
+
 - Updated existing query structure tests (all passing)
 - Verified pagination parameters in GraphQL query
 - No regressions in epic listing functionality
@@ -571,19 +638,21 @@ pipx upgrade mcp-ticketer
 **Root Cause**: Native Claude CLI mode writes bare command names (`"command": "mcp-ticketer"`) which fail when the command is not in PATH. Users saw misleading error messages because the installer didn't validate PATH accessibility before choosing native CLI mode.
 
 **Solution**: Added intelligent PATH detection with automatic fallback:
+
 1. Check if `mcp-ticketer` is accessible in PATH using `shutil.which()`
 2. Require BOTH Claude CLI availability AND PATH accessibility for native mode
 3. Fall back to legacy JSON mode with full paths when PATH check fails
 4. Provide clear user guidance about PATH configuration options
 
 **Decision Matrix**:
-| Claude CLI | PATH Check | Mode Selected | Command Format          |
+| Claude CLI | PATH Check | Mode Selected | Command Format |
 |------------|-----------|---------------|-------------------------|
-| ✅ Yes     | ✅ Yes    | Native CLI    | "mcp-ticketer"          |
-| ✅ Yes     | ❌ No     | Legacy JSON   | "/full/path/..."        |
-| ❌ No      | N/A       | Legacy JSON   | "/full/path/..."        |
+| ✅ Yes | ✅ Yes | Native CLI | "mcp-ticketer" |
+| ✅ Yes | ❌ No | Legacy JSON | "/full/path/..." |
+| ❌ No | N/A | Legacy JSON | "/full/path/..." |
 
 **Changes**:
+
 - Added `is_mcp_ticketer_in_path()` function using `shutil.which()`
 - Updated `configure_claude_mcp()` decision logic to validate PATH
 - Added helpful warning messages with PATH configuration instructions
@@ -591,6 +660,7 @@ pipx upgrade mcp-ticketer
 - File: `src/mcp_ticketer/cli/mcp_configure.py`
 
 **Testing**:
+
 - Added 9 comprehensive unit tests (100% pass rate)
 - All 28 existing tests pass (no regressions)
 - Verified all 4 decision matrix branches
@@ -610,6 +680,7 @@ pipx upgrade mcp-ticketer
 **Problem**: List operations consumed excessive tokens, limiting the number of tickets AI agents could process within token budgets. A 50-item query consumed 31,082 characters.
 
 **Solution**: Implemented opt-in compact mode with smart pagination defaults:
+
 - New `compact` parameter for `list()` and `list_epics()` methods
 - Compact format reduces output by 77.5% (50 items: 31,082 chars → 6,982 chars)
 - Changed default page size to 20 items (consistent across methods)
@@ -617,6 +688,7 @@ pipx upgrade mcp-ticketer
 - Pagination metadata included in compact mode responses
 
 **Performance Comparison**:
+
 ```
 Format    | Items | Characters | Tokens (est) | Per Item
 ----------|-------|------------|--------------|----------
@@ -626,6 +698,7 @@ Reduction | -     | 77.5%      | 77.5%        | 77.5%
 ```
 
 **Changes**:
+
 - Added `compact` parameter to `LinearAdapter.list()` method (default: False)
 - Added `compact` parameter to `LinearAdapter.list_epics()` method (default: False)
 - Implemented `to_compact_dict()` method in `LinearMappers` class
@@ -634,6 +707,7 @@ Reduction | -     | 77.5%      | 77.5%        | 77.5%
 - File: `src/mcp_ticketer/adapters/linear/mappers.py`
 
 **Testing**:
+
 - Added 13 comprehensive pagination tests (100% pass rate)
 - Tests verify: compact format, pagination defaults, token reduction
 - Backward compatibility confirmed (default: `compact=False`)
@@ -646,16 +720,19 @@ Reduction | -     | 77.5%      | 77.5%        | 77.5%
 ### Technical Details
 
 **Test Coverage**:
+
 - 346 total tests passing (26 new tests added)
 - 0 regressions introduced
 - 100% success rate across all changes
 
 **Files Changed**:
+
 - 21 files modified
 - 5,363 insertions, 37 deletions
 - 11 new documentation files
 
 **Commits**:
+
 - 3f62881: Runtime bug fixes (1M-552, 1M-553, 1M-554)
 - 513d3b5: Installer PATH detection (1M-579)
 
@@ -668,12 +745,14 @@ Reduction | -     | 77.5%      | 77.5%        | 77.5%
 #### Label Duplicate Error Handling (1M-398)
 
 **Priority 1: Clear Error Messages**
+
 - Added proper `TransportQueryError` exception handling for GraphQL validation errors
 - Clear error messages: "Label already exists: duplicate label name"
 - Fail-fast behavior for validation errors (no retries)
 - File: `src/mcp_ticketer/adapters/linear/client.py`
 
 **Priority 2: Automatic Recovery**
+
 - Automatic recovery from race conditions during label creation
 - Retry Tier 2 lookup when duplicate error detected
 - Cache consistency maintained after recovery
@@ -681,12 +760,14 @@ Reduction | -     | 77.5%      | 77.5%        | 77.5%
 - File: `src/mcp_ticketer/adapters/linear/adapter.py`
 
 **Testing**:
+
 - Added 6 comprehensive unit tests (100% pass rate)
 - All 241 Linear adapter tests pass
 - No regressions detected
 - Performance impact: <200ms overhead for recovery (rare)
 
 **Documentation**:
+
 - Complete root cause analysis: `docs/research/linear-label-duplicate-error-analysis-1M-398-2025-12-02.md`
 
 **Related**: Ticket [1M-398](https://linear.app/1m-hyperdev/issue/1M-398), Commit a33ba9f
@@ -702,11 +783,13 @@ This is a BREAKING RELEASE requiring migration from deprecated tools to unified
 interfaces.
 
 **Phase 1: Search & Label Consolidation**
+
 - Token savings: ~13,300 tokens
 - Tools removed: `ticket_find_similar`, `ticket_find_stale`, `ticket_find_orphaned`, `ticket_cleanup_report` → `ticket_analyze()`
 - Tools removed: `label_list`, `label_normalize`, `label_find_duplicates`, `label_suggest_merge`, `label_merge`, `label_rename`, `label_cleanup_report` → `label()`
 
 **Phase 2: Hierarchy & Ticket CRUD Consolidation**
+
 - Token savings: ~17,585 tokens
 - Hierarchy: 11 tools → `hierarchy(entity_type, action, ...)`
   - Removed: `epic_create`, `epic_get`, `epic_list`, `epic_update`, `epic_delete`, `epic_issues`, `issue_create`, `issue_get_parent`, `issue_tasks`, `task_create`, `hierarchy_tree`
@@ -718,6 +801,7 @@ interfaces.
   - Removed: `get_my_tickets`, `get_session_info`, `attach_ticket` (standalone)
 
 **Phase 3: Config, Label, Analysis & Project Update Consolidation**
+
 - Token savings: ~13,100 tokens
 - Config: 16 tools → `config(action, ...)`
   - Removed: `config_set_primary_adapter`, `config_set_default_project`, `config_set_default_user`, `config_get`, `config_set_default_tags`, `config_set_default_team`, `config_set_default_cycle`, `config_set_default_epic`, `config_set_assignment_labels`, `config_validate`, `config_test_adapter`, `config_list_adapters`, `config_get_adapter_requirements`, `config_setup_wizard`
@@ -731,11 +815,13 @@ interfaces.
   - Removed: `ticket_attach`, `ticket_attachments`, `ticket_comment`, `ticket_create_pr`, `ticket_link_pr`, `instructions_get`, `instructions_set`, `instructions_reset`, `instructions_validate`
 
 **Total Impact:**
+
 - **MCP tools: 54 → 18** (36 tools removed, 67% reduction)
 - **Token savings: ~43,985 tokens** (87% reduction from baseline)
 - **Final MCP footprint: ~6,825 tokens** (down from ~50,000)
 
 **Tools Removed (36 total):**
+
 - Hierarchy: `epic_create`, `epic_get`, `epic_list`, `epic_update`, `epic_delete`, `epic_issues`, `issue_create`, `issue_get_parent`, `issue_tasks`, `task_create`, `hierarchy_tree`
 - Ticket CRUD: `ticket_create`, `ticket_read`, `ticket_update`, `ticket_delete`, `ticket_list`, `ticket_summary`, `ticket_latest`, `ticket_assign`
 - Bulk: `ticket_bulk_create`, `ticket_bulk_update`
@@ -747,11 +833,13 @@ interfaces.
 - CLI-only: 8 attachment/instruction/PR functions (moved to CLI-only)
 
 **Migration Required:**
+
 - See [docs/UPGRADING-v2.0.md](docs/UPGRADING-v2.0.md) for complete migration guide
 - All functionality preserved through unified interfaces
 - Migration complexity: Medium (clear migration paths documented)
 
 **Deprecation Timeline:**
+
 - v1.5.0: Deprecation warnings added
 - v1.5.0-v1.8.0: 3-month deprecation period
 - v2.0.0: Deprecated functions removed
@@ -811,6 +899,7 @@ Enhanced `--force` flag functionality to properly handle reinstallation of exist
 ### Fixed
 
 **Critical Hotfix: Label Duplicate Error Prevention (1M-443)**
+
 - **Root Cause**: v1.4.2 fix had error handling flaw that swallowed network exceptions
 - The `_find_label_by_name()` method returned `None` on both "label not found" and "check failed" scenarios
 - Network failures were interpreted as "label doesn't exist", leading to duplicate creation attempts
@@ -834,6 +923,7 @@ Enhanced `--force` flag functionality to properly handle reinstallation of exist
 ### Fixed
 
 **Linear Label Duplicate Error Prevention (1M-443)**
+
 - Fixed label duplicate creation error when setting existing labels on tickets
 - **Root Cause**: `_ensure_labels_exist()` only checked local cache before creating labels. When a label exists in Linear but not in cache (due to cache staleness), the system attempted to create a duplicate label, causing Linear API to reject with "duplicate label name" error
 - **Solution**: Implemented three-tier label existence check:
@@ -857,6 +947,7 @@ Enhanced `--force` flag functionality to properly handle reinstallation of exist
 ### Fixed
 
 **Linear Connection Test Enhancement (1M-431)**
+
 - Enhanced connection test logging and error messages for config_setup_wizard
 - Added detailed debug logging in LinearGraphQLClient.test_connection()
   - Logs API key preview (first 20 chars) for verification
@@ -885,6 +976,7 @@ Enhanced `--force` flag functionality to properly handle reinstallation of exist
 All search and list operations now require explicit project context to prevent cross-project data leakage. This is a critical security enhancement for multi-project and multi-tenant usage.
 
 **Affected MCP Tools** (5 tools require migration):
+
 - `ticket_search()` - Now requires `project_id` parameter or `default_project` configuration
 - `ticket_search_hierarchy()` - Now requires `project_id` parameter or `default_project` configuration
 - `ticket_list()` - Now requires `project_id` parameter or `default_project` configuration
@@ -892,6 +984,7 @@ All search and list operations now require explicit project context to prevent c
 - `get_my_tickets()` - Now requires `project_id` parameter or `default_project` configuration
 
 **Why This Change?**
+
 - **Security**: Prevents cross-project data leakage in multi-tenant environments
 - **Data Integrity**: Eliminates confusion from tickets appearing in wrong project context
 - **Consistency**: Aligns all tools with project-scoped operations
@@ -912,6 +1005,7 @@ get_my_tickets(project_id='YOUR-PROJECT-ID')
 ```
 
 **Error Handling**:
+
 - Calls without project context will return clear error messages
 - Error messages include project_id discovery instructions
 - Use `epic_list()` or adapter-specific tools to find your project IDs
@@ -923,6 +1017,7 @@ get_my_tickets(project_id='YOUR-PROJECT-ID')
 ### Added
 
 **Claude Code Native CLI Support** - Hybrid Installation Approach
+
 - **Auto-Detection**: Installer now auto-detects and uses Claude's native `claude mcp add` command when available
   - Hybrid approach: Uses native CLI when available, falls back to JSON when not
   - Support for all adapters (Linear, GitHub, JIRA, AITrackdown)
@@ -944,6 +1039,7 @@ get_my_tickets(project_id='YOUR-PROJECT-ID')
 **Commit**: 6af6014
 
 **Installer Improvements** - Code Editor Focus
+
 - New `--include-desktop` flag for `mcp-ticketer install` command
   - By default, installer now focuses on **code editors only**: Claude Code, Cursor, Auggie, Codex, Gemini
   - Claude Desktop (general AI assistant) is now **opt-in** via `--include-desktop` flag
@@ -958,6 +1054,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 **Commit**: 46f9e0e
 
 ### Fixed
+
 - **[BREAKING]** Linear label updates now fail-fast on any label creation error instead of silently succeeding with partial results (1M-396)
   - **Root Cause**: Silent partial label resolution in `_ensure_labels_exist()` method was swallowing exceptions for non-existent labels
   - **Breaking Change**: Partial label updates now fail completely instead of partially succeeding, ensuring data integrity
@@ -970,6 +1067,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.3.1] - 2025-11-28
 
 ### Added
+
 - **20k Token Pagination** (1M-363): Automatic pagination for all MCP tools to prevent context overflow
   - Implemented token estimation and pagination utilities (`src/mcp_ticketer/utils/token_utils.py`)
   - Fixed high-risk tools with token-aware pagination:
@@ -983,12 +1081,14 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
   - See [Token Pagination Guide](docs/TOKEN_PAGINATION.md) for usage patterns and best practices
 
 ### Fixed
+
 - Removed unused imports causing linting failures
 - Updated import statements to use `collections.abc.Callable` instead of `typing.Callable`
 
 ## [1.2.15] - 2025-11-28
 
 ### Added
+
 - **Automatic Project Updates** (1M-315): Real-time epic/project status updates on ticket transitions
   - Automatically posts project status summaries when tickets transition states
   - Triggers on `ticket_transition` calls with epic association
@@ -1031,6 +1131,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
   - Clean separation: analysis tools vs. cleanup utilities
 
 ### Fixed
+
 - **Default Epic Priority Bug**: Fixed parent_epic parameter handling in `ticket_create`
   - Issue: Config default_epic was incorrectly taking priority over explicit parent_epic parameter
   - Root cause: Cannot distinguish between `parent_epic=None` (opt-out) and "parameter not provided"
@@ -1051,6 +1152,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
   - Modified: `src/mcp_ticketer/mcp/server/tools/hierarchy_tools.py`
 
 ### Changed
+
 - **Analysis Module Organization**: Better separation of concerns
   - Cleanup tools: `similarity.py`, `orphaned.py`, `staleness.py`
   - Project analysis: `project_status.py`, `dependency_graph.py`, `health_assessment.py`
@@ -1062,11 +1164,13 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
   - Improved troubleshooting for epic assignment issues
 
 ### Documentation
+
 - Added `docs/features/AUTO_PROJECT_UPDATES.md`: Comprehensive guide to automatic updates
 - Added `docs/development/LOCAL_MCP_SETUP.md`: Local MCP server development setup
 - Added `docs/research/workflow-state-handling-fix-analysis-2025-11-28.md`: State handling deep dive
 
 ### Testing
+
 - Added comprehensive test suites for new features:
   - `tests/analysis/test_dependency_graph.py`: Dependency parsing and cycle detection
   - `tests/analysis/test_health_assessment.py`: Health scoring algorithm validation
@@ -1076,6 +1180,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.2.14] - 2025-11-28
 
 ### Added
+
 - **Semantic Priority Matching** (ISS-0002/1M-313): Natural language priority input support for ticket creation and updates
   - Accepts natural language inputs: "urgent" → CRITICAL, "important" → HIGH, "whenever" → LOW
   - 84+ synonyms per priority level covering common phrases and platform-specific terms
@@ -1089,7 +1194,8 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
   - Documentation: `docs/SEMANTIC_PRIORITY_MATCHING.md` (577 lines)
 
 ### Fixed
-- **Whitespace-only priority input**: Fixed edge case where whitespace-only strings (e.g., "   ") were treated as fallback instead of default
+
+- **Whitespace-only priority input**: Fixed edge case where whitespace-only strings (e.g., " ") were treated as fallback instead of default
   - Now correctly returns MEDIUM priority with "default" match type for whitespace-only input
   - Added normalization check after `strip()` to catch empty strings post-cleanup
   - Improves consistency with empty string handling
@@ -1102,6 +1208,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.2.13] - 2025-11-26
 
 ### Added
+
 - **Project Status Updates** (1M-238): Track project progress with status updates and health indicators
   - CLI commands: `project-update create`, `project-update list`, `project-update get`
   - MCP tools: `project_update_create`, `project_update_list`, `project_update_get` for programmatic access
@@ -1121,6 +1228,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
   - Test suite: 8 commands, 100% pass rate
 
 ### Fixed
+
 - **Linear epic_list GraphQL Error** (1M-216): Fixed "Unknown fragment TeamFields" validation error
   - Added missing TEAM_FRAGMENT to LIST_PROJECTS_QUERY
   - Resolves GraphQL validation failures when listing projects/epics
@@ -1134,6 +1242,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
   - Modified pyproject.toml with deprecation notice and restoration plan
 
 ### Changed
+
 - **Code Modernization**: Updated isinstance syntax to Python 3.10+ union operator
   - Changed `isinstance(x, (list, tuple))` to `isinstance(x, list | tuple)`
   - Fixes Ruff UP038 linting error
@@ -1142,6 +1251,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.2.12] - 2025-11-25
 
 ### Changed
+
 - **MCP ticket_list Optimization**: Significantly reduced token usage in compact mode
   - Compact mode now returns only 3 fields: id, title, state (was 7 fields)
   - Token usage reduced by 73%: 20 tickets now ~300 tokens (was ~1.1k tokens)
@@ -1150,6 +1260,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
   - Per-ticket token usage: ~15 tokens (was ~55 tokens) in compact mode
 
 ### Benefits
+
 - **Faster responses**: 73% less data to transmit and process
 - **Better context management**: More queries fit in Claude's context window
 - **Improved UX**: Reduced "Large MCP response" warnings
@@ -1159,6 +1270,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.2.11] - 2025-11-25
 
 ### Added
+
 - **GitHub URL-Based Configuration**: Simplified GitHub adapter setup with repository URL support
   - New `--github-url` CLI parameter accepts full repository URLs (e.g., `https://github.com/owner/repo`)
   - New `GITHUB_REPO_URL` environment variable for URL-based configuration
@@ -1169,6 +1281,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
   - Less error-prone with single source of truth
 
 ### Changed
+
 - **GitHub Configuration Flow**: Refactored to prioritize URL-based input
   - `_configure_github()` now accepts `repo_url` as primary parameter
   - `init` command updated with `--github-url` parameter
@@ -1176,12 +1289,14 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
   - All user-facing documentation updated with URL examples
 
 ### Deprecated
+
 - **GitHub CLI Parameters**: Old parameters still work but hidden from help
   - `--github-owner` and `--github-repo` maintained for backward compatibility
   - `GITHUB_OWNER` and `GITHUB_REPO` environment variables still supported
   - Existing configurations continue to function without changes
 
 ### Documentation
+
 - Updated Quick Start Guide with URL-based examples
 - Enhanced Configuration Guide with migration notes and benefits section
 - Updated AI Client Integration guide with new parameters
@@ -1190,8 +1305,9 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.2.10] - 2025-11-24
 
 ### Fixed
+
 - **Linear epic_issues**: Fixed bug where epic_issues returned empty list for Linear projects
-  - Root cause: _get_project_issues() was passing short IDs (e.g., "13ddc89e7271") directly to GraphQL query
+  - Root cause: \_get_project_issues() was passing short IDs (e.g., "13ddc89e7271") directly to GraphQL query
   - Linear API requires full UUIDs for project filtering, not short IDs
   - Fix: Added project ID resolution step before building GraphQL filter
   - Impact: epic_issues now correctly returns all issues in a Linear project regardless of ID format
@@ -1203,6 +1319,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.2.9] - 2025-11-24
 
 ### Fixed
+
 - **Package Distribution**: Patch release to ensure clean PyPI package publication
   - No functional changes from v1.2.8
   - Verified distribution files with twine check
@@ -1211,6 +1328,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.2.8] - 2025-11-24
 
 ### Added
+
 - **Token-Efficient Ticket Queries**: New MCP tools to prevent context overload
   - `ticket_summary()` - Ultra-compact 5-field response (~20 tokens, 90% reduction vs ticket_read)
   - `ticket_latest()` - Recent activity only with comment truncation (200 chars max)
@@ -1219,12 +1337,14 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
   - Optimizes AI agent token usage when querying ticket systems via MCP
 
 ### Fixed
+
 - **Development Environment**: Fixed recurring pytest error preventing test execution
   - Added activation helper scripts (activate-dev-env.sh, .venv-activate-reminder)
   - Documented proper venv usage to resolve pytest plugin issues
   - Created comprehensive development environment guide
 
 ### Documentation
+
 - **Comprehensive Reorganization**: 92% reduction in top-level documentation clutter
   - Reduced top-level docs/ from 26 files to 2 files
   - Archived 27 completed implementation/research reports by date
@@ -1239,6 +1359,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.2.5] - 2025-11-24
 
 ### Fixed
+
 - **GitHub/Jira/AiTrackDown Setup**: Fixed critical tuple unpacking bug blocking adapter initialization (1M-176)
   - Resolved AttributeError crashes when setting up GitHub, Jira, and AiTrackDown adapters
   - Fixed 5 instances of missing tuple unpacking in init_command.py
@@ -1253,6 +1374,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
   - Added comprehensive remediation plan documentation
 
 ### Documentation
+
 - Added research analysis for GitHub setup error (1M-176)
 - Created type error remediation plan and quick reference guide
 - Documented tuple unpacking patterns across all adapters
@@ -1260,6 +1382,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.2.4] - 2025-11-24
 
 ### Added
+
 - **Linear Attachment Retrieval with Authentication**: Complete attachment fetching support for Linear adapter (1M-136)
   - Implemented `get_attachments()` method with proper Bearer token authentication
   - Resolves 401 errors when accessing Linear attachment URLs
@@ -1272,6 +1395,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.2.3] - 2025-11-24
 
 ### Fixed
+
 - **Epic URL Resolution**: Fixed critical bug where epic URLs were not being properly resolved before adapter calls (1M-171)
   - Epic operations now correctly extract IDs from URLs using `extract_id_from_url()` utility
   - Fixes "Epic not found" errors when users provided URLs instead of IDs
@@ -1284,6 +1408,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
   - Added return type annotations to all test functions
 
 ### Verified
+
 - **Status Mapping**: Verified Linear adapter correctly maps status values (1M-164)
   - Confirmed synonym matching implementation working as expected
   - State transitions validated across all workflow states
@@ -1291,6 +1416,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.2.2] - 2025-11-24
 
 ### Fixed
+
 - **Status Mapping**: Enhanced Linear adapter to support status value synonyms (1M-164)
   - Added flexible state matching to handle variations in status values
   - Improved robustness of state transitions
@@ -1298,6 +1424,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.2.1] - 2025-11-24
 
 ### Added
+
 - **MCP Setup Tools (Phase 2)**: Interactive configuration wizard (1M-92)
   - `config_list_adapters()` - List available adapters with configuration status
   - `config_get_adapter_requirements()` - Get adapter-specific requirements
@@ -1318,6 +1445,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
   - Optional field with empty list default for backward compatibility
 
 ### Fixed
+
 - **Critical: Parent/Child State Constraints**: Fixed unreachable state validation in adapters (1M-93)
   - Fixed `BaseAdapter.validate_transition()` returning early before checking parent/child constraints
   - Fixed `LinearAdapter.validate_transition()` to properly call `super().validate_transition()`
@@ -1327,6 +1455,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
   - 9 comprehensive tests added to verify constraint enforcement across all scenarios
 
 ### Testing
+
 - **Setup Tools Test Suite**: 13 new tests for configuration management (1M-92)
   - Validation tests: valid configs, invalid adapter types, missing fields, malformed JSON
   - Connectivity tests: successful connections, network errors, authentication failures
@@ -1339,6 +1468,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
   - 100% pass rate with comprehensive scenario coverage
 
 ### Technical Details
+
 - **Config Validation** (1M-92):
   - Structural validation checks adapter configuration fields without network calls
   - Field validation: adapter type, required fields (api_key, team_id, etc.)
@@ -1358,6 +1488,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.2.0] - 2025-11-23
 
 ### Added
+
 - **Automatic State Transition on Assignment**: Tickets now automatically transition to IN_PROGRESS when assigned
   - Added `auto_transition` parameter (default: `True`) to `ticket_assign()` MCP tool
   - Automatically transitions OPEN, WAITING, and BLOCKED tickets to IN_PROGRESS when assigned to a user
@@ -1372,6 +1503,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
   - Comprehensive test coverage: 14 new tests + 20 updated existing tests, all passing
 
 ### Workflow Enhancement Details
+
 - **OPEN → IN_PROGRESS**: Starting work on new ticket
 - **WAITING → IN_PROGRESS**: Resuming after waiting period
 - **BLOCKED → IN_PROGRESS**: Resuming after block removed
@@ -1382,6 +1514,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.1.9] - 2025-11-23
 
 ### Fixed
+
 - **Critical: URL Handling Without Router**: Fixed ticket tools to extract ticket IDs from URLs when multi-platform router is not configured
   - `ticket_read()`, `ticket_update()`, `ticket_delete()`, `ticket_assign()` were passing full URLs to adapters instead of extracted IDs
   - This caused "Ticket not found" errors when users provided URLs without router configuration
@@ -1394,6 +1527,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.1.8] - 2025-11-23
 
 ### Fixed
+
 - **Router ValueError Handling**: Fixed router to preserve helpful `ValueError` messages from adapters
   - Router was wrapping ALL exceptions (including `ValueError`) in `RouterError`
   - This prevented helpful error messages from reaching users via ticket_read's ValueError handler
@@ -1406,6 +1540,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.1.7] - 2025-11-22
 
 ### Fixed
+
 - **MCP Tool Error Handling**: Fixed `ticket_read` MCP tool to preserve helpful `ValueError` messages from adapters
   - Previously, `ValueError` exceptions (like Linear view URL errors) were caught by generic `Exception` handler
   - Generic handler wrapped helpful error messages with "Failed to read ticket: " prefix
@@ -1418,6 +1553,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.1.6] - 2025-01-22
 
 ### Fixed
+
 - **Linear View URL Exception Handling**: Corrected exception handling in Linear adapter to ensure view detection code runs
   - Changed `except TransportQueryError` to `except Exception` on line 1499 of Linear adapter
   - Fixes critical bug where generic "Ticket not found" errors appeared instead of helpful view URL guidance
@@ -1428,6 +1564,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.1.5] - 2025-01-22
 
 ### Fixed
+
 - **Linear View URL Error Messages**: Improved error handling when users provide Linear view URLs instead of issue URLs
   - Now detects Linear view URLs (e.g., `https://linear.app/workspace/view/my-view-abc123`) and provides informative error messages
   - Explains that views are collections of issues, not individual tickets
@@ -1438,6 +1575,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.1.4] - 2025-01-22
 
 ### Added
+
 - **Linear View URL Detection**: Added informative error messages when Linear view URLs are provided
   - Detects view URLs and explains they cannot be used for single ticket operations
   - Provides actionable guidance to use `ticket_list` or `ticket_search` instead
@@ -1480,6 +1618,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.1.2] - 2025-01-22
 
 ### Fixed
+
 - **Setup Command JSON Serialization**: Fixed TypeError when running `mcp-ticketer setup`
   - Prevented `typer.models.OptionInfo` objects from being passed to internal functions
   - Setup command now correctly passes `None` values for optional parameters
@@ -1490,6 +1629,7 @@ Code editors (Claude Code, Cursor, etc.) are project-scoped tools designed for w
 ## [1.1.1] - 2025-01-21
 
 ### Fixed
+
 - **Linear Adapter Label Validation**: Fixed labelIds argument validation error in Linear GraphQL API
   - Resolved "Argument Validation Error" when creating issues with labels
   - Changed labelIds parameter from `[String!]` to `[String!]!` (non-null array of non-null strings)
@@ -1731,6 +1871,7 @@ This is the **first production release** of mcp-ticketer, marking a major milest
 ### ✨ What's New
 
 #### Critical Bug Fix
+
 - **Fixed Linear pagination bug**: Resolved "Project not found" errors for workspaces with >100 projects
   - Enhanced `_list_all_projects()` to handle pagination correctly
   - Properly fetches all projects beyond first 100 using cursor-based pagination
@@ -1741,11 +1882,13 @@ This is the **first production release** of mcp-ticketer, marking a major milest
 #### Complete Feature Parity (19 New Methods)
 
 **Linear Adapter** (3 new methods):
+
 - `list_cycles()` - List all team cycles/sprints with date ranges
 - `get_issue_status()` - Get workflow status details for a specific issue
 - `list_issue_statuses()` - List all available workflow states for the team
 
 **JIRA Adapter** (5 new methods):
+
 - `add_label()` - Add labels/tags to issues
 - `remove_label()` - Remove labels/tags from issues
 - `list_cycles()` - List sprints from board backlogs
@@ -1753,12 +1896,14 @@ This is the **first production release** of mcp-ticketer, marking a major milest
 - `list_issue_statuses()` - List all available statuses in project
 
 **GitHub Adapter** (4 new methods):
+
 - `list_project_iterations()` - List milestone iterations/cycles
 - `get_issue_status()` - Get issue state (open/closed)
 - `list_issue_statuses()` - List possible states
 - `remove_label()` - Remove labels from issues
 
 **AITrackdown Adapter** (7 new methods):
+
 - `update_epic()` - Update epic metadata and description
 - `add_label()` - Add tags to tickets
 - `remove_label()` - Remove tags from tickets
@@ -1768,6 +1913,7 @@ This is the **first production release** of mcp-ticketer, marking a major milest
 - `list_project_iterations()` - List sprint/cycle iterations
 
 ### 📊 By The Numbers
+
 - **19 new methods** across 4 adapters
 - **90 new tests** (314+ total tests, 100% passing)
 - **~1,147 lines** of production code added
@@ -1779,19 +1925,20 @@ This is the **first production release** of mcp-ticketer, marking a major milest
 
 All adapters now support the complete feature set:
 
-| Feature | Linear | JIRA | GitHub | AITrackdown |
-|---------|--------|------|--------|-------------|
-| Create/Update Projects/Epics | ✅ | ✅ | ✅ | ✅ |
-| Create/Update Issues | ✅ | ✅ | ✅ | ✅ |
-| Create/Update Sub-issues | ✅ | ✅ | ✅ | ✅ |
-| Cycle/Sprint Management | ✅ | ✅ | ✅ | ✅ |
-| Rich Status Tracking | ✅ | ✅ | ✅ | ✅ |
-| Label/Tag Organization | ✅ | ✅ | ✅ | ✅ |
-| Comprehensive Workflow Ops | ✅ | ✅ | ✅ | ✅ |
+| Feature                      | Linear | JIRA | GitHub | AITrackdown |
+| ---------------------------- | ------ | ---- | ------ | ----------- |
+| Create/Update Projects/Epics | ✅     | ✅   | ✅     | ✅          |
+| Create/Update Issues         | ✅     | ✅   | ✅     | ✅          |
+| Create/Update Sub-issues     | ✅     | ✅   | ✅     | ✅          |
+| Cycle/Sprint Management      | ✅     | ✅   | ✅     | ✅          |
+| Rich Status Tracking         | ✅     | ✅   | ✅     | ✅          |
+| Label/Tag Organization       | ✅     | ✅   | ✅     | ✅          |
+| Comprehensive Workflow Ops   | ✅     | ✅   | ✅     | ✅          |
 
 ### 📚 Documentation
 
 Complete feature documentation available in:
+
 - `docs/ADAPTER_ENHANCEMENTS_V0.16.0.md` - Complete technical specification
 - `LINEAR_PAGINATION_FIX.md` - Pagination bug fix details
 - `GITHUB_NEW_OPERATIONS_SUMMARY.md` - GitHub operations guide
@@ -1800,6 +1947,7 @@ Complete feature documentation available in:
 ### 🚀 Production Ready
 
 This v1.0.0 release represents production readiness:
+
 - Mature, stable API with comprehensive test coverage
 - All adapters have complete feature parity
 - Critical bugs resolved (Linear pagination)
@@ -1810,6 +1958,7 @@ This v1.0.0 release represents production readiness:
 ### 🔄 Backward Compatibility
 
 100% backward compatible with v0.15.x:
+
 - All existing APIs unchanged
 - No configuration changes required
 - Existing integrations continue to work
@@ -1818,12 +1967,14 @@ This v1.0.0 release represents production readiness:
 ### 🛠️ Technical Details
 
 **Linear Pagination Fix**:
+
 - Root cause: Pagination logic stopped at first page (100 projects)
 - Solution: Cursor-based pagination with `hasNextPage` checks
 - Impact: Resolves intermittent failures in large workspaces
 - Tests: 11 comprehensive pagination scenarios
 
 **New Adapter Methods**:
+
 - Consistent API signatures across all adapters
 - Comprehensive error handling and validation
 - Full test coverage for all new functionality
@@ -1836,6 +1987,7 @@ pip install mcp-ticketer==1.0.0
 ```
 
 Or upgrade from previous versions:
+
 ```bash
 pip install --upgrade mcp-ticketer
 ```
@@ -1940,6 +2092,7 @@ This release represents months of development and testing to achieve complete fe
 ### Use Cases
 
 **Use `compact=True` (Compact Mode) when**:
+
 - Listing many tickets (>10)
 - Building ticket dashboards/overviews
 - Filtering/searching across many tickets
@@ -1948,6 +2101,7 @@ This release represents months of development and testing to achieve complete fe
 - Working with token-limited contexts
 
 **Use `compact=False` (Standard Mode) when**:
+
 - You need full ticket details
 - Processing individual tickets
 - Displaying ticket content to users
@@ -1994,6 +2148,7 @@ This release represents months of development and testing to achieve complete fe
 ## [0.14.0] - 2025-11-19
 
 ### Added
+
 - **PM Monitoring Utility**: Comprehensive ticket analysis tools for project management
   - `ticket_find_similar` - Find duplicate or related tickets using TF-IDF similarity analysis
     - Configurable similarity threshold (0.0-1.0, default 0.7)
@@ -2018,6 +2173,7 @@ This release represents months of development and testing to achieve complete fe
   - Install via: `pip install "mcp-ticketer[analysis]"` or `pip install "mcp-ticketer[all]"`
 
 ### Technical Details
+
 - **TF-IDF Similarity Detection**: Machine learning-based duplicate detection
   - Combines ticket title and description for comprehensive similarity analysis
   - Cosine similarity scoring with configurable thresholds
@@ -2037,6 +2193,7 @@ This release represents months of development and testing to achieve complete fe
   - Core functionality unaffected by missing optional dependencies
 
 ### Documentation
+
 - **New Guide**: PM monitoring tools documentation
   - `docs/PM_MONITORING_TOOLS.md` - Complete guide with examples
   - Tool reference with parameters and return values
@@ -2046,6 +2203,7 @@ This release represents months of development and testing to achieve complete fe
 ## [0.12.0] - 2025-11-19
 
 ### Added
+
 - **Configuration Management MCP Tools**: Project-local configuration management via MCP interface
   - `config_set_primary_adapter(adapter)`: Set default adapter with validation against available adapters
   - `config_set_default_project(project_id, project_key?)`: Set default project/epic for new tickets
@@ -2087,18 +2245,21 @@ This release represents months of development and testing to achieve complete fe
   - Backward compatible with existing configurations
 
 ### Changed
+
 - **CLI Help Text**: Updated command descriptions to recommend `setup` command
   - `init` command now notes: "For most users, the 'setup' command is recommended"
   - `install` command now notes: "For most users, the 'setup' command is recommended"
   - Kept existing commands for specific use cases (adapter-only init, platform-only install)
 
 ### Fixed
+
 - **Test Mock Errors**: Fixed 42 mock variable errors in `tests/mcp/test_instruction_tools.py`
   - Changed all undefined `MockManager` references to correct `mock_manager_class`
   - Resolved F821 (undefined name) and F841 (unused variable) linting errors
   - All 32 instruction tools tests now passing
 
 ### Documentation
+
 - **New Guide**: Complete documentation for configuration and user ticket tools
   - `docs/config_and_user_tools.md` (450 lines)
   - Tool reference with parameters and return values
@@ -2119,25 +2280,29 @@ This release represents months of development and testing to achieve complete fe
 ## [0.11.6] - 2025-11-19
 
 ### Added
+
 - **Smart Setup Command**: Initial implementation (moved to 0.12.0 for feature bundling)
 
 ### Fixed
+
 - **Test Mock Errors**: Fixed test infrastructure issues (moved to 0.12.0)
 - **Code Formatting**: Applied Black and isort formatting across codebase
 
 ## [0.11.5] - 2025-11-18
 
 ### Fixed
+
 - **Critical MCP Server Fix**: Fixed configuration priority bug where .env files had higher priority than config.json
   - MCP server now correctly checks project config (.mcp-ticketer/config.json) BEFORE .env auto-detection
   - Prevents incorrect adapter initialization when multiple adapter env vars exist
-  - Resolves crashes when GITHUB_* env vars existed but Linear was configured
+  - Resolves crashes when GITHUB\_\* env vars existed but Linear was configured
   - Priority order now: CLI arg > config.json > .env files > default (was: CLI > .env > config > default)
   - File modified: src/mcp_ticketer/cli/main.py lines 2932-2957
 
 ## [Unreleased]
 
 ### Added
+
 - **Asana Adapter**: Complete REST API adapter with full hierarchy support
   - Epic/Project management via Asana Projects
   - Issue/Task creation and management via Asana Tasks
@@ -2190,6 +2355,7 @@ This release represents months of development and testing to achieve complete fe
   - Returns detailed response with method used and attachment metadata
 
 ### Changed
+
 - **Documentation**: Major cleanup and reorganization (93% size reduction)
   - Removed 20MB of build artifacts and obsolete documentation
   - Archived 53 historical files to `docs/_archive/` for reference
@@ -2214,6 +2380,7 @@ This release represents months of development and testing to achieve complete fe
   - Provided manual upload instructions
 
 ### Removed
+
 - **GitHub Workflows**: Temporarily disabled failing CI/CD workflows
   - Backed up all workflow files to `.github/workflows.backup/`
   - Created re-enablement guide in `.github/workflows/README.md`
@@ -2222,6 +2389,7 @@ This release represents months of development and testing to achieve complete fe
   - Workflows can be easily restored when underlying issues are resolved
 
 ### Fixed
+
 - **Package Distribution**: Fixed ticket instructions inclusion in built packages
   - Updated `pyproject.toml` package-data configuration
   - Added `defaults/*.md` to package-data include patterns
@@ -2229,6 +2397,7 @@ This release represents months of development and testing to achieve complete fe
   - Resolves issue where instructions were missing in installed packages
 
 ### Documentation
+
 - **New Files**:
   - `SECURITY.md`: Comprehensive security policy and vulnerability reporting procedures
   - `.github/workflows/README.md`: Workflow re-enablement guide
@@ -2243,6 +2412,7 @@ This release represents months of development and testing to achieve complete fe
   - `CHANGELOG.md`: This file, documenting all new features
 
 ### Implementation Details
+
 - **Linear Adapter**:
   - Added `update_epic()` method using `projectUpdate` GraphQL mutation
   - Implemented three-step S3 upload process via `fileUpload` mutation
@@ -2264,6 +2434,7 @@ This release represents months of development and testing to achieve complete fe
   - SHA256 checksums and filename sanitization documented
 
 ### Platform-Specific Notes
+
 - **Linear**: No explicit file size limit, ~100MB practical limit
 - **Jira**: File size limits are instance-configurable (10-100MB typical)
 - **GitHub**: 25MB file size limit, no native attachment API
@@ -2272,6 +2443,7 @@ This release represents months of development and testing to achieve complete fe
 ## [0.4.15] - 2025-11-07
 
 ### Fixed
+
 - **Linear Task Creation with Parent Issues**: Fixed Linear adapter to resolve issue identifiers to UUIDs
   - Task creation with `parent_issue` parameter now works with both issue identifiers (e.g., "ENG-842") and UUIDs
   - Added automatic identifier resolution via GraphQL query
@@ -2279,6 +2451,7 @@ This release represents months of development and testing to achieve complete fe
   - Resolves validation failures when creating tasks under parent issues
 
 ### Added
+
 - **Linear Issue Resolution Method**: Added `_resolve_issue_id()` for automatic identifier resolution
   - Resolves issue identifiers (like "ENG-842") to UUIDs via GraphQL
   - Provides clear error messages when issues cannot be found
@@ -2286,12 +2459,14 @@ This release represents months of development and testing to achieve complete fe
   - Comprehensive test coverage with 13 new tests
 
 ### Changed
+
 - **Code Quality**: Import formatting standardization across codebase
   - Applied consistent import ordering to 38 files
   - Improved code consistency and maintainability
   - No functional changes to core logic
 
 ### Testing
+
 - **Issue Resolution Tests**: Added comprehensive test suite for Linear issue resolution
   - Created `tests/adapters/linear/test_issue_resolution.py` with 13 tests
   - Tests cover identifier resolution, UUID handling, and error cases
@@ -2299,6 +2474,7 @@ This release represents months of development and testing to achieve complete fe
   - 100% test coverage for new resolution functionality
 
 ### Documentation
+
 - **Linear Parent Issue Fix**: Added detailed documentation in `docs/linear_parent_issue_fix.md`
   - Explains the root cause of the issue
   - Documents the resolution approach
@@ -2307,6 +2483,7 @@ This release represents months of development and testing to achieve complete fe
 ## [0.4.11] - 2025-10-28
 
 ### Fixed
+
 - **CRITICAL: MCP Installer Command Structure**: Fixed all MCP installers to use Python module invocation pattern
   - Changed from: `command: {venv}/bin/mcp-ticketer`, `args: ["mcp", project_path]`
   - Changed to: `command: {venv}/bin/python`, `args: ["-m", "mcp_ticketer.mcp.server", project_path]`
@@ -2315,12 +2492,14 @@ This release represents months of development and testing to achieve complete fe
   - Matches established pattern from mcp-vector-search and other MCP servers
 
 ### Files Modified
+
 - `src/mcp_ticketer/cli/mcp_configure.py` - Claude Code/Desktop installer
 - `src/mcp_ticketer/cli/auggie_configure.py` - Auggie CLI installer
 - `src/mcp_ticketer/cli/gemini_configure.py` - Gemini CLI installer
 - `src/mcp_ticketer/cli/codex_configure.py` - Codex CLI installer
 
 ### Technical Details
+
 - Uses Python executable directly with `-m` module flag
 - No longer depends on `mcp-ticketer` binary existing in target venv
 - Works across all installation methods and Python environments
@@ -2329,6 +2508,7 @@ This release represents months of development and testing to achieve complete fe
 ## [0.4.10] - 2025-10-28
 
 ### Fixed
+
 - **CRITICAL: MCP Installer Configuration**: Fixed Claude Code MCP installer to write to correct config location
   - Changed config path from `.claude/settings.local.json` to `~/.claude.json`
   - Updated to use project-specific structure: `.projects[path].mcpServers["mcp-ticketer"]`
@@ -2340,6 +2520,7 @@ This release represents months of development and testing to achieve complete fe
   - Resolves issue where mcp-ticketer server failed to connect in Claude Code
 
 ### Technical Details
+
 - Updated `find_claude_mcp_config()` to return `~/.claude.json` for Claude Code
 - Enhanced `load_claude_mcp_config()` with platform-specific structure support
 - Refactored `configure_claude_mcp()` to write to both primary and legacy locations
@@ -2349,25 +2530,30 @@ This release represents months of development and testing to achieve complete fe
 ## [0.4.4] - 2025-10-27
 
 ### Changed
+
 - **CLI restructure**: `install <platform>` for platform installation (claude-code, claude-desktop, gemini, codex, auggie)
 - **MCP commands**: Reserved `mcp` namespace for MCP server actions (serve, status, stop)
 - Platform names now positional arguments instead of flags for better UX
 
 ### Added
+
 - **mcp status**: New command showing configuration status for all platforms
 - **mcp stop**: New command with informational message about MCP architecture
 
 ### Improved
+
 - Better command structure (install for platforms, mcp for actions)
 - Clearer error messages with available options
 - Maintained full backward compatibility with legacy commands
 
 ### Testing
+
 - 19/19 CLI tests passed (100% success rate)
 
 ## [0.4.3] - 2025-10-27
 
 ### Added
+
 - **LINEAR_TEAM_KEY Environment Variable**: Easier Linear configuration with team keys
   - Added `LINEAR_TEAM_KEY` support as primary configuration option
   - Team key (e.g., "ENG", "DESIGN") now recommended over team ID (UUID)
@@ -2401,6 +2587,7 @@ This release represents months of development and testing to achieve complete fe
   - Graceful degradation for Linear, Jira, and GitHub adapters
 
 ### Changed
+
 - **Linear Configuration**: LINEAR_TEAM_KEY is now the primary/recommended option
   - Team ID (LINEAR_TEAM_ID) still supported for backward compatibility
   - CLI init flow updated to prompt for team key first
@@ -2416,12 +2603,14 @@ This release represents months of development and testing to achieve complete fe
   - Added configuration section to README with Linear setup details
 
 ### Fixed
+
 - **LINEAR_TEAM_KEY Environment Loading**: Proper loading from .env files
-  - Fixed `project_config.py` to check all LINEAR_* environment variables
+  - Fixed `project_config.py` to check all LINEAR\_\* environment variables
   - Environment variable discovery now detects LINEAR_TEAM_KEY
   - Resolves issues where LINEAR_TEAM_KEY wasn't being recognized
 
 ### Documentation
+
 - **New Files**:
   - `docs/ATTACHMENTS.md` - Comprehensive attachment guide with examples, security notes, and roadmap
 - **Updated Files**:
@@ -2431,6 +2620,7 @@ This release represents months of development and testing to achieve complete fe
   - `.env.example` - Updated with LINEAR_TEAM_KEY as primary option with clear instructions
 
 ### Security
+
 - **Attachment Security Features**:
   - Filename sanitization prevents path traversal and injection attacks
   - Path resolution validates files stay within allowed directories
@@ -2441,6 +2631,7 @@ This release represents months of development and testing to achieve complete fe
 ## [0.3.6] - 2025-01-25
 
 ### Fixed
+
 - **Linear Adapter WORKFLOW_STATES_QUERY Pattern**: Fixed critical GraphQL query pattern bug
   - Changed from global team filtering pattern to relationship-based access pattern
   - Query now correctly accesses workflow states through `team { ... states { ... } }` relationship
@@ -2451,6 +2642,7 @@ This release represents months of development and testing to achieve complete fe
 ## [0.3.5] - 2025-01-25
 
 ### Fixed
+
 - **Linear Adapter GraphQL Type Mismatches**: Fixed critical bug causing 400 Bad Request errors during initialization
   - WORKFLOW_STATES_QUERY now uses correct `String!` type for `$teamId` parameter (was incorrectly using `ID!`)
   - GetTeamLabels query now uses correct `String!` type for `$teamId` parameter (was incorrectly using `ID!`)
@@ -2459,11 +2651,13 @@ This release represents months of development and testing to achieve complete fe
   - Improves reliability of Linear adapter startup
 
 ### Changed
+
 - Applied automated code formatting (isort + black) across codebase for consistency
 
 ## [0.3.4] - 2025-01-25
 
 ### Added
+
 - **Linear Label Resolution**: Automatic label ID resolution with case-insensitive matching
   - Added `_load_team_labels()` method for efficient label caching
   - Added `_resolve_label_ids()` with comprehensive debug logging
@@ -2472,6 +2666,7 @@ This release represents months of development and testing to achieve complete fe
   - CLI now supports both `--project` and `--epic` parameters for consistency
 
 ### Fixed
+
 - **Test Reliability**: Added missing `pytest.mark.asyncio` decorators to JIRA adapter tests
   - Fixed `test_jira_jql` function to properly run async tests
   - Fixed `test_jira_adapter` to include async decorator
@@ -2481,6 +2676,7 @@ This release represents months of development and testing to achieve complete fe
   - Improved error handling and validation
 
 ### Changed
+
 - **Code Formatting**: Applied comprehensive formatting across entire codebase
   - Applied Black and isort formatting to all source and test files
   - Fixed 136+ import ordering and formatting issues (I001)
@@ -2490,6 +2686,7 @@ This release represents months of development and testing to achieve complete fe
 ## [0.3.3] - 2025-01-25
 
 ### Fixed
+
 - **Test Suite Reliability**: Fixed all e2e tests (30/30 passing, previously 26/32)
   - Fixed state machine transition tests to follow valid state paths
   - Fixed case sensitivity bug in comment search test
@@ -2501,6 +2698,7 @@ This release represents months of development and testing to achieve complete fe
   - Enhanced code readability and maintainability
 
 ### Added
+
 - **Comprehensive Unit Tests**: Created extensive unit test suite (264 tests)
   - Added tests/unit/ directory with organized test modules
   - Achieved 100% test coverage for critical components:
@@ -2511,6 +2709,7 @@ This release represents months of development and testing to achieve complete fe
   - Improved overall code coverage from ~11% to 12.56%
 
 ### Changed
+
 - **MCP Server Architecture**: Refactored for better maintainability (internal only - no API changes)
   - Reduced MCP server code from ~1,800 to ~500 lines
   - Extracted constants.py for centralized configuration
@@ -2521,6 +2720,7 @@ This release represents months of development and testing to achieve complete fe
   - Standardized on `mcp_ticketer` imports (from `src.mcp_ticketer`)
 
 ### Improved
+
 - **Code Coverage**: Increased from ~11% to 12.56% with 11 files at 100% coverage
 - **Test Reliability**: All tests now pass consistently (294 total tests)
 - **Code Quality**: Enhanced type safety and code organization throughout
@@ -2528,6 +2728,7 @@ This release represents months of development and testing to achieve complete fe
 ## [0.1.39] - 2025-10-24
 
 ### Major Improvements
+
 - **🧹 Project Structure Cleanup**: Complete reorganization of project structure
   - Moved 30+ test files to organized `tests/` directory structure
   - Consolidated documentation in `docs/` with clear hierarchy
@@ -2562,6 +2763,7 @@ This release represents months of development and testing to achieve complete fe
   - Cross-platform hierarchy consistency
 
 ### Enhanced
+
 - **Code Quality**: Improved code documentation standards
   - Google-style docstrings for all public methods
   - Comprehensive type hints throughout codebase
@@ -2581,6 +2783,7 @@ This release represents months of development and testing to achieve complete fe
   - Improved API reference with practical examples
 
 ### Technical Improvements
+
 - **Documentation Structure**: Organized documentation hierarchy
   - Setup guides for all supported platforms
   - Development documentation for contributors
@@ -2600,6 +2803,7 @@ This release represents months of development and testing to achieve complete fe
   - Enhanced modularity and reusability
 
 ### Fixed
+
 - **Linear Epic Creation**: Fixed GraphQL fragment issues in Linear adapter
 - **Search Query Format**: Standardized SearchQuery object usage across adapters
 - **Project Structure**: Eliminated root directory clutter and improved organization
@@ -2608,6 +2812,7 @@ This release represents months of development and testing to achieve complete fe
 ## [0.1.33] - 2025-10-24
 
 ### Enhanced
+
 - **MAJOR: Active Diagnostics System**: Transformed diagnostics from static reporting to active testing
   - Queue system diagnostics now attempt worker startup and test operations
   - Adapter diagnostics actively test functionality instead of just checking configuration
@@ -2618,6 +2823,7 @@ This release represents months of development and testing to achieve complete fe
   - Better distinction between diagnostic test failures and actual system functionality
 
 ### Fixed
+
 - **Adapter Configuration Handling**: Fixed diagnostics to handle both dict and object adapter configs
   - Proper type detection for adapter configurations in mixed environments
   - Safe import handling for AdapterRegistry in constrained environments
@@ -2625,6 +2831,7 @@ This release represents months of development and testing to achieve complete fe
   - Better error messages for adapter initialization failures
 
 ### Technical Improvements
+
 - **Diagnostic Test Methods**: Added comprehensive test suite within diagnostics
   - `_test_worker_startup()`: Attempts to start queue workers and reports success/failure
   - `_test_queue_operations()`: Tests actual queue functionality with real tasks
@@ -2633,6 +2840,7 @@ This release represents months of development and testing to achieve complete fe
   - Improved logging and user feedback during diagnostic testing
 
 ### User Experience
+
 - **Actionable Diagnostics**: Diagnostics now provide specific, testable insights
   - Clear indication when system is functional despite diagnostic warnings
   - Better recommendations based on actual test results
@@ -2642,6 +2850,7 @@ This release represents months of development and testing to achieve complete fe
 ## [0.1.31] - 2025-10-24
 
 ### Fixed
+
 - **CRITICAL: Configuration System Integration**: Fixed the root cause of the "60% failure rate" issue
   - Configuration system now properly integrates with environment discovery
   - Automatic fallback to aitrackdown adapter when no config files exist
@@ -2653,11 +2862,13 @@ This release represents months of development and testing to achieve complete fe
   - Improved error handling when no explicit configuration is provided
 
 ### Enhanced
+
 - **User Experience**: System now works out-of-the-box without requiring manual configuration
 - **Linux Compatibility**: Resolved configuration issues specific to Linux environments
 - **Automatic Adapter Discovery**: Intelligent detection of available adapters from environment
 
 ### Technical Details
+
 - Added `_discover_from_environment()` method to configuration loader
 - Integrated environment discovery system with main configuration flow
 - Automatic aitrackdown fallback ensures system always has a working adapter
@@ -2666,6 +2877,7 @@ This release represents months of development and testing to achieve complete fe
 ## [0.1.30] - 2025-10-24
 
 ### Fixed
+
 - **Diagnostics System**: Improved fallback mode handling for missing dependencies
   - Fixed initialization order for warnings/issues lists
   - Enhanced mock object detection for configuration and queue systems
@@ -2674,6 +2886,7 @@ This release represents months of development and testing to achieve complete fe
   - More informative status reporting for degraded components
 
 ### Enhanced
+
 - **Error Handling**: More robust handling of import failures and missing dependencies
 - **User Experience**: Clearer distinction between critical failures and degraded functionality
 - **Fallback Diagnostics**: Better information gathering even when full system is unavailable
@@ -2681,6 +2894,7 @@ This release represents months of development and testing to achieve complete fe
 ## [0.1.29] - 2025-10-24
 
 ### Added
+
 - **Comprehensive Diagnostics System**: Complete health monitoring and self-diagnosis capabilities
   - `mcp-ticketer health`: Quick system health check command
   - `mcp-ticketer diagnose`: Comprehensive system diagnostics with detailed analysis
@@ -2704,16 +2918,19 @@ This release represents months of development and testing to achieve complete fe
 - **Exit Code Standards**: Proper exit codes for CI/CD integration (0=healthy, 1=critical, 2=warnings)
 
 ### Enhanced
+
 - **MCP Server**: Added two new diagnostic tools for AI agent integration
 - **Error Handling**: Improved graceful handling of missing dependencies and failed components
 - **User Experience**: Clear, actionable recommendations for resolving detected issues
 
 ### Fixed
+
 - **System Visibility**: Addresses the "60% failure rate" issue by providing comprehensive system monitoring
 - **AI Agent Troubleshooting**: AI agents can now self-diagnose and identify system issues
 - **Dependency Resilience**: System remains functional even when optional dependencies are missing
 
 ### Added
+
 - WebSocket support for real-time updates
 - Custom ticket templates
 - Team collaboration features
@@ -2723,6 +2940,7 @@ This release represents months of development and testing to achieve complete fe
 ## [0.1.28] - 2025-10-24
 
 ### Fixed
+
 - **Queue System Reliability**: Fixed 60% failure rate in queue operations
   - Added missing `create_epic()`, `create_issue()`, `create_task()` methods to all adapters
   - Fixed Pydantic v2 validator syntax (`@validator` → `@field_validator`)
@@ -2732,10 +2950,12 @@ This release represents months of development and testing to achieve complete fe
 - **Worker Stability**: Improved queue worker restart and error recovery
 
 ### Changed
+
 - Updated all Pydantic validators to v2 syntax for future compatibility
 - Enhanced error messages for queue operation failures
 
 ### Performance
+
 - **Queue Processing**: Reduced failure rate from 60% to 0% for new operations
 - **Processing Speed**: Sub-second ticket creation and state transitions
 - **Reliability**: Zero retries needed for successful operations
@@ -2743,6 +2963,7 @@ This release represents months of development and testing to achieve complete fe
 ## [0.1.27] - 2025-10-23
 
 ### Added
+
 - **Complete MCP Tool Coverage**: 18 comprehensive MCP tools for full workflow management
   - Hierarchy management: `epic_create`, `epic_list`, `epic_issues`, `issue_create`, `issue_tasks`, `task_create`, `hierarchy_tree`
   - Bulk operations: `ticket_bulk_create`, `ticket_bulk_update`
@@ -2781,6 +3002,7 @@ This release represents months of development and testing to achieve complete fe
   - Health monitoring and auto-repair verification
 
 ### Enhanced
+
 - **Queue System Reliability**: Bulletproof async processing
   - Worker auto-restart on failures
   - Stuck item detection and reset (5-minute timeout)
@@ -2797,6 +3019,7 @@ This release represents months of development and testing to achieve complete fe
   - Auto-repair integration in create commands
 
 ### Fixed
+
 - **Worker Process Registration**: Fixed adapter registration in worker subprocesses
 - **CLI Adapter Registration**: Fixed adapter availability in CLI commands
 - **Boolean Parameter Handling**: Fixed MCP tool schema boolean defaults
@@ -2805,12 +3028,14 @@ This release represents months of development and testing to achieve complete fe
 ## [0.1.26] - 2025-10-23
 
 ### Changed
+
 - Maintenance release with build and packaging improvements
 - Updated development dependencies and build process
 
 ## [0.1.25] - 2025-10-23
 
 ### Fixed
+
 - **Critical MCP Server Fix**: Fixed adapter registration issue where Linear and other adapters were not available in MCP server
   - Added missing import of adapters module in MCP server initialization
   - Resolves "Adapter 'linear' not registered" errors when using MCP clients (Auggie, Claude, etc.)
@@ -2820,6 +3045,7 @@ This release represents months of development and testing to achieve complete fe
 ## [0.1.24] - 2025-10-24
 
 ### Added
+
 - **Multi-Client MCP Support**: Added support for 4 AI clients
   - Claude Code integration with project and global config (`mcp-ticketer mcp claude`)
   - Gemini CLI integration with project/user scope (`mcp-ticketer mcp gemini`)
@@ -2839,6 +3065,7 @@ This release represents months of development and testing to achieve complete fe
   - Updated QUICK_START.md with client selection decision tree
 
 ### Changed
+
 - **Command Structure**: Renamed MCP commands to nested structure under `mcp` parent command
   - `mcp-ticketer mcp` → `mcp-ticketer mcp claude`
   - `mcp-ticketer gemini` → `mcp-ticketer mcp gemini`
@@ -2849,6 +3076,7 @@ This release represents months of development and testing to achieve complete fe
 - **gitignore**: Added `.gemini/` directory exclusion
 
 ### Fixed
+
 - Removed obsolete MCP server startup error documentation
 - Improved configuration file handling for multiple AI clients
 - Enhanced MCP server path detection and validation
@@ -2856,6 +3084,7 @@ This release represents months of development and testing to achieve complete fe
 ## [0.1.10] - 2025-09-29
 
 ### Fixed
+
 - Fixed missing gql dependency in main dependencies list
 - Resolves runtime errors when gql package is not available
 - Users no longer need to manually inject gql with pipx
@@ -2863,72 +3092,85 @@ This release represents months of development and testing to achieve complete fe
 ## [0.1.9] - 2025-09-26
 
 ### Added
+
 - PR creation and linking support via new MCP tools
 - Synchronous mode for immediate ticket ID return
 - Timeout configuration for ticket operations
 
 ### Fixed
+
 - Fixed ticket creation to return actual ticket identifier instead of just queue_id
 - Enhanced error handling and response formats
 
 ## [0.1.8] - 2025-09-24
 
 ### Added
+
 - Implemented `tools/call` method handler for MCP protocol compliance
 - Claude Desktop can now invoke tools through the standard MCP tools/call interface
 - Added proper JSON serialization with datetime support for tool responses
 - Created `.claude.json` configuration for local MCP server integration
 
 ### Fixed
+
 - MCP server now handles tool invocations from Claude Desktop correctly
 - Fixed JSON serialization errors for datetime objects in responses
 
 ## [0.1.7] - 2025-09-24
 
 ### Fixed
+
 - MCP tools schema corrected from "parameters" to "inputSchema" for proper Claude Desktop compatibility
 - This fix ensures Claude Desktop correctly recognizes and can invoke MCP tools
 
 ## [0.1.6] - 2025-09-24
 
 ### Changed
+
 - Patch version bump for stable release with MCP protocol fix
 
 ## [0.1.5] - 2025-09-24
 
 ### Fixed
+
 - MCP protocol version updated to "2024-11-05" for proper Claude Desktop compatibility
 - Previous versions used "0.1.0" and "1.0.0" which were not recognized by Claude Desktop
 
 ## [0.1.4] - 2025-09-24
 
 ### Fixed
+
 - MCP protocol version corrected from "1.0.0" to "0.1.0" for Claude Desktop compatibility
 
 ## [0.1.3] - 2025-09-24
 
 ### Added
+
 - Local development script `mcp_server.sh` for running from project directory
 - Pipx installation support for system-wide deployment
 - Claude Desktop configuration documentation
 
 ### Fixed
+
 - MCP server connection stability with improved error handling
 - Better EOF and broken pipe handling in MCP server
 - Proper stderr logging to avoid JSON-RPC interference
 
 ### Changed
+
 - Simplified MCP installation with single recommended pipx approach
 - Improved MCP server robustness for Claude Desktop integration
 
 ## [0.1.2] - 2025-09-24
 
 ### Changed
+
 - **MCP Integration**: Consolidated MCP server as subcommand `mcp-ticketer mcp` instead of separate entry point
 - **Virtual Environment**: Standardized on `.venv` directory name (was `venv`)
 - Updated all documentation and scripts to use `.venv` convention
 
 ### Fixed
+
 - MCP server now properly implements `initialize` method per MCP protocol specification
 - Fixed MCP server startup errors with Claude Desktop integration
 - Corrected version reporting in MCP server (was showing 0.1.0, now shows correct version)
@@ -2936,6 +3178,7 @@ This release represents months of development and testing to achieve complete fe
 ## [0.1.1] - 2025-09-24
 
 ### Changed
+
 - **BREAKING**: Renamed CLI command from `mcp-ticket` to `mcp-ticketer` for consistency with package name
 - **Performance**: Implemented batch processing in queue worker (5x throughput improvement)
 - **Performance**: Added concurrent adapter processing with semaphore-based rate limiting
@@ -2947,12 +3190,14 @@ This release represents months of development and testing to achieve complete fe
 - Improved CLI output formatting with consistent status messages
 
 ### Fixed
+
 - Worker process not loading environment variables from .env.local
 - Memory leaks in long-running worker processes
 - Race conditions in concurrent queue operations
 - Cache invalidation edge cases in mapper classes
 
 ### Performance
+
 - Reduced codebase by 38% (1,330 lines) while adding features
 - Improved average operation speed by 60-80%
 - Queue processing now handles 100+ tickets/minute (vs 20 before)
@@ -2963,6 +3208,7 @@ This release represents months of development and testing to achieve complete fe
 ### Added
 
 #### Core Features
+
 - **Universal Ticket Model**: Simplified Epic → Task → Comment hierarchy
 - **State Machine**: Built-in state transitions with validation
 - **Multi-Adapter Support**: AITrackdown, Linear, JIRA, and GitHub Issues
@@ -2972,6 +3218,7 @@ This release represents months of development and testing to achieve complete fe
 - **Comprehensive Testing**: Unit, integration, and performance tests
 
 #### AITrackdown Adapter
+
 - File-based ticket storage with JSON format
 - Offline operation support
 - Version control friendly structure
@@ -2980,6 +3227,7 @@ This release represents months of development and testing to achieve complete fe
 - Comment management
 
 #### Linear Adapter
+
 - GraphQL API integration
 - Team and project management
 - Priority mapping (1-4 scale)
@@ -2989,6 +3237,7 @@ This release represents months of development and testing to achieve complete fe
 - Cycle/sprint integration
 
 #### JIRA Adapter
+
 - REST API v3 integration
 - Enterprise workflow support
 - Custom field mapping
@@ -2998,6 +3247,7 @@ This release represents months of development and testing to achieve complete fe
 - Attachment handling (metadata only)
 
 #### GitHub Issues Adapter
+
 - REST API v4 integration
 - Label-based workflow states
 - Milestone integration
@@ -3007,6 +3257,7 @@ This release represents months of development and testing to achieve complete fe
 - Automated closing via commit messages
 
 #### CLI Features
+
 - **Initialization**: `init` command with adapter-specific setup
 - **CRUD Operations**: `create`, `show`, `update`, `list` commands
 - **State Management**: `transition` command with validation
@@ -3016,6 +3267,7 @@ This release represents months of development and testing to achieve complete fe
 - **Configuration**: `config` subcommands for management
 
 #### MCP Server Features
+
 - **JSON-RPC Protocol**: Full MCP standard compliance
 - **Tool Integration**: Pre-defined tools for AI assistants
 - **Real-time Operations**: Async ticket operations
@@ -3024,6 +3276,7 @@ This release represents months of development and testing to achieve complete fe
 - **Multi-Adapter**: Support for different adapters per server
 
 #### Developer Features
+
 - **Plugin Architecture**: Extensible adapter system
 - **Type Safety**: Full Pydantic validation and mypy support
 - **Async Operations**: Non-blocking I/O throughout
@@ -3034,6 +3287,7 @@ This release represents months of development and testing to achieve complete fe
 ### Technical Implementation
 
 #### Architecture
+
 - **Domain-Driven Design**: Clear separation of concerns
 - **Adapter Pattern**: Consistent interface across systems
 - **Factory Pattern**: Dynamic adapter registration
@@ -3041,6 +3295,7 @@ This release represents months of development and testing to achieve complete fe
 - **Strategy Pattern**: Configurable behavior
 
 #### Dependencies
+
 - **Core**: Python 3.13+, Pydantic v2, asyncio
 - **CLI**: Typer, Rich, Click
 - **Adapters**: httpx, gql, ai-trackdown-pytools
@@ -3048,12 +3303,14 @@ This release represents months of development and testing to achieve complete fe
 - **Code Quality**: black, ruff, mypy
 
 #### Performance
+
 - **Caching**: 5-10x performance improvement for repeated operations
 - **Async**: Support for high-concurrency operations
 - **Memory**: Efficient memory usage with lazy loading
 - **Network**: Connection pooling and request optimization
 
 #### Security
+
 - **Credentials**: Environment variable and keychain support
 - **Encryption**: Optional configuration encryption
 - **Validation**: Input sanitization and validation
@@ -3062,18 +3319,21 @@ This release represents months of development and testing to achieve complete fe
 ### Documentation
 
 #### User Documentation
+
 - **README**: Comprehensive project overview
 - **User Guide**: Complete CLI reference and workflows
 - **Configuration Guide**: All configuration options
 - **Adapter Guide**: Detailed adapter documentation
 
 #### Developer Documentation
+
 - **Developer Guide**: Architecture and extension guide
 - **API Reference**: Complete API documentation
 - **MCP Integration**: AI tool integration guide
 - **Migration Guide**: System migration instructions
 
 #### Examples and Templates
+
 - **Configuration Examples**: All adapter configurations
 - **Workflow Examples**: Common usage patterns
 - **Integration Examples**: MCP and API usage
@@ -3082,18 +3342,21 @@ This release represents months of development and testing to achieve complete fe
 ### Quality Assurance
 
 #### Testing
+
 - **Unit Tests**: 95%+ code coverage
 - **Integration Tests**: Real API testing (optional)
 - **Performance Tests**: Load and stress testing
 - **End-to-End Tests**: Complete workflow validation
 
 #### Code Quality
+
 - **Type Safety**: Full type hints with mypy validation
 - **Code Style**: Black formatting and Ruff linting
 - **Documentation**: Comprehensive docstrings
 - **Pre-commit Hooks**: Automated quality checks
 
 #### Compatibility
+
 - **Python Versions**: 3.13+ support
 - **Operating Systems**: Linux, macOS, Windows
 - **Ticket Systems**: 4 major systems supported
@@ -3102,12 +3365,14 @@ This release represents months of development and testing to achieve complete fe
 ### Known Issues
 
 #### Limitations
+
 - **Real-time Sync**: Limited to MCP server mode
 - **Attachment Support**: Metadata only, no file transfer
 - **Complex Workflows**: Simplified to universal states
 - **User Management**: Basic assignee support
 
 #### Performance Considerations
+
 - **Large Datasets**: Pagination required for >1000 tickets
 - **Rate Limits**: API-dependent throttling
 - **Memory Usage**: Scales with cache size
@@ -3116,6 +3381,7 @@ This release represents months of development and testing to achieve complete fe
 ### Migration Path
 
 This is the initial release, so no migration is required. Future versions will provide:
+
 - **Data Migration**: Tools for moving between systems
 - **Configuration Migration**: Automated config updates
 - **Backward Compatibility**: API versioning support
@@ -3123,11 +3389,13 @@ This is the initial release, so no migration is required. Future versions will p
 ### Acknowledgments
 
 #### Contributors
+
 - **Core Team**: Architecture and implementation
 - **Community**: Testing and feedback
 - **AI Assistants**: Documentation and code review
 
 #### Dependencies
+
 - **Pydantic**: Data validation and serialization
 - **Typer**: CLI framework and user experience
 - **Rich**: Terminal formatting and display
@@ -3135,6 +3403,7 @@ This is the initial release, so no migration is required. Future versions will p
 - **pytest**: Testing framework and utilities
 
 #### Inspiration
+
 - **Model Context Protocol**: AI tool integration standard
 - **Unified APIs**: Single interface for multiple systems
 - **Developer Experience**: Focus on usability and performance
@@ -3144,11 +3413,13 @@ This is the initial release, so no migration is required. Future versions will p
 ## Release Guidelines
 
 ### Version Numbering
+
 - **Major (x.0.0)**: Breaking changes, major features
 - **Minor (0.x.0)**: New features, backward compatible
 - **Patch (0.0.x)**: Bug fixes, minor improvements
 
 ### Release Process
+
 1. **Feature Freeze**: Complete all planned features
 2. **Testing Phase**: Comprehensive testing across adapters
 3. **Documentation**: Update all documentation
@@ -3157,12 +3428,14 @@ This is the initial release, so no migration is required. Future versions will p
 6. **Post-release**: Monitor and patch critical issues
 
 ### Breaking Changes Policy
+
 - **Deprecation Notice**: 2 versions advance warning
 - **Migration Guide**: Detailed upgrade instructions
 - **Backward Compatibility**: Maintain when possible
 - **Rollback Support**: Easy downgrade path
 
 ### Security Updates
+
 - **Critical Vulnerabilities**: Immediate patch release
 - **Security Advisories**: Proactive communication
 - **Dependency Updates**: Regular security audits

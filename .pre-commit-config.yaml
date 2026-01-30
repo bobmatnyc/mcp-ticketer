@@ -12,7 +12,7 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-added-large-files
-        args: ['--maxkb=1000']
+        args: ["--maxkb=1000"]
       - id: check-ast
       - id: check-builtin-literals
       - id: check-case-conflict
@@ -25,47 +25,49 @@ repos:
       - id: fix-byte-order-marker
       - id: mixed-line-ending
       - id: name-tests-test
-        args: ['--pytest-test-first']
+        args: ["--pytest-test-first"]
 
   - repo: https://github.com/psf/black
     rev: 23.12.1
     hooks:
       - id: black
         language_version: python3.11
-        args: ['--line-length=88']
+        args: ["--line-length=88"]
 
   - repo: https://github.com/pycqa/isort
     rev: 5.13.2
     hooks:
       - id: isort
-        args: ['--profile', 'black', '--line-length', '88']
+        args: ["--profile", "black", "--line-length", "88"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.9
     hooks:
       - id: ruff
-        args: ['--fix']
+        args: ["--fix"]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.8.0
     hooks:
       - id: mypy
-        additional_dependencies: [types-all]
-        args: ['--ignore-missing-imports', '--install-types', '--non-interactive']
+        # Note: types-all is deprecated; use specific type stubs instead
+        additional_dependencies: [types-PyYAML, types-toml, httpx, pydantic]
+        args:
+          ["--ignore-missing-imports", "--install-types", "--non-interactive"]
         exclude: ^(tests/|docs/|setup.py)
 
   - repo: https://github.com/pycqa/bandit
     rev: 1.7.6
     hooks:
       - id: bandit
-        args: ['-ll', '-i', '-x', 'tests/']
+        args: ["-ll", "-i", "-x", "tests/"]
         exclude: ^tests/
 
   - repo: https://github.com/pycqa/pylint
     rev: v3.0.3
     hooks:
       - id: pylint
-        args: ['--disable=all', '--enable=C0116']  # Only check for missing docstrings
+        args: ["--disable=all", "--enable=C0116"] # Only check for missing docstrings
         exclude: ^(tests/|docs/|setup.py)
 
   - repo: https://github.com/pre-commit/mirrors-prettier
@@ -86,7 +88,7 @@ repos:
     hooks:
       - id: poetry-check
       - id: poetry-lock
-        args: ['--no-update']
+        args: ["--no-update"]
 
 ci:
   autoupdate_schedule: weekly
