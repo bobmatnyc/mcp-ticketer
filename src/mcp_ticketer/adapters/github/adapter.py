@@ -770,7 +770,8 @@ class GitHubAdapter(BaseAdapter[Task]):
         github_query = " ".join(search_parts)
 
         # Use GraphQL for better search capabilities
-        full_query = ISSUE_FRAGMENT + SEARCH_ISSUES
+        # Note: SEARCH_ISSUES already includes ISSUE_FRAGMENT (pre-composed)
+        full_query = SEARCH_ISSUES
 
         variables = {
             "query": github_query,
