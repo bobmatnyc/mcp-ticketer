@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.3.14] - 2026-02-03
+
+### Added
+
+- **Configure wizard**: GitHub CLI multi-account selection support ([#74](https://github.com/bobmatnyc/mcp-ticketer/issues/74))
+  - Detects all authenticated GitHub accounts via `gh` CLI
+  - Interactive account selection when multiple accounts found
+  - Automatic token retrieval for selected account
+  - Supports GitHub Enterprise hosts
+  - Graceful fallback to manual token entry
+
+## [2.3.13] - 2026-02-03
+
+### Fixed
+
+- **Adapter diagnostics**: Added missing return statement for mypy compliance
+
+## [2.3.12] - 2026-02-03
+
 ### Fixed
 
 - **Configure wizard**: Added URL-based adapter detection to prevent GitHub URLs from being validated with JIRA endpoints ([#73](https://github.com/bobmatnyc/mcp-ticketer/issues/73))
