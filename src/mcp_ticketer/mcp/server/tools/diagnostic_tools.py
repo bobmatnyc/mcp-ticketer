@@ -199,8 +199,14 @@ async def adapter_diagnostics(
         if action == "system":
             return await _run_system_diagnostics(simple=simple)
 
-        elif action == "adapter":
+        if action == "adapter":
             return await _check_adapter_health(adapter_name=adapter_name)
+
+        # Should never reach here due to validation above
+        return {
+            "status": "error",
+            "error": f"Unhandled action '{action}'",
+        }
 
     except Exception as e:
         logger.error(f"Diagnostics failed for action '{action}': {e}", exc_info=True)
@@ -212,8 +218,9 @@ async def adapter_diagnostics(
                 "recommendation": "Try running with simple=True for basic diagnostics",
                 "fallback_command": "CLI: mcp-ticketer doctor --simple",
             }
-        else:  # adapter
-            return {
-                "status": "error",
-                "error": f"Adapter health check failed: {str(e)}",
-            }
+
+        # adapter or other
+        return {
+            "status": "error",
+            "error": f"Adapter health check failed: {str(e)}",
+        }
