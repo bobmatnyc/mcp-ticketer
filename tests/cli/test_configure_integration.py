@@ -11,13 +11,17 @@ from mcp_ticketer.cli.configure import _configure_github, _configure_jira
 class TestConfigureGitHubIntegration:
     """Integration tests for GitHub configuration with URL validation."""
 
+    @patch("mcp_ticketer.cli.configure._get_gh_cli_accounts")
     @patch("mcp_ticketer.cli.configure.Prompt")
     @patch("mcp_ticketer.cli.configure.Confirm")
     @patch("mcp_ticketer.cli.configure._validate_api_credentials")
     def test_github_url_accepted_in_interactive_mode(
-        self, mock_validate, mock_confirm, mock_prompt
+        self, mock_validate, mock_confirm, mock_prompt, mock_gh_accounts
     ):
         """GitHub URL should be accepted without warnings in GitHub adapter."""
+        # Mock no gh CLI accounts to skip account selection
+        mock_gh_accounts.return_value = []
+
         # Setup mocks
         mock_prompt.ask.side_effect = [
             "ghp_test123456789",  # Token

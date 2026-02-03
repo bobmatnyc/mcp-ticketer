@@ -1066,6 +1066,80 @@ def _configure_jira(
     return AdapterConfig.from_dict(config_dict), default_values
 
 
+def _get_gh_cli_accounts() -> list[dict[str, str]]:
+    """Detect GitHub CLI authenticated accounts.
+
+    Returns:
+    -------
+        List of dicts with 'login' and 'host' keys for each authenticated account.
+        Empty list if gh CLI is not available or no accounts are authenticated.
+
+    """
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["gh", "auth", "status", "--json", "hosts"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+
+        if result.returncode != 0:
+            return []
+
+        data = json.loads(result.stdout)
+        accounts = []
+
+        # Extract accounts from the hosts structure
+        for host, host_accounts in data.get("hosts", {}).items():
+            if isinstance(host_accounts, list):
+                for account in host_accounts:
+                    if account.get("state") == "success":
+                        accounts.append({"login": account["login"], "host": host})
+
+        return accounts
+
+    except (subprocess.TimeoutExpired, FileNotFoundError, json.JSONDecodeError):
+        return []
+    except Exception:
+        return []
+
+
+def _get_gh_cli_token_for_user(username: str, host: str = "github.com") -> str | None:
+    """Get GitHub token for specific user via gh CLI.
+
+    Args:
+    ----
+        username: GitHub username to get token for
+        host: GitHub host (default: github.com)
+
+    Returns:
+    -------
+        Token string if successful, None otherwise
+
+    """
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["gh", "auth", "token", "--user", username, "--hostname", host],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+
+        if result.returncode == 0:
+            return result.stdout.strip()
+
+        return None
+
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return None
+    except Exception:
+        return None
+
+
 def _configure_github(
     interactive: bool = True,
     token: str | None = None,
@@ -1091,7 +1165,8 @@ def _configure_github(
     -------
         Tuple of (AdapterConfig, default_values_dict)
         - AdapterConfig: Configured GitHub adapter configuration
-        - default_values_dict: Dictionary containing default_user, default_epic, default_project, default_tags
+        - default_values_dict: Dictionary containing default_user, default_epic,
+          default_project, default_tags
 
     """
     if interactive:
@@ -1106,12 +1181,71 @@ def _configure_github(
     final_token = token or os.getenv("GITHUB_TOKEN") or ""
 
     if interactive:
+        # Check for gh CLI accounts before prompting for manual token
+        gh_accounts = _get_gh_cli_accounts()
+
+        if gh_accounts and not final_token:
+            console.print(
+                f"\n[dim]Found {len(gh_accounts)} authenticated "
+                f"GitHub account(s) via gh CLI:[/dim]"
+            )
+
+            # Build choices for prompt
+            choices = []
+            for idx, account in enumerate(gh_accounts, 1):
+                login = account["login"]
+                host = account["host"]
+                console.print(f"  {idx}. {login} ({host})")
+                choices.append(str(idx))
+
+            choices.append(str(len(gh_accounts) + 1))
+            console.print(
+                f"  {len(gh_accounts) + 1}. Enter token manually "
+                "(create new or use existing)"
+            )
+
+            # Prompt for selection
+            selection = Prompt.ask(
+                "Select account or enter manual token",
+                choices=choices,
+                default="1",
+            )
+
+            # Handle selection
+            selection_idx = int(selection)
+            if selection_idx <= len(gh_accounts):
+                # User selected a gh CLI account
+                selected_account = gh_accounts[selection_idx - 1]
+                console.print(
+                    f"[dim]Retrieving token for {selected_account['login']}...[/dim]"
+                )
+
+                retrieved_token = _get_gh_cli_token_for_user(
+                    selected_account["login"], selected_account["host"]
+                )
+
+                if retrieved_token:
+                    final_token = retrieved_token
+                    console.print(
+                        f"[green]✓[/green] Using token for {selected_account['login']}"
+                    )
+                else:
+                    console.print(
+                        f"[yellow]⚠ Could not retrieve token for "
+                        f"{selected_account['login']}[/yellow]"
+                    )
+                    console.print("[yellow]Falling back to manual token entry[/yellow]")
+            # else: User selected manual entry, continue to manual prompt below
+
+        # Manual token entry (if no gh CLI token was selected/retrieved)
         github_validated = False
         while not github_validated:
             if final_token and not existing_token:
-                console.print("[dim]Found GITHUB_TOKEN in environment[/dim]")
-                use_env = Confirm.ask("Use this token?", default=True)
-                if not use_env:
+                # Token from environment or gh CLI
+                if os.getenv("GITHUB_TOKEN"):
+                    console.print("[dim]Found GITHUB_TOKEN in environment[/dim]")
+                use_token = Confirm.ask("Use this token?", default=True)
+                if not use_token:
                     final_token = ""
 
             if not final_token:
@@ -1119,10 +1253,12 @@ def _configure_github(
                     # Show masked existing token as default
                     masked = _mask_sensitive_value(existing_token)
                     console.print(
-                        "[dim]Create token at: https://github.com/settings/tokens/new[/dim]"
+                        "[dim]Create token at: "
+                        "https://github.com/settings/tokens/new[/dim]"
                     )
                     console.print(
-                        "[dim]Required scopes: repo (or public_repo for public repos)[/dim]"
+                        "[dim]Required scopes: repo "
+                        "(or public_repo for public repos)[/dim]"
                     )
                     final_token = Prompt.ask(
                         f"GitHub Personal Access Token [current: {masked}]",
@@ -1131,10 +1267,12 @@ def _configure_github(
                     )
                 else:
                     console.print(
-                        "[dim]Create token at: https://github.com/settings/tokens/new[/dim]"
+                        "[dim]Create token at: "
+                        "https://github.com/settings/tokens/new[/dim]"
                     )
                     console.print(
-                        "[dim]Required scopes: repo (or public_repo for public repos)[/dim]"
+                        "[dim]Required scopes: repo "
+                        "(or public_repo for public repos)[/dim]"
                     )
                     final_token = Prompt.ask(
                         "GitHub Personal Access Token", password=True
