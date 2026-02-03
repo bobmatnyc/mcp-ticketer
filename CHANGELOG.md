@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **Configure wizard**: Added URL-based adapter detection to prevent GitHub URLs from being validated with JIRA endpoints ([#73](https://github.com/bobmatnyc/mcp-ticketer/issues/73))
+  - Auto-detects adapter type from URL patterns (github.com → GitHub, atlassian.net → JIRA, linear.app → Linear)
+  - Shows clear warning when URL doesn't match selected adapter
+  - Allows self-hosted/unknown URLs without false positives
+  - Improves user experience with actionable error messages
+
 ## [2.3.11] - 2026-01-30
 
 ### Fixed

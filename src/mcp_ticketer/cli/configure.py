@@ -26,6 +26,83 @@ from ..core.project_config import (
 console = Console()
 
 
+def _detect_adapter_from_url(url: str) -> str | None:
+    """Detect adapter type from URL pattern.
+
+    Args:
+    ----
+        url: URL string to analyze
+
+    Returns:
+    -------
+        Adapter type ("linear", "github", "jira") or None if not detected
+
+    Examples:
+    --------
+        >>> _detect_adapter_from_url("https://github.com/owner/repo")
+        'github'
+        >>> _detect_adapter_from_url("https://company.atlassian.net")
+        'jira'
+        >>> _detect_adapter_from_url("https://linear.app/team")
+        'linear'
+
+    """
+    if not url or not isinstance(url, str):
+        return None
+
+    url_lower = url.lower()
+
+    # Check for specific domain patterns
+    if "github.com" in url_lower:
+        return AdapterType.GITHUB.value
+    elif "atlassian.net" in url_lower or "/browse/" in url_lower:
+        return AdapterType.JIRA.value
+    elif "linear.app" in url_lower:
+        return AdapterType.LINEAR.value
+
+    return None
+
+
+def _validate_url_matches_adapter(
+    url: str, adapter_type: str
+) -> tuple[bool, str | None]:
+    """Validate that a URL matches the expected adapter type.
+
+    Args:
+    ----
+        url: URL string to validate
+        adapter_type: Expected adapter type
+
+    Returns:
+    -------
+        Tuple of (is_valid, error_message)
+        - is_valid: True if URL matches adapter type
+        - error_message: Error message if validation fails, None otherwise
+
+    """
+    detected_adapter = _detect_adapter_from_url(url)
+
+    if detected_adapter is None:
+        # Cannot detect adapter from URL, allow it (might be self-hosted)
+        return True, None
+
+    if detected_adapter != adapter_type:
+        adapter_labels = {
+            AdapterType.GITHUB.value: "GitHub",
+            AdapterType.JIRA.value: "JIRA",
+            AdapterType.LINEAR.value: "Linear",
+        }
+        detected_label = adapter_labels.get(detected_adapter, detected_adapter)
+        expected_label = adapter_labels.get(adapter_type, adapter_type)
+
+        return False, (
+            f"URL appears to be for {detected_label}, but you selected {expected_label}. "
+            f"Did you mean to use --adapter {detected_adapter}?"
+        )
+
+    return True, None
+
+
 def _load_existing_adapter_config(adapter_type: str) -> dict[str, Any] | None:
     """Load existing adapter configuration from project config if available.
 
@@ -766,19 +843,43 @@ def _configure_jira(
     final_server = server or os.getenv("JIRA_SERVER") or ""
 
     if interactive:
-        if not final_server and existing_server:
-            final_server = Prompt.ask(
-                f"JIRA Server URL [current: {existing_server}]",
-                default=existing_server,
-            )
-        elif not final_server:
-            final_server = Prompt.ask(
-                "JIRA Server URL (e.g., https://company.atlassian.net)"
-            )
+        # Prompt for server URL with validation loop
+        server_validated = False
+        while not server_validated:
+            if not final_server and existing_server:
+                final_server = Prompt.ask(
+                    f"JIRA Server URL [current: {existing_server}]",
+                    default=existing_server,
+                )
+            elif not final_server:
+                final_server = Prompt.ask(
+                    "JIRA Server URL (e.g., https://company.atlassian.net)"
+                )
+
+            # Validate URL matches JIRA adapter
+            is_valid, error = _validate_url_matches_adapter(final_server, "jira")
+            if is_valid:
+                server_validated = True
+            else:
+                console.print(f"[yellow]⚠ {error}[/yellow]")
+                retry = Confirm.ask(
+                    "Continue with this URL anyway? (not recommended)", default=False
+                )
+                if retry:
+                    server_validated = True
+                else:
+                    # Reset to prompt again
+                    final_server = ""
     elif not interactive and not final_server:
         raise ValueError(
             "JIRA server URL is required (provide server parameter or set JIRA_SERVER environment variable)"
         )
+
+    # Validate URL even in non-interactive mode
+    if not interactive and final_server:
+        is_valid, error = _validate_url_matches_adapter(final_server, "jira")
+        if not is_valid:
+            console.print(f"[yellow]Warning: {error}[/yellow]")
 
     # Email (with existing value as default)
     existing_email = existing_config.get("email", "") if has_existing else ""
@@ -1129,6 +1230,19 @@ def _configure_github(
                 default=default_prompt,
             )
 
+            # First validate that URL matches GitHub adapter
+            is_url_valid, url_error = _validate_url_matches_adapter(
+                url_prompt, "github"
+            )
+            if not is_url_valid:
+                console.print(f"[yellow]⚠ {url_error}[/yellow]")
+                retry = Confirm.ask(
+                    "Continue with this URL anyway? (not recommended)", default=False
+                )
+                if not retry:
+                    continue
+
+            # Then parse the URL
             parsed_owner, parsed_repo, error = parse_github_repo_url(url_prompt)
             if parsed_owner and parsed_repo:
                 final_owner = parsed_owner
