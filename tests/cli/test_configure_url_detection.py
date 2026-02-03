@@ -4,7 +4,6 @@ Tests the functionality added to fix issue #73 where GitHub URLs
 were being validated with JIRA endpoints.
 """
 
-
 from mcp_ticketer.cli.configure import (
     _detect_adapter_from_url,
     _validate_url_matches_adapter,
