@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.3.16] - 2026-02-07
+
+### Added
+
+- **GitHub multi-account support**: Full runtime account switching for users with multiple GitHub accounts
+  - New MCP config actions: `list_github_accounts`, `add_github_account`, `switch_github_account`, `remove_github_account`, `refresh_github_token`
+  - New CLI commands: `mcp-ticketer github accounts|switch|add|remove|refresh`
+  - Live token retrieval via `gh_cli_user` field (no stored tokens - more secure)
+  - Connection-based adapter caching with keys like `github:work`, `github:personal`
+  - Active connection tracking in `TicketerConfig.active_github_connection`
+  - Backward compatible with existing single-account configurations
+
+### Changed
+
+- **Documentation**: Added uv environment setup instructions to CLAUDE.md
+
 ## [2.3.14] - 2026-02-03
 
 ### Added
