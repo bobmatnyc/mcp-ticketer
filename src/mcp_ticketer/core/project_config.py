@@ -65,6 +65,11 @@ class AdapterConfig:
     owner: str | None = None
     repo: str | None = None
 
+    # GitHub multi-account support (live token retrieval from gh CLI)
+    connection_alias: str | None = None  # User-friendly name (e.g., "work", "personal")
+    gh_cli_user: str | None = None  # gh CLI username for live token retrieval
+    gh_cli_host: str | None = None  # Host (default: github.com)
+
     # AITrackdown-specific
     base_path: str | None = None
 
@@ -100,6 +105,9 @@ class AdapterConfig:
             "project_key",
             "owner",
             "repo",
+            "connection_alias",
+            "gh_cli_user",
+            "gh_cli_host",
             "base_path",
             "project_id",
         }
@@ -193,6 +201,11 @@ class TicketerConfig:
     # Automatic project updates configuration (1M-315)
     auto_project_updates: dict[str, Any] | None = None  # Auto update settings
 
+    # GitHub multi-account support - tracks active connection for runtime switching
+    active_github_connection: str | None = (
+        None  # Currently active GitHub connection name
+    )
+
     def __post_init__(self):
         """Normalize default_project if it's a URL."""
         if self.default_project:
@@ -263,6 +276,8 @@ class TicketerConfig:
             result["assignment_labels"] = self.assignment_labels
         if self.auto_project_updates is not None:
             result["auto_project_updates"] = self.auto_project_updates
+        if self.active_github_connection is not None:
+            result["active_github_connection"] = self.active_github_connection
         return result
 
     @classmethod
@@ -298,6 +313,7 @@ class TicketerConfig:
             default_cycle=data.get("default_cycle"),
             assignment_labels=data.get("assignment_labels"),
             auto_project_updates=data.get("auto_project_updates"),
+            active_github_connection=data.get("active_github_connection"),
         )
 
 
@@ -378,14 +394,23 @@ class ConfigValidator:
     def validate_github_config(config: dict[str, Any]) -> tuple[bool, str | None]:
         """Validate GitHub adapter configuration.
 
+        Supports two authentication modes:
+        1. Direct token: token/api_key field provided
+        2. gh CLI user: gh_cli_user field provided (token retrieved live from gh CLI)
+
         Returns:
             Tuple of (is_valid, error_message)
 
         """
-        # token or api_key (aliases)
+        # Check for authentication - either direct token OR gh_cli_user
         has_token = config.get("token") or config.get("api_key")
-        if not has_token:
-            return False, "GitHub config missing required field: token or api_key"
+        has_gh_cli_user = config.get("gh_cli_user")
+
+        if not has_token and not has_gh_cli_user:
+            return (
+                False,
+                "GitHub config requires either token/api_key OR gh_cli_user for authentication",
+            )
 
         # project_id can be "owner/repo" format
         if config.get("project_id"):

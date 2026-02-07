@@ -151,6 +151,10 @@ async def config(
     # Explicitly define optional parameters (previously in **kwargs)
     project_key: str | None = None,
     user_email: str | None = None,
+    # GitHub multi-account parameters
+    connection_name: str | None = None,
+    owner: str | None = None,
+    repo: str | None = None,
 ) -> dict[str, Any]:
     """Unified configuration management tool with action-based routing (v2.0.0).
 
@@ -178,6 +182,11 @@ async def config(
         test_connection: Test connection during setup (for action="setup_wizard", default: True)
         project_key: Project key for JIRA adapter (for action="set" with key="project")
         user_email: User email for adapter-specific user identification (for action="set" with key="user")
+        connection_name: GitHub connection name for multi-account actions
+            (for actions: add_github_account, switch_github_account,
+             remove_github_account, refresh_github_token)
+        owner: Repository owner for GitHub connection (for action="add_github_account")
+        repo: Repository name for GitHub connection (for action="add_github_account")
 
     Returns:
         Response dict with status and action-specific data
@@ -305,6 +314,42 @@ async def config(
             set_as_default=set_as_default,
             test_connection=test_connection,
         )
+    # GitHub multi-account actions
+    elif action_lower == "list_github_accounts":
+        return await config_list_github_accounts()
+    elif action_lower == "add_github_account":
+        if connection_name is None:
+            return {
+                "status": "error",
+                "error": "Parameter 'connection_name' is required for action='add_github_account'",
+                "hint": "Use config(action='add_github_account', connection_name='work', owner='org', repo='project')",
+            }
+        return await config_add_github_account(
+            connection_name=connection_name,
+            owner=owner,
+            repo=repo,
+            gh_cli_user=credentials.get("gh_cli_user") if credentials else None,
+            gh_cli_host=credentials.get("gh_cli_host") if credentials else None,
+            token=credentials.get("token") if credentials else None,
+        )
+    elif action_lower == "switch_github_account":
+        if connection_name is None:
+            return {
+                "status": "error",
+                "error": "Parameter 'connection_name' is required for action='switch_github_account'",
+                "hint": "Use config(action='switch_github_account', connection_name='work')",
+            }
+        return await config_switch_github_account(connection_name=connection_name)
+    elif action_lower == "remove_github_account":
+        if connection_name is None:
+            return {
+                "status": "error",
+                "error": "Parameter 'connection_name' is required for action='remove_github_account'",
+                "hint": "Use config(action='remove_github_account', connection_name='work')",
+            }
+        return await config_remove_github_account(connection_name=connection_name)
+    elif action_lower == "refresh_github_token":
+        return await config_refresh_github_token(connection_name=connection_name)
     else:
         valid_actions = [
             "get",
@@ -315,6 +360,12 @@ async def config(
             "list_adapters",
             "get_requirements",
             "setup_wizard",
+            # GitHub multi-account actions
+            "list_github_accounts",
+            "add_github_account",
+            "switch_github_account",
+            "remove_github_account",
+            "refresh_github_token",
         ]
         return {
             "status": "error",
@@ -1654,3 +1705,471 @@ def _mask_sensitive_values(config: dict[str, Any]) -> dict[str, Any]:
             masked[key] = value
 
     return masked
+
+
+# =============================================================================
+# GitHub Multi-Account Management Functions
+# =============================================================================
+
+
+async def config_list_github_accounts() -> dict[str, Any]:
+    """List all configured GitHub accounts and detected gh CLI accounts.
+
+    Returns:
+        Dictionary with:
+        - configured_accounts: List of accounts in config
+        - gh_cli_accounts: List of accounts detected via gh CLI
+        - active_connection: Currently active GitHub connection
+        - total_accounts: Total number of available accounts
+
+    """
+    import subprocess
+
+    try:
+        # Load current configuration
+        resolver = get_resolver()
+        config = resolver.load_project_config() or TicketerConfig()
+
+        # Get configured GitHub accounts from config
+        configured_accounts = []
+        for name, adapter_config in config.adapters.items():
+            if name == "github" or name.startswith("github:"):
+                adapter_dict = adapter_config.to_dict()
+                configured_accounts.append(
+                    {
+                        "connection_name": name,
+                        "owner": adapter_dict.get("owner"),
+                        "repo": adapter_dict.get("repo"),
+                        "gh_cli_user": adapter_dict.get("gh_cli_user"),
+                        "gh_cli_host": adapter_dict.get("gh_cli_host", "github.com"),
+                        "has_token": bool(
+                            adapter_dict.get("token") or adapter_dict.get("api_key")
+                        ),
+                        "alias": adapter_dict.get("connection_alias"),
+                    }
+                )
+
+        # Get gh CLI accounts
+        gh_cli_accounts = []
+        try:
+            result = subprocess.run(
+                ["gh", "auth", "status", "--json", "hosts"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0:
+                import json
+
+                data = json.loads(result.stdout)
+                for host, host_accounts in data.get("hosts", {}).items():
+                    if isinstance(host_accounts, list):
+                        for account in host_accounts:
+                            if account.get("state") == "success":
+                                gh_cli_accounts.append(
+                                    {
+                                        "login": account["login"],
+                                        "host": host,
+                                        "configured": any(
+                                            c.get("gh_cli_user") == account["login"]
+                                            for c in configured_accounts
+                                        ),
+                                    }
+                                )
+        except (subprocess.TimeoutExpired, FileNotFoundError, Exception) as e:
+            logger.debug(f"Could not get gh CLI accounts: {e}")
+
+        return {
+            "status": "completed",
+            "configured_accounts": configured_accounts,
+            "gh_cli_accounts": gh_cli_accounts,
+            "active_connection": config.active_github_connection,
+            "total_configured": len(configured_accounts),
+            "total_gh_cli": len(gh_cli_accounts),
+            "message": (
+                f"Found {len(configured_accounts)} configured account(s) and "
+                f"{len(gh_cli_accounts)} gh CLI account(s)"
+            ),
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to list GitHub accounts: {str(e)}",
+        }
+
+
+async def config_add_github_account(
+    connection_name: str,
+    owner: str | None = None,
+    repo: str | None = None,
+    gh_cli_user: str | None = None,
+    gh_cli_host: str | None = None,
+    token: str | None = None,
+) -> dict[str, Any]:
+    """Add a new GitHub account connection.
+
+    Supports two authentication modes:
+    1. gh CLI user: Specify gh_cli_user for live token retrieval (recommended)
+    2. Direct token: Provide token directly (less secure, not recommended)
+
+    Args:
+        connection_name: Friendly name for this connection (e.g., "work", "personal")
+        owner: Repository owner (required)
+        repo: Repository name (required)
+        gh_cli_user: gh CLI username for live token retrieval (recommended)
+        gh_cli_host: GitHub host (default: github.com)
+        token: Direct token (not recommended, use gh_cli_user instead)
+
+    Returns:
+        ConfigResponse with status, connection details, config_path
+
+    """
+    from ....core.project_config import AdapterConfig
+
+    try:
+        # Validate required parameters
+        if not owner:
+            return {
+                "status": "error",
+                "error": "Parameter 'owner' is required",
+                "hint": "Specify the repository owner (username or organization)",
+            }
+        if not repo:
+            return {
+                "status": "error",
+                "error": "Parameter 'repo' is required",
+                "hint": "Specify the repository name",
+            }
+
+        # Require either gh_cli_user or token
+        if not gh_cli_user and not token:
+            return {
+                "status": "error",
+                "error": "Either 'gh_cli_user' or 'token' is required for authentication",
+                "hint": "Use gh_cli_user='your-username' for live token retrieval (recommended), or provide a token directly",
+            }
+
+        # Generate connection key
+        if connection_name == "github" or connection_name == "default":
+            connection_key = "github"
+        else:
+            connection_key = f"github:{connection_name}"
+
+        # Load configuration safely
+        config = _safe_load_config()
+
+        # Check if connection already exists
+        if connection_key in config.adapters:
+            return {
+                "status": "error",
+                "error": f"Connection '{connection_name}' already exists",
+                "hint": f"Use config(action='remove_github_account', connection_name='{connection_name}') first, or choose a different name",
+            }
+
+        # Build adapter config
+        adapter_dict = {
+            "adapter": "github",
+            "owner": owner,
+            "repo": repo,
+            "project_id": f"{owner}/{repo}",
+            "connection_alias": connection_name,
+        }
+
+        if gh_cli_user:
+            adapter_dict["gh_cli_user"] = gh_cli_user
+            adapter_dict["gh_cli_host"] = gh_cli_host or "github.com"
+        elif token:
+            adapter_dict["token"] = token
+
+        # Validate configuration
+        is_valid, error = ConfigValidator.validate_github_config(adapter_dict)
+        if not is_valid:
+            return {
+                "status": "error",
+                "error": f"Invalid configuration: {error}",
+            }
+
+        # Create adapter config
+        adapter_config = AdapterConfig.from_dict(adapter_dict)
+
+        # Add to config
+        config.adapters[connection_key] = adapter_config
+
+        # If this is the first GitHub account, set as active
+        has_other_github = any(
+            k != connection_key and (k == "github" or k.startswith("github:"))
+            for k in config.adapters.keys()
+        )
+        if not has_other_github:
+            config.active_github_connection = connection_key
+
+        # Save configuration
+        resolver = get_resolver()
+        resolver.save_project_config(config)
+
+        return {
+            "status": "completed",
+            "message": f"GitHub account '{connection_name}' added successfully",
+            "connection_name": connection_name,
+            "connection_key": connection_key,
+            "owner": owner,
+            "repo": repo,
+            "auth_method": "gh_cli_user" if gh_cli_user else "token",
+            "gh_cli_user": gh_cli_user,
+            "is_active": config.active_github_connection == connection_key,
+            "config_path": str(resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH),
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to add GitHub account: {str(e)}",
+        }
+
+
+async def config_switch_github_account(connection_name: str) -> dict[str, Any]:
+    """Switch the active GitHub connection.
+
+    Args:
+        connection_name: Name of the connection to switch to (e.g., "work")
+                        Can be the short name or full key (github:work)
+
+    Returns:
+        ConfigResponse with previous and new active connection
+
+    """
+    try:
+        # Load configuration
+        config = _safe_load_config()
+
+        # Normalize connection name to key
+        if connection_name.startswith("github:"):
+            connection_key = connection_name
+        elif connection_name == "github" or connection_name == "default":
+            connection_key = "github"
+        else:
+            connection_key = f"github:{connection_name}"
+
+        # Check if connection exists
+        if connection_key not in config.adapters:
+            # List available connections
+            available = [
+                k
+                for k in config.adapters.keys()
+                if k == "github" or k.startswith("github:")
+            ]
+            return {
+                "status": "error",
+                "error": f"GitHub connection '{connection_name}' not found",
+                "available_connections": available,
+                "hint": "Use config(action='list_github_accounts') to see available accounts",
+            }
+
+        # Store previous for response
+        previous_connection = config.active_github_connection
+
+        # Update active connection
+        config.active_github_connection = connection_key
+
+        # Save configuration
+        resolver = get_resolver()
+        resolver.save_project_config(config)
+
+        # Also update the runtime connection in server_sdk
+        from ..server_sdk import switch_github_connection as sdk_switch
+
+        try:
+            sdk_switch(connection_key)
+        except ValueError:
+            # Runtime adapter not loaded - will use config on next operation
+            logger.debug(
+                f"Runtime adapter {connection_key} not loaded, will use config"
+            )
+
+        return {
+            "status": "completed",
+            "message": f"Switched to GitHub account '{connection_name}'",
+            "previous_connection": previous_connection,
+            "active_connection": connection_key,
+            "config_path": str(resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH),
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to switch GitHub account: {str(e)}",
+        }
+
+
+async def config_remove_github_account(connection_name: str) -> dict[str, Any]:
+    """Remove a GitHub account connection.
+
+    Args:
+        connection_name: Name of the connection to remove
+
+    Returns:
+        ConfigResponse with removal status
+
+    """
+    try:
+        # Load configuration
+        config = _safe_load_config()
+
+        # Normalize connection name to key
+        if connection_name.startswith("github:"):
+            connection_key = connection_name
+        elif connection_name == "github" or connection_name == "default":
+            connection_key = "github"
+        else:
+            connection_key = f"github:{connection_name}"
+
+        # Check if connection exists
+        if connection_key not in config.adapters:
+            return {
+                "status": "error",
+                "error": f"GitHub connection '{connection_name}' not found",
+            }
+
+        # Remove from adapters
+        del config.adapters[connection_key]
+
+        # Update active connection if we removed it
+        if config.active_github_connection == connection_key:
+            # Find another GitHub connection
+            other_github = [
+                k
+                for k in config.adapters.keys()
+                if k == "github" or k.startswith("github:")
+            ]
+            config.active_github_connection = other_github[0] if other_github else None
+
+        # Save configuration
+        resolver = get_resolver()
+        resolver.save_project_config(config)
+
+        return {
+            "status": "completed",
+            "message": f"GitHub account '{connection_name}' removed",
+            "removed_connection": connection_key,
+            "active_connection": config.active_github_connection,
+            "config_path": str(resolver.project_path / resolver.PROJECT_CONFIG_SUBPATH),
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to remove GitHub account: {str(e)}",
+        }
+
+
+async def config_refresh_github_token(
+    connection_name: str | None = None,
+) -> dict[str, Any]:
+    """Refresh the GitHub token from gh CLI for a connection.
+
+    This is useful when the gh CLI token has been refreshed and you want to
+    ensure the adapter uses the latest token.
+
+    Args:
+        connection_name: Connection to refresh (optional, defaults to active)
+
+    Returns:
+        Status with refresh result
+
+    """
+    import subprocess
+
+    try:
+        # Load configuration
+        config = _safe_load_config()
+
+        # Determine which connection to refresh
+        if connection_name:
+            if connection_name.startswith("github:"):
+                connection_key = connection_name
+            elif connection_name == "github" or connection_name == "default":
+                connection_key = "github"
+            else:
+                connection_key = f"github:{connection_name}"
+        else:
+            connection_key = config.active_github_connection
+            if not connection_key:
+                return {
+                    "status": "error",
+                    "error": "No active GitHub connection",
+                    "hint": "Use config(action='switch_github_account', connection_name='...') first",
+                }
+
+        # Check if connection exists
+        if connection_key not in config.adapters:
+            return {
+                "status": "error",
+                "error": f"GitHub connection '{connection_key}' not found",
+            }
+
+        adapter_config = config.adapters[connection_key]
+        adapter_dict = adapter_config.to_dict()
+
+        # Check for gh_cli_user
+        gh_cli_user = adapter_dict.get("gh_cli_user")
+        gh_cli_host = adapter_dict.get("gh_cli_host", "github.com")
+
+        if not gh_cli_user:
+            return {
+                "status": "error",
+                "error": f"Connection '{connection_key}' does not use gh CLI authentication",
+                "hint": "Only connections with gh_cli_user can refresh tokens",
+            }
+
+        # Attempt to get fresh token
+        try:
+            result = subprocess.run(
+                [
+                    "gh",
+                    "auth",
+                    "token",
+                    "--user",
+                    gh_cli_user,
+                    "--hostname",
+                    gh_cli_host,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+
+            if result.returncode == 0 and result.stdout.strip():
+                return {
+                    "status": "completed",
+                    "message": f"Token refreshed for {gh_cli_user}",
+                    "connection": connection_key,
+                    "gh_cli_user": gh_cli_user,
+                    "gh_cli_host": gh_cli_host,
+                    "note": "Token is retrieved live from gh CLI on each operation",
+                }
+            else:
+                return {
+                    "status": "error",
+                    "error": f"gh CLI could not retrieve token for {gh_cli_user}",
+                    "stderr": result.stderr.strip(),
+                    "hint": f"Try running 'gh auth login --user {gh_cli_user}' to re-authenticate",
+                }
+
+        except FileNotFoundError:
+            return {
+                "status": "error",
+                "error": "gh CLI not found",
+                "hint": "Install gh CLI: https://cli.github.com/",
+            }
+        except subprocess.TimeoutExpired:
+            return {
+                "status": "error",
+                "error": "gh CLI token retrieval timed out",
+            }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Failed to refresh token: {str(e)}",
+        }

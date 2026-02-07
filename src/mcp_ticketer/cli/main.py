@@ -19,6 +19,7 @@ from ..core import AdapterRegistry
 from .configure import configure_wizard, set_adapter_config, show_current_config
 from .diagnostics import run_diagnostics
 from .discover import app as discover_app
+from .github_commands import app as github_app
 from .init_command import init
 from .install_mcp_server import (
     install_mcp_server,
@@ -336,20 +337,17 @@ def get_adapter(
 
 @app.command("set")
 def set_config(
-    adapter: AdapterType | None = typer.Option(
-        None, "--adapter", "-a", help="Set default adapter"
-    ),
-    team_key: str | None = typer.Option(
-        None, "--team-key", help="Linear team key (e.g., BTA)"
-    ),
+    adapter: AdapterType
+    | None = typer.Option(None, "--adapter", "-a", help="Set default adapter"),
+    team_key: str
+    | None = typer.Option(None, "--team-key", help="Linear team key (e.g., BTA)"),
     team_id: str | None = typer.Option(None, "--team-id", help="Linear team ID"),
     owner: str | None = typer.Option(None, "--owner", help="GitHub repository owner"),
     repo: str | None = typer.Option(None, "--repo", help="GitHub repository name"),
     server: str | None = typer.Option(None, "--server", help="JIRA server URL"),
     project: str | None = typer.Option(None, "--project", help="JIRA project key"),
-    base_path: str | None = typer.Option(
-        None, "--base-path", help="AITrackdown base path"
-    ),
+    base_path: str
+    | None = typer.Option(None, "--base-path", help="AITrackdown base path"),
 ) -> None:
     """Set default adapter and adapter-specific configuration.
 
@@ -437,9 +435,8 @@ def set_config(
 @app.command("configure")
 def configure_command(
     show: bool = typer.Option(False, "--show", help="Show current configuration"),
-    adapter: str | None = typer.Option(
-        None, "--adapter", help="Set default adapter type"
-    ),
+    adapter: str
+    | None = typer.Option(None, "--adapter", help="Set default adapter type"),
     api_key: str | None = typer.Option(None, "--api-key", help="Set API key/token"),
     project_id: str | None = typer.Option(None, "--project-id", help="Set project ID"),
     team_id: str | None = typer.Option(None, "--team-id", help="Set team ID (Linear)"),
@@ -479,9 +476,8 @@ def configure_command(
 @app.command("config")
 def config_alias(
     show: bool = typer.Option(False, "--show", help="Show current configuration"),
-    adapter: str | None = typer.Option(
-        None, "--adapter", help="Set default adapter type"
-    ),
+    adapter: str
+    | None = typer.Option(None, "--adapter", help="Set default adapter type"),
     api_key: str | None = typer.Option(None, "--api-key", help="Set API key/token"),
     project_id: str | None = typer.Option(None, "--project-id", help="Set project ID"),
     team_id: str | None = typer.Option(None, "--team-id", help="Set team ID (Linear)"),
@@ -531,6 +527,9 @@ app.add_typer(instruction_app, name="instructions")
 # Add project-update command group to main app
 app.add_typer(project_update_app, name="project-update")
 
+# Add GitHub multi-account command group to main app
+app.add_typer(github_app, name="github")
+
 # Add setup and init commands to main app
 app.command()(setup)
 app.command()(init)
@@ -549,9 +548,8 @@ app.command(name="uninstall-mcp-server")(uninstall_mcp_server)
 # Add diagnostics command
 @app.command("doctor")
 def doctor_command(
-    output_file: str | None = typer.Option(
-        None, "--output", "-o", help="Save full report to file"
-    ),
+    output_file: str
+    | None = typer.Option(None, "--output", "-o", help="Save full report to file"),
     json_output: bool = typer.Option(
         False, "--json", help="Output report in JSON format"
     ),
@@ -596,9 +594,8 @@ def doctor_command(
 
 @app.command("diagnose", hidden=True)
 def diagnose_alias(
-    output_file: str | None = typer.Option(
-        None, "--output", "-o", help="Save full report to file"
-    ),
+    output_file: str
+    | None = typer.Option(None, "--output", "-o", help="Save full report to file"),
     json_output: bool = typer.Option(
         False, "--json", help="Output report in JSON format"
     ),

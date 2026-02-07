@@ -58,16 +58,36 @@ from .types import (
 logger = logging.getLogger(__name__)
 
 
-def _get_gh_cli_token() -> str | None:
-    """Get GitHub token from gh CLI as a fallback.
+def _get_gh_cli_token(
+    username: str | None = None,
+    host: str = "github.com",
+) -> str | None:
+    """Get GitHub token from gh CLI.
+
+    Supports both default token retrieval and user-specific token retrieval
+    for multi-account scenarios.
+
+    Args:
+        username: Optional specific GitHub username to get token for.
+                  If None, gets the default/active account token.
+        host: GitHub host (default: github.com, for GitHub Enterprise)
 
     Returns:
         GitHub token from gh CLI, or None if gh is not available or fails.
 
     """
     try:
+        # Build command based on whether username is specified
+        if username:
+            # Get token for specific user (multi-account support)
+            cmd = ["gh", "auth", "token", "--user", username, "--hostname", host]
+            logger.debug(f"Retrieving GitHub token for user {username} on {host}")
+        else:
+            # Get default token (backward compatible)
+            cmd = ["gh", "auth", "token"]
+
         result = subprocess.run(
-            ["gh", "auth", "token"],
+            cmd,
             capture_output=True,
             text=True,
             timeout=5,
@@ -75,7 +95,10 @@ def _get_gh_cli_token() -> str | None:
         )
         if result.returncode == 0 and result.stdout.strip():
             token = result.stdout.strip()
-            logger.debug("Retrieved GitHub token from gh CLI")
+            if username:
+                logger.debug(f"Retrieved GitHub token for user {username} from gh CLI")
+            else:
+                logger.debug("Retrieved GitHub token from gh CLI")
             return token
         else:
             logger.debug(
@@ -98,31 +121,54 @@ def _resolve_github_token(config: dict[str, Any]) -> str | None:
     """Resolve GitHub token from multiple sources.
 
     Tries in order:
-    1. Provided config (api_key or token)
-    2. Environment variables (GITHUB_TOKEN, etc.)
-    3. gh CLI (gh auth token)
+    1. gh CLI with specific user (if gh_cli_user is configured)
+    2. Provided config (api_key or token)
+    3. Environment variables (GITHUB_TOKEN, etc.)
+    4. gh CLI default account (fallback)
+
+    This supports multi-account scenarios where gh_cli_user specifies
+    which GitHub account to use for live token retrieval.
 
     Args:
-        config: Configuration dictionary with potential token values
+        config: Configuration dictionary with potential token values.
+                Supports:
+                - api_key/token: Direct token value
+                - gh_cli_user: Username for gh CLI token retrieval
+                - gh_cli_host: Host for GitHub Enterprise (default: github.com)
 
     Returns:
         Resolved GitHub token, or None if not found
 
     """
-    # Try config first (already includes environment variable resolution)
+    # Check for gh_cli_user (multi-account support - highest priority)
+    gh_cli_user = config.get("gh_cli_user")
+    gh_cli_host = config.get("gh_cli_host", "github.com")
+
+    if gh_cli_user:
+        # Live token retrieval for specific user
+        token = _get_gh_cli_token(username=gh_cli_user, host=gh_cli_host)
+        if token:
+            logger.info(f"Using GitHub token for user {gh_cli_user} from gh CLI")
+            return token
+        logger.warning(
+            f"gh_cli_user '{gh_cli_user}' configured but could not retrieve token. "
+            f"Falling back to other methods."
+        )
+
+    # Try config (includes environment variable resolution)
     token = config.get("api_key") or config.get("token")
     if token:
         logger.debug("Using GitHub token from config/environment")
         return token
 
-    # Fallback to gh CLI
+    # Fallback to gh CLI default account
     token = _get_gh_cli_token()
     if token:
-        logger.info("Using GitHub token from gh CLI")
+        logger.info("Using GitHub token from gh CLI (default account)")
         return token
 
     logger.warning(
-        "No GitHub token found. Tried: config, environment variables, gh CLI"
+        "No GitHub token found. Tried: gh_cli_user, config, environment variables, gh CLI"
     )
     return None
 
