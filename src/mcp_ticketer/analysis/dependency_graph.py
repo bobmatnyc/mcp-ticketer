@@ -7,6 +7,8 @@ This module parses ticket descriptions and builds dependency graphs to:
 - Recommend optimal work order
 """
 
+from __future__ import annotations
+
 import re
 from collections import defaultdict
 from typing import TYPE_CHECKING

@@ -1,5 +1,7 @@
 """Response builder utility for consistent MCP responses."""
 
+from __future__ import annotations
+
 from typing import Any
 
 from .constants import JSONRPC_VERSION, STATUS_COMPLETED

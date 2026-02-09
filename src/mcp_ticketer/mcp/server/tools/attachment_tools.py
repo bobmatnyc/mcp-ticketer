@@ -5,6 +5,8 @@ attachment information. Note that file attachment functionality may not be
 available in all adapters.
 """
 
+from __future__ import annotations
+
 import mimetypes
 from pathlib import Path
 from typing import Any

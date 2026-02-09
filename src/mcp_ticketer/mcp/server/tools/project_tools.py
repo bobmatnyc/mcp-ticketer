@@ -29,6 +29,8 @@ Related Tickets:
 - TBD: Phase 3 Sprint 3.5 - Consolidate project_status and project_update (v2.1.0)
 """
 
+from __future__ import annotations
+
 import logging
 from typing import Any, Literal
 

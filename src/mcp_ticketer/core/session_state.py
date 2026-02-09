@@ -1,5 +1,7 @@
 """Session state management for tracking current ticket associations."""
 
+from __future__ import annotations
+
 import json
 import logging
 import uuid

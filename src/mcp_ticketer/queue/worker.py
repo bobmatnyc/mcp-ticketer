@@ -1,5 +1,7 @@
 """Background worker for processing queued ticket operations."""
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import signal

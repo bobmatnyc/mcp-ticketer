@@ -14,6 +14,8 @@ All tools follow the MCP response pattern:
     }
 """
 
+from __future__ import annotations
+
 from typing import Any
 
 from ....core.models import Priority, Task, TicketState, TicketType

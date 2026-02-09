@@ -8,6 +8,8 @@ This module provides a comprehensive configuration system that supports:
 - Hybrid mode for multi-platform synchronization
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import os

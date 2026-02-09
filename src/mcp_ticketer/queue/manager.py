@@ -1,5 +1,7 @@
 """Worker manager with file-based locking for single instance."""
 
+from __future__ import annotations
+
 import fcntl
 import logging
 import os

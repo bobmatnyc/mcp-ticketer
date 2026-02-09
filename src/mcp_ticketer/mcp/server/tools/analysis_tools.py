@@ -4,7 +4,7 @@ This module provides a unified interface for all ticket analysis operations.
 
 Unified Tool (v2.0.0):
 - ticket_analyze: Single interface for all analysis operations
-  - find_similar: Find duplicate or related tickets
+  - find_similar: Find duplicate or related tickets (supports hybrid BM25 pipeline)
   - find_stale: Identify old, inactive tickets
   - find_orphaned: Find tickets without hierarchy
   - cleanup_report: Generate comprehensive cleanup report
@@ -20,6 +20,8 @@ These tools help product managers maintain development practices and
 identify tickets that need attention.
 """
 
+from __future__ import annotations
+
 import logging
 import warnings
 from datetime import datetime
@@ -28,12 +30,20 @@ from typing import Any
 # Try to import analysis dependencies (optional)
 try:
     from ....analysis.orphaned import OrphanedTicketDetector
-    from ....analysis.similarity import TicketSimilarityAnalyzer
+    from ....analysis.similarity import (
+        BM25_AVAILABLE,
+        HYBRID_AVAILABLE,
+        SEMANTIC_AVAILABLE,
+        TicketSimilarityAnalyzer,
+    )
     from ....analysis.staleness import StaleTicketDetector
 
     ANALYSIS_AVAILABLE = True
 except ImportError:
     ANALYSIS_AVAILABLE = False
+    BM25_AVAILABLE = False
+    SEMANTIC_AVAILABLE = False
+    HYBRID_AVAILABLE = False
     # Define placeholder classes for type hints
     OrphanedTicketDetector = None  # type: ignore
     TicketSimilarityAnalyzer = None  # type: ignore
@@ -56,6 +66,9 @@ async def ticket_analyze(
     threshold: float = 0.75,
     limit: int = 10,
     internal_limit: int = 100,
+    pipeline: str = "auto",
+    keyword_weight: float = 0.3,
+    semantic_weight: float = 0.7,
     # Find stale parameters
     age_threshold_days: int = 90,
     activity_threshold_days: int = 30,
@@ -74,7 +87,7 @@ async def ticket_analyze(
 
     Args:
         action: Analysis operation to perform. Valid values:
-            - "find_similar": Find duplicate or related tickets (TF-IDF similarity)
+            - "find_similar": Find duplicate or related tickets
             - "find_stale": Find old, inactive tickets that may need closing
             - "find_orphaned": Find tickets without proper hierarchy
             - "cleanup_report": Generate comprehensive cleanup report
@@ -83,6 +96,12 @@ async def ticket_analyze(
         threshold: [find_similar] Similarity threshold 0.0-1.0 (default: 0.75)
         limit: Maximum number of results to return (default: 10, max: 50)
         internal_limit: [find_similar] Max tickets to fetch for comparison (default: 100, max: 200)
+        pipeline: [find_similar] Similarity pipeline: "auto", "hybrid", or "classic" (default: "auto")
+            - "auto": Uses hybrid (BM25 + semantic) if deps available, else classic TF-IDF
+            - "hybrid": 3-stage pipeline (BM25 keyword + dense semantic + score fusion)
+            - "classic": Original TF-IDF cosine similarity
+        keyword_weight: [find_similar] BM25 keyword weight for hybrid pipeline (default: 0.3)
+        semantic_weight: [find_similar] Semantic weight for hybrid pipeline (default: 0.7)
 
         age_threshold_days: [find_stale] Minimum age in days to consider (default: 90)
         activity_threshold_days: [find_stale] Days without activity (default: 30)
@@ -98,8 +117,11 @@ async def ticket_analyze(
         Analysis results specific to action with status, count, and detailed findings
 
     Examples:
-        # Find similar tickets
-        await ticket_analyze(action="find_similar", ticket_id="TICKET-123", threshold=0.8)
+        # Find similar tickets with hybrid pipeline
+        await ticket_analyze(action="find_similar", ticket_id="TICKET-123", pipeline="hybrid")
+
+        # Find similar with custom weights
+        await ticket_analyze(action="find_similar", keyword_weight=0.5, semantic_weight=0.5)
 
         # Find stale tickets
         await ticket_analyze(action="find_stale", age_threshold_days=180)
@@ -109,9 +131,6 @@ async def ticket_analyze(
 
         # Generate cleanup report (summary only)
         await ticket_analyze(action="cleanup_report", summary_only=True)
-
-        # Full cleanup report (WARNING: high token usage)
-        await ticket_analyze(action="cleanup_report", summary_only=False)
 
     Migration from deprecated tools:
         - ticket_find_similar(...) → ticket_analyze(action="find_similar", ...)
@@ -137,6 +156,9 @@ async def ticket_analyze(
             threshold=threshold,
             limit=limit,
             internal_limit=internal_limit,
+            pipeline=pipeline,
+            keyword_weight=keyword_weight,
+            semantic_weight=semantic_weight,
         )
     elif action_lower == "find_stale":
         return await ticket_find_stale(
@@ -249,6 +271,9 @@ async def ticket_find_similar(
     threshold: float = 0.75,
     limit: int = 10,
     internal_limit: int = 100,
+    pipeline: str = "auto",
+    keyword_weight: float = 0.3,
+    semantic_weight: float = 0.7,
 ) -> dict[str, Any]:
     """Find similar tickets to detect duplicates.
 
@@ -256,15 +281,16 @@ async def ticket_find_similar(
         Use ticket_analyze(action="find_similar", ...) instead.
         This tool will be removed in v3.0.0.
 
-    Uses TF-IDF and cosine similarity to find tickets with similar
-    titles and descriptions. Useful for identifying duplicate tickets
-    or related work that should be linked.
+    Supports a 3-stage hybrid similarity pipeline:
+    - Stage 1: BM25 keyword retrieval (requires rank_bm25)
+    - Stage 2: Dense semantic retrieval (sentence-transformers) or TF-IDF fallback
+    - Stage 3: Weighted score fusion with configurable weights
 
     Token Usage:
     - CRITICAL: This tool can generate significant tokens
     - Default settings (limit=10, internal_limit=100): ~2,000-5,000 tokens
     - With internal_limit=500: Up to 92,500 tokens (EXCEEDS 20k limit!)
-    - Recommendation: Keep internal_limit ≤ 100 for typical queries
+    - Recommendation: Keep internal_limit <= 100 for typical queries
     - For large datasets: Run multiple queries with specific ticket_id
 
     Args:
@@ -273,6 +299,9 @@ async def ticket_find_similar(
         limit: Maximum number of similarity results to return (default: 10, max: 50)
         internal_limit: Maximum tickets to fetch for comparison (default: 100, max: 200)
                        Higher values increase accuracy but exponentially increase tokens
+        pipeline: Similarity pipeline: "auto", "hybrid", or "classic" (default: "auto")
+        keyword_weight: BM25 keyword weight for hybrid pipeline (default: 0.3)
+        semantic_weight: Semantic weight for hybrid pipeline (default: 0.7)
 
     Returns:
         List of similar ticket pairs with similarity scores and recommended actions
@@ -281,11 +310,8 @@ async def ticket_find_similar(
         # Find tickets similar to a specific ticket (most efficient)
         result = await ticket_find_similar(ticket_id="TICKET-123", threshold=0.8)
 
-        # Find all similar pairs with controlled dataset size
-        result = await ticket_find_similar(limit=20, internal_limit=100)
-
-        # Large analysis (use cautiously - can exceed token limits)
-        result = await ticket_find_similar(limit=10, internal_limit=200)
+        # Use hybrid pipeline with custom weights
+        result = await ticket_find_similar(pipeline="hybrid", keyword_weight=0.5, semantic_weight=0.5)
 
     """
     warnings.warn(
@@ -302,6 +328,10 @@ async def ticket_find_similar(
                 "scikit-learn>=1.3.0",
                 "rapidfuzz>=3.0.0",
                 "numpy>=1.24.0",
+                "rank-bm25>=0.2.2",
+            ],
+            "optional_packages": [
+                "sentence-transformers>=2.2.0 (for dense semantic retrieval)",
             ],
         }
 
@@ -313,6 +343,14 @@ async def ticket_find_similar(
             return {
                 "status": "error",
                 "error": "threshold must be between 0.0 and 1.0",
+            }
+
+        # Validate pipeline
+        valid_pipelines = ("auto", "hybrid", "classic")
+        if pipeline not in valid_pipelines:
+            return {
+                "status": "error",
+                "error": f"Invalid pipeline '{pipeline}'. Must be one of: {', '.join(valid_pipelines)}",
             }
 
         # Validate and cap limits
@@ -330,7 +368,7 @@ async def ticket_find_similar(
         if internal_limit > 150:
             logger.warning(
                 f"Large internal_limit={internal_limit} may generate >15k tokens. "
-                f"Consider reducing to ≤100 or using specific ticket_id for targeted search."
+                f"Consider reducing to <=100 or using specific ticket_id for targeted search."
             )
 
         # Fetch tickets
@@ -363,19 +401,32 @@ async def ticket_find_similar(
                 "message": "Not enough tickets to compare (need at least 2)",
             }
 
-        # Analyze similarity
-        analyzer = TicketSimilarityAnalyzer(threshold=threshold)
+        # Analyze similarity with configured pipeline
+        analyzer = TicketSimilarityAnalyzer(
+            threshold=threshold,
+            pipeline=pipeline,
+            keyword_weight=keyword_weight,
+            semantic_weight=semantic_weight,
+        )
         results = analyzer.find_similar_tickets(tickets, target, limit)
 
         # Build response
         similar_tickets_data = [r.model_dump() for r in results]
-        response = {
+        response: dict[str, Any] = {
             "status": "completed",
             "similar_tickets": similar_tickets_data,
             "count": len(results),
             "threshold": threshold,
             "tickets_analyzed": len(tickets),
             "internal_limit": internal_limit,
+            "pipeline_info": {
+                "pipeline": analyzer.pipeline,
+                "bm25_available": BM25_AVAILABLE,
+                "semantic_available": SEMANTIC_AVAILABLE,
+                "hybrid_available": HYBRID_AVAILABLE,
+                "keyword_weight": keyword_weight,
+                "semantic_weight": semantic_weight,
+            },
         }
 
         # Estimate token usage and warn if approaching limit

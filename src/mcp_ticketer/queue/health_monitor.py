@@ -1,5 +1,7 @@
 """Queue health monitoring and alerting system."""
 
+from __future__ import annotations
+
 import logging
 import time
 from datetime import datetime, timedelta

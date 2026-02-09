@@ -8,6 +8,8 @@ This module identifies tickets that are not properly organized in the hierarchy:
 Proper hierarchy ensures better organization and tracking of work.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel

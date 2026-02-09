@@ -4,6 +4,8 @@ This module provides commands for installing and removing mcp-ticketer
 MCP server configuration for various AI platforms (Claude, Gemini, Codex, Auggie).
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import typer

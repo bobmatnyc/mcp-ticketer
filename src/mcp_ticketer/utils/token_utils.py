@@ -14,6 +14,8 @@ Performance: O(1) for token estimation (string length only)
 Memory: O(1) auxiliary space (no allocations beyond JSON serialization)
 """
 
+from __future__ import annotations
+
 import json
 import logging
 from collections.abc import Callable

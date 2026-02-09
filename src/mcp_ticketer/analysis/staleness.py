@@ -9,6 +9,8 @@ This module identifies tickets that may need closing or review based on:
 The staleness score combines these factors to identify candidates for cleanup.
 """
 
+from __future__ import annotations
+
 from datetime import datetime
 from typing import TYPE_CHECKING
 
