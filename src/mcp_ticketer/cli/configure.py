@@ -103,19 +103,22 @@ def _validate_url_matches_adapter(
     return True, None
 
 
-def _load_existing_adapter_config(adapter_type: str) -> dict[str, Any] | None:
+def _load_existing_adapter_config(
+    adapter_type: str, project_path: Path | None = None
+) -> dict[str, Any] | None:
     """Load existing adapter configuration from project config if available.
 
     Args:
     ----
         adapter_type: Type of adapter (linear, jira, github, aitrackdown)
+        project_path: Project directory path. If None, uses current working directory.
 
     Returns:
     -------
         Dictionary with existing configuration if available, None otherwise
 
     """
-    config_path = Path.cwd() / ".mcp-ticketer" / "config.json"
+    config_path = (project_path or Path.cwd()) / ".mcp-ticketer" / "config.json"
     if not config_path.exists():
         return None
 

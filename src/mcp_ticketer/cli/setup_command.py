@@ -193,7 +193,8 @@ def _prompt_for_adapter_selection(console: Console) -> str:
 
 
 def setup(
-    project_path: str | None = typer.Option(
+    project_path: str
+    | None = typer.Option(
         None, "--path", help="Project path (default: current directory)"
     ),
     skip_platforms: bool = typer.Option(
@@ -876,9 +877,12 @@ def _update_mcp_json_credentials(proj_path: Path, console: Console) -> None:
     # Import the helper function to get adapter credentials
     from .mcp_configure import _get_adapter_env_vars
 
-    env_vars = _get_adapter_env_vars()
+    env_vars = _get_adapter_env_vars(proj_path)
 
     if not env_vars:
+        console.print(
+            "[yellow]Warning: No adapter credentials found to propagate[/yellow]"
+        )
         return
 
     updated_count = 0

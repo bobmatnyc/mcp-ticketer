@@ -258,11 +258,14 @@ def configure_claude_mcp_native(
         raise
 
 
-def _get_adapter_env_vars() -> dict[str, str]:
+def _get_adapter_env_vars(project_path: Path | None = None) -> dict[str, str]:
     """Get environment variables for the configured adapter from project config.
 
     Reads credentials from .mcp-ticketer/config.json and returns them as
     environment variables suitable for MCP server configuration.
+
+    Args:
+        project_path: Project directory path. If None, uses current working directory.
 
     Returns:
         Dict of environment variables with adapter credentials
@@ -278,7 +281,7 @@ def _get_adapter_env_vars() -> dict[str, str]:
         }
 
     """
-    config_path = Path.cwd() / ".mcp-ticketer" / "config.json"
+    config_path = (project_path or Path.cwd()) / ".mcp-ticketer" / "config.json"
     if not config_path.exists():
         return {}
 
@@ -556,7 +559,9 @@ def create_mcp_server_config(
 
     # Get adapter credentials from project config
     # This is the primary source for MCP server environment variables
-    adapter_env_vars = _get_adapter_env_vars()
+    adapter_env_vars = _get_adapter_env_vars(
+        Path(project_path) if project_path else None
+    )
     env_vars.update(adapter_env_vars)
 
     # Load environment variables from .env.local if it exists (as override)
