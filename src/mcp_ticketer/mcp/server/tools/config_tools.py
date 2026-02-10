@@ -26,6 +26,8 @@ Performance: Configuration is cached in memory by ConfigResolver,
 so repeated reads are fast (O(1) after first load).
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import warnings

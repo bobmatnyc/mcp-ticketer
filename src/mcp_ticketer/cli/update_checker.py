@@ -4,6 +4,8 @@ This module provides functionality to check PyPI for new versions and notify use
 Uses the existing HTTP client infrastructure to avoid code duplication.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import sys

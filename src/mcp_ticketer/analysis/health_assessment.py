@@ -8,6 +8,8 @@ This module evaluates project health based on:
 - Work distribution balance
 """
 
+from __future__ import annotations
+
 from enum import Enum
 from typing import TYPE_CHECKING
 

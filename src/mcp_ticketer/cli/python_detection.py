@@ -9,6 +9,8 @@ The module follows the proven pattern from mcp-vector-search:
 - Support multiple installation methods transparently
 """
 
+from __future__ import annotations
+
 import os
 import shutil
 import sys

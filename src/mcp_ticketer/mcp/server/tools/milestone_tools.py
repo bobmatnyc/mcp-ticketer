@@ -8,6 +8,8 @@ Version 2.0.0 changes:
 - Follows the pattern from ticket() and hierarchy() unified tools
 """
 
+from __future__ import annotations
+
 import logging
 from datetime import datetime
 from typing import Any, Literal

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import builtins
+
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
@@ -181,7 +181,7 @@ class BaseAdapter(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    async def search(self, query: SearchQuery) -> builtins.list[T]:
+    async def search(self, query: SearchQuery) -> list[T]:
         """Search tickets using advanced query.
 
         Args:
@@ -231,7 +231,7 @@ class BaseAdapter(ABC, Generic[T]):
     @abstractmethod
     async def get_comments(
         self, ticket_id: str, limit: int = 10, offset: int = 0
-    ) -> builtins.list[Comment]:
+    ) -> list[Comment]:
         """Get comments for a ticket.
 
         Args:
@@ -431,7 +431,7 @@ class BaseAdapter(ABC, Generic[T]):
             return result
         return None
 
-    async def list_epics(self, **kwargs: Any) -> builtins.list[Epic]:
+    async def list_epics(self, **kwargs: Any) -> list[Epic]:
         """List all epics.
 
         Args:
@@ -479,7 +479,7 @@ class BaseAdapter(ABC, Generic[T]):
         )
         return await self.create(task)
 
-    async def list_issues_by_epic(self, epic_id: str) -> builtins.list[Task]:
+    async def list_issues_by_epic(self, epic_id: str) -> list[Task]:
         """List all issues in epic.
 
         Args:
@@ -535,7 +535,7 @@ class BaseAdapter(ABC, Generic[T]):
 
         return await self.create(task)
 
-    async def list_tasks_by_issue(self, issue_id: str) -> builtins.list[Task]:
+    async def list_tasks_by_issue(self, issue_id: str) -> list[Task]:
         """List all tasks under an issue.
 
         Args:
@@ -676,7 +676,7 @@ class BaseAdapter(ABC, Generic[T]):
         self,
         project_id: str | None = None,
         state: str | None = None,
-    ) -> builtins.list[Milestone]:
+    ) -> list[Milestone]:
         """List milestones with optional filters.
 
         Args:
@@ -739,7 +739,7 @@ class BaseAdapter(ABC, Generic[T]):
         self,
         milestone_id: str,
         state: str | None = None,
-    ) -> builtins.list[Task]:
+    ) -> list[Task]:
         """Get issues associated with milestone.
 
         Args:
@@ -764,7 +764,7 @@ class BaseAdapter(ABC, Generic[T]):
         state: ProjectState | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> builtins.list[Project]:
+    ) -> list[Project]:
         """List projects with optional filters.
 
         Args:

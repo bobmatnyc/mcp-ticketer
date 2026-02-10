@@ -14,6 +14,8 @@ Performance: O(1) for parsing (regex match + arithmetic)
 Memory: O(1) auxiliary space (no allocations beyond datetime objects)
 """
 
+from __future__ import annotations
+
 import re
 from datetime import datetime, timedelta, timezone
 

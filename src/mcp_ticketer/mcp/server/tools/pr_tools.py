@@ -5,6 +5,8 @@ creating PRs from tickets. Note that PR functionality may not be available
 in all adapters.
 """
 
+from __future__ import annotations
+
 from typing import Any
 
 from ..server_sdk import get_adapter

@@ -1,5 +1,7 @@
 """SQLite-based queue system for async ticket operations."""
 
+from __future__ import annotations
+
 import json
 import sqlite3
 import threading

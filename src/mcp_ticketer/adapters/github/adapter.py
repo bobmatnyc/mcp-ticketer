@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import builtins
+
 import logging
 import re
 import subprocess
@@ -721,7 +721,7 @@ class GitHubAdapter(BaseAdapter[Task]):
 
         return [self._task_from_github_issue(issue) for issue in issues]
 
-    async def search(self, query: SearchQuery) -> builtins.list[Task]:
+    async def search(self, query: SearchQuery) -> list[Task]:
         """Search GitHub issues using advanced search syntax."""
         # Build GitHub search query
         search_parts = [f"repo:{self.owner}/{self.repo}", "is:issue"]

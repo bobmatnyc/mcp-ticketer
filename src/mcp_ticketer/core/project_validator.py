@@ -25,6 +25,8 @@ Performance: Lightweight validation by default (format/config check only).
 Optional deep validation with actual API connectivity test.
 """
 
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass
 from pathlib import Path

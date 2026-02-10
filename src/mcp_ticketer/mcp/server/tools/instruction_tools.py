@@ -5,6 +5,8 @@ allowing AI agents to query and customize the guidelines that help create
 well-structured, consistent tickets.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
 

@@ -1,5 +1,7 @@
 """Centralized CLI utilities and common patterns."""
 
+from __future__ import annotations
+
 import asyncio
 import json
 import logging

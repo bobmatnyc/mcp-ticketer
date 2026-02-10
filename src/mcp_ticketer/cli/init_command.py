@@ -8,6 +8,8 @@ This module handles the initialization of adapter configuration through the
 - Support for Linear, JIRA, GitHub, and AITrackdown adapters
 """
 
+from __future__ import annotations
+
 import asyncio
 import json
 import os

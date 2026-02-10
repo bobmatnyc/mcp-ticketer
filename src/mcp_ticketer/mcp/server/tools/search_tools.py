@@ -4,6 +4,8 @@ This module implements advanced search capabilities for tickets using
 various filters and criteria.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import Any
 

@@ -1,5 +1,7 @@
 """MCP tools for system diagnostics and health checks."""
 
+from __future__ import annotations
+
 import logging
 from typing import Any
 

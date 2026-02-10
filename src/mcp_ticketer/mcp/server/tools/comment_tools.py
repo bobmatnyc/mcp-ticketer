@@ -8,6 +8,8 @@ Version 2.0.0 changes:
 - Use ticket(action="add_comment"|"list_comments") instead
 """
 
+from __future__ import annotations
+
 import logging
 from typing import Any
 

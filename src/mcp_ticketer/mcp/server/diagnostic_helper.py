@@ -4,6 +4,8 @@ Provides quick diagnostic checks and error classification to help users
 troubleshoot system configuration issues when MCP tools encounter errors.
 """
 
+from __future__ import annotations
+
 import logging
 from enum import Enum
 from typing import Any

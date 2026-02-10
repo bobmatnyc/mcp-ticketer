@@ -22,6 +22,8 @@ Performance Considerations:
 - State transition validation is O(1) lookup in predefined state machine
 """
 
+from __future__ import annotations
+
 from typing import Any
 
 from ....core.adapter import BaseAdapter

@@ -4,6 +4,8 @@ Codex CLI only supports global configuration at ~/.codex/config.toml.
 Unlike Claude Code and Gemini CLI, there is no project-level configuration support.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
 

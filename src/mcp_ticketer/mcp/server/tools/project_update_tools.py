@@ -50,6 +50,8 @@ Related Tickets:
 - 1M-487: Phase 3 Sprint 3.4 - Consolidate project_update tools (v2.0.0)
 """
 
+from __future__ import annotations
+
 import logging
 import warnings
 from typing import Any, Literal

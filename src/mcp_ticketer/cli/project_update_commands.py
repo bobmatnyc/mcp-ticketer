@@ -1,5 +1,7 @@
 """CLI commands for project updates (Linear project status updates)."""
 
+from __future__ import annotations
+
 import asyncio
 from datetime import datetime
 

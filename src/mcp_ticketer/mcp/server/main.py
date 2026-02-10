@@ -1,5 +1,7 @@
 """MCP JSON-RPC server for ticket management - Simplified synchronous implementation."""
 
+from __future__ import annotations
+
 import asyncio
 import json
 import sys

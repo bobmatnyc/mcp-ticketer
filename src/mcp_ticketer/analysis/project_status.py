@@ -8,6 +8,8 @@ This module provides comprehensive project/epic analysis including:
 - Actionable recommendations for project managers
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 

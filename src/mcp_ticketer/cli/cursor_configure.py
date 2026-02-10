@@ -4,6 +4,8 @@ Cursor uses project-level MCP configuration at ~/.cursor/mcp.json
 with a flat mcpServers structure (similar to Claude Code's global config).
 """
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from typing import Any

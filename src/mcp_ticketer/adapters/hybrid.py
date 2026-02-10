@@ -2,11 +2,13 @@
 
 This adapter enables synchronization across multiple ticketing systems
 (Linear, JIRA, GitHub, AITrackdown) with configurable sync strategies.
+
+NOTE: This module implements the Hybrid Adapter (Ticket Sync), NOT the
+Hybrid Similarity Pipeline (Search) which is in `mcp_ticketer.analysis.similarity`.
 """
 
 from __future__ import annotations
 
-import builtins
 import json
 import logging
 from pathlib import Path
@@ -400,7 +402,7 @@ class HybridAdapter(BaseAdapter):
         primary = self.adapters[self.primary_adapter_name]
         return await primary.list(limit, offset, filters)
 
-    async def search(self, query: SearchQuery) -> builtins.list[Task | Epic]:
+    async def search(self, query: SearchQuery) -> list[Task | Epic]:
         """Search tickets in primary adapter.
 
         Args:
@@ -530,7 +532,7 @@ class HybridAdapter(BaseAdapter):
 
     async def get_comments(
         self, ticket_id: str, limit: int = 10, offset: int = 0
-    ) -> builtins.list[Comment]:
+    ) -> list[Comment]:
         """Get comments from primary adapter.
 
         Args:
