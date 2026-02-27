@@ -252,7 +252,7 @@ async def ticket(
     tags: list[str] | None = None,
     assignee: str | None = None,
     parent_epic: str | None = _UNSET,
-    milestone_id: str | None = None,
+    milestone_id: str | None = _UNSET,
     auto_detect_labels: bool = True,
     max_auto_labels: int = 4,
     # Update parameters
@@ -797,7 +797,7 @@ async def ticket_update(
     state: str | None = None,
     assignee: str | None = None,
     tags: list[str] | None = None,
-    milestone_id: str | None = None,
+    milestone_id: str | None = _UNSET,
 ) -> dict[str, Any]:
     """Update ticket using ID or URL (semantic priority matching, workflow states).
 
@@ -827,7 +827,7 @@ async def ticket_update(
             updates["assignee"] = assignee
         if tags is not None:
             updates["tags"] = tags
-        if milestone_id is not None:
+        if milestone_id is not _UNSET:
             updates["milestone_id"] = milestone_id
 
         # Validate and convert priority if provided (ISS-0002)

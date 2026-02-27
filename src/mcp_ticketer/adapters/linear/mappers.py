@@ -286,7 +286,7 @@ def build_linear_issue_input(task: Task, team_id: str) -> dict[str, Any]:
 
     # milestone_id maps directly to Linear cycleId.
     # Takes priority over the metadata["linear"]["cycle_id"] fallback above.
-    if task.milestone_id:
+    if task.milestone_id is not None:
         issue_input["cycleId"] = task.milestone_id
 
     return issue_input
