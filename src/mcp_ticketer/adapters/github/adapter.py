@@ -242,7 +242,8 @@ class GitHubAdapter(BaseAdapter[Task]):
         # Initialize TTL-based cache
         self._labels_ttl = config.get("labels_ttl", 300.0)  # 5 min default
         self._labels_cache = MemoryCache(default_ttl=self._labels_ttl)
-        self._milestones_cache: list[dict[str, Any]] | None = None
+        self._milestones_ttl = config.get("milestones_ttl", 300.0)  # 5 min default
+        self._milestones_cache = MemoryCache(default_ttl=self._milestones_ttl)
 
     def validate_credentials(self) -> tuple[bool, str]:
         """Validate that required credentials are present.
@@ -434,24 +435,65 @@ class GitHubAdapter(BaseAdapter[Task]):
         if ticket.assignee:
             issue_data["assignees"] = [ticket.assignee]
 
-        # Add milestone if parent_epic is specified
-        if ticket.parent_epic:
+        # Handle milestone_id with strict validation (new parameter)
+        if ticket.milestone_id is not None:
             try:
-                milestone_number = int(ticket.parent_epic)
+                milestone_number = int(ticket.milestone_id)
                 issue_data["milestone"] = milestone_number
             except ValueError:
-                # Try to find milestone by title
-                if not self._milestones_cache:
+                # Resolve milestone by title - strict: raise if not found
+                cache_key = "github_milestones"
+                cached_milestones = await self._milestones_cache.get(cache_key)
+
+                if cached_milestones is None:
                     response = await self.client.get(
                         f"/repos/{self.owner}/{self.repo}/milestones"
                     )
                     response.raise_for_status()
-                    self._milestones_cache = response.json()
+                    cached_milestones = response.json()
+                    await self._milestones_cache.set(cache_key, cached_milestones)
 
-                for milestone in self._milestones_cache:
-                    if milestone["title"] == ticket.parent_epic:
-                        issue_data["milestone"] = milestone["number"]
-                        break
+                matched = next(
+                    (m for m in cached_milestones if m["title"] == ticket.milestone_id),
+                    None,
+                )
+                if matched:
+                    issue_data["milestone"] = matched["number"]
+                else:
+                    raise ValueError(
+                        f"Milestone not found: '{ticket.milestone_id}'. "
+                        f"Provide a valid milestone number or an existing milestone title."
+                    )
+
+        # Fallback to parent_epic with silent ignore (backward compatibility)
+        elif ticket.parent_epic:
+            try:
+                milestone_number = int(ticket.parent_epic)
+                issue_data["milestone"] = milestone_number
+            except ValueError:
+                # Resolve milestone by title - silent: log and skip if not found
+                cache_key = "github_milestones"
+                cached_milestones = await self._milestones_cache.get(cache_key)
+
+                if cached_milestones is None:
+                    response = await self.client.get(
+                        f"/repos/{self.owner}/{self.repo}/milestones"
+                    )
+                    response.raise_for_status()
+                    cached_milestones = response.json()
+                    await self._milestones_cache.set(cache_key, cached_milestones)
+
+                matched = next(
+                    (m for m in cached_milestones if m["title"] == ticket.parent_epic),
+                    None,
+                )
+                if matched:
+                    issue_data["milestone"] = matched["number"]
+                else:
+                    logger.debug(
+                        f"parent_epic milestone title '{ticket.parent_epic}' not found; "
+                        f"skipping milestone assignment for backward compatibility."
+                    )
 
         # Create the issue
         response = await self.client.post(
@@ -626,6 +668,40 @@ class GitHubAdapter(BaseAdapter[Task]):
             labels_to_update.append(priority_label)
 
             update_data["labels"] = labels_to_update
+
+        # Handle milestone_id updates
+        if "milestone_id" in updates:
+            milestone_id = updates["milestone_id"]
+            if milestone_id is None:
+                # Explicitly remove milestone from the issue
+                update_data["milestone"] = None
+            else:
+                try:
+                    update_data["milestone"] = int(milestone_id)
+                except (ValueError, TypeError):
+                    # Resolve milestone by title
+                    cache_key = "github_milestones"
+                    cached_milestones = await self._milestones_cache.get(cache_key)
+
+                    if cached_milestones is None:
+                        ms_response = await self.client.get(
+                            f"/repos/{self.owner}/{self.repo}/milestones"
+                        )
+                        ms_response.raise_for_status()
+                        cached_milestones = ms_response.json()
+                        await self._milestones_cache.set(cache_key, cached_milestones)
+
+                    matched = next(
+                        (m for m in cached_milestones if m["title"] == milestone_id),
+                        None,
+                    )
+                    if matched:
+                        update_data["milestone"] = matched["number"]
+                    else:
+                        raise ValueError(
+                            f"Milestone not found: '{milestone_id}'. "
+                            f"Provide a valid milestone number or an existing milestone title."
+                        )
 
         # Handle assignee updates
         if "assignee" in updates:
@@ -2858,6 +2934,13 @@ Fixes #{issue_number}
         to force a refresh of cached label data.
         """
         await self._labels_cache.clear()
+
+    async def clear_milestones_cache(self) -> None:
+        """Clear the milestones cache.
+
+        This method can be called to force a refresh of cached milestone data.
+        """
+        await self._milestones_cache.clear()
 
     # =============================================================================
     # GitHub Projects V2 Issue Operations (Week 3)

@@ -460,6 +460,7 @@ class Task(BaseTicket):
         description="Parent epic/project ID (for issues). Synonym: 'project'",
     )
     assignee: str | None = Field(None, description="Assigned user")
+    milestone_id: str | None = Field(None, description="Associated milestone ID")
     children: list[str] = Field(default_factory=list, description="Child task IDs")
 
     # Additional fields common across systems

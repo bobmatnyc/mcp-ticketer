@@ -278,10 +278,16 @@ def build_linear_issue_input(task: Task, team_id: str) -> dict[str, Any]:
         linear_meta = task.metadata["linear"]
         if "due_date" in linear_meta:
             issue_input["dueDate"] = linear_meta["due_date"]
-        if "cycle_id" in linear_meta:
-            issue_input["cycleId"] = linear_meta["cycle_id"]
         if "estimate" in linear_meta:
             issue_input["estimate"] = linear_meta["estimate"]
+        # cycle_id from metadata is a fallback; milestone_id takes priority (set below)
+        if "cycle_id" in linear_meta:
+            issue_input["cycleId"] = linear_meta["cycle_id"]
+
+    # milestone_id maps directly to Linear cycleId.
+    # Takes priority over the metadata["linear"]["cycle_id"] fallback above.
+    if task.milestone_id is not None:
+        issue_input["cycleId"] = task.milestone_id
 
     return issue_input
 
@@ -330,12 +336,19 @@ def build_linear_issue_update_input(updates: dict[str, Any]) -> dict[str, Any]:
         linear_meta = updates["metadata"]["linear"]
         if "due_date" in linear_meta:
             update_input["dueDate"] = linear_meta["due_date"]
-        if "cycle_id" in linear_meta:
-            update_input["cycleId"] = linear_meta["cycle_id"]
         if "project_id" in linear_meta:
             update_input["projectId"] = linear_meta["project_id"]
         if "estimate" in linear_meta:
             update_input["estimate"] = linear_meta["estimate"]
+        # cycle_id from metadata is a fallback; milestone_id takes priority (set below)
+        if "cycle_id" in linear_meta:
+            update_input["cycleId"] = linear_meta["cycle_id"]
+
+    # milestone_id maps directly to Linear cycleId.
+    # Handles both assignment (UUID string) and removal (None).
+    # Takes priority over the metadata["linear"]["cycle_id"] fallback above.
+    if "milestone_id" in updates:
+        update_input["cycleId"] = updates["milestone_id"]  # None removes cycle assignment
 
     return update_input
 
