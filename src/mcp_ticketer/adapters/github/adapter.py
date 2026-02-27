@@ -434,10 +434,11 @@ class GitHubAdapter(BaseAdapter[Task]):
         if ticket.assignee:
             issue_data["assignees"] = [ticket.assignee]
 
-        # Add milestone if parent_epic is specified
-        if ticket.parent_epic:
+        # Add milestone: milestone_id takes priority over parent_epic (backward compat)
+        milestone_source = ticket.milestone_id or ticket.parent_epic
+        if milestone_source:
             try:
-                milestone_number = int(ticket.parent_epic)
+                milestone_number = int(milestone_source)
                 issue_data["milestone"] = milestone_number
             except ValueError:
                 # Try to find milestone by title
@@ -448,10 +449,17 @@ class GitHubAdapter(BaseAdapter[Task]):
                     response.raise_for_status()
                     self._milestones_cache = response.json()
 
-                for milestone in self._milestones_cache:
-                    if milestone["title"] == ticket.parent_epic:
-                        issue_data["milestone"] = milestone["number"]
-                        break
+                matched = next(
+                    (m for m in self._milestones_cache if m["title"] == milestone_source),
+                    None,
+                )
+                if matched:
+                    issue_data["milestone"] = matched["number"]
+                else:
+                    raise ValueError(
+                        f"Milestone not found: '{milestone_source}'. "
+                        f"Provide a valid milestone number or an existing milestone title."
+                    )
 
         # Create the issue
         response = await self.client.post(
@@ -626,6 +634,36 @@ class GitHubAdapter(BaseAdapter[Task]):
             labels_to_update.append(priority_label)
 
             update_data["labels"] = labels_to_update
+
+        # Handle milestone_id updates
+        if "milestone_id" in updates:
+            milestone_id = updates["milestone_id"]
+            if milestone_id is None:
+                # Explicitly remove milestone from the issue
+                update_data["milestone"] = None
+            else:
+                try:
+                    update_data["milestone"] = int(milestone_id)
+                except (ValueError, TypeError):
+                    # Resolve milestone by title
+                    if not self._milestones_cache:
+                        ms_response = await self.client.get(
+                            f"/repos/{self.owner}/{self.repo}/milestones"
+                        )
+                        ms_response.raise_for_status()
+                        self._milestones_cache = ms_response.json()
+
+                    matched = next(
+                        (m for m in self._milestones_cache if m["title"] == milestone_id),
+                        None,
+                    )
+                    if matched:
+                        update_data["milestone"] = matched["number"]
+                    else:
+                        raise ValueError(
+                            f"Milestone not found: '{milestone_id}'. "
+                            f"Provide a valid milestone number or an existing milestone title."
+                        )
 
         # Handle assignee updates
         if "assignee" in updates:

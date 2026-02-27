@@ -252,6 +252,7 @@ async def ticket(
     tags: list[str] | None = None,
     assignee: str | None = None,
     parent_epic: str | None = _UNSET,
+    milestone_id: str | None = None,
     auto_detect_labels: bool = True,
     max_auto_labels: int = 4,
     # Update parameters
@@ -283,6 +284,7 @@ async def ticket(
         tags: List of tags/labels
         assignee: User ID or email to assign ticket
         parent_epic: Parent epic/project ID
+        milestone_id: Milestone ID to associate the ticket with
         auto_detect_labels: Auto-detect labels from content
         max_auto_labels: Maximum number of auto-detected labels to apply (default: 4)
         state: Ticket state for updates
@@ -395,6 +397,7 @@ async def ticket(
             tags,
             assignee,
             parent_epic,
+            milestone_id,
             auto_detect_labels,
             max_auto_labels,
         )
@@ -416,7 +419,7 @@ async def ticket(
                 "hint": "Example: ticket(action='update', ticket_id='PROJ-123', state='done')",
             }
         return await ticket_update(
-            ticket_id, title, description, priority, state, assignee, tags
+            ticket_id, title, description, priority, state, assignee, tags, milestone_id
         )
 
     elif action_lower == "delete":
@@ -511,6 +514,7 @@ async def ticket_create(
     tags: list[str] | None = None,
     assignee: str | None = None,
     parent_epic: str | None = _UNSET,
+    milestone_id: str | None = None,
     auto_detect_labels: bool = True,
     max_auto_labels: int = 4,
 ) -> dict[str, Any]:
@@ -651,6 +655,7 @@ async def ticket_create(
             tags=final_tags or [],
             assignee=final_assignee,
             parent_epic=final_parent_epic,
+            milestone_id=milestone_id,
         )
 
         # Create via adapter
@@ -792,6 +797,7 @@ async def ticket_update(
     state: str | None = None,
     assignee: str | None = None,
     tags: list[str] | None = None,
+    milestone_id: str | None = None,
 ) -> dict[str, Any]:
     """Update ticket using ID or URL (semantic priority matching, workflow states).
 
@@ -821,6 +827,8 @@ async def ticket_update(
             updates["assignee"] = assignee
         if tags is not None:
             updates["tags"] = tags
+        if milestone_id is not None:
+            updates["milestone_id"] = milestone_id
 
         # Validate and convert priority if provided (ISS-0002)
         if priority is not None:

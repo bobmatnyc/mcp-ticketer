@@ -2283,6 +2283,19 @@ class LinearAdapter(BaseAdapter[Task]):
                         f"Could not resolve project identifier '{updates['parent_epic']}'"
                     )
 
+            # Handle milestone_id (maps to Linear cycleId).
+            # UUID assignment or None for removal — already set by mapper, log for visibility.
+            if "milestone_id" in updates:
+                milestone_id = updates["milestone_id"]
+                if milestone_id:
+                    logging.getLogger(__name__).debug(
+                        f"Assigning issue {ticket_id} to cycle (milestone) {milestone_id}"
+                    )
+                else:
+                    logging.getLogger(__name__).debug(
+                        f"Removing cycle (milestone) assignment from issue {ticket_id}"
+                    )
+
             # Validate labelIds are proper UUIDs before sending to Linear API
             if "labelIds" in update_input and update_input["labelIds"]:
                 invalid_labels = []
