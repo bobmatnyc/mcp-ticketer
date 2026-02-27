@@ -514,7 +514,7 @@ async def ticket_create(
     tags: list[str] | None = None,
     assignee: str | None = None,
     parent_epic: str | None = _UNSET,
-    milestone_id: str | None = None,
+    milestone_id: str | None = _UNSET,
     auto_detect_labels: bool = True,
     max_auto_labels: int = 4,
 ) -> dict[str, Any]:
@@ -648,15 +648,17 @@ async def ticket_create(
             )
 
         # Create task object
-        task = Task(
-            title=title,
-            description=description or "",
-            priority=priority_enum,
-            tags=final_tags or [],
-            assignee=final_assignee,
-            parent_epic=final_parent_epic,
-            milestone_id=milestone_id,
-        )
+        task_kwargs: dict[str, Any] = {
+            "title": title,
+            "description": description or "",
+            "priority": priority_enum,
+            "tags": final_tags or [],
+            "assignee": final_assignee,
+            "parent_epic": final_parent_epic,
+        }
+        if milestone_id is not _UNSET:
+            task_kwargs["milestone_id"] = milestone_id
+        task = Task(**task_kwargs)
 
         # Create via adapter
         created = await adapter.create(task)

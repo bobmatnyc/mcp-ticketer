@@ -436,7 +436,7 @@ class GitHubAdapter(BaseAdapter[Task]):
             issue_data["assignees"] = [ticket.assignee]
 
         # Handle milestone_id with strict validation (new parameter)
-        if ticket.milestone_id:
+        if ticket.milestone_id is not None:
             try:
                 milestone_number = int(ticket.milestone_id)
                 issue_data["milestone"] = milestone_number
