@@ -222,31 +222,22 @@ known-first-party = ["mcp_ticketer"]
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
 
 # Type checking configuration
-# NOTE: Temporarily relaxed for v1.2.13 patch release
-# These settings will be restored to strict mode in v1.2.14
+# NOTE: Strict mode restored in v2.3.18 (was relaxed in v1.2.13)
 [tool.mypy]
 python_version = "3.10"
-warn_return_any = false  # Temporarily disabled for v1.2.13 (was: true)
+warn_return_any = true  # Restored: warn about functions returning Any
 warn_unused_configs = true
-disallow_untyped_defs = false  # Temporarily disabled for v1.2.13 (was: true)
-disallow_any_generics = false
-ignore_missing_imports = true
-no_implicit_reexport = false  # Temporarily disabled for v1.2.13 (was: true)
-strict_equality = false  # Temporarily disabled for v1.2.13 (was: true)
-warn_redundant_casts = false  # Temporarily disabled for v1.2.13 (was: true)
-warn_unused_ignores = false  # Temporarily disabled for v1.2.13 (was: true)
-check_untyped_defs = false  # Temporarily disabled for v1.2.13 (was: true)
-# Temporarily disable strict type checking to unblock patch release
-disable_error_code = ["arg-type", "assignment", "union-attr", "call-arg", "index", "valid-type", "import-untyped", "attr-defined", "return-value", "misc", "operator", "type-arg", "override", "dict-item", "no-redef", "type-var", "call-overload"]
+disallow_untyped_defs = true  # Restored: require type annotations
+disallow_any_generics = false  # Keep relaxed for third-party generics
+ignore_missing_imports = true  # Keep for external dependencies
+no_implicit_reexport = true  # Restored: explicit re-exports only
+strict_equality = true  # Restored: strict equality checking
+warn_redundant_casts = true  # Restored: warn about unnecessary casts
+warn_unused_ignores = true  # Restored: warn about unused type ignores
+check_untyped_defs = true  # Restored: check untyped function bodies
 
-# TODO(v1.2.14): Re-enable strict type checking
-# - Set warn_return_any = true
-# - Set disallow_untyped_defs = true
-# - Set strict_equality = true
-# - Set no_implicit_reexport = true
-# - Set warn_redundant_casts = true
-# - Set warn_unused_ignores = true
-# - Set check_untyped_defs = true
+# Keep minimal error suppression for gradual typing
+disable_error_code = ["import-untyped"]  # Only suppress third-party import issues
 # - Remove disable_error_code directive
 # - Fix all remaining type errors properly
 
