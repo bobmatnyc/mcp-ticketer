@@ -263,6 +263,7 @@ virtualenv/
 .claude/sessions/
 .kuzu-memory-backups/
 .mcp.json
+.mcp/config.json
 uv.lock
 
 # Temporary development/analysis files
