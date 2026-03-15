@@ -704,12 +704,12 @@ class GitHubAdapter(BaseAdapter[Task]):
             "labels": labels,
         }
 
-        # Add assignee if specified
-        if ticket.assignee:
+        # Add assignee if specified (Task has assignee, Epic does not)
+        if getattr(ticket, "assignee", None):
             issue_data["assignees"] = [ticket.assignee]
 
         # Handle milestone_id with strict validation (new parameter)
-        if ticket.milestone_id is not None:
+        if getattr(ticket, "milestone_id", None) is not None:
             try:
                 milestone_number = int(ticket.milestone_id)
                 issue_data["milestone"] = milestone_number
@@ -739,7 +739,7 @@ class GitHubAdapter(BaseAdapter[Task]):
                     )
 
         # Fallback to parent_epic with silent ignore (backward compatibility)
-        elif ticket.parent_epic:
+        elif getattr(ticket, "parent_epic", None):
             try:
                 milestone_number = int(ticket.parent_epic)
                 issue_data["milestone"] = milestone_number
@@ -785,7 +785,7 @@ class GitHubAdapter(BaseAdapter[Task]):
             created_issue["state"] = "closed"
 
         # Wire parent_issue via GitHub native sub-issues API (GA 2025)
-        if ticket.parent_issue:
+        if getattr(ticket, "parent_issue", None):
             try:
                 child_number = created_issue["number"]
                 child_node_id = created_issue.get("node_id") or await self._get_issue_node_id(
