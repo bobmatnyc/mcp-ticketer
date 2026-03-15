@@ -34,6 +34,8 @@ class TestRelationType:
             "relates_to",
             "duplicates",
             "duplicated_by",
+            "parent",
+            "child",
         }
         actual_types = {rt.value for rt in RelationType}
         assert actual_types == expected_types

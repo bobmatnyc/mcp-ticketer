@@ -202,7 +202,7 @@ class RelationType(str, Enum):
     Platform Mappings:
     - Linear: blocks, blockedBy, duplicate, duplicatedBy, relates
     - JIRA: Blocks, is blocked by, Duplicates, is duplicated by, Relates to
-    - GitHub: Uses labels or custom fields (no native relation support)
+    - GitHub: Uses sub-issues API for parent/child; labels for other types
     - Asana: Uses dependencies (blocks/blocked_by mapping)
 
     Attributes:
@@ -211,6 +211,8 @@ class RelationType(str, Enum):
         RELATES_TO: This ticket is related to another ticket (general relationship)
         DUPLICATES: This ticket duplicates another ticket
         DUPLICATED_BY: This ticket is duplicated by another ticket
+        PARENT: The target ticket is the parent of the source ticket (i.e. "my parent is target")
+        CHILD: The target ticket is a child of the source ticket (i.e. "my child is target")
 
     Example:
         >>> relation = TicketRelation(
@@ -226,6 +228,8 @@ class RelationType(str, Enum):
     RELATES_TO = "relates_to"
     DUPLICATES = "duplicates"
     DUPLICATED_BY = "duplicated_by"
+    PARENT = "parent"
+    CHILD = "child"
 
 
 class TicketRelation(BaseModel):
@@ -278,15 +282,16 @@ class TicketRelation(BaseModel):
         default_factory=dict, description="Platform-specific relation metadata"
     )
 
-    def get_inverse_type(self) -> RelationType | None:
-        """Get the inverse relation type if applicable.
+    def get_inverse_type(self) -> RelationType:
+        """Get the inverse relation type.
 
         For directional relationships like BLOCKS/BLOCKED_BY and
         DUPLICATES/DUPLICATED_BY, returns the opposite direction.
         For symmetric relationships like RELATES_TO, returns the same type.
+        The map is exhaustive over all RelationType members.
 
         Returns:
-            Inverse relation type, or None if no inverse exists
+            Inverse relation type
 
         Example:
             >>> relation = TicketRelation(
@@ -304,8 +309,11 @@ class TicketRelation(BaseModel):
             RelationType.DUPLICATES: RelationType.DUPLICATED_BY,
             RelationType.DUPLICATED_BY: RelationType.DUPLICATES,
             RelationType.RELATES_TO: RelationType.RELATES_TO,
+            RelationType.PARENT: RelationType.CHILD,
+            RelationType.CHILD: RelationType.PARENT,
         }
-        return inverse_map.get(self.relation_type)
+        # Use explicit RelationType conversion to avoid str-enum hashing coincidence
+        return inverse_map[RelationType(self.relation_type)]
 
     def create_inverse(self) -> "TicketRelation":
         """Create the inverse relationship.
@@ -332,8 +340,6 @@ class TicketRelation(BaseModel):
 
         """
         inverse_type = self.get_inverse_type()
-        if not inverse_type:
-            inverse_type = self.relation_type
 
         return TicketRelation(
             source_ticket_id=self.target_ticket_id,

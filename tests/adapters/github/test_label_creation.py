@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from mcp_ticketer.adapters.github.adapter import GitHubAdapter
-from mcp_ticketer.core.models import Priority, Task, TicketState
+from mcp_ticketer.core.models import Epic, Priority, Task, TicketState, TicketType
 
 
 @pytest.fixture
@@ -420,3 +420,294 @@ class TestUpdateWithLabelTracking:
             warning_msg = str(mock_logger.warning.call_args)
             # Should only mention each label once
             assert warning_msg.count("tag1") <= 2  # Once in list, maybe once in message
+
+
+class TestCreateEpicAutoLabeling:
+    """Test that create() auto-applies the 'epic' label when creating an Epic."""
+
+    @pytest.mark.asyncio
+    async def test_create_epic_applies_epic_label(
+        self, github_adapter: GitHubAdapter
+    ) -> None:
+        """Test that creating an Epic adds the 'epic' label automatically.
+
+        Covers the branch at adapter.py ~line 694:
+            if isinstance(ticket, Epic) or getattr(ticket, 'ticket_type', None) == TicketType.EPIC:
+                if 'epic' not in labels ...: labels.append('epic')
+        """
+        # Setup: empty labels cache so all label POSTs go through
+        get_response = MagicMock()
+        get_response.status_code = 200
+        get_response.json.return_value = []
+        github_adapter.client.get.return_value = get_response
+
+        label_response = MagicMock()
+        label_response.status_code = 201
+        label_response.json.return_value = {"name": "epic", "color": "0075ca"}
+
+        priority_label_response = MagicMock()
+        priority_label_response.status_code = 201
+        priority_label_response.json.return_value = {"name": "P3", "color": "d73a4a"}
+
+        issue_response = MagicMock()
+        issue_response.status_code = 201
+        issue_response.json.return_value = {
+            "id": 10,
+            "number": 10,
+            "title": "Big Epic Feature",
+            "body": "Epic description",
+            "state": "open",
+            "labels": [{"name": "epic"}, {"name": "P3"}],
+            "html_url": "https://github.com/test-owner/test-repo/issues/10",
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+        }
+
+        # The create() path calls _ensure_label_exists for 'epic' then 'P3',
+        # then POSTs the issue itself.
+        github_adapter.client.post.side_effect = [
+            label_response,       # 'epic' label creation
+            priority_label_response,  # priority label creation
+            issue_response,       # issue creation
+        ]
+
+        epic = Epic(
+            id="",
+            title="Big Epic Feature",
+            description="Epic description",
+            state=TicketState.OPEN,
+            priority=Priority.LOW,
+        )
+
+        result = await github_adapter.create(epic)
+
+        assert result is not None
+        assert result.title == "Big Epic Feature"
+
+        # Verify the POST request for issue creation included 'epic' in labels
+        issue_post_call = github_adapter.client.post.call_args_list[-1]
+        sent_labels: list[str] = issue_post_call.kwargs["json"]["labels"]
+        assert "epic" in sent_labels, (
+            f"Expected 'epic' label in issue creation payload, got: {sent_labels}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_create_epic_does_not_duplicate_epic_label(
+        self, github_adapter: GitHubAdapter
+    ) -> None:
+        """Test that 'epic' is not added twice when already present in tags.
+
+        When tags=["epic"] is passed to an Epic, the guard at line 695 should
+        skip appending a second 'epic' entry, so the final label list contains
+        it exactly once.
+        """
+        # Populate the cache upfront so _ensure_label_exists finds both labels
+        # without making any POST calls, allowing a clean count of POST calls.
+        await github_adapter._labels_cache.set(
+            "github_labels",
+            [
+                {"name": "epic", "color": "0075ca"},
+                {"name": "P2", "color": "d73a4a"},
+            ],
+        )
+
+        issue_response = MagicMock()
+        issue_response.status_code = 201
+        issue_response.json.return_value = {
+            "id": 11,
+            "number": 11,
+            "title": "Another Epic",
+            "body": "",
+            "state": "open",
+            "labels": [{"name": "epic"}, {"name": "P2"}],
+            "html_url": "https://github.com/test-owner/test-repo/issues/11",
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+        }
+
+        # Only one POST call expected: the issue creation itself.
+        # All label ensures short-circuit because they're already cached.
+        github_adapter.client.post.return_value = issue_response
+
+        # Pass 'epic' explicitly in tags to exercise the de-dup guard
+        epic = Epic(
+            id="",
+            title="Another Epic",
+            description="",
+            state=TicketState.OPEN,
+            priority=Priority.MEDIUM,
+            tags=["epic"],
+        )
+
+        result = await github_adapter.create(epic)
+
+        assert result is not None
+        issue_post_call = github_adapter.client.post.call_args_list[-1]
+        sent_labels: list[str] = issue_post_call.kwargs["json"]["labels"]
+        assert sent_labels.count("epic") == 1, (
+            f"'epic' label should appear exactly once, got: {sent_labels}"
+        )
+
+
+class TestCreateNodeIdFallback:
+    """Test the node_id fallback path in create() when REST response omits node_id."""
+
+    @pytest.mark.asyncio
+    async def test_create_falls_back_to_get_issue_node_id(
+        self, github_adapter: GitHubAdapter
+    ) -> None:
+        """REST create response without node_id triggers _get_issue_node_id fallback.
+
+        Covers the branch at adapter.py ~line 816:
+            child_node_id = created_issue.get('node_id') or await self._get_issue_node_id(child_number)
+        """
+        # Setup: empty labels cache
+        get_response = MagicMock()
+        get_response.status_code = 200
+        get_response.json.return_value = []
+        github_adapter.client.get.return_value = get_response
+
+        priority_label_response = MagicMock()
+        priority_label_response.status_code = 201
+        priority_label_response.json.return_value = {"name": "P3", "color": "d73a4a"}
+
+        # REST create response deliberately omits 'node_id'
+        issue_response = MagicMock()
+        issue_response.status_code = 201
+        issue_response.json.return_value = {
+            "id": 99,
+            "number": 42,
+            "title": "Child Issue",
+            "body": "Child body",
+            "state": "open",
+            "labels": [],
+            "html_url": "https://github.com/test-owner/test-repo/issues/42",
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+            # node_id intentionally absent
+        }
+
+        github_adapter.client.post.side_effect = [
+            priority_label_response,  # priority label creation
+            issue_response,           # issue creation (no node_id in response)
+        ]
+
+        # Mock _get_issue_node_id so the fallback path returns a known value
+        github_adapter._get_issue_node_id = AsyncMock(return_value="I_fallback_node_42")
+
+        # Mock _graphql_request so the addSubIssue mutation succeeds
+        github_adapter._graphql_request = AsyncMock(
+            return_value={
+                "addSubIssue": {
+                    "issue": {"id": "I_parent_node", "number": 7, "title": "Parent"},
+                    "subIssue": {"id": "I_fallback_node_42", "number": 42, "title": "Child Issue"},
+                }
+            }
+        )
+
+        # Also mock _get_issue_node_id for the parent lookup in create()
+        # The create() code calls _get_issue_node_id twice:
+        #   1. For the child (fallback, since node_id absent)
+        #   2. For the parent
+        github_adapter._get_issue_node_id = AsyncMock(
+            side_effect=["I_fallback_node_42", "I_parent_node_7"]
+        )
+
+        ticket = Task(
+            id="",
+            title="Child Issue",
+            description="Child body",
+            state=TicketState.OPEN,
+            priority=Priority.LOW,
+            parent_issue="7",  # triggers the sub-issue linking path
+        )
+
+        result = await github_adapter.create(ticket)
+
+        assert result is not None
+        assert result.title == "Child Issue"
+
+        # Verify _get_issue_node_id was called for the child (fallback)
+        github_adapter._get_issue_node_id.assert_called()
+        child_call_args = github_adapter._get_issue_node_id.call_args_list[0]
+        assert child_call_args.args[0] == 42  # child issue number
+
+        # Verify the addSubIssue GraphQL mutation was called with the fallback node ID
+        github_adapter._graphql_request.assert_called_once()
+        mutation_vars = github_adapter._graphql_request.call_args[0][1]
+        assert mutation_vars["subIssueId"] == "I_fallback_node_42"
+        assert mutation_vars["parentId"] == "I_parent_node_7"
+
+    @pytest.mark.asyncio
+    async def test_create_uses_rest_node_id_when_present(
+        self, github_adapter: GitHubAdapter
+    ) -> None:
+        """When REST response includes node_id, _get_issue_node_id is NOT called for child.
+
+        Verifies the happy-path branch so the fallback test is meaningful.
+        """
+        get_response = MagicMock()
+        get_response.status_code = 200
+        get_response.json.return_value = []
+        github_adapter.client.get.return_value = get_response
+
+        priority_label_response = MagicMock()
+        priority_label_response.status_code = 201
+        priority_label_response.json.return_value = {"name": "P3", "color": "d73a4a"}
+
+        # REST create response WITH node_id present
+        issue_response = MagicMock()
+        issue_response.status_code = 201
+        issue_response.json.return_value = {
+            "id": 100,
+            "number": 55,
+            "node_id": "I_present_node_55",
+            "title": "Child With NodeId",
+            "body": "",
+            "state": "open",
+            "labels": [],
+            "html_url": "https://github.com/test-owner/test-repo/issues/55",
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+        }
+
+        github_adapter.client.post.side_effect = [
+            priority_label_response,
+            issue_response,
+        ]
+
+        # _get_issue_node_id should only be called for the PARENT, not the child
+        github_adapter._get_issue_node_id = AsyncMock(return_value="I_parent_node_8")
+
+        github_adapter._graphql_request = AsyncMock(
+            return_value={
+                "addSubIssue": {
+                    "issue": {"id": "I_parent_node_8", "number": 8, "title": "Parent"},
+                    "subIssue": {
+                        "id": "I_present_node_55",
+                        "number": 55,
+                        "title": "Child With NodeId",
+                    },
+                }
+            }
+        )
+
+        ticket = Task(
+            id="",
+            title="Child With NodeId",
+            description="",
+            state=TicketState.OPEN,
+            priority=Priority.LOW,
+            parent_issue="8",
+        )
+
+        result = await github_adapter.create(ticket)
+
+        assert result is not None
+
+        # _get_issue_node_id called exactly once — only for the parent
+        github_adapter._get_issue_node_id.assert_called_once_with(8)
+
+        # The mutation used the node_id directly from the REST response
+        mutation_vars = github_adapter._graphql_request.call_args[0][1]
+        assert mutation_vars["subIssueId"] == "I_present_node_55"
