@@ -202,7 +202,7 @@ class RelationType(str, Enum):
     Platform Mappings:
     - Linear: blocks, blockedBy, duplicate, duplicatedBy, relates
     - JIRA: Blocks, is blocked by, Duplicates, is duplicated by, Relates to
-    - GitHub: Native sub-issues API (GA 2025) - addSubIssue/removeSubIssue GraphQL mutations
+    - GitHub: Uses sub-issues API for parent/child; labels for other types
     - Asana: Uses dependencies (blocks/blocked_by mapping)
 
     Attributes:
@@ -211,8 +211,8 @@ class RelationType(str, Enum):
         RELATES_TO: This ticket is related to another ticket (general relationship)
         DUPLICATES: This ticket duplicates another ticket
         DUPLICATED_BY: This ticket is duplicated by another ticket
-        PARENT: This ticket is a parent of another ticket (GitHub sub-issues)
-        CHILD: This ticket is a child of another ticket (GitHub sub-issues)
+        PARENT: This ticket is the parent of another ticket (hierarchy)
+        CHILD: This ticket is a child of another ticket (hierarchy)
 
     Example:
         >>> relation = TicketRelation(

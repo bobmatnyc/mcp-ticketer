@@ -11,6 +11,7 @@ Version 2.0.0 changes:
 - All deprecated function logic has been inlined into the unified interface
 """
 
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
@@ -26,6 +27,8 @@ from ....core.models import (
 from ....core.project_config import ConfigResolver, TicketerConfig
 from ..server_sdk import get_adapter, mcp
 from .ticket_tools import detect_and_apply_labels
+
+logger = logging.getLogger(__name__)
 
 # Sentinel value to distinguish between "parameter not provided" and "explicitly None"
 _UNSET = object()
@@ -438,11 +441,32 @@ async def ticket_hierarchy(
                     # Create via adapter
                     created = await adapter.create(epic)
 
-                    return {
+                    # After epic creation, link child issues using native sub-issues API
+                    linked_children: list[str] = []
+                    failed_children: list[dict[str, str]] = []
+                    if child_issues:
+                        for child_id in child_issues:
+                            try:
+                                await adapter.add_relation(
+                                    created.id, child_id, RelationType.CHILD
+                                )
+                                linked_children.append(child_id)
+                            except (NotImplementedError, Exception) as e:
+                                logger.warning(
+                                    f"Failed to link child issue {child_id} to epic {created.id}: {e}"
+                                )
+                                failed_children.append({"id": child_id, "error": str(e)})
+
+                    result: dict[str, Any] = {
                         "status": "completed",
                         **_build_adapter_metadata(adapter, created.id),
                         "epic": created.model_dump(),
                     }
+                    if linked_children:
+                        result["linked_children"] = linked_children
+                    if failed_children:
+                        result["failed_children"] = failed_children
+                    return result
                 except Exception as e:
                     return {
                         "status": "error",
@@ -1132,3 +1156,7 @@ async def ticket_hierarchy(
             "entity_type": entity_type,
             "action": action,
         }
+
+
+# Alias for backwards compatibility and test usage
+hierarchy = ticket_hierarchy
