@@ -451,7 +451,14 @@ async def ticket_hierarchy(
                                     created.id, child_id, RelationType.CHILD
                                 )
                                 linked_children.append(child_id)
-                            except (NotImplementedError, Exception) as e:
+                            except Exception as e:
+                                if isinstance(e, NotImplementedError):
+                                    logger.error(
+                                        f"Adapter does not support sub-issue relations; "
+                                        f"cannot link child {child_id} to epic {created.id}: {e}"
+                                    )
+                                    failed_children.append({"id": child_id, "error": str(e)})
+                                    break
                                 logger.warning(
                                     f"Failed to link child issue {child_id} to epic {created.id}: {e}"
                                 )

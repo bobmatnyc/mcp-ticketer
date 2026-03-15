@@ -256,16 +256,15 @@ class TestGitHubAdapterRemoveRelation:
         with pytest.raises(NotImplementedError, match="PARENT/CHILD"):
             await adapter.remove_relation("1", "2", RelationType.RELATES_TO)
 
-    async def test_remove_relation_non_numeric_id_returns_false(self) -> None:
-        """Non-numeric IDs return False rather than raising."""
+    async def test_remove_relation_non_numeric_id_raises(self) -> None:
+        """Non-numeric IDs raise ValueError (consistent with add_relation)."""
         adapter = _make_adapter()
 
-        result = await adapter.remove_relation("abc", "2", RelationType.CHILD)
+        with pytest.raises(ValueError, match="must be numeric"):
+            await adapter.remove_relation("abc", "2", RelationType.CHILD)
 
-        assert result is False
-
-    async def test_remove_relation_api_error_returns_false(self) -> None:
-        """API errors should be caught and return False."""
+    async def test_remove_relation_api_error_propagates(self) -> None:
+        """Unexpected API errors propagate rather than being swallowed."""
         adapter = _make_adapter()
 
         async def fake_node_id(num: int) -> str:
@@ -276,9 +275,8 @@ class TestGitHubAdapterRemoveRelation:
             side_effect=ValueError("GraphQL error")
         )
 
-        result = await adapter.remove_relation("20", "10", RelationType.PARENT)
-
-        assert result is False
+        with pytest.raises(ValueError, match="GraphQL error"):
+            await adapter.remove_relation("20", "10", RelationType.PARENT)
 
 
 # ---------------------------------------------------------------------------
@@ -441,24 +439,22 @@ class TestGitHubAdapterListRelations:
 
         assert result == []
 
-    async def test_list_relations_api_error_returns_empty(self) -> None:
-        """API errors return empty list rather than raising."""
+    async def test_list_relations_api_error_propagates(self) -> None:
+        """Unexpected API errors propagate rather than being swallowed."""
         adapter = _make_adapter()
         adapter._graphql_request = AsyncMock(
             side_effect=ValueError("GraphQL error")
         )
 
-        result = await adapter.list_relations("50")
+        with pytest.raises(ValueError, match="GraphQL error"):
+            await adapter.list_relations("50")
 
-        assert result == []
-
-    async def test_list_relations_non_numeric_id_returns_empty(self) -> None:
-        """Non-numeric ticket ID returns empty list."""
+    async def test_list_relations_non_numeric_id_raises(self) -> None:
+        """Non-numeric ticket ID raises ValueError (consistent with add_relation)."""
         adapter = _make_adapter()
 
-        result = await adapter.list_relations("not-a-number")
-
-        assert result == []
+        with pytest.raises(ValueError, match="must be numeric"):
+            await adapter.list_relations("not-a-number")
 
     async def test_list_relations_unsupported_type_raises(self) -> None:
         """Unsupported relation_type filter raises NotImplementedError."""

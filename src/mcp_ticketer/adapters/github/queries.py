@@ -718,6 +718,10 @@ query GetSubIssues($owner: String!, $repo: String!, $number: Int!) {
                     state
                 }
                 totalCount
+                pageInfo {
+                    hasNextPage
+                    endCursor
+                }
             }
         }
     }

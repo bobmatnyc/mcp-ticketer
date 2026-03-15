@@ -29,6 +29,7 @@ from ...core.models import (
     Task,
     TicketRelation,
     TicketState,
+    TicketType,
 )
 from ...core.registry import AdapterRegistry
 from .client import GitHubClient
@@ -410,7 +411,12 @@ class GitHubAdapter(BaseAdapter[Task]):
             GET_ISSUE_NODE_ID_QUERY,
             {"owner": self.owner, "repo": self.repo, "number": issue_number},
         )
-        issue = data.get("repository", {}).get("issue")
+        repository = data.get("repository")
+        if not repository:
+            raise ValueError(
+                f"Repository {self.owner}/{self.repo} not found or not accessible"
+            )
+        issue = repository.get("issue")
         if not issue:
             raise ValueError(
                 f"Issue #{issue_number} not found in {self.owner}/{self.repo}"
@@ -475,8 +481,13 @@ class GitHubAdapter(BaseAdapter[Task]):
             {"parentId": parent_node_id, "subIssueId": child_node_id},
         )
 
-        issue_data = data.get("addSubIssue", {}).get("issue", {})
-        sub_issue_data = data.get("addSubIssue", {}).get("subIssue", {})
+        if "addSubIssue" not in data:
+            raise ValueError(
+                f"Unexpected GraphQL response for addSubIssue: {data!r}"
+            )
+
+        issue_data = data["addSubIssue"].get("issue", {})
+        sub_issue_data = data["addSubIssue"].get("subIssue", {})
 
         logger.info(
             f"Created sub-issue relation: issue #{issue_data.get('number')} "
@@ -531,37 +542,39 @@ class GitHubAdapter(BaseAdapter[Task]):
             source_num = int(source_id)
             target_num = int(target_id)
         except ValueError:
-            logger.error(
+            raise ValueError(
                 f"GitHub issue IDs must be numeric, got source={source_id!r} "
                 f"target={target_id!r}"
             )
-            return False
 
         try:
             source_node_id = await self._get_issue_node_id(source_num)
             target_node_id = await self._get_issue_node_id(target_num)
-
-            if relation_type == RelationType.PARENT:
-                # source is child, target is parent
-                parent_node_id = target_node_id
-                child_node_id = source_node_id
-            else:
-                # CHILD: source is parent, target is child
-                parent_node_id = source_node_id
-                child_node_id = target_node_id
-
-            await self._graphql_request(
-                REMOVE_SUB_ISSUE_MUTATION,
-                {"parentId": parent_node_id, "subIssueId": child_node_id},
+        except ValueError:
+            # Issue not found — relation does not exist, treat as already removed
+            logger.warning(
+                f"Issue not found when removing relation between "
+                f"#{source_id} and #{target_id}; treating as already removed"
             )
-            logger.info(
-                f"Removed sub-issue relation between #{source_id} and #{target_id}"
-            )
-            return True
-
-        except Exception as e:
-            logger.error(f"Error removing sub-issue relation: {e}")
             return False
+
+        if relation_type == RelationType.PARENT:
+            # source is child, target is parent
+            parent_node_id = target_node_id
+            child_node_id = source_node_id
+        else:
+            # CHILD: source is parent, target is child
+            parent_node_id = source_node_id
+            child_node_id = target_node_id
+
+        await self._graphql_request(
+            REMOVE_SUB_ISSUE_MUTATION,
+            {"parentId": parent_node_id, "subIssueId": child_node_id},
+        )
+        logger.info(
+            f"Removed sub-issue relation between #{source_id} and #{target_id}"
+        )
+        return True
 
     async def list_relations(
         self, ticket_id: str, relation_type: RelationType | None = None
@@ -594,17 +607,14 @@ class GitHubAdapter(BaseAdapter[Task]):
         try:
             issue_number = int(ticket_id)
         except ValueError:
-            logger.error(f"GitHub issue ID must be numeric, got: {ticket_id!r}")
-            return []
-
-        try:
-            data = await self._graphql_request(
-                GET_SUB_ISSUES_QUERY,
-                {"owner": self.owner, "repo": self.repo, "number": issue_number},
+            raise ValueError(
+                f"GitHub issue ID must be numeric, got: {ticket_id!r}"
             )
-        except Exception as e:
-            logger.error(f"Error listing sub-issue relations for #{ticket_id}: {e}")
-            return []
+
+        data = await self._graphql_request(
+            GET_SUB_ISSUES_QUERY,
+            {"owner": self.owner, "repo": self.repo, "number": issue_number},
+        )
 
         issue_data = data.get("repository", {}).get("issue")
         if not issue_data:
@@ -635,7 +645,16 @@ class GitHubAdapter(BaseAdapter[Task]):
             )
 
         # Add child relations if present
-        sub_issues_data = issue_data.get("subIssues", {}).get("nodes", [])
+        sub_issues_block = issue_data.get("subIssues", {})
+        sub_issues_data = sub_issues_block.get("nodes", [])
+        total_count = sub_issues_block.get("totalCount", 0)
+        # TODO: implement full pagination for sub-issues to handle >50 children
+        if total_count > len(sub_issues_data):
+            logger.warning(
+                f"Issue #{ticket_id} has {total_count} sub-issues but only "
+                f"{len(sub_issues_data)} were retrieved (pagination limit reached). "
+                f"Some child relations are not included in the result."
+            )
         if relation_type in (None, RelationType.CHILD):
             for sub_issue in sub_issues_data:
                 relations.append(
@@ -672,8 +691,6 @@ class GitHubAdapter(BaseAdapter[Task]):
         failed_labels: list[str] = []
 
         # Add type label for epics
-        from mcp_ticketer.core.models import Epic, TicketType
-
         if isinstance(ticket, Epic) or getattr(ticket, "ticket_type", None) == TicketType.EPIC:
             if "epic" not in labels and "type: epic" not in labels:
                 labels.append("epic")
@@ -792,6 +809,7 @@ class GitHubAdapter(BaseAdapter[Task]):
             created_issue["state"] = "closed"
 
         # Wire parent_issue via GitHub native sub-issues API (GA 2025)
+        parent_link_warning: str | None = None
         if getattr(ticket, "parent_issue", None):
             try:
                 child_number = created_issue["number"]
@@ -807,12 +825,17 @@ class GitHubAdapter(BaseAdapter[Task]):
                     f"Linked issue #{child_number} as sub-issue of #{ticket.parent_issue}"
                 )
             except Exception as e:
-                logger.warning(
+                parent_link_warning = (
                     f"Failed to link parent_issue #{ticket.parent_issue} "
                     f"for new issue #{created_issue['number']}: {e}"
                 )
+                logger.warning(parent_link_warning)
 
-        return self._task_from_github_issue(created_issue)
+        result = self._task_from_github_issue(created_issue)
+        if parent_link_warning:
+            # Surface the linking failure so callers can detect it
+            result.metadata.setdefault("_warnings", []).append(parent_link_warning)
+        return result
 
     async def read(self, ticket_id: str) -> Task | Epic | None:
         """Read a GitHub issue OR milestone by number with unified find.
