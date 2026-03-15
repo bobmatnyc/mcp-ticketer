@@ -660,6 +660,81 @@ LIST_LABELS = (
 # Comment Queries
 # =============================================================================
 
+# =============================================================================
+# Sub-Issue Queries and Mutations (GitHub native sub-issues API, GA 2025)
+# =============================================================================
+
+ADD_SUB_ISSUE_MUTATION = """
+mutation AddSubIssue($parentId: ID!, $subIssueId: ID!) {
+    addSubIssue(input: {issueId: $parentId, subIssueId: $subIssueId}) {
+        issue {
+            id
+            number
+            title
+        }
+        subIssue {
+            id
+            number
+            title
+        }
+    }
+}
+"""
+
+REMOVE_SUB_ISSUE_MUTATION = """
+mutation RemoveSubIssue($parentId: ID!, $subIssueId: ID!) {
+    removeSubIssue(input: {issueId: $parentId, subIssueId: $subIssueId}) {
+        issue {
+            id
+            number
+            title
+        }
+        subIssue {
+            id
+            number
+            title
+        }
+    }
+}
+"""
+
+GET_SUB_ISSUES_QUERY = """
+query GetSubIssues($owner: String!, $repo: String!, $number: Int!) {
+    repository(owner: $owner, name: $repo) {
+        issue(number: $number) {
+            id
+            number
+            title
+            parent {
+                id
+                number
+                title
+            }
+            subIssues(first: 50) {
+                nodes {
+                    id
+                    number
+                    title
+                    state
+                }
+                totalCount
+            }
+        }
+    }
+}
+"""
+
+GET_ISSUE_NODE_ID_QUERY = """
+query GetIssueNodeId($owner: String!, $repo: String!, $number: Int!) {
+    repository(owner: $owner, name: $repo) {
+        issue(number: $number) {
+            id
+            number
+        }
+    }
+}
+"""
+
 GET_ISSUE_COMMENTS = """
     query GetIssueComments(
         $owner: String!,
