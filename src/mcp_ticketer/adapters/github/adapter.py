@@ -671,6 +671,13 @@ class GitHubAdapter(BaseAdapter[Task]):
         labels = ticket.tags.copy() if ticket.tags else []
         failed_labels: list[str] = []
 
+        # Add type label for epics
+        from mcp_ticketer.core.models import Epic, TicketType
+
+        if isinstance(ticket, Epic) or getattr(ticket, "ticket_type", None) == TicketType.EPIC:
+            if "epic" not in labels and "type: epic" not in labels:
+                labels.append("epic")
+
         # Add state label if needed
         state_label = self._get_state_label(ticket.state)
         if state_label:
