@@ -81,25 +81,21 @@ except Exception as e:
     record_test("Import GitHub adapter module", False, str(e))
 
 try:
-
     record_test("Import GitHub client module", True)
 except Exception as e:
     record_test("Import GitHub client module", False, str(e))
 
 try:
-
     record_test("Import GitHub queries module", True)
 except Exception as e:
     record_test("Import GitHub queries module", False, str(e))
 
 try:
-
     record_test("Import GitHub mappers module", True)
 except Exception as e:
     record_test("Import GitHub mappers module", False, str(e))
 
 try:
-
     record_test("Import GitHub types module", True)
 except Exception as e:
     record_test("Import GitHub types module", False, str(e))
@@ -113,25 +109,21 @@ except Exception as e:
     record_test("Import Jira adapter module", False, str(e))
 
 try:
-
     record_test("Import Jira client module", True)
 except Exception as e:
     record_test("Import Jira client module", False, str(e))
 
 try:
-
     record_test("Import Jira queries module", True)
 except Exception as e:
     record_test("Import Jira queries module", False, str(e))
 
 try:
-
     record_test("Import Jira mappers module", True)
 except Exception as e:
     record_test("Import Jira mappers module", False, str(e))
 
 try:
-
     record_test("Import Jira types module", True)
 except Exception as e:
     record_test("Import Jira types module", False, str(e))
@@ -303,9 +295,7 @@ test_section("3. FUNCTIONALITY TESTING - Jira")
 
 try:
     from mcp_ticketer.adapters.jira import JiraAdapter
-    from mcp_ticketer.adapters.jira.mappers import (
-        ticket_to_issue_fields,
-    )
+    from mcp_ticketer.adapters.jira.mappers import ticket_to_issue_fields
     from mcp_ticketer.adapters.jira.types import JiraIssueType
     from mcp_ticketer.core.models import Priority, Task
 
@@ -387,8 +377,8 @@ test_section("4. BACKWARD COMPATIBILITY")
 # Test that old import paths still work
 try:
     from mcp_ticketer.adapters import GitHubAdapter as GitHubAdapter2  # noqa: N811
-    from mcp_ticketer.adapters.github import (
-        GitHubAdapter as GitHubAdapter1,  # noqa: N811
+    from mcp_ticketer.adapters.github import (  # noqa: N811
+        GitHubAdapter as GitHubAdapter1,
     )
 
     same_class = GitHubAdapter1 is GitHubAdapter2

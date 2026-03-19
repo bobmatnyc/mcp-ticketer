@@ -19,7 +19,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from mcp_ticketer.mcp.server.routing import RouterError, TicketRouter
+from mcp_ticketer.mcp.server.routing import AdapterResult, RouterError, TicketRouter
 
 
 @pytest.fixture
@@ -39,8 +39,14 @@ def router_with_mock_adapter(mock_linear_adapter) -> None:
         adapter_configs={"linear": {"api_key": "test", "team_id": "test"}},
     )
 
-    # Mock the _get_adapter method to return our mock
-    with patch.object(router, "_get_adapter", return_value=mock_linear_adapter):
+    # Mock the _get_adapter method to return an AdapterResult wrapping our mock
+    adapter_result = AdapterResult(
+        status="configured",
+        adapter=mock_linear_adapter,
+        adapter_name="linear",
+        message="Adapter configured",
+    )
+    with patch.object(router, "_get_adapter", return_value=adapter_result):
         yield router, mock_linear_adapter
 
 
@@ -242,7 +248,12 @@ class TestRouterURLHandling:
         with patch.object(router, "_get_adapter") as mock_get_adapter:
             mock_adapter = MagicMock()
             mock_adapter.read = AsyncMock(side_effect=ValueError(helpful_msg))
-            mock_get_adapter.return_value = mock_adapter
+            mock_get_adapter.return_value = AdapterResult(
+                status="configured",
+                adapter=mock_adapter,
+                adapter_name="linear",
+                message="OK",
+            )
 
             # Test with Linear view URL
             url = "https://linear.app/team/view/my-view-abc123def456"
@@ -264,7 +275,12 @@ class TestRouterURLHandling:
         with patch.object(router, "_get_adapter") as mock_get_adapter:
             mock_adapter = MagicMock()
             mock_adapter.read = AsyncMock(return_value={"id": "PROJ-123"})
-            mock_get_adapter.return_value = mock_adapter
+            mock_get_adapter.return_value = AdapterResult(
+                status="configured",
+                adapter=mock_adapter,
+                adapter_name="linear",
+                message="OK",
+            )
 
             result = await router.route_read("PROJ-123")
 
