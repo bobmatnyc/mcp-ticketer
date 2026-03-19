@@ -5,6 +5,7 @@ import sys
 import time
 from pathlib import Path
 
+import pytest
 from rich.console import Console
 
 # Add src to path
@@ -12,6 +13,35 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from mcp_ticketer.core import Priority
 from mcp_ticketer.queue import Queue, QueueStatus, Worker, WorkerManager
+
+
+@pytest.fixture
+def queue_ids(tmp_path) -> list:
+    """Create a temporary queue with test items and return their IDs.
+
+    Provides the queue_ids fixture needed by test_queue_status_check.
+    Uses an isolated temp database to avoid polluting the project queue.
+    """
+    db_path = tmp_path / "test_queue.db"
+    queue = Queue(db_path=db_path)
+
+    ids = []
+    id1 = queue.add(
+        ticket_data={"title": "Queue Test Ticket 1", "priority": "high"},
+        adapter="aitrackdown",
+        operation="create",
+    )
+    ids.append(id1)
+
+    id2 = queue.add(
+        ticket_data={"ticket_id": "TEST-001", "title": "Updated"},
+        adapter="aitrackdown",
+        operation="update",
+    )
+    ids.append(id2)
+
+    return ids
+
 
 console = Console()
 

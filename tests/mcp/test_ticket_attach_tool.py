@@ -136,6 +136,7 @@ class TestTicketAttachMCPTool:
             return_value=mock_linear_adapter,
         ):
             result = await attachment(
+                action="attach",
                 ticket_id=epic_id,
                 file_path=str(temp_test_file),
             )

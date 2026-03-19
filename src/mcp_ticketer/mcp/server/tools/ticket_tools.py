@@ -185,11 +185,13 @@ async def detect_and_apply_labels(
     matched_labels = []
 
     for label in available_labels:
-        # Extract label name (handle both dict and string formats)
+        # Extract label name and id (handle both dict and string formats)
         if isinstance(label, dict):
             label_name = label.get("name", "")
+            label_id = label.get("id", label_name)
         else:
             label_name = str(label)
+            label_id = label_name
 
         label_name_lower = label_name.lower()
 
@@ -201,8 +203,8 @@ async def detect_and_apply_labels(
 
         # Direct match: label name appears in content
         if label_name_lower in content:
-            if label_name not in matched_labels:
-                matched_labels.append(label_name)
+            if label_id not in matched_labels:
+                matched_labels.append(label_id)
             continue
 
         # Keyword match: check if label matches any keyword category
@@ -214,8 +216,8 @@ async def detect_and_apply_labels(
             ):
                 # Check if any keyword from this category appears in content
                 if any(kw in content for kw in keywords):
-                    if label_name not in matched_labels:
-                        matched_labels.append(label_name)
+                    if label_id not in matched_labels:
+                        matched_labels.append(label_id)
                     break
 
     # Combine user-specified labels with auto-detected ones (apply limit to auto-detected)

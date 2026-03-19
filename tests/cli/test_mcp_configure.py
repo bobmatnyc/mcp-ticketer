@@ -129,9 +129,9 @@ class TestBuildClaudeMCPCommand:
             global_config=True,
         )
 
-        # Check env vars
+        # Check env vars (flag is -e, not --env)
         cmd_str = " ".join(cmd)
-        assert "--env" in cmd
+        assert "-e" in cmd
         assert "LINEAR_API_KEY=lin_api_test123" in cmd_str
         assert "LINEAR_TEAM_ID=team-uuid-123" in cmd_str
         assert "LINEAR_TEAM_KEY=ENG" in cmd_str

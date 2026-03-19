@@ -11,11 +11,7 @@ This test module verifies that tokens can be loaded from:
 import os
 from unittest import mock
 
-from mcp_ticketer.core.config import (
-    GitHubConfig,
-    JiraConfig,
-    LinearConfig,
-)
+from mcp_ticketer.core.config import GitHubConfig, JiraConfig, LinearConfig
 
 
 class TestGitHubTokenResolution:
@@ -310,11 +306,11 @@ class TestAdapterValidation:
         # Import here to avoid circular dependencies
         from mcp_ticketer.adapters.github.adapter import GitHubAdapter
 
-        # Ensure GITHUB_TOKEN is not in environment
-        with mock.patch.dict(os.environ, {}, clear=False):
-            if "GITHUB_TOKEN" in os.environ:
-                del os.environ["GITHUB_TOKEN"]
-
+        # Mock _resolve_github_token to return None (no token from any source)
+        with mock.patch(
+            "mcp_ticketer.adapters.github.adapter._resolve_github_token",
+            return_value=None,
+        ):
             # Create adapter config without token
             config = {
                 "token": None,
@@ -325,7 +321,7 @@ class TestAdapterValidation:
             # Adapter initialization should succeed
             adapter = GitHubAdapter(config)
 
-            # But validate_credentials should fail
+            # But validate_credentials should fail (no token from any source)
             is_valid, error_msg = adapter.validate_credentials()
             assert not is_valid
             assert "GITHUB_TOKEN" in error_msg

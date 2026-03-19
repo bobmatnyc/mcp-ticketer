@@ -231,6 +231,21 @@ def aitrackdown_temp_dir(temp_dir: Path) -> Path:
 
 
 @pytest.fixture
+def aitrackdown_adapter(aitrackdown_temp_dir: Path):
+    """Create AITrackdown adapter instance for MCP integration tests.
+
+    Args:
+        aitrackdown_temp_dir: Temporary directory for AITrackdown
+
+    Returns:
+        AITrackdownAdapter instance
+    """
+    from mcp_ticketer.adapters.aitrackdown import AITrackdownAdapter
+
+    return AITrackdownAdapter({"base_path": str(aitrackdown_temp_dir)})
+
+
+@pytest.fixture
 def sample_ticket_file(
     aitrackdown_temp_dir: Path, sample_task_data: dict[str, Any]
 ) -> Path:

@@ -293,6 +293,9 @@ class TicketerConfig:
         adapters = {}
         if "adapters" in data:
             for name, adapter_data in data["adapters"].items():
+                # Ensure 'adapter' key is set (may be missing in older config formats)
+                if "adapter" not in adapter_data:
+                    adapter_data = {"adapter": name, **adapter_data}
                 adapters[name] = AdapterConfig.from_dict(adapter_data)
 
         # Parse hybrid config

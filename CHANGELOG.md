@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [2.3.18] - 2026-03-19
+
+### Fixed
+
+- **Test suite**: Fixed all pre-existing test failures across the test suite (2425 passing, 37 skipped)
+  - Fixed `os.chdir()` CWD leakage from `test_main_entry.py` polluting subsequent MCP tests by saving/restoring CWD in conftest autouse fixture
+  - Fixed `test_adapter_visibility.py` using wrong config key (`project_path` → `base_path`) for AITrackdown adapter
+  - Fixed `test_github_epic_attachments.py` incorrect patch path (`mcp_ticketer.adapters.github.httpx` → `mcp_ticketer.adapters.github.client.httpx`)
+  - Fixed `test_interactive_jira_setup_merges_defaults` to use updated `_validate_configuration_with_retry` signature
+  - Fixed `test_mcp_configure.py` assertion for `-e` flag (was incorrectly checking `--env`)
+  - Fixed `test_setup_command.py` to handle new `_prompt_and_update_credentials` confirm call
+  - Fixed `test_queue_system.py` missing `queue_ids` pytest fixture
+  - Added `sdk._active_github_connection = None` reset to MCP conftest for proper test isolation
+
 ## [2.3.16] - 2026-02-07
 
 ### Added

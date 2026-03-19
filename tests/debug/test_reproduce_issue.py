@@ -9,8 +9,11 @@ This test reproduces the exact scenario the user is experiencing:
 """
 import asyncio
 import logging
+import os
 import sys
 from pathlib import Path
+
+import pytest
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -29,6 +32,10 @@ logging.basicConfig(
 )
 
 
+@pytest.mark.skipif(
+    not os.getenv("LINEAR_API_KEY"),
+    reason="Requires LINEAR_API_KEY environment variable (debug/manual test)",
+)
 async def test_issue_creation():
     """Test issue creation with the exact parameters that are failing."""
     print("\n" + "=" * 80)

@@ -37,11 +37,7 @@ from .queries import (
     get_labels_search_params,
     get_search_params,
 )
-from .types import (
-    extract_text_from_adf,
-    get_state_mapping,
-    parse_jira_datetime,
-)
+from .types import extract_text_from_adf, get_state_mapping, parse_jira_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +124,35 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                 "JIRA_API_TOKEN is required but not found. Set it in .env.local or environment.",
             )
         return True, ""
+
+    async def _make_request(
+        self,
+        method: str,
+        path: str,
+        params: dict | None = None,
+        data: dict | None = None,
+    ) -> Any:
+        """Make HTTP request through the JIRA client.
+
+        Args:
+        ----
+            method: HTTP method ("GET" or "POST")
+            path: API path (relative or absolute)
+            params: Query parameters (optional)
+            data: Request body data (optional, for POST)
+
+        Returns:
+        -------
+            Parsed JSON response
+
+        """
+        method_upper = method.upper()
+        if method_upper == "GET":
+            return await self.client.get(path, params=params)
+        elif method_upper == "POST":
+            return await self.client.post(path, data=data)
+        else:
+            raise ValueError(f"Unsupported HTTP method: {method}")
 
     def _get_state_mapping(self) -> dict[TicketState, str]:
         """Map universal states to common JIRA workflow states."""
@@ -656,7 +681,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             # Query recent issues to get labels in use
             jql = build_project_labels_jql(key, max_results=500)
             params = get_labels_search_params(jql, max_results=500)
-            data = await self.client.get("search/jql", params=params)
+            data = await self._make_request("GET", "search/jql", params=params)
 
             # Collect labels with usage count
             label_counts: dict[str, int] = {}
@@ -720,7 +745,8 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         try:
             # If no board_id provided, try to find a board for the project
             if not board_id:
-                boards_data = await self.client.get(
+                boards_data = await self._make_request(
+                    "GET",
                     "/rest/agile/1.0/board",
                     params={"projectKeyOrId": self.project_key, "maxResults": 1},
                 )
@@ -737,8 +763,10 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             if state:
                 params["state"] = state
 
-            sprints_data = await self.client.get(
-                f"/rest/agile/1.0/board/{board_id}/sprint", params=params
+            sprints_data = await self._make_request(
+                "GET",
+                f"/rest/agile/1.0/board/{board_id}/sprint",
+                params=params,
             )
 
             sprints = sprints_data.get("values", [])
@@ -800,7 +828,9 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             # Use project-specific statuses if project key provided
             if project_key:
                 # Get statuses for the project
-                data = await self.client.get(f"project/{project_key}/statuses")
+                data = await self._make_request(
+                    "GET", f"project/{project_key}/statuses"
+                )
 
                 # Extract unique statuses from all issue types
                 status_map: dict[str, dict[str, Any]] = {}
@@ -813,7 +843,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
                 statuses = list(status_map.values())
             else:
                 # Get all statuses
-                statuses = await self.client.get("status")
+                statuses = await self._make_request("GET", "status")
 
             # Transform to standardized format
             return [
@@ -864,8 +894,8 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
 
         try:
             # Get issue with status field
-            issue = await self.client.get(
-                f"issue/{issue_key}", params={"fields": "status"}
+            issue = await self._make_request(
+                "GET", f"issue/{issue_key}", params={"fields": "status"}
             )
 
             if not issue:
@@ -874,7 +904,9 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             status = issue.get("fields", {}).get("status", {})
 
             # Get available transitions
-            transitions_data = await self.client.get(f"issue/{issue_key}/transitions")
+            transitions_data = await self._make_request(
+                "GET", f"issue/{issue_key}/transitions"
+            )
             transitions = transitions_data.get("transitions", [])
 
             # Transform transitions to simplified format

@@ -36,7 +36,7 @@ class TestGitHubEpicUpdate:
     @pytest.fixture
     def adapter(self, mock_config: dict[str, str]) -> GitHubAdapter:
         """Create a GitHubAdapter instance with mocked HTTP client."""
-        with patch("mcp_ticketer.adapters.github.httpx.AsyncClient"):
+        with patch("mcp_ticketer.adapters.github.client.httpx.AsyncClient"):
             adapter = GitHubAdapter(mock_config)
             adapter._initialized = True
             adapter.client = AsyncMock()
@@ -321,7 +321,7 @@ class TestGitHubAttachments:
     @pytest.fixture
     def adapter(self, mock_config: dict[str, str]) -> GitHubAdapter:
         """Create a GitHubAdapter instance with mocked HTTP client."""
-        with patch("mcp_ticketer.adapters.github.httpx.AsyncClient"):
+        with patch("mcp_ticketer.adapters.github.client.httpx.AsyncClient"):
             adapter = GitHubAdapter(mock_config)
             adapter._initialized = True
             adapter.client = AsyncMock()
@@ -525,7 +525,7 @@ class TestGitHubPlatformConstraints:
     @pytest.fixture
     def adapter(self, mock_config: dict[str, str]) -> GitHubAdapter:
         """Create a GitHubAdapter instance."""
-        with patch("mcp_ticketer.adapters.github.httpx.AsyncClient"):
+        with patch("mcp_ticketer.adapters.github.client.httpx.AsyncClient"):
             adapter = GitHubAdapter(mock_config)
             adapter._initialized = True
             adapter.client = AsyncMock()

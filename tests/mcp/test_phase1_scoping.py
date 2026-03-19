@@ -420,27 +420,43 @@ class TestWarningSystem:
         self, tmp_path: Path, caplog
     ) -> None:
         """Test that ticket_search warns when no query or filters provided."""
+        from mcp_ticketer.core.project_config import TicketerConfig
         from mcp_ticketer.mcp.server.tools.search_tools import ticket_search
 
         mock_adapter = AsyncMock()
         mock_adapter.search.return_value = []
 
+        # Mock config with default_project so the function proceeds past the
+        # project-required gate and reaches the unscoped-search warning
+        mock_config = TicketerConfig(
+            default_adapter="linear",
+            default_project="PROJ-123",
+        )
+        from unittest.mock import MagicMock
+
+        mock_resolver = MagicMock()
+        mock_resolver.load_project_config.return_value = mock_config
+
         with patch(
             "mcp_ticketer.mcp.server.tools.search_tools.get_adapter",
             return_value=mock_adapter,
         ):
-            with caplog.at_level(logging.WARNING):
-                await ticket_search()  # No query, no filters
+            with patch(
+                "mcp_ticketer.core.project_config.ConfigResolver",
+                return_value=mock_resolver,
+            ):
+                with caplog.at_level(logging.WARNING):
+                    await ticket_search()  # No query, no filters
 
-                # Check warning was logged
-                assert any(
-                    "Unscoped search" in record.message for record in caplog.records
-                )
-                assert any(
-                    "default_project" in record.message
-                    or "default_team" in record.message
-                    for record in caplog.records
-                )
+                    # Check warning was logged
+                    assert any(
+                        "Unscoped search" in record.message for record in caplog.records
+                    )
+                    assert any(
+                        "default_project" in record.message
+                        or "default_team" in record.message
+                        for record in caplog.records
+                    )
 
     async def test_ticket_search_no_warn_with_query(
         self, tmp_path: Path, caplog

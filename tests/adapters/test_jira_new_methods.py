@@ -64,13 +64,14 @@ class TestCreateIssueLabel:
 
     @pytest.mark.asyncio
     async def test_create_issue_label_invalid_credentials(self, jira_config):
-        """Test that adapter initialization fails with missing credentials."""
+        """Test that missing credentials raises ValueError when calling methods."""
         invalid_config = jira_config.copy()
         invalid_config["api_token"] = ""
 
-        # Adapter initialization should fail with missing api_token
-        with pytest.raises(ValueError, match="missing required configuration"):
-            JiraAdapter(invalid_config)
+        # Adapter initializes fine but raises on method calls when credentials invalid
+        adapter = JiraAdapter(invalid_config)
+        with pytest.raises(ValueError, match="JIRA_API_TOKEN is required"):
+            await adapter.create_issue_label("test-label")
 
 
 class TestListProjectLabels:
