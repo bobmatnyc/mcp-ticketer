@@ -40,15 +40,16 @@ class TestLinearAdapterInit:
 
         assert adapter.api_key == "lin_api_test_key_12345"
 
-    @patch.dict("os.environ", {}, clear=True)
+    @patch.dict("os.environ", {"LINEAR_API_KEY": ""}, clear=False)
     def test_init_missing_api_key(self) -> None:
-        """Test initialization without API key."""
+        """Test initialization without API key uses deferred validation."""
         config = {"team_id": "team-123"}
 
-        with pytest.raises(ValueError) as exc_info:
-            LinearAdapter(config)
-
-        assert "Linear API key is required" in str(exc_info.value)
+        # LinearAdapter defers validation; init succeeds but validate_credentials fails
+        adapter = LinearAdapter(config)
+        is_valid, error_msg = adapter.validate_credentials()
+        assert not is_valid
+        assert "Linear API key is required" in error_msg
 
     def test_init_missing_team_info(self) -> None:
         """Test initialization without team key or ID."""

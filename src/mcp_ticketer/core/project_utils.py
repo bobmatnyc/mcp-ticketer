@@ -92,17 +92,13 @@ def epic_to_project(epic: Epic) -> Project:
         description=epic.description,
         state=state,
         visibility=ProjectVisibility.TEAM,  # Default visibility
-        url=getattr(epic.metadata, "url", None) if epic.metadata else None,
+        url=epic.metadata.get("url") if epic.metadata else None,
         created_at=epic.created_at,
         updated_at=epic.updated_at,
-        target_date=(
-            getattr(epic.metadata, "target_date", None) if epic.metadata else None
-        ),
-        completed_at=(
-            getattr(epic.metadata, "completed_at", None) if epic.metadata else None
-        ),
+        target_date=(epic.metadata.get("target_date") if epic.metadata else None),
+        completed_at=(epic.metadata.get("completed_at") if epic.metadata else None),
         child_issues=epic.child_issues or [],
-        extra_data={"original_type": "epic", **epic.metadata} if epic.metadata else {},
+        extra_data={"original_type": "epic", **(epic.metadata or {})},
     )
 
 

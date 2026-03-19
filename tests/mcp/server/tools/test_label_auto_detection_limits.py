@@ -45,11 +45,8 @@ async def test_max_auto_labels_default():
 
     # Should have exactly 4 labels (default limit)
     assert len(result) == 4
-    # Should include the first 4 matched labels
-    assert all(
-        label in ["bug", "critical", "security", "high-priority", "fix"]
-        for label in result
-    )
+    # Should include the first 4 matched labels (function returns IDs not names)
+    assert all(label in ["1", "2", "3", "4", "5"] for label in result)
 
 
 async def test_max_auto_labels_explicit_limit():
@@ -130,14 +127,14 @@ async def test_hierarchical_labels_filtered_unless_exact_match():
         adapter, content_title, content_description, existing_labels=[]
     )
 
-    # Should only include non-hierarchical labels
-    assert "test" in result
-    assert "authentication" in result
+    # Should only include non-hierarchical labels (function returns IDs not names)
+    assert "1" in result  # "test"
+    assert "5" in result  # "authentication"
     # Hierarchical labels should be filtered out
-    assert "Test Suite/Unit Tests" not in result
-    assert "Test Suite/Integration Tests" not in result
-    assert "Test Suite/Authentication" not in result
-    assert "Feature/Auth/OAuth" not in result
+    assert "2" not in result  # "Test Suite/Unit Tests"
+    assert "3" not in result  # "Test Suite/Integration Tests"
+    assert "4" not in result  # "Test Suite/Authentication"
+    assert "6" not in result  # "Feature/Auth/OAuth"
 
 
 async def test_hierarchical_labels_exact_match_included():
@@ -159,12 +156,12 @@ async def test_hierarchical_labels_exact_match_included():
         adapter, content_title, content_description, existing_labels=[]
     )
 
-    # Exact match hierarchical label should be included
-    assert "Test Suite/Authentication" in result
+    # Exact match hierarchical label should be included (function returns IDs)
+    assert "1" in result  # "Test Suite/Authentication" matched by exact content
     # Partial match hierarchical label should NOT be included
-    assert "Test Suite/Unit Tests" not in result
+    assert "2" not in result  # "Test Suite/Unit Tests" not in content
     # Non-hierarchical should match
-    assert "authentication" in result
+    assert "3" in result  # "authentication"
 
 
 async def test_hierarchical_labels_case_insensitive_exact_match():
@@ -185,9 +182,9 @@ async def test_hierarchical_labels_case_insensitive_exact_match():
         adapter, content_title, content_description, existing_labels=[]
     )
 
-    # Case-insensitive exact match should work
-    assert "Test Suite/Authentication" in result
-    assert "Test Suite/Integration" not in result
+    # Case-insensitive exact match should work (function returns IDs)
+    assert "1" in result  # "Test Suite/Authentication" matched case-insensitively
+    assert "2" not in result  # "Test Suite/Integration" not in content
 
 
 async def test_max_auto_labels_zero():
@@ -321,6 +318,6 @@ async def test_backward_compatibility_no_max_param():
         # No max_auto_labels parameter - should use default
     )
 
-    # Should work with default limit
+    # Should work with default limit (function returns IDs)
     assert len(result) <= 4
-    assert "bug" in result
+    assert "1" in result  # "bug"

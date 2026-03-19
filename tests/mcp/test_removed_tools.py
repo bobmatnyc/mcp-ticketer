@@ -90,10 +90,11 @@ async def test_alternative_tools_still_present():
     tools = await server_sdk.mcp.list_tools()
     tool_names = [tool.name for tool in tools]
 
-    # Verify ticket_comment is still present (alternative for linking files/PRs)
+    # ticket_comment was consolidated into ticket(action="add_comment"|"list_comments")
+    # Verify the unified ticket tool is present with comment actions
     assert (
-        "ticket_comment" in tool_names
-    ), "ticket_comment should be present (used as alternative to removed tools)"
+        "ticket" in tool_names
+    ), "ticket tool should be present (supports add_comment/list_comments actions)"
 
 
 @pytest.mark.integration

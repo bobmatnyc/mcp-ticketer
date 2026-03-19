@@ -450,12 +450,14 @@ class TestProjectStatistics:
         """Test default values for optional fields."""
         stats = ProjectStatistics(project_id="proj-123")
 
-        # Defaults should be zero for counts
-        assert stats.total_issues == 0
-        assert stats.completed_issues == 0
-        assert stats.in_progress_issues == 0
-        assert stats.open_issues == 0
-        assert stats.blocked_issues == 0
+        # Legacy fields default to None (they are optional for backward compatibility)
+        assert stats.total_issues is None
+        assert stats.completed_issues is None
+        assert stats.in_progress_issues is None
+        assert stats.open_issues is None
+        assert stats.blocked_issues is None
+        # New preferred fields default to 0
+        assert stats.total_count == 0
         assert stats.progress_percentage == 0.0
 
         # Defaults should be None for optional metrics
@@ -575,18 +577,17 @@ class TestProjectEdgeCases:
 
     def test_statistics_with_inconsistent_counts(self):
         """Test statistics allows inconsistent counts (no validation enforced)."""
-        # This should succeed even though completed > total (validation is adapter's responsibility)
+        # This should succeed: count inconsistency is not validated (adapter's responsibility)
         _ = ProjectStatistics(
             project_id="proj-123",
             total_issues=10,
-            completed_issues=15,  # More completed than total!
-            progress_percentage=150.0,  # This will fail validation
+            completed_issues=15,  # More completed than total - no cross-field validation
         )
-        # Will raise ValidationError due to progress > 100
+        # Will raise ValidationError due to progress_percentage > 100
         with pytest.raises(ValidationError):
             ProjectStatistics(
                 project_id="proj-123",
                 total_issues=10,
                 completed_issues=15,
-                progress_percentage=150.0,
+                progress_percentage=150.0,  # Invalid - must be <= 100
             )

@@ -14,7 +14,7 @@ class TestBaseAdapterProperties:
 
     def test_aitrackdown_adapter_type(self, temp_dir) -> None:
         """Test AITrackdown adapter_type property."""
-        config = {"project_path": str(temp_dir)}
+        config = {"base_path": str(temp_dir)}
         adapter = AITrackdownAdapter(config)
 
         assert adapter.adapter_type == "aitrackdown"
@@ -22,7 +22,7 @@ class TestBaseAdapterProperties:
 
     def test_adapter_type_from_class_name(self, temp_dir) -> None:
         """Test that adapter_type is correctly extracted from class name."""
-        config = {"project_path": str(temp_dir)}
+        config = {"base_path": str(temp_dir)}
         adapter = AITrackdownAdapter(config)
 
         # Verify the property correctly strips "Adapter" suffix and lowercases
@@ -41,7 +41,7 @@ class TestToolResponseMetadata:
         from mcp_ticketer.mcp.server.tools.ticket_tools import ticket_create
 
         # Configure adapter
-        config = {"project_path": str(temp_dir)}
+        config = {"base_path": str(temp_dir)}
         configure_adapter("aitrackdown", config)
 
         # Create ticket
@@ -66,7 +66,7 @@ class TestToolResponseMetadata:
         from mcp_ticketer.mcp.server.tools.ticket_tools import ticket_list
 
         # Configure adapter
-        config = {"project_path": str(temp_dir)}
+        config = {"base_path": str(temp_dir)}
         configure_adapter("aitrackdown", config)
 
         # List tickets
@@ -81,18 +81,20 @@ class TestToolResponseMetadata:
 
     @pytest.mark.asyncio
     async def test_epic_create_includes_adapter_metadata(self, temp_dir):
-        """Test that epic_create includes adapter info."""
+        """Test that ticket create includes adapter info (epic_create was consolidated into ticket())."""
         from mcp_ticketer.mcp.server.server_sdk import configure_adapter
-        from mcp_ticketer.mcp.server.tools.hierarchy_tools import epic_create
+        from mcp_ticketer.mcp.server.tools.ticket_tools import ticket
 
         # Configure adapter
-        config = {"project_path": str(temp_dir)}
+        config = {"base_path": str(temp_dir)}
         configure_adapter("aitrackdown", config)
 
-        # Create epic
-        result = await epic_create(
+        # Create ticket (epic_create was consolidated into ticket(action="create"))
+        result = await ticket(
+            action="create",
             title="Test Epic",
             description="Test epic description",
+            auto_detect_labels=False,
         )
 
         # Verify adapter metadata present
@@ -117,7 +119,7 @@ class TestAdapterMetadataConsistency:
         )
 
         # Configure adapter
-        config = {"project_path": str(temp_dir)}
+        config = {"base_path": str(temp_dir)}
         configure_adapter("aitrackdown", config)
 
         # Create ticket

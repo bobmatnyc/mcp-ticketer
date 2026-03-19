@@ -479,8 +479,9 @@ class TestSetupCommand:
             # Mock that platform is already configured
             mock_check.return_value = ["Claude Code"]
 
-            # User keeps config but doesn't want to update platforms
-            mock_confirm.side_effect = [True, False]  # Keep config, don't update
+            # User keeps config, doesn't update credentials, doesn't update platforms
+            # Confirm flow: keep settings, skip credentials update, skip platform update
+            mock_confirm.side_effect = [True, False, False]
 
             result = runner.invoke(app, ["setup"], input="")
 

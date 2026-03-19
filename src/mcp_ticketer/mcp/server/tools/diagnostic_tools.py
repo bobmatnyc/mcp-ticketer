@@ -65,7 +65,7 @@ async def _run_system_diagnostics(simple: bool = False) -> dict[str, Any]:
         }
 
 
-async def _check_adapter_health(adapter_name: str | None = None) -> dict[str, Any]:
+async def check_adapter_health(adapter_name: str | None = None) -> dict[str, Any]:
     """Check health of specific adapter or all configured adapters.
 
     Args:
@@ -200,7 +200,7 @@ async def adapter_diagnostics(
             return await _run_system_diagnostics(simple=simple)
 
         if action == "adapter":
-            return await _check_adapter_health(adapter_name=adapter_name)
+            return await check_adapter_health(adapter_name=adapter_name)
 
         # Should never reach here due to validation above
         return {

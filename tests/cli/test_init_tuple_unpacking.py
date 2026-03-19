@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -204,26 +204,39 @@ class TestAdapterTupleUnpacking:
             "default_tags": ["interactive", "test"],
         }
 
+        from rich.console import Console
+
         from mcp_ticketer.cli.init_command import _validate_configuration_with_retry
 
+        # Mock validation to fail on first call (trigger retry), pass on second
+        validate_mock = AsyncMock(
+            side_effect=[
+                ["Server URL is required"],  # First call: fail → triggers retry
+                [],  # Second call: pass → returns True
+            ]
+        )
+
         with (
-            patch("mcp_ticketer.cli.init_command.Path.cwd", return_value=tmp_path),
             patch(
                 "mcp_ticketer.cli.init_command._configure_jira",
                 return_value=(mock_adapter_config, mock_default_values),
             ),
-            patch("typer.prompt", side_effect=["jira", "y"]),  # Select adapter, confirm
-            patch("rich.console.Console.print"),
             patch(
                 "mcp_ticketer.cli.init_command._validate_adapter_credentials",
-                return_value=[],  # Empty list = no validation issues
+                validate_mock,
             ),
+            patch("typer.prompt", return_value=1),  # Choose option 1: re-enter config
+            patch("rich.console.Console.print"),
         ):
-
-            # Run async validation function
+            # Run async validation function with new signature
             import asyncio
 
-            asyncio.run(_validate_configuration_with_retry(config_file, max_retries=1))
+            console = Console()
+            asyncio.run(
+                _validate_configuration_with_retry(
+                    console, "jira", config_file, tmp_path
+                )
+            )
 
             # Read the updated config
             with open(config_file) as f:

@@ -219,7 +219,7 @@ class TestSemanticTransitionMCP:
         try:
             # 1. Start work: OPEN -> IN_PROGRESS
             result1 = await workflow(
-                action="transition", ticket_id=ticket_id, to_state="started working"
+                action="transition", ticket_id=ticket_id, to_state="working on it"
             )
             assert result1["status"] == "completed"
             assert result1["new_state"] == "in_progress"
@@ -434,7 +434,7 @@ class TestSemanticTransitionEdgeCases:
         finally:
             await aitrackdown_adapter.delete(ticket_id)
 
-    async def test_ticket_not_found(self):
+    async def test_ticket_not_found(self, aitrackdown_adapter):
         """Test semantic transition with non-existent ticket."""
         from mcp_ticketer.mcp.server.tools.user_ticket_tools import workflow
 

@@ -78,12 +78,14 @@ class TestParentEpicAssignment:
             "mcp_ticketer.mcp.server.tools.ticket_tools.get_adapter",
             return_value=mock_adapter,
         ):
-            # Call ticket_create WITHOUT parent_epic parameter
+            # Call ticket_create with parent_epic=None to explicitly opt out
+            # (passing None overrides default_epic from project config)
             result = await ticket_create(
                 title="Test ticket without parent epic",
                 description="This ticket is not assigned to a project",
                 priority="high",
                 tags=["test"],
+                parent_epic=None,
                 auto_detect_labels=False,
             )
 

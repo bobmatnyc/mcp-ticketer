@@ -24,10 +24,7 @@ from mcp_ticketer.core.models import (
     ProjectVisibility,
     TicketState,
 )
-from mcp_ticketer.core.project_utils import (
-    epic_to_project,
-    project_to_epic,
-)
+from mcp_ticketer.core.project_utils import epic_to_project, project_to_epic
 
 
 class TestEpicToProjectConversion:
@@ -143,11 +140,11 @@ class TestEpicToProjectConversion:
         assert project.state in [ProjectState.PLANNED, ProjectState.ARCHIVED]
 
     def test_epic_with_no_metadata(self):
-        """Test converting epic with no metadata dict."""
+        """Test converting epic with no metadata (uses empty dict default)."""
         epic = Epic(
             id="epic-no-meta",
             title="No Metadata Epic",
-            metadata=None,
+            # metadata defaults to {} via default_factory=dict
         )
         project = epic_to_project(epic)
 
