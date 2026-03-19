@@ -25,6 +25,7 @@ repos:
       - id: fix-byte-order-marker
       - id: mixed-line-ending
       - id: name-tests-test
+        exclude: tests/adapters/verify_refactored_adapters.py
         args: ["--pytest-test-first"]
 
   - repo: https://github.com/psf/black

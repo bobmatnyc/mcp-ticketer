@@ -8,7 +8,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from mcp_ticketer.mcp.server.tools.diagnostic_tools import diagnostics
+from mcp_ticketer.mcp.server.tools.diagnostic_tools import (
+    adapter_diagnostics as diagnostics,
+)
 
 
 @pytest.mark.asyncio

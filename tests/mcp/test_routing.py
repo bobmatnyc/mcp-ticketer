@@ -3,7 +3,17 @@
 import pytest
 
 from mcp_ticketer.core.models import Comment, Priority, Task, TicketState
-from mcp_ticketer.mcp.server.routing import RouterError, TicketRouter
+from mcp_ticketer.mcp.server.routing import AdapterResult, RouterError, TicketRouter
+
+
+def _make_adapter_result(mock_adapter, adapter_name="linear"):
+    """Wrap a mock adapter in an AdapterResult for patching _get_adapter."""
+    return AdapterResult(
+        status="configured",
+        adapter=mock_adapter,
+        adapter_name=adapter_name,
+        message="Adapter configured",
+    )
 
 
 @pytest.fixture
@@ -180,9 +190,11 @@ class TestAdapterCaching:
         # For now, just verify the caching behavior structure
 
     def test_get_adapter_with_unconfigured_adapter(self, router) -> None:
-        """Test getting unconfigured adapter raises error."""
-        with pytest.raises(RouterError, match="Adapter 'bitbucket' is not configured"):
-            router._get_adapter("bitbucket")
+        """Test getting unconfigured adapter returns an unconfigured AdapterResult."""
+        result = router._get_adapter("bitbucket")
+        assert result.status == "unconfigured"
+        assert result.adapter is None
+        assert not result.is_configured()
 
 
 class TestRouteOperations:
@@ -206,7 +218,9 @@ class TestRouteOperations:
         mock_adapter.read.return_value = mock_ticket
 
         # Mock _get_adapter to return our mock
-        mocker.patch.object(router, "_get_adapter", return_value=mock_adapter)
+        mocker.patch.object(
+            router, "_get_adapter", return_value=_make_adapter_result(mock_adapter)
+        )
 
         result = await router.route_read("ABC-123")
 
@@ -228,7 +242,9 @@ class TestRouteOperations:
         mock_adapter.read.return_value = mock_ticket
 
         # Mock _get_adapter to return our mock
-        mocker.patch.object(router, "_get_adapter", return_value=mock_adapter)
+        mocker.patch.object(
+            router, "_get_adapter", return_value=_make_adapter_result(mock_adapter)
+        )
 
         url = "https://github.com/owner/repo/issues/123"
         result = await router.route_read(url)
@@ -249,7 +265,9 @@ class TestRouteOperations:
         )
         mock_adapter.update.return_value = mock_ticket
 
-        mocker.patch.object(router, "_get_adapter", return_value=mock_adapter)
+        mocker.patch.object(
+            router, "_get_adapter", return_value=_make_adapter_result(mock_adapter)
+        )
 
         updates = {"title": "Updated Ticket", "priority": Priority.HIGH}
         result = await router.route_update("ABC-123", updates)
@@ -263,7 +281,9 @@ class TestRouteOperations:
         mock_adapter = mocker.AsyncMock()
         mock_adapter.delete.return_value = True
 
-        mocker.patch.object(router, "_get_adapter", return_value=mock_adapter)
+        mocker.patch.object(
+            router, "_get_adapter", return_value=_make_adapter_result(mock_adapter)
+        )
 
         result = await router.route_delete("ABC-123")
 
@@ -281,7 +301,9 @@ class TestRouteOperations:
         )
         mock_adapter.add_comment.return_value = comment
 
-        mocker.patch.object(router, "_get_adapter", return_value=mock_adapter)
+        mocker.patch.object(
+            router, "_get_adapter", return_value=_make_adapter_result(mock_adapter)
+        )
 
         result = await router.route_add_comment("ABC-123", comment)
 
@@ -306,7 +328,9 @@ class TestRouteOperations:
         ]
         mock_adapter.get_comments.return_value = mock_comments
 
-        mocker.patch.object(router, "_get_adapter", return_value=mock_adapter)
+        mocker.patch.object(
+            router, "_get_adapter", return_value=_make_adapter_result(mock_adapter)
+        )
 
         result = await router.route_get_comments("ABC-123", limit=10, offset=0)
 
@@ -333,7 +357,9 @@ class TestRouteOperations:
         ]
         mock_adapter.list_issues_by_epic.return_value = mock_issues
 
-        mocker.patch.object(router, "_get_adapter", return_value=mock_adapter)
+        mocker.patch.object(
+            router, "_get_adapter", return_value=_make_adapter_result(mock_adapter)
+        )
 
         result = await router.route_list_issues_by_epic("EPIC-123")
 
@@ -360,7 +386,9 @@ class TestRouteOperations:
         ]
         mock_adapter.list_tasks_by_issue.return_value = mock_tasks
 
-        mocker.patch.object(router, "_get_adapter", return_value=mock_adapter)
+        mocker.patch.object(
+            router, "_get_adapter", return_value=_make_adapter_result(mock_adapter)
+        )
 
         result = await router.route_list_tasks_by_issue("ISS-123")
 

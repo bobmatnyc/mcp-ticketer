@@ -34,7 +34,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from mcp_ticketer.core.models import RelationType, TicketRelation
-from mcp_ticketer.mcp.server.tools.hierarchy_tools import hierarchy
+from mcp_ticketer.mcp.server.tools.hierarchy_tools import ticket_hierarchy as hierarchy
 
 
 @pytest.fixture

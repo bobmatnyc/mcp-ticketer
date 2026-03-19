@@ -1,8 +1,22 @@
 """Unit tests for Linear adapter label creation functionality."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
+
+def _make_cache_mock(cached_labels=None):
+    """Create a MemoryCache mock for tests. Pass cached_labels to simulate a cache hit."""
+    cache = MagicMock()
+    cache.get = AsyncMock(return_value=cached_labels)
+    cache.set = AsyncMock()
+    cache.clear = AsyncMock()
+    return cache
+
+
+# Non-empty cache with no useful labels — lets code proceed past early-return.
+_SENTINEL_LABELS = [{"id": "sentinel-id", "name": "_sentinel_", "color": "#000000"}]
+
 
 from mcp_ticketer.adapters.linear.adapter import LinearAdapter
 from mcp_ticketer.core.exceptions import AdapterError
@@ -42,16 +56,15 @@ class TestLabelCreation:
         }
 
         adapter.client.execute_mutation = AsyncMock(return_value=mock_result)
-        adapter._labels_cache = []
+        adapter._labels_cache = _make_cache_mock()
 
         # Execute
         result = await adapter._create_label(label_name, team_id)
 
         # Verify
         assert result == expected_label_id
-        assert len(adapter._labels_cache) == 1
-        assert adapter._labels_cache[0]["id"] == expected_label_id
-        assert adapter._labels_cache[0]["name"] == label_name
+        # Note: _create_label now invalidates the cache (calls clear()) rather than appending to a list
+        adapter._labels_cache.clear.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_create_label_failure(self, adapter):
@@ -91,7 +104,7 @@ class TestLabelCreation:
         }
 
         adapter.client.execute_mutation = AsyncMock(return_value=mock_result)
-        adapter._labels_cache = []
+        adapter._labels_cache = _make_cache_mock()
 
         # Execute
         result = await adapter._create_label(label_name, team_id, color=custom_color)
@@ -115,8 +128,8 @@ class TestLabelCreation:
         label_names = ["MCP Ticketer", "Bug", "Enhancement"]
         team_id = "test-team-id"
 
-        # Mock no existing labels
-        adapter._labels_cache = []
+        # Mock no existing labels in cache (sentinel keeps code past early-return)
+        adapter._labels_cache = _make_cache_mock(_SENTINEL_LABELS)
         adapter._ensure_team_id = AsyncMock(return_value=team_id)
 
         # Mock Tier 2: Server check returns None (labels don't exist)
@@ -146,10 +159,12 @@ class TestLabelCreation:
         existing_ids = ["existing-label-1", "existing-label-2"]
 
         # Mock existing labels
-        adapter._labels_cache = [
-            {"id": existing_ids[0], "name": "MCP Ticketer", "color": "#0366d6"},
-            {"id": existing_ids[1], "name": "Bug", "color": "#ff0000"},
-        ]
+        adapter._labels_cache = _make_cache_mock(
+            [
+                {"id": existing_ids[0], "name": "MCP Ticketer", "color": "#0366d6"},
+                {"id": existing_ids[1], "name": "Bug", "color": "#ff0000"},
+            ]
+        )
         adapter._ensure_team_id = AsyncMock(return_value=team_id)
         adapter._create_label = AsyncMock()
 
@@ -167,9 +182,11 @@ class TestLabelCreation:
         team_id = "test-team-id"
 
         # Mock one existing label, two new
-        adapter._labels_cache = [
-            {"id": "existing-label-1", "name": "MCP Ticketer", "color": "#0366d6"},
-        ]
+        adapter._labels_cache = _make_cache_mock(
+            [
+                {"id": "existing-label-1", "name": "MCP Ticketer", "color": "#0366d6"},
+            ]
+        )
         adapter._ensure_team_id = AsyncMock(return_value=team_id)
 
         # Mock Tier 2: Server check returns None for new labels
@@ -200,11 +217,13 @@ class TestLabelCreation:
         team_id = "test-team-id"
 
         # Mock existing labels with different casing
-        adapter._labels_cache = [
-            {"id": "existing-label-1", "name": "MCP Ticketer", "color": "#0366d6"},
-            {"id": "existing-label-2", "name": "bug", "color": "#ff0000"},
-            {"id": "existing-label-3", "name": "ENHANCEMENT", "color": "#00ff00"},
-        ]
+        adapter._labels_cache = _make_cache_mock(
+            [
+                {"id": "existing-label-1", "name": "MCP Ticketer", "color": "#0366d6"},
+                {"id": "existing-label-2", "name": "bug", "color": "#ff0000"},
+                {"id": "existing-label-3", "name": "ENHANCEMENT", "color": "#00ff00"},
+            ]
+        )
         adapter._ensure_team_id = AsyncMock(return_value=team_id)
         adapter._create_label = AsyncMock()
 
@@ -222,7 +241,7 @@ class TestLabelCreation:
         label_names = ["Success Label", "Failure Label", "Another Success"]
         team_id = "test-team-id"
 
-        adapter._labels_cache = []
+        adapter._labels_cache = _make_cache_mock(_SENTINEL_LABELS)
         adapter._ensure_team_id = AsyncMock(return_value=team_id)
 
         # Mock Tier 2: Server check returns None (labels don't exist)
@@ -257,12 +276,22 @@ class TestLabelCreation:
         label_names = ["Test Label"]
         team_id = "test-team-id"
 
-        # Cache not loaded yet
-        adapter._labels_cache = None
+        # Cache not loaded yet (returns None = cache miss, triggers _load_team_labels)
+        get_call_count = [0]
+
+        async def cache_get_side_effect(key):
+            get_call_count[0] += 1
+            if get_call_count[0] <= 1:
+                return None  # First call: cache miss
+            return (
+                _SENTINEL_LABELS  # After load: has labels (but not the requested one)
+            )
+
+        cache_mock = _make_cache_mock()
+        cache_mock.get = AsyncMock(side_effect=cache_get_side_effect)
+        adapter._labels_cache = cache_mock
         adapter._ensure_team_id = AsyncMock(return_value=team_id)
-        adapter._load_team_labels = AsyncMock(
-            side_effect=lambda tid: setattr(adapter, "_labels_cache", [])
-        )
+        adapter._load_team_labels = AsyncMock()  # Just needs to run without error
         # Mock Tier 2: Server check returns None (label doesn't exist)
         adapter._find_label_by_name = AsyncMock(return_value=None)
         adapter._create_label = AsyncMock(return_value="new-label-id")
@@ -438,7 +467,9 @@ class TestLabelCreation:
         team_id = "test-team-id"
 
         # Setup
-        adapter._labels_cache = []  # Cache miss
+        adapter._labels_cache = _make_cache_mock(
+            _SENTINEL_LABELS
+        )  # Cache with no matching labels
         adapter._ensure_team_id = AsyncMock(return_value=team_id)
 
         # Mock server check failure (after retries)
@@ -480,8 +511,8 @@ class TestLabelCreation:
             "description": "Exists on server",
         }
 
-        # Cache is empty (stale)
-        adapter._labels_cache = []
+        # Cache is empty/stale (sentinel lets code proceed past early-return)
+        adapter._labels_cache = _make_cache_mock(_SENTINEL_LABELS)
         adapter._ensure_team_id = AsyncMock(return_value=team_id)
 
         # Mock Tier 2: Server has the label
@@ -497,9 +528,8 @@ class TestLabelCreation:
         assert result == ["stale-label-id"]
         adapter._find_label_by_name.assert_called_once_with("Stale Label", team_id)
         adapter._create_label.assert_not_called()  # Should NOT create duplicate
-        # Cache should be updated
-        assert len(adapter._labels_cache) == 1
-        assert adapter._labels_cache[0] == server_label
+        # Cache is invalidated (cleared) after stale label found on server
+        adapter._labels_cache.clear.assert_called()
 
     @pytest.mark.asyncio
     async def test_ensure_labels_exist_duplicate_prevention(self, adapter):
@@ -511,7 +541,7 @@ class TestLabelCreation:
         label_names = ["Existing Label"]
         team_id = "test-team-id"
 
-        adapter._labels_cache = []
+        adapter._labels_cache = _make_cache_mock(_SENTINEL_LABELS)
         adapter._ensure_team_id = AsyncMock(return_value=team_id)
 
         # Tier 2 finds it on server
@@ -543,9 +573,9 @@ class TestLabelCreation:
         team_id = "test-team-id"
 
         # Cache has only first label
-        adapter._labels_cache = [
-            {"id": "cached-id", "name": "Cached Label", "color": "#0366d6"}
-        ]
+        adapter._labels_cache = _make_cache_mock(
+            [{"id": "cached-id", "name": "Cached Label", "color": "#0366d6"}]
+        )
         adapter._ensure_team_id = AsyncMock(return_value=team_id)
 
         # Tier 2 finds second label, misses third
@@ -572,8 +602,8 @@ class TestLabelCreation:
         assert adapter._find_label_by_name.call_count == 2
         # Tier 3 called once (only for truly new label)
         adapter._create_label.assert_called_once_with("New Label", team_id)
-        # Cache updated with server label
-        assert len(adapter._labels_cache) == 2
+        # Cache is invalidated (cleared) when stale label found via Tier 2
+        adapter._labels_cache.clear.assert_called()
 
     @pytest.mark.asyncio
     async def test_create_label_duplicate_recovery_success(self, adapter):
@@ -596,7 +626,7 @@ class TestLabelCreation:
             "description": None,
         }
         adapter._find_label_by_name = AsyncMock(return_value=existing_label)
-        adapter._labels_cache = []
+        adapter._labels_cache = _make_cache_mock()
 
         # Execute - should recover gracefully
         result = await adapter._create_label(label_name, team_id)
@@ -604,9 +634,8 @@ class TestLabelCreation:
         # Verify
         assert result == existing_label_id
         adapter._find_label_by_name.assert_called_once_with(label_name, team_id)
-        # Cache should be updated with recovered label
-        assert len(adapter._labels_cache) == 1
-        assert adapter._labels_cache[0] == existing_label
+        # Cache is invalidated after recovery (clear() is called)
+        adapter._labels_cache.clear.assert_called()
 
     @pytest.mark.asyncio
     async def test_create_label_duplicate_recovery_failure(self, adapter):
@@ -622,7 +651,7 @@ class TestLabelCreation:
 
         # Mock: Recovery lookup returns None (permissions issue or API inconsistency)
         adapter._find_label_by_name = AsyncMock(return_value=None)
-        adapter._labels_cache = []
+        adapter._labels_cache = _make_cache_mock()
 
         # Execute - should raise clear error message
         with pytest.raises(ValueError) as exc_info:
@@ -644,7 +673,7 @@ class TestLabelCreation:
         network_error = AdapterError("Network timeout", "linear")
         adapter.client.execute_mutation = AsyncMock(side_effect=network_error)
         adapter._find_label_by_name = AsyncMock()
-        adapter._labels_cache = []
+        adapter._labels_cache = _make_cache_mock()
 
         # Execute - should raise original error
         with pytest.raises(ValueError) as exc_info:
@@ -801,7 +830,7 @@ class TestLabelCreationIntegration:
         adapter._ensure_team_id = AsyncMock(return_value=team_id)
         adapter._initialized = True
         adapter._workflow_states = {"unstarted": {"id": "state-id-1", "position": 0}}
-        adapter._labels_cache = []
+        adapter._labels_cache = _make_cache_mock()
 
         # Mock label creation
         created_label_ids = ["label-1", "label-2", "label-3"]
@@ -849,7 +878,7 @@ class TestLabelCreationIntegration:
         adapter._ensure_team_id = AsyncMock(return_value=team_id)
         adapter._initialized = True
         adapter._workflow_states = {"unstarted": {"id": "state-id-1", "position": 0}}
-        adapter._labels_cache = []
+        adapter._labels_cache = _make_cache_mock()
 
         # Mock label creation
         new_label_ids = ["new-label-1", "new-label-2"]

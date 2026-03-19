@@ -130,6 +130,49 @@ class MockAdapter(BaseAdapter[Task]):
         """Mock implementation of validate_credentials."""
         return True
 
+    async def search_users(self, query: str) -> list[dict]:
+        """Mock search_users."""
+        return []
+
+    async def milestone_create(
+        self,
+        name: str,
+        target_date=None,
+        labels=None,
+        description: str = "",
+        project_id=None,
+    ):
+        """Mock milestone_create."""
+        return None
+
+    async def milestone_get(self, milestone_id: str):
+        """Mock milestone_get."""
+        return None
+
+    async def milestone_list(self, project_id=None, state=None) -> list:
+        """Mock milestone_list."""
+        return []
+
+    async def milestone_update(
+        self,
+        milestone_id: str,
+        name=None,
+        target_date=None,
+        state=None,
+        labels=None,
+        description=None,
+    ):
+        """Mock milestone_update."""
+        return None
+
+    async def milestone_delete(self, milestone_id: str) -> bool:
+        """Mock milestone_delete."""
+        return True
+
+    async def milestone_get_issues(self, milestone_id: str, state=None) -> list:
+        """Mock milestone_get_issues."""
+        return []
+
 
 @pytest.fixture
 def mock_adapter(mock_adapter_config: dict[str, Any]) -> MockAdapter:

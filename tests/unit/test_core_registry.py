@@ -101,6 +101,10 @@ class MockAdapter(BaseAdapter[Task]):
         """Mock milestone get issues method."""
         return []
 
+    async def search_users(self, query: str) -> builtins.list[dict]:
+        """Mock search_users."""
+        return []
+
 
 class InvalidAdapter:
     """Invalid adapter that doesn't inherit from BaseAdapter."""

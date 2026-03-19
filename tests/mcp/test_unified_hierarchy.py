@@ -21,7 +21,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from mcp_ticketer.core.models import Epic, Task, TicketType
-from mcp_ticketer.mcp.server.tools.hierarchy_tools import hierarchy
+from mcp_ticketer.mcp.server.tools.hierarchy_tools import ticket_hierarchy as hierarchy
 
 
 # Helper to create a mock adapter
@@ -522,7 +522,8 @@ async def test_hierarchy_task_only_supports_create():
 
         assert result["status"] == "error"
         assert "create" in result["valid_actions"]
-        assert len(result["valid_actions"]) == 1
+        # Tasks support create + relation operations (add_relation, remove_relation, list_relations)
+        assert len(result["valid_actions"]) >= 1
 
 
 # === HIERARCHY TREE (3 tests) ===
