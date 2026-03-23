@@ -95,7 +95,7 @@ class MilestoneManager:
         """
         try:
             with open(self.milestones_file, encoding="utf-8") as f:
-                return json.load(f)
+                return json.load(f)  # type: ignore[no-any-return]
         except (json.JSONDecodeError, FileNotFoundError) as e:
             logger.warning(
                 f"Failed to load milestones from {self.milestones_file}: {e}"
@@ -116,7 +116,7 @@ class MilestoneManager:
             json.dump(data, f, indent=2, default=self._json_serializer)
 
     @staticmethod
-    def _json_serializer(obj):
+    def _json_serializer(obj):  # type: ignore[no-untyped-def]
         """Custom JSON serializer for datetime objects.
 
         Args:

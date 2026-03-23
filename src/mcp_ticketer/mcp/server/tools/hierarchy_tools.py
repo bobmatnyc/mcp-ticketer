@@ -380,7 +380,7 @@ async def ticket_hierarchy(
                     "hint": "Example: ticket_hierarchy(entity_type='task', action='list_relations', entity_id='TASK-789')",
                 }
             try:
-                rel_type = RelationType(relation_type) if relation_type else None
+                rel_type = RelationType(relation_type) if relation_type else None  # type: ignore[assignment]
                 relations = await adapter.list_relations(entity_id, rel_type)
                 return {
                     "status": "completed",
@@ -461,10 +461,10 @@ async def ticket_hierarchy(
 
                     # Use adapter's get_epic method if available (optimized for some adapters)
                     if hasattr(adapter, "get_epic"):
-                        epic = await adapter.get_epic(final_epic_id)
+                        epic = await adapter.get_epic(final_epic_id)  # type: ignore[assignment]
                     else:
                         # Fallback to generic read method
-                        epic = await adapter.read(final_epic_id)
+                        epic = await adapter.read(final_epic_id)  # type: ignore[assignment]
 
                     if epic is None:
                         return {
@@ -583,7 +583,7 @@ async def ticket_hierarchy(
                         # Parse target date if provided
                         try:
                             target_datetime = datetime.fromisoformat(target_date)
-                            updates["target_date"] = target_datetime
+                            updates["target_date"] = target_datetime  # type: ignore[assignment]
                         except ValueError:
                             return {
                                 "status": "error",
@@ -686,7 +686,7 @@ async def ticket_hierarchy(
                     final_epic_id = entity_id or epic_id or ""
 
                     # Read the epic to get child issue IDs
-                    epic = await adapter.read(final_epic_id)
+                    epic = await adapter.read(final_epic_id)  # type: ignore[assignment]
                     if epic is None:
                         return {
                             "status": "error",
@@ -726,7 +726,7 @@ async def ticket_hierarchy(
                     final_epic_id = entity_id or epic_id or ""
 
                     # Read the epic
-                    epic = await adapter.read(final_epic_id)
+                    epic = await adapter.read(final_epic_id)  # type: ignore[assignment]
                     if epic is None:
                         return {
                             "status": "error",
@@ -763,7 +763,7 @@ async def ticket_hierarchy(
                                     if task:
                                         issue_data["tasks"].append(task.model_dump())
 
-                            tree["issues"].append(issue_data)
+                            tree["issues"].append(issue_data)  # type: ignore[attr-defined]
 
                     return {
                         "status": "completed",
@@ -820,17 +820,17 @@ async def ticket_hierarchy(
                     # Determine final_epic_id based on priority order:
                     # Priority 1: Explicit epic_id argument (including explicit None for opt-out)
                     # Priority 2: Config default (default_epic or default_project)
-                    final_epic_id: str | None = None
+                    final_epic_id: str | None = None  # type: ignore[no-redef]
 
                     # Handle epic_id with sentinel for explicit None
                     effective_epic_id = _UNSET if epic_id is None else epic_id
 
                     if effective_epic_id is not _UNSET:
                         # Priority 1: Explicit value provided (including None for opt-out)
-                        final_epic_id = effective_epic_id
+                        final_epic_id = effective_epic_id  # type: ignore[assignment]
                     elif config.default_project or config.default_epic:
                         # Priority 2: Use configured default
-                        final_epic_id = config.default_project or config.default_epic
+                        final_epic_id = config.default_project or config.default_epic  # type: ignore[assignment]
 
                     # Auto-detect labels if enabled
                     final_tags = tags

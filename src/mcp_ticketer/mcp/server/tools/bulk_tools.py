@@ -205,7 +205,7 @@ async def ticket_bulk(
                     "error": "No updates provided for bulk operation",
                 }
 
-            results: dict[str, list[Any]] = {
+            results: dict[str, list[Any]] = {  # type: ignore[no-redef]
                 "updated": [],
                 "failed": [],
             }

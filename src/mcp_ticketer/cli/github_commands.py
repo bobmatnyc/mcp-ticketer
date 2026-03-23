@@ -374,7 +374,7 @@ def refresh_token(
         else:
             key = f"github:{name}"
     else:
-        key = config.active_github_connection
+        key = config.active_github_connection  # type: ignore[assignment]
         if not key:
             console.print("[red]No active GitHub connection.[/red]")
             raise typer.Exit(1)

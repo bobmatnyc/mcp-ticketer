@@ -191,7 +191,7 @@ def validate_migrated_config(config: TicketerConfig) -> bool:
         adapter_dict = adapter_config.to_dict()
         adapter_type = adapter_dict.get("adapter")
 
-        is_valid, error = ConfigValidator.validate(adapter_type, adapter_dict)
+        is_valid, error = ConfigValidator.validate(adapter_type, adapter_dict)  # type: ignore[arg-type]
 
         if not is_valid:
             console.print(f"[red]✗[/red] {name}: {error}")

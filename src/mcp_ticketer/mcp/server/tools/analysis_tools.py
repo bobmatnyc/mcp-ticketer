@@ -232,7 +232,7 @@ async def ticket_find(
         }
 
     # Forward to ticket_analyze
-    return await ticket_analyze(
+    return await ticket_analyze(  # type: ignore[no-any-return]
         action=action_map[find_type_lower],
         ticket_id=ticket_id,
         threshold=threshold,

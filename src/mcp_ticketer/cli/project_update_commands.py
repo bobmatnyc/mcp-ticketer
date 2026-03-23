@@ -52,7 +52,7 @@ def _format_relative_time(dt: datetime) -> str:
     try:
         from humanize import naturaltime
 
-        return naturaltime(dt)
+        return naturaltime(dt)  # type: ignore[no-any-return]
     except ImportError:
         # Fallback to ISO format if humanize not available
         return dt.strftime("%Y-%m-%d %H:%M:%S")

@@ -200,9 +200,9 @@ class OnePasswordSecretsLoader:
         values = dotenv_values(env_file)
 
         if output_dict is not None:
-            output_dict.update(values)
+            output_dict.update(values)  # type: ignore[arg-type]
             return output_dict
-        return dict(values)
+        return dict(values)  # type: ignore[arg-type]
 
     def _parse_env_output(self, output: str) -> dict[str, str]:
         """Parse environment variable output from op inject.

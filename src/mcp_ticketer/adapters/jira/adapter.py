@@ -42,7 +42,7 @@ from .types import extract_text_from_adf, get_state_mapping, parse_jira_datetime
 logger = logging.getLogger(__name__)
 
 
-class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
+class JiraAdapter(BaseAdapter[Union[Epic, Task]]):  # type: ignore[type-var]
     """Adapter for JIRA using REST API v3."""
 
     def __init__(self, config: dict[str, Any]):
@@ -161,7 +161,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
     async def _get_priorities(self) -> list[dict[str, Any]]:
         """Get available priorities from JIRA."""
         if not self._priority_cache:
-            self._priority_cache = await self.client.get("priority")
+            self._priority_cache = await self.client.get("priority")  # type: ignore[assignment]
         return self._priority_cache
 
     async def _get_issue_types(
@@ -172,21 +172,21 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         if key not in self._issue_types_cache:
             data = await self.client.get(f"project/{key}")
             self._issue_types_cache[key] = data.get("issueTypes", [])
-        return self._issue_types_cache[key]
+        return self._issue_types_cache[key]  # type: ignore[no-any-return]
 
     async def _get_transitions(self, issue_key: str) -> list[dict[str, Any]]:
         """Get available transitions for an issue."""
         data = await self.client.get(f"issue/{issue_key}/transitions")
-        return data.get("transitions", [])
+        return data.get("transitions", [])  # type: ignore[no-any-return]
 
     async def _get_custom_fields(self) -> dict[str, str]:
         """Get custom field definitions."""
         if not self._custom_fields_cache:
             fields = await self.client.get("field")
             self._custom_fields_cache = {
-                field["name"]: field["id"]
+                field["name"]: field["id"]  # type: ignore[index]
                 for field in fields
-                if field.get("custom", False)
+                if field.get("custom", False)  # type: ignore[attr-defined]
             }
         return self._custom_fields_cache
 
@@ -386,7 +386,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         # Update comment with JIRA data
         comment.id = result.get("id")
         comment.created_at = (
-            parse_jira_datetime(result.get("created")) or datetime.now()
+            parse_jira_datetime(result.get("created")) or datetime.now()  # type: ignore[arg-type]
         )
         comment.author = result.get("author", {}).get("displayName", comment.author)
         comment.metadata["jira"] = result
@@ -506,7 +506,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             params={"state": "active,future"},
         )
 
-        return sprints_data.get("values", [])
+        return sprints_data.get("values", [])  # type: ignore[no-any-return]
 
     async def get_project_users(self) -> builtins.list[dict[str, Any]]:
         """Get users who have access to the project."""
@@ -761,7 +761,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             # Get sprints for the board
             params = {"maxResults": limit}
             if state:
-                params["state"] = state
+                params["state"] = state  # type: ignore[assignment]
 
             sprints_data = await self._make_request(
                 "GET",
@@ -943,12 +943,12 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             logger.error(f"Failed to get issue status: {e}")
             raise ValueError(f"Failed to get issue status: {e}") from e
 
-    async def create_epic(
+    async def create_epic(  # type: ignore[override]
         self,
         title: str,
         description: str = "",
         priority: Priority = Priority.MEDIUM,
-        tags: list[str] | None = None,
+        tags: builtins.list[str] | None = None,
         **kwargs: Any,
     ) -> Epic:
         """Create a new JIRA Epic.
@@ -1112,7 +1112,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
             await self.transition_state(epic_id, updates["state"])
 
         # Fetch and return updated epic
-        return await self.read(epic_id)
+        return await self.read(epic_id)  # type: ignore[return-value]
 
     async def add_attachment(
         self, ticket_id: str, file_path: str, description: str | None = None
@@ -1153,7 +1153,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         )
 
         # JIRA returns array with single attachment
-        attachment_data = result[0]
+        attachment_data = result[0]  # type: ignore[index]
 
         return Attachment(
             id=attachment_data["id"],
@@ -1264,7 +1264,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         self,
         name: str,
         target_date: datetime | None = None,
-        labels: list[str] | None = None,
+        labels: builtins.list[str] | None = None,
         description: str = "",
         project_id: str | None = None,
     ) -> Any:
@@ -1303,7 +1303,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         self,
         project_id: str | None = None,
         state: str | None = None,
-    ) -> list[Any]:
+    ) -> builtins.list[Any]:
         """List milestones - not yet implemented for Jira.
 
         Args:
@@ -1324,7 +1324,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         name: str | None = None,
         target_date: datetime | None = None,
         state: str | None = None,
-        labels: list[str] | None = None,
+        labels: builtins.list[str] | None = None,
         description: str | None = None,
     ) -> Any:
         """Update milestone - not yet implemented for Jira.
@@ -1363,7 +1363,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         self,
         milestone_id: str,
         state: str | None = None,
-    ) -> list[Any]:
+    ) -> builtins.list[Any]:
         """Get milestone issues - not yet implemented for Jira.
 
         Args:
@@ -1378,7 +1378,7 @@ class JiraAdapter(BaseAdapter[Union[Epic, Task]]):
         """
         raise NotImplementedError("Milestone support for Jira coming in v2.1.0")
 
-    async def search_users(self, query: str) -> list[dict[str, Any]]:
+    async def search_users(self, query: str) -> builtins.list[dict[str, Any]]:
         """Search for users by name or email.
 
         Args:

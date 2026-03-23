@@ -89,7 +89,7 @@ async def _handle_project_status(project_id: str | None = None) -> dict[str, Any
         # Use default project if not provided
         if not project_id:
             resolver = ConfigResolver()
-            config = resolver.resolve()
+            config = resolver.resolve()  # type: ignore[attr-defined]
             project_id = config.default_project
 
             if not project_id:

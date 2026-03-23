@@ -114,7 +114,7 @@ class Worker:
             return
 
         self.running = True
-        self.stats["start_time"] = datetime.now()
+        self.stats["start_time"] = datetime.now()  # type: ignore[assignment]
         logger.info("Starting worker...")
 
         if daemon:
@@ -147,7 +147,7 @@ class Worker:
                 if batch:
                     # Process batch
                     asyncio.run(self._process_batch(batch))
-                    self.stats["batches_processed"] += 1
+                    self.stats["batches_processed"] += 1  # type: ignore[operator]
                 else:
                     # No items, wait a bit
                     self.stop_event.wait(timeout=1)
@@ -279,7 +279,7 @@ class Worker:
                     f"Failed to update status for {item.id} - item may have been processed by another worker"
                 )
 
-            self.stats["items_processed"] += 1
+            self.stats["items_processed"] += 1  # type: ignore[operator]
             logger.info(f"Successfully processed {item.id}, ticket ID: {ticket_id}")
 
         except Exception as e:
@@ -332,7 +332,7 @@ class Worker:
                     logger.warning(
                         f"Failed to mark {item.id} as failed - item may have been processed by another worker"
                     )
-                self.stats["items_failed"] += 1
+                self.stats["items_failed"] += 1  # type: ignore[operator]
                 logger.error(f"Max retries exceeded for {item.id}, marking as failed")
 
     async def _check_rate_limit(self, adapter: str) -> None:
@@ -556,7 +556,7 @@ class Worker:
         # Calculate throughput
         throughput = 0
         if self.stats["start_time"]:
-            elapsed = (datetime.now() - self.stats["start_time"]).total_seconds()
+            elapsed = (datetime.now() - self.stats["start_time"]).total_seconds()  # type: ignore[operator]
             if elapsed > 0:
                 throughput = (
                     self.stats["items_processed"] / elapsed * 60
@@ -574,7 +574,7 @@ class Worker:
                 "batches_processed": self.stats["batches_processed"],
                 "throughput_per_minute": throughput,
                 "uptime_seconds": (
-                    (datetime.now() - self.stats["start_time"]).total_seconds()
+                    (datetime.now() - self.stats["start_time"]).total_seconds()  # type: ignore[operator]
                     if self.stats["start_time"]
                     else 0
                 ),

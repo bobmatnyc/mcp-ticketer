@@ -208,7 +208,7 @@ class CommonPatterns:
                     logger.info(
                         f"Loaded configuration from project-local: {project_config}"
                     )
-                    return config
+                    return config  # type: ignore[no-any-return]
             except (OSError, json.JSONDecodeError) as e:
                 logger.warning(f"Could not load project config: {e}, using defaults")
                 console.print(
@@ -236,13 +236,13 @@ class CommonPatterns:
                 # Convert adapter configs to dict format
                 for name, adapter_config in enabled_adapters.items():
                     if hasattr(adapter_config, "model_dump"):
-                        legacy_config["adapters"][name] = adapter_config.model_dump(
+                        legacy_config["adapters"][name] = adapter_config.model_dump(  # type: ignore[index]
                             exclude_none=False
                         )
                     elif hasattr(adapter_config, "dict"):
-                        legacy_config["adapters"][name] = adapter_config.dict()
+                        legacy_config["adapters"][name] = adapter_config.dict()  # type: ignore[index]
                     else:
-                        legacy_config["adapters"][name] = adapter_config
+                        legacy_config["adapters"][name] = adapter_config  # type: ignore[index]
 
                 logger.info(
                     f"Loaded configuration from environment discovery: {list(enabled_adapters.keys())}"
@@ -688,7 +688,7 @@ def create_standard_ticket_command(operation: str) -> Callable[..., str]:
         if assignee:
             ticket_data["assignee"] = assignee
         if tags:
-            ticket_data["tags"] = tags
+            ticket_data["tags"] = tags  # type: ignore[assignment]
 
         # Queue the operation
         queue_id = CommonPatterns.queue_operation(ticket_data, operation, adapter)
@@ -718,7 +718,7 @@ class TicketCommands:
         if state:
             filters["state"] = state
         if priority:
-            filters["priority"] = priority
+            filters["priority"] = priority  # type: ignore[assignment]
 
         tickets = await adapter_instance.list(limit=limit, filters=filters)
         CommonPatterns.display_ticket_table(tickets)

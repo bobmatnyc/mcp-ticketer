@@ -181,7 +181,7 @@ class MCPTicketServer:
         request = CreateTicketRequest(**params)
 
         # Build task from validated DTO
-        task = Task(  # type: ignore[call-arg]
+        task = Task(
             title=request.title,
             description=request.description,
             priority=Priority(request.priority),
@@ -259,7 +259,7 @@ class MCPTicketServer:
 
     async def _handle_search(self, params: dict[str, Any]) -> dict[str, Any]:
         """Handle ticket search - SYNCHRONOUS."""
-        query = SearchQuery(  # type: ignore[call-arg]
+        query = SearchQuery(
             query=params.get("query"),
             state=TicketState(params["state"]) if params.get("state") else None,
             priority=Priority(params["priority"]) if params.get("priority") else None,
@@ -295,7 +295,7 @@ class MCPTicketServer:
         operation = params.get("operation", "add")
 
         if operation == "add":
-            comment = Comment(  # type: ignore[call-arg]
+            comment = Comment(
                 ticket_id=params["ticket_id"],
                 content=params["content"],
                 author=params.get("author"),
@@ -335,7 +335,7 @@ class MCPTicketServer:
         if request.lead_id:
             metadata["lead_id"] = request.lead_id
 
-        epic = Epic(  # type: ignore[call-arg]
+        epic = Epic(
             title=request.title,
             description=request.description,
             child_issues=request.child_issues,
@@ -380,7 +380,7 @@ class MCPTicketServer:
         request = CreateIssueRequest(**params)
 
         # Build task (issue) from validated DTO
-        task = Task(  # type: ignore[call-arg]
+        task = Task(
             title=request.title,
             description=request.description,
             parent_epic=request.epic_id,  # Issues are tasks under epics
@@ -413,7 +413,7 @@ class MCPTicketServer:
         request = CreateTaskRequest(**params)
 
         # Build task from validated DTO
-        task = Task(  # type: ignore[call-arg]
+        task = Task(
             title=request.title,
             parent_issue=request.parent_id,
             description=request.description,

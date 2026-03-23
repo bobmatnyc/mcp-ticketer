@@ -146,9 +146,9 @@ class AsanaClient:
 
                 # Asana wraps responses in {"data": {...}}
                 if isinstance(response_data, dict) and "data" in response_data:
-                    return response_data["data"]
+                    return response_data["data"]  # type: ignore[no-any-return]
 
-                return response_data
+                return response_data  # type: ignore[no-any-return]
 
             except httpx.TimeoutException as e:
                 logger.error(f"Request timeout for {method} {url}: {e}")

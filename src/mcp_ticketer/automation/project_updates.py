@@ -66,7 +66,7 @@ class AutoProjectUpdateManager:
 
         """
         auto_updates_config = self.config.get("auto_project_updates", {})
-        return auto_updates_config.get("enabled", False)
+        return auto_updates_config.get("enabled", False)  # type: ignore[no-any-return]
 
     def get_update_frequency(self) -> str:
         """Get configured update frequency.
@@ -77,7 +77,7 @@ class AutoProjectUpdateManager:
 
         """
         auto_updates_config = self.config.get("auto_project_updates", {})
-        return auto_updates_config.get("update_frequency", "on_transition")
+        return auto_updates_config.get("update_frequency", "on_transition")  # type: ignore[no-any-return]
 
     def get_health_tracking_enabled(self) -> bool:
         """Check if health tracking is enabled.
@@ -88,7 +88,7 @@ class AutoProjectUpdateManager:
 
         """
         auto_updates_config = self.config.get("auto_project_updates", {})
-        return auto_updates_config.get("health_tracking", True)
+        return auto_updates_config.get("health_tracking", True)  # type: ignore[no-any-return]
 
     async def create_transition_update(
         self,

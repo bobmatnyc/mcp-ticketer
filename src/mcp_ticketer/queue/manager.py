@@ -143,7 +143,7 @@ class WorkerManager:
                 from dotenv import dotenv_values
 
                 env_vars = dotenv_values(env_file)
-                subprocess_env.update(env_vars)
+                subprocess_env.update(env_vars)  # type: ignore[arg-type]
                 logger.debug(
                     f"Added {len(env_vars)} environment variables from .env.local"
                 )

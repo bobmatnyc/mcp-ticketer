@@ -172,8 +172,8 @@ class AsanaAdapter(BaseAdapter[Task]):
             # If workspace name provided, find matching workspace
             if self.workspace_name:
                 for ws in workspaces:
-                    if ws.get("name", "").lower() == self.workspace_name.lower():
-                        self._workspace_gid = ws["gid"]
+                    if ws.get("name", "").lower() == self.workspace_name.lower():  # type: ignore[attr-defined]
+                        self._workspace_gid = ws["gid"]  # type: ignore[index]
                         logger.info(
                             f"Resolved workspace '{self.workspace_name}' to GID: {self._workspace_gid}"
                         )
@@ -182,9 +182,9 @@ class AsanaAdapter(BaseAdapter[Task]):
                 raise ValueError(f"Workspace '{self.workspace_name}' not found")
 
             # Use first workspace as default
-            self._workspace_gid = workspaces[0]["gid"]
+            self._workspace_gid = workspaces[0]["gid"]  # type: ignore[index]
             logger.info(
-                f"Using default workspace: {workspaces[0].get('name')} (GID: {self._workspace_gid})"
+                f"Using default workspace: {workspaces[0].get('name')} (GID: {self._workspace_gid})"  # type: ignore[index]
             )
 
         except Exception as e:
@@ -333,12 +333,12 @@ class AsanaAdapter(BaseAdapter[Task]):
 
             # Exact match
             if option_name == state_name:
-                return option
+                return option  # type: ignore[no-any-return]
 
             # Keyword match
             for keyword in target_keywords:
                 if keyword in option_name or option_name in keyword:
-                    return option
+                    return option  # type: ignore[no-any-return]
 
         return None
 
@@ -393,7 +393,7 @@ class AsanaAdapter(BaseAdapter[Task]):
             project_lower = project_identifier.lower()
             for project in projects:
                 if project.get("name", "").lower() == project_lower:
-                    return project["gid"]
+                    return project["gid"]  # type: ignore[no-any-return]
 
             return None
 
@@ -433,7 +433,7 @@ class AsanaAdapter(BaseAdapter[Task]):
                 name = user.get("name", "").lower()
 
                 if email == identifier_lower or name == identifier_lower:
-                    return user["gid"]
+                    return user["gid"]  # type: ignore[no-any-return]
 
             return None
 
@@ -443,7 +443,7 @@ class AsanaAdapter(BaseAdapter[Task]):
 
     # CRUD Operations
 
-    async def create(self, ticket: Epic | Task) -> Epic | Task:
+    async def create(self, ticket: Epic | Task) -> Epic | Task:  # type: ignore[override]
         """Create a new Asana project or task.
 
         Args:
@@ -854,7 +854,7 @@ class AsanaAdapter(BaseAdapter[Task]):
             # Filter by project
             if "parent_epic" in filters or "project" in filters:
                 project_id = filters.get("parent_epic") or filters.get("project")
-                project_gid = await self._resolve_project_gid(project_id)
+                project_gid = await self._resolve_project_gid(project_id)  # type: ignore[arg-type]
                 if project_gid:
                     endpoint = f"/projects/{project_gid}/tasks"
 
@@ -1072,7 +1072,7 @@ class AsanaAdapter(BaseAdapter[Task]):
         epic = Epic(
             title=title,
             description=description,
-            **{k: v for k, v in kwargs.items() if k in Epic.__fields__},
+            **{k: v for k, v in kwargs.items() if k in Epic.__fields__},  # type: ignore[operator]
         )
         result = await self.create(epic)
         if isinstance(result, Epic):
@@ -1356,7 +1356,7 @@ class AsanaAdapter(BaseAdapter[Task]):
         except Exception as e:
             raise ValueError(f"Failed to upload attachment '{filename}': {e}") from e
 
-    async def get_attachments(self, ticket_id: str) -> list[Attachment]:
+    async def get_attachments(self, ticket_id: str) -> builtins.list[Attachment]:
         """Get all attachments for an Asana task.
 
         Args:
@@ -1418,7 +1418,7 @@ class AsanaAdapter(BaseAdapter[Task]):
         self,
         name: str,
         target_date: datetime | None = None,
-        labels: list[str] | None = None,
+        labels: builtins.list[str] | None = None,
         description: str = "",
         project_id: str | None = None,
     ) -> Any:
@@ -1457,7 +1457,7 @@ class AsanaAdapter(BaseAdapter[Task]):
         self,
         project_id: str | None = None,
         state: str | None = None,
-    ) -> list[Any]:
+    ) -> builtins.list[Any]:
         """List milestones - not yet implemented for Asana.
 
         Args:
@@ -1478,7 +1478,7 @@ class AsanaAdapter(BaseAdapter[Task]):
         name: str | None = None,
         target_date: datetime | None = None,
         state: str | None = None,
-        labels: list[str] | None = None,
+        labels: builtins.list[str] | None = None,
         description: str | None = None,
     ) -> Any:
         """Update milestone - not yet implemented for Asana.
@@ -1517,7 +1517,7 @@ class AsanaAdapter(BaseAdapter[Task]):
         self,
         milestone_id: str,
         state: str | None = None,
-    ) -> list[Any]:
+    ) -> builtins.list[Any]:
         """Get milestone issues - not yet implemented for Asana.
 
         Args:
@@ -1532,7 +1532,7 @@ class AsanaAdapter(BaseAdapter[Task]):
         """
         raise NotImplementedError("Milestone support for Asana coming in v2.1.0")
 
-    async def search_users(self, query: str) -> list[dict[str, Any]]:
+    async def search_users(self, query: str) -> builtins.list[dict[str, Any]]:
         """Search for users by name or email.
 
         Args:

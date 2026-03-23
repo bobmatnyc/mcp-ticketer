@@ -72,7 +72,7 @@ class RateLimiter:
 
             # Refill tokens based on time passed
             time_passed = now - self.last_update
-            self.tokens = min(
+            self.tokens = min(  # type: ignore[assignment]
                 self.max_requests,
                 self.tokens + (time_passed / self.time_window) * self.max_requests,
             )
@@ -268,7 +268,7 @@ class BaseHTTPClient:
             self.stats["errors"] += 1
 
             # Check if we should retry
-            response = getattr(e, "response", None)
+            response = getattr(e, "response", None)  # type: ignore[assignment]
             if self._should_retry(e, response, retry_count + 1):
                 delay = await self._calculate_delay(retry_count + 1, response)
 
@@ -321,7 +321,7 @@ class BaseHTTPClient:
         if response.status_code == 204 or not response.content:
             return {}
 
-        return response.json()
+        return response.json()  # type: ignore[no-any-return]
 
     async def post_json(self, endpoint: str, **kwargs: Any) -> dict[str, Any]:
         """Make POST request and return JSON response."""
@@ -331,7 +331,7 @@ class BaseHTTPClient:
         if response.status_code == 204 or not response.content:
             return {}
 
-        return response.json()
+        return response.json()  # type: ignore[no-any-return]
 
     async def put_json(self, endpoint: str, **kwargs: Any) -> dict[str, Any]:
         """Make PUT request and return JSON response."""
@@ -341,7 +341,7 @@ class BaseHTTPClient:
         if response.status_code == 204 or not response.content:
             return {}
 
-        return response.json()
+        return response.json()  # type: ignore[no-any-return]
 
     async def patch_json(self, endpoint: str, **kwargs: Any) -> dict[str, Any]:
         """Make PATCH request and return JSON response."""
@@ -351,7 +351,7 @@ class BaseHTTPClient:
         if response.status_code == 204 or not response.content:
             return {}
 
-        return response.json()
+        return response.json()  # type: ignore[no-any-return]
 
     def get_stats(self) -> dict[str, Any]:
         """Get client statistics."""

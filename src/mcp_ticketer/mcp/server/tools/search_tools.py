@@ -228,8 +228,8 @@ async def ticket_search(
                             ticket_comments[ticket.id] = [
                                 {
                                     "author": comment.author,
-                                    "text": comment.text[:200]
-                                    + ("..." if len(comment.text) > 200 else ""),
+                                    "text": comment.text[:200]  # type: ignore[attr-defined]
+                                    + ("..." if len(comment.text) > 200 else ""),  # type: ignore[attr-defined]
                                     "created_at": (
                                         comment.created_at.isoformat()
                                         if comment.created_at

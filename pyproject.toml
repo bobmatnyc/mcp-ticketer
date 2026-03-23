@@ -225,6 +225,7 @@ section-order = ["future", "standard-library", "third-party", "first-party", "lo
 # NOTE: Strict mode restored in v2.3.18 (was relaxed in v1.2.13)
 [tool.mypy]
 python_version = "3.10"
+plugins = ["pydantic.mypy"]
 warn_return_any = true  # Restored: warn about functions returning Any
 warn_unused_configs = true
 disallow_untyped_defs = true  # Restored: require type annotations
@@ -238,8 +239,11 @@ check_untyped_defs = true  # Restored: check untyped function bodies
 
 # Keep minimal error suppression for gradual typing
 disable_error_code = ["import-untyped"]  # Only suppress third-party import issues
-# - Remove disable_error_code directive
-# - Fix all remaining type errors properly
+
+[tool.pydantic-mypy]
+init_forbid_extra = false
+init_typed = true
+warn_required_dynamic_aliases = false
 
 [tool.pytest.ini_options]
 minversion = "7.4"

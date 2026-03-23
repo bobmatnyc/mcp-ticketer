@@ -141,7 +141,7 @@ def install_mcp_server(
         else:
             installer = MCPInstaller.auto_detect(dry_run=dry_run, verbose=verbose)
             console.print(
-                f"[green]Detected platform: {installer.platform.value}[/green]\n"
+                f"[green]Detected platform: {installer.platform.value}[/green]\n"  # type: ignore[attr-defined]
             )
 
         # Build environment variables from API keys
@@ -196,7 +196,7 @@ def install_mcp_server(
             table.add_row("Method", result.method.value)
             table.add_row("Scope", scope)
             table.add_row("Config Path", str(result.config_path))
-            table.add_row("Command", f"{result.command} {' '.join(result.args or [])}")
+            table.add_row("Command", f"{result.command} {' '.join(result.args or [])}")  # type: ignore[attr-defined]
 
             if dry_run:
                 table.add_row("Mode", "[yellow]DRY RUN - No changes made[/yellow]")
@@ -306,7 +306,7 @@ def list_mcp_servers(
         else:
             installer = MCPInstaller.auto_detect()
             console.print(
-                f"[green]Detected platform: {installer.platform.value}[/green]\n"
+                f"[green]Detected platform: {installer.platform.value}[/green]\n"  # type: ignore[attr-defined]
             )
 
         # List servers
@@ -391,7 +391,7 @@ def uninstall_mcp_server(
         else:
             installer = MCPInstaller.auto_detect(dry_run=dry_run)
             console.print(
-                f"[green]Detected platform: {installer.platform.value}[/green]\n"
+                f"[green]Detected platform: {installer.platform.value}[/green]\n"  # type: ignore[attr-defined]
             )
 
         # Uninstall

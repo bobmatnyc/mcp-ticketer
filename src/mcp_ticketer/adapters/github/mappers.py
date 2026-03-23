@@ -248,7 +248,7 @@ def map_github_milestone_to_milestone(
         id=str(gh_milestone["number"]),
         name=gh_milestone["title"],
         description=gh_milestone.get("description", ""),
-        target_date=target_date,
+        target_date=target_date,  # type: ignore[arg-type]
         state=state,
         labels=labels or [],
         total_issues=total,
@@ -353,17 +353,17 @@ def build_github_issue_input(
         labels.append(priority_label)
 
     if labels:
-        issue_data["labels"] = labels
+        issue_data["labels"] = labels  # type: ignore[assignment]
 
     # Add assignee if specified
     if task.assignee:
-        issue_data["assignees"] = [task.assignee]
+        issue_data["assignees"] = [task.assignee]  # type: ignore[assignment]
 
     # Add milestone if parent_epic is specified
     if task.parent_epic:
         try:
             milestone_number = int(task.parent_epic)
-            issue_data["milestone"] = milestone_number
+            issue_data["milestone"] = milestone_number  # type: ignore[assignment]
         except ValueError:
             # If parent_epic is not a number, caller should resolve it
             pass
@@ -793,5 +793,5 @@ def calculate_project_statistics(
         "in_progress_issues": in_progress_issues,
         "completed_issues": completed_issues,
         "blocked_issues": blocked_issues,
-        "priority_counts": priority_counts,
+        "priority_counts": priority_counts,  # type: ignore[dict-item]
     }

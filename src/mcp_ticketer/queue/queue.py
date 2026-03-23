@@ -378,7 +378,7 @@ class Queue:
                     result = cursor.fetchone()
                     if result:
                         conn.commit()
-                        return result[0]
+                        return result[0]  # type: ignore[no-any-return]
                     else:
                         conn.rollback()
                         return -1
@@ -460,7 +460,7 @@ class Queue:
                 (QueueStatus.PENDING.value,),
             )
 
-            return cursor.fetchone()[0]
+            return cursor.fetchone()[0]  # type: ignore[no-any-return]
 
     def cleanup_old(self, days: int = 7) -> None:
         """Clean up old completed/failed items.

@@ -268,9 +268,9 @@ class EnvDiscovery:
                                 file_path
                             )
                         else:
-                            env_vars = dotenv_values(file_path)
+                            env_vars = dotenv_values(file_path)  # type: ignore[assignment]
                     else:
-                        env_vars = dotenv_values(file_path)
+                        env_vars = dotenv_values(file_path)  # type: ignore[assignment]
 
                     # Filter out None values
                     env_vars = {k: v for k, v in env_vars.items() if v is not None}

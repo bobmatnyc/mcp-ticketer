@@ -125,7 +125,7 @@ def _load_existing_adapter_config(
     try:
         with open(config_path) as f:
             config = json.load(f)
-        return config.get("adapters", {}).get(adapter_type)
+        return config.get("adapters", {}).get(adapter_type)  # type: ignore[no-any-return]
     except (json.JSONDecodeError, OSError) as e:
         console.print(f"[yellow]Warning: Could not load existing config: {e}[/yellow]")
         return None
@@ -458,7 +458,7 @@ def _configure_single_adapter() -> TicketerConfig:
         default_user=default_values.get("default_user"),
         default_project=default_values.get("default_project"),
         default_epic=default_values.get("default_epic"),
-        default_tags=default_values.get("default_tags"),
+        default_tags=default_values.get("default_tags"),  # type: ignore[arg-type]
     )
 
     return config
@@ -513,7 +513,7 @@ def _configure_linear(
         )
         if preserve:
             console.print("[green]✓[/green] Keeping existing configuration")
-            config_dict = existing_config.copy()
+            config_dict = existing_config.copy()  # type: ignore[union-attr]
 
             # Allow updating specific fields
             update_fields = Confirm.ask("Update specific fields?", default=False)
@@ -842,7 +842,7 @@ def _configure_jira(
     has_existing = existing_config is not None
 
     # Server URL (with existing value as default)
-    existing_server = existing_config.get("server", "") if has_existing else ""
+    existing_server = existing_config.get("server", "") if has_existing else ""  # type: ignore[union-attr]
     final_server = server or os.getenv("JIRA_SERVER") or ""
 
     if interactive:
@@ -885,7 +885,7 @@ def _configure_jira(
             console.print(f"[yellow]Warning: {error}[/yellow]")
 
     # Email (with existing value as default)
-    existing_email = existing_config.get("email", "") if has_existing else ""
+    existing_email = existing_config.get("email", "") if has_existing else ""  # type: ignore[union-attr]
     final_email = email or os.getenv("JIRA_EMAIL") or ""
 
     if interactive:
@@ -902,7 +902,7 @@ def _configure_jira(
         )
 
     # API Token with validation loop
-    existing_token = existing_config.get("api_token", "") if has_existing else ""
+    existing_token = existing_config.get("api_token", "") if has_existing else ""  # type: ignore[union-attr]
     final_api_token = api_token or os.getenv("JIRA_API_TOKEN") or ""
 
     if interactive:
@@ -965,7 +965,7 @@ def _configure_jira(
 
     # Project Key (optional, with existing value as default)
     existing_project_key = (
-        existing_config.get("project_key", "") if has_existing else ""
+        existing_config.get("project_key", "") if has_existing else ""  # type: ignore[union-attr]
     )
     final_project_key = project_key or os.getenv("JIRA_PROJECT_KEY") or ""
 
@@ -1008,7 +1008,7 @@ def _configure_jira(
         console.print("Configure default values for ticket creation:")
 
         # Default user/assignee
-        existing_user = existing_config.get("user_email", "") if has_existing else ""
+        existing_user = existing_config.get("user_email", "") if has_existing else ""  # type: ignore[union-attr]
         if existing_user:
             user_input = Prompt.ask(
                 f"Default assignee/user (optional, JIRA username or email) [current: {existing_user}]",
@@ -1027,7 +1027,7 @@ def _configure_jira(
             )
 
         # Default epic/project
-        existing_epic = existing_config.get("default_epic", "") if has_existing else ""
+        existing_epic = existing_config.get("default_epic", "") if has_existing else ""  # type: ignore[union-attr]
         if existing_epic:
             epic_input = Prompt.ask(
                 f"Default epic/project ID (optional, e.g., 'PROJ-123') [current: {existing_epic}]",
@@ -1047,7 +1047,7 @@ def _configure_jira(
             )
 
         # Default tags
-        existing_tags = existing_config.get("default_tags", []) if has_existing else []
+        existing_tags = existing_config.get("default_tags", []) if has_existing else []  # type: ignore[union-attr]
         existing_tags_str = ", ".join(existing_tags) if existing_tags else ""
         if existing_tags_str:
             tags_input = Prompt.ask(
@@ -1180,7 +1180,7 @@ def _configure_github(
     has_existing = existing_config is not None
 
     # Token with validation loop
-    existing_token = existing_config.get("token", "") if has_existing else ""
+    existing_token = existing_config.get("token", "") if has_existing else ""  # type: ignore[union-attr]
     final_token = token or os.getenv("GITHUB_TOKEN") or ""
 
     if interactive:
@@ -1317,8 +1317,8 @@ def _configure_github(
         )
 
     # Repository URL/Owner/Repo - Prioritize repo_url, fallback to owner/repo
-    existing_owner = existing_config.get("owner", "") if has_existing else ""
-    existing_repo = existing_config.get("repo", "") if has_existing else ""
+    existing_owner = existing_config.get("owner", "") if has_existing else ""  # type: ignore[union-attr]
+    existing_repo = existing_config.get("repo", "") if has_existing else ""  # type: ignore[union-attr]
 
     final_owner = ""
     final_repo = ""
@@ -1444,7 +1444,7 @@ def _configure_github(
         console.print("Configure default values for ticket creation:")
 
         # Default user/assignee
-        existing_user = existing_config.get("user_email", "") if has_existing else ""
+        existing_user = existing_config.get("user_email", "") if has_existing else ""  # type: ignore[union-attr]
         if existing_user:
             user_input = Prompt.ask(
                 f"Default assignee/user (optional, GitHub username) [current: {existing_user}]",
@@ -1463,7 +1463,7 @@ def _configure_github(
             )
 
         # Default epic/project (milestone for GitHub)
-        existing_epic = existing_config.get("default_epic", "") if has_existing else ""
+        existing_epic = existing_config.get("default_epic", "") if has_existing else ""  # type: ignore[union-attr]
         if existing_epic:
             epic_input = Prompt.ask(
                 f"Default milestone/project (optional, e.g., 'v1.0' or milestone number) [current: {existing_epic}]",
@@ -1483,7 +1483,7 @@ def _configure_github(
             )
 
         # Default tags (labels for GitHub)
-        existing_tags = existing_config.get("default_tags", []) if has_existing else []
+        existing_tags = existing_config.get("default_tags", []) if has_existing else []  # type: ignore[union-attr]
         existing_tags_str = ", ".join(existing_tags) if existing_tags else ""
         if existing_tags_str:
             tags_input = Prompt.ask(
@@ -1538,7 +1538,7 @@ def _configure_aitrackdown(
 
     # Base path with existing value as default
     existing_base_path = (
-        existing_config.get("base_path", ".aitrackdown") if has_existing else ""
+        existing_config.get("base_path", ".aitrackdown") if has_existing else ""  # type: ignore[union-attr]
     )
     final_base_path = base_path or existing_base_path or ".aitrackdown"
 
@@ -1568,7 +1568,7 @@ def _configure_aitrackdown(
         console.print("Configure default values for ticket creation:")
 
         # Default user/assignee
-        existing_user = existing_config.get("user_email", "") if has_existing else ""
+        existing_user = existing_config.get("user_email", "") if has_existing else ""  # type: ignore[union-attr]
         if existing_user:
             user_input = Prompt.ask(
                 f"Default assignee/user (optional) [current: {existing_user}]",
@@ -1585,7 +1585,7 @@ def _configure_aitrackdown(
             )
 
         # Default epic/project
-        existing_epic = existing_config.get("default_epic", "") if has_existing else ""
+        existing_epic = existing_config.get("default_epic", "") if has_existing else ""  # type: ignore[union-attr]
         if existing_epic:
             epic_input = Prompt.ask(
                 f"Default epic/project ID (optional) [current: {existing_epic}]",
@@ -1603,7 +1603,7 @@ def _configure_aitrackdown(
             )
 
         # Default tags
-        existing_tags = existing_config.get("default_tags", []) if has_existing else []
+        existing_tags = existing_config.get("default_tags", []) if has_existing else []  # type: ignore[union-attr]
         existing_tags_str = ", ".join(existing_tags) if existing_tags else ""
         if existing_tags_str:
             tags_input = Prompt.ask(
@@ -1835,7 +1835,7 @@ def _configure_hybrid_mode() -> TicketerConfig:
         default_user=default_values.get("default_user"),
         default_project=default_values.get("default_project"),
         default_epic=default_values.get("default_epic"),
-        default_tags=default_values.get("default_tags"),
+        default_tags=default_values.get("default_tags"),  # type: ignore[arg-type]
     )
 
     return config
@@ -1955,7 +1955,7 @@ def set_adapter_config(
         # Get or create adapter config
         if target_adapter not in config.adapters:
             config.adapters[target_adapter] = AdapterConfig(
-                adapter=target_adapter, **updates
+                adapter=target_adapter, **updates  # type: ignore[arg-type]
             )
         else:
             # Update existing

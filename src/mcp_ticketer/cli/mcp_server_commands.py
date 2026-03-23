@@ -89,7 +89,7 @@ def mcp_serve(
         adapter_config = adapters_config.get(adapter_type, {})
     else:
         # Priority 2: Configuration file (project-specific)
-        adapter_type = config.get("default_adapter")
+        adapter_type = config.get("default_adapter")  # type: ignore[assignment]
         if adapter_type:
             adapters_config = config.get("adapters", {})
             adapter_config = adapters_config.get(adapter_type, {})

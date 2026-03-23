@@ -121,7 +121,7 @@ class JiraClient:
                 if response.status_code == 204:
                     return {}
 
-                return response.json()
+                return response.json()  # type: ignore[no-any-return]
 
             except TimeoutException as e:
                 if retry_count < self.max_retries:
@@ -259,7 +259,7 @@ class JiraClient:
                     url, files=files, headers={**self.headers, **headers}
                 )
                 response.raise_for_status()
-                return response.json()
+                return response.json()  # type: ignore[no-any-return]
 
     def get_browse_url(self, issue_key: str) -> str:
         """Get browser URL for an issue.

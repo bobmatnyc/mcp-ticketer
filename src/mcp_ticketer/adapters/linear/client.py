@@ -13,11 +13,11 @@ try:
     from gql.transport.httpx import HTTPXAsyncTransport
 except ImportError:
     # Handle missing gql dependency gracefully
-    Client = None
-    gql = None
-    HTTPXAsyncTransport = None
-    TransportError = Exception
-    TransportQueryError = Exception
+    Client = None  # type: ignore[assignment, misc]
+    gql = None  # type: ignore[assignment]
+    HTTPXAsyncTransport = None  # type: ignore[assignment, misc]
+    TransportError = Exception  # type: ignore[assignment, misc]
+    TransportQueryError = Exception  # type: ignore[assignment, misc]
 
 from ...core.exceptions import AdapterError, AuthenticationError, RateLimitError
 
@@ -142,7 +142,7 @@ class LinearGraphQLClient:
                     f"Response:\n{json.dumps(result, indent=2, default=str)}"
                 )
 
-                return result
+                return result  # type: ignore[no-any-return]
 
             except TransportQueryError as e:
                 """

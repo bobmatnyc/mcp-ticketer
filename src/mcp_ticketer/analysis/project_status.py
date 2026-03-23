@@ -29,7 +29,7 @@ def _get_value(enum_or_str: Any) -> str:
     Returns:
         String value
     """
-    return enum_or_str.value if hasattr(enum_or_str, "value") else enum_or_str
+    return enum_or_str.value if hasattr(enum_or_str, "value") else enum_or_str  # type: ignore[no-any-return]
 
 
 class TicketRecommendation(BaseModel):

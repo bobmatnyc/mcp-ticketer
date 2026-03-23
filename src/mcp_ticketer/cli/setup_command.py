@@ -182,7 +182,7 @@ def _prompt_for_adapter_selection(console: Console) -> str:
                 console.print(
                     f"\n[green]✓ Selected: {selected_adapter['title']}[/green]"
                 )
-                return selected_adapter["name"]
+                return selected_adapter["name"]  # type: ignore[no-any-return]
             else:
                 console.print(
                     f"[red]Please enter a number between 1 and {len(adapters)}[/red]"
@@ -341,11 +341,11 @@ def setup(
         console.print("[green]✓ Step 1/2: Adapter already configured[/green]\n")
 
         # Prompt to update credentials (issue #53)
-        _prompt_and_update_credentials(config_path, current_adapter, console)
+        _prompt_and_update_credentials(config_path, current_adapter, console)  # type: ignore[arg-type]
 
         # Even though adapter is configured, prompt for default values
         # This handles the case where credentials exist but defaults were never set
-        _prompt_and_update_default_values(config_path, current_adapter, console)
+        _prompt_and_update_default_values(config_path, current_adapter, console)  # type: ignore[arg-type]
 
         # Update existing MCP configurations with credentials
         _update_mcp_json_credentials(proj_path, console)

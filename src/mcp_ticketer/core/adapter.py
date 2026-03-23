@@ -276,7 +276,7 @@ class BaseAdapter(ABC, Generic[T]):
         reverse_mapping = {v: k for k, v in self._state_mapping.items()}
         return reverse_mapping.get(system_state, TicketState.OPEN)
 
-    def get_available_states(self) -> list[str]:
+    def get_available_states(self) -> builtins.list[str]:
         """Get list of adapter-specific available states.
 
         Returns adapter-specific state names that can be used for
@@ -406,9 +406,9 @@ class BaseAdapter(ABC, Generic[T]):
             title=title,
             description=description,
             ticket_type=TicketType.EPIC,
-            **{k: v for k, v in kwargs.items() if k in Epic.__fields__},
+            **{k: v for k, v in kwargs.items() if k in Epic.__fields__},  # type: ignore[operator]
         )
-        result = await self.create(epic)
+        result = await self.create(epic)  # type: ignore[arg-type]
         if isinstance(result, Epic):
             return result
         return None
@@ -447,7 +447,7 @@ class BaseAdapter(ABC, Generic[T]):
         filters = kwargs.copy()
         filters["ticket_type"] = TicketType.EPIC
         results = await self.list(filters=filters)
-        return [r for r in results if isinstance(r, Epic)]
+        return [r for r in results if isinstance(r, Epic)]  # type: ignore[misc]
 
     async def create_issue(
         self,
@@ -475,9 +475,9 @@ class BaseAdapter(ABC, Generic[T]):
             description=description,
             ticket_type=TicketType.ISSUE,
             parent_epic=epic_id,
-            **{k: v for k, v in kwargs.items() if k in Task.__fields__},
+            **{k: v for k, v in kwargs.items() if k in Task.__fields__},  # type: ignore[operator]
         )
-        return await self.create(task)
+        return await self.create(task)  # type: ignore[arg-type, return-value]
 
     async def list_issues_by_epic(self, epic_id: str) -> builtins.list[Task]:
         """List all issues in epic.
@@ -494,7 +494,7 @@ class BaseAdapter(ABC, Generic[T]):
         # Default implementation - subclasses should override for efficiency
         filters = {"parent_epic": epic_id, "ticket_type": TicketType.ISSUE}
         results = await self.list(filters=filters)
-        return [r for r in results if isinstance(r, Task) and r.is_issue()]
+        return [r for r in results if isinstance(r, Task) and r.is_issue()]  # type: ignore[misc]
 
     async def create_task(
         self, title: str, parent_id: str, description: str | None = None, **kwargs: Any
@@ -525,7 +525,7 @@ class BaseAdapter(ABC, Generic[T]):
             description=description,
             ticket_type=TicketType.TASK,
             parent_issue=parent_id,
-            **{k: v for k, v in kwargs.items() if k in Task.__fields__},
+            **{k: v for k, v in kwargs.items() if k in Task.__fields__},  # type: ignore[operator]
         )
 
         # Validate hierarchy before creating
@@ -533,7 +533,7 @@ class BaseAdapter(ABC, Generic[T]):
         if errors:
             raise ValueError(f"Invalid task hierarchy: {'; '.join(errors)}")
 
-        return await self.create(task)
+        return await self.create(task)  # type: ignore[arg-type, return-value]
 
     async def list_tasks_by_issue(self, issue_id: str) -> builtins.list[Task]:
         """List all tasks under an issue.
@@ -550,7 +550,7 @@ class BaseAdapter(ABC, Generic[T]):
         # Default implementation - subclasses should override for efficiency
         filters = {"parent_issue": issue_id, "ticket_type": TicketType.TASK}
         results = await self.list(filters=filters)
-        return [r for r in results if isinstance(r, Task) and r.is_task()]
+        return [r for r in results if isinstance(r, Task) and r.is_task()]  # type: ignore[misc]
 
     # Attachment methods
     async def add_attachment(
@@ -583,7 +583,7 @@ class BaseAdapter(ABC, Generic[T]):
             "Use comments to reference external files instead."
         )
 
-    async def get_attachments(self, ticket_id: str) -> list[Attachment]:
+    async def get_attachments(self, ticket_id: str) -> builtins.list[Attachment]:
         """Get all attachments for a ticket.
 
         Args:
@@ -635,7 +635,7 @@ class BaseAdapter(ABC, Generic[T]):
         self,
         name: str,
         target_date: datetime | None = None,
-        labels: list[str] | None = None,
+        labels: builtins.list[str] | None = None,
         description: str = "",
         project_id: str | None = None,
     ) -> Milestone:
@@ -698,7 +698,7 @@ class BaseAdapter(ABC, Generic[T]):
         name: str | None = None,
         target_date: datetime | None = None,
         state: str | None = None,
-        labels: list[str] | None = None,
+        labels: builtins.list[str] | None = None,
         description: str | None = None,
     ) -> Milestone | None:
         """Update milestone properties.

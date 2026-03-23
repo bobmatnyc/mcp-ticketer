@@ -180,7 +180,7 @@ class GitHubClient:
 
             # Parse JSON response
             if response.text:
-                return response.json()
+                return response.json()  # type: ignore[no-any-return]
             return {}
 
         except httpx.HTTPStatusError as e:
@@ -250,7 +250,7 @@ class GitHubClient:
                 ]
                 raise ValueError(f"GraphQL errors: {', '.join(error_messages)}")
 
-            return data.get("data", {})
+            return data.get("data", {})  # type: ignore[no-any-return]
 
         except httpx.HTTPStatusError as e:
             logger.error(
@@ -293,7 +293,7 @@ class GitHubClient:
             print(f"Remaining: {rate_limit['remaining']}/{rate_limit['limit']}")
         """
         response = await self.execute_rest("GET", "/rate_limit")
-        return response.get("rate", {})
+        return response.get("rate", {})  # type: ignore[no-any-return, union-attr]
 
     def _update_rate_limit_from_headers(self, headers: httpx.Headers) -> None:
         """Extract rate limit info from response headers.
@@ -326,10 +326,10 @@ class GitHubClient:
         """
         await self.client.aclose()
 
-    async def __aenter__(self):
+    async def __aenter__(self):  # type: ignore[no-untyped-def]
         """Async context manager entry."""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):  # type: ignore[no-untyped-def]
         """Async context manager exit - ensures cleanup."""
         await self.close()

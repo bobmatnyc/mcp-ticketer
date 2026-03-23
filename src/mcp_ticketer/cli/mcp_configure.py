@@ -385,7 +385,7 @@ def load_project_config() -> dict:
     if "default_adapter" not in config:
         raise ValueError("Invalid config: missing 'default_adapter'")
 
-    return config
+    return config  # type: ignore[no-any-return]
 
 
 def find_claude_mcp_config(global_config: bool = False) -> Path:
@@ -460,10 +460,10 @@ def load_claude_mcp_config(config_path: Path, is_claude_code: bool = False) -> d
                 # Auto-detect structure format based on content
                 if "projects" in config:
                     # This is the old nested project structure
-                    return config
+                    return config  # type: ignore[no-any-return]
                 elif "mcpServers" in config:
                     # This is flat mcpServers structure
-                    return config
+                    return config  # type: ignore[no-any-return]
                 else:
                     # Empty or unknown structure, return default
                     if is_global_mcp_config:
@@ -591,7 +591,7 @@ def create_mcp_server_config(
                 env_vars[key] = env_file_vars[key]
 
     if env_vars:
-        config["env"] = env_vars
+        config["env"] = env_vars  # type: ignore[assignment]
 
     return config
 
@@ -774,7 +774,7 @@ def remove_claude_mcp_json(global_config: bool = False, dry_run: bool = False) -
     if not config_paths_to_check:
         console.print("[yellow]⚠ No configuration files found[/yellow]")
         console.print("[dim]mcp-ticketer is not configured for this platform[/dim]")
-        return
+        return  # type: ignore[return-value]
 
     # Step 2-7: Process each config file
     removed_count = 0
@@ -845,7 +845,7 @@ def remove_claude_mcp_json(global_config: bool = False, dry_run: bool = False) -
             console.print(f"[red]✗ Failed to update {config_path}:[/red] {e}")
 
     if dry_run:
-        return
+        return  # type: ignore[return-value]
 
     if removed_count > 0:
         console.print("\n[green]✓ Successfully removed mcp-ticketer[/green]")
@@ -1062,8 +1062,8 @@ def configure_claude_mcp(global_config: bool = False, force: bool = False) -> No
         console.print(
             "[yellow]Your current configuration uses the legacy line-delimited JSON server:[/yellow]"
         )
-        console.print(f"[dim]  Command: {legacy_config.get('command')}[/dim]")
-        console.print(f"[dim]  Args: {legacy_config.get('args')}[/dim]")
+        console.print(f"[dim]  Command: {legacy_config.get('command')}[/dim]")  # type: ignore[union-attr]
+        console.print(f"[dim]  Args: {legacy_config.get('args')}[/dim]")  # type: ignore[union-attr]
         console.print(
             f"\n[red]This legacy server is incompatible with modern MCP clients ({config_type}).[/red]"
         )

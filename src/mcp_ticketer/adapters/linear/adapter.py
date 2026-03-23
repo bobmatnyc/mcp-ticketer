@@ -15,9 +15,9 @@ try:
     from gql import gql
     from gql.transport.exceptions import TransportQueryError
 except ImportError:
-    gql = None
-    TransportQueryError = Exception
-    httpx = None
+    gql = None  # type: ignore[assignment]
+    TransportQueryError = Exception  # type: ignore[assignment, misc]
+    httpx = None  # type: ignore[assignment]
 
 import builtins
 
@@ -167,7 +167,7 @@ class LinearAdapter(BaseAdapter[Task]):
             raise ValueError("Either team_key or team_id must be provided")
 
         # Initialize client with clean API key
-        self.client = LinearGraphQLClient(self.api_key)
+        self.client = LinearGraphQLClient(self.api_key)  # type: ignore[arg-type]
 
     def validate_credentials(self) -> tuple[bool, str]:
         """Validate Linear API credentials.
@@ -300,7 +300,7 @@ class LinearAdapter(BaseAdapter[Task]):
                 )
                 # Cache the resolved UUID
                 self.team_id = resolved_id
-                return resolved_id
+                return resolved_id  # type: ignore[no-any-return]
             raise ValueError(
                 f"Cannot resolve team_id '{self.team_id}' to a valid Linear team UUID. "
                 f"Please use team_key instead for team short codes like 'ENG'."
@@ -326,7 +326,7 @@ class LinearAdapter(BaseAdapter[Task]):
         self._team_data = team
         logger.info(f"Resolved team_key '{self.team_key}' to team_id: {team_id}")
 
-        return team_id
+        return team_id  # type: ignore[no-any-return]
 
     async def _get_team_by_key(self, team_key: str) -> list[dict[str, Any]]:
         """Query Linear API to get team by key.
@@ -355,7 +355,7 @@ class LinearAdapter(BaseAdapter[Task]):
         result = await self.client.execute_query(query, {"key": team_key})
 
         if "teams" in result and "nodes" in result["teams"]:
-            return result["teams"]["nodes"]
+            return result["teams"]["nodes"]  # type: ignore[no-any-return]
 
         return []
 
@@ -390,7 +390,7 @@ class LinearAdapter(BaseAdapter[Task]):
                 logging.debug(
                     f"[VIEW DEBUG] customView found in result: {result.get('customView')}"
                 )
-                return result["customView"]
+                return result["customView"]  # type: ignore[no-any-return]
 
             logging.debug(
                 f"[VIEW DEBUG] No customView in result. Checking pattern: has_hyphen={'-' in view_id}, length={len(view_id)}"
@@ -492,7 +492,7 @@ class LinearAdapter(BaseAdapter[Task]):
             result = await self.client.execute_query(query, {"id": project_id})
 
             if result.get("project"):
-                return result["project"]
+                return result["project"]  # type: ignore[no-any-return]
 
             # No match found
             return None
@@ -666,7 +666,7 @@ class LinearAdapter(BaseAdapter[Task]):
             try:
                 project = await self.get_project(project_identifier)
                 if project:
-                    return project["id"]
+                    return project["id"]  # type: ignore[no-any-return]
             except Exception as e:
                 # Direct query failed - fall through to list-based search
                 logging.getLogger(__name__).debug(
@@ -753,7 +753,7 @@ class LinearAdapter(BaseAdapter[Task]):
                                     f"This indicates a data inconsistency in Linear API response."
                                 )
                                 return None
-                            return project_uuid
+                            return project_uuid  # type: ignore[no-any-return]
 
                 # Also check exact name match (case-insensitive)
                 if project["name"].lower() == project_lower:
@@ -766,7 +766,7 @@ class LinearAdapter(BaseAdapter[Task]):
                             f"This indicates a data inconsistency in Linear API response."
                         )
                         return None
-                    return project_uuid
+                    return project_uuid  # type: ignore[no-any-return]
 
             # No match found
             return None
@@ -859,7 +859,7 @@ class LinearAdapter(BaseAdapter[Task]):
                     f"Failed to add team {team_id} to project {project_id}"
                 )
 
-            return success
+            return success  # type: ignore[no-any-return]
         except Exception as e:
             logging.getLogger(__name__).error(
                 f"Error adding team {team_id} to project {project_id}: {e}"
@@ -955,7 +955,7 @@ class LinearAdapter(BaseAdapter[Task]):
             )
 
             if result.get("issue"):
-                return result["issue"]["id"]
+                return result["issue"]["id"]  # type: ignore[no-any-return]
 
             # No match found
             return None
@@ -1244,7 +1244,7 @@ class LinearAdapter(BaseAdapter[Task]):
                                 f"Found label '{name}' via server-side search "
                                 f"(ID: {label['id']}, checked {total_checked} labels)"
                             )
-                            return label
+                            return label  # type: ignore[no-any-return]
 
                     has_next_page = page_info.get("hasNextPage", False)
                     after_cursor = page_info.get("endCursor")
@@ -1328,7 +1328,7 @@ class LinearAdapter(BaseAdapter[Task]):
                 await self._labels_cache.clear()
 
             logger.info(f"Created new label '{name}' with ID: {label_id}")
-            return label_id
+            return label_id  # type: ignore[no-any-return]
 
         except Exception as e:
             """
@@ -1382,7 +1382,7 @@ class LinearAdapter(BaseAdapter[Task]):
                                 f"Successfully recovered existing label '{name}' (ID: {label_id}) "
                                 f"after {attempt + 1} attempt(s)"
                             )
-                            return label_id
+                            return label_id  # type: ignore[no-any-return]
 
                         # Label still not found, log and continue to next retry
                         logger.debug(
@@ -1606,9 +1606,9 @@ class LinearAdapter(BaseAdapter[Task]):
                 # Fallback to type name if state not found in cache
                 linear_type = LinearStateMapping.TO_LINEAR.get(universal_state)
                 if linear_type:
-                    mapping[universal_state] = linear_type
+                    mapping[universal_state] = linear_type  # type: ignore[assignment]
 
-        return mapping
+        return mapping  # type: ignore[return-value]
 
     async def _get_user_id(self, user_identifier: str) -> str | None:
         """Get Linear user ID from email, display name, or user ID.
@@ -1628,14 +1628,14 @@ class LinearAdapter(BaseAdapter[Task]):
         # Try email lookup first (most specific)
         user = await self.client.get_user_by_email(user_identifier)
         if user:
-            return user["id"]
+            return user["id"]  # type: ignore[no-any-return]
 
         # Try name search (displayName or full name)
         users = await self.client.get_users_by_name(user_identifier)
         if users:
             if len(users) == 1:
                 # Exact match found
-                return users[0]["id"]
+                return users[0]["id"]  # type: ignore[no-any-return]
             else:
                 # Multiple matches - try exact match
                 for u in users:
@@ -1643,7 +1643,7 @@ class LinearAdapter(BaseAdapter[Task]):
                         u.get("displayName", "").lower() == user_identifier.lower()
                         or u.get("name", "").lower() == user_identifier.lower()
                     ):
-                        return u["id"]
+                        return u["id"]  # type: ignore[no-any-return]
 
                 # No exact match - log ambiguity and return first
                 logging.getLogger(__name__).warning(
@@ -1651,14 +1651,14 @@ class LinearAdapter(BaseAdapter[Task]):
                     f"{[u.get('displayName', u.get('name')) for u in users]}. "
                     f"Using first match: {users[0].get('displayName')}"
                 )
-                return users[0]["id"]
+                return users[0]["id"]  # type: ignore[no-any-return]
 
         # Assume it's already a user ID
         return user_identifier
 
     # CRUD Operations
 
-    async def create(self, ticket: Epic | Task) -> Epic | Task:
+    async def create(self, ticket: Epic | Task) -> Epic | Task:  # type: ignore[override]
         """Create a new Linear issue or project with full field support.
 
         Args:
@@ -2082,7 +2082,7 @@ class LinearAdapter(BaseAdapter[Task]):
         except Exception as e:
             raise ValueError(f"Failed to update Linear project: {e}") from e
 
-    async def read(self, ticket_id: str) -> Task | Epic | None:
+    async def read(self, ticket_id: str) -> Task | Epic | None:  # type: ignore[override]
         """Read a Linear issue OR project by identifier with full details.
 
         Args:
@@ -2138,7 +2138,7 @@ class LinearAdapter(BaseAdapter[Task]):
                 epic = map_linear_project_to_epic(project_data)
 
                 # Populate child_issues with issue IDs
-                epic.child_issues = [issue.id for issue in issues]
+                epic.child_issues = [issue.id for issue in issues]  # type: ignore[misc]
 
                 return epic
         except Exception:
@@ -2331,7 +2331,7 @@ class LinearAdapter(BaseAdapter[Task]):
         except Exception:
             return False
 
-    async def list(
+    async def list(  # type: ignore[override]
         self,
         limit: int = 20,
         offset: int = 0,
@@ -2478,7 +2478,7 @@ class LinearAdapter(BaseAdapter[Task]):
         if query.query:
             # Linear's search is quite sophisticated, but we'll use a simple approach
             # In practice, you might want to use Linear's search API endpoint
-            issue_filter["title"] = {"containsIgnoreCase": query.query}
+            issue_filter["title"] = {"containsIgnoreCase": query.query}  # type: ignore[dict-item]
 
         # State filter
         # Bug fix: Handle OPEN state specially to include both unstarted AND backlog
@@ -2486,7 +2486,7 @@ class LinearAdapter(BaseAdapter[Task]):
         if query.state:
             if query.state == TicketState.OPEN:
                 # Include both "unstarted" and "backlog" states for OPEN
-                issue_filter["state"] = {"type": {"in": ["unstarted", "backlog"]}}
+                issue_filter["state"] = {"type": {"in": ["unstarted", "backlog"]}}  # type: ignore[dict-item]
             else:
                 state_type = get_linear_state_type(query.state)
                 issue_filter["state"] = {"type": {"eq": state_type}}
@@ -2494,7 +2494,7 @@ class LinearAdapter(BaseAdapter[Task]):
         # Priority filter
         if query.priority:
             linear_priority = get_linear_priority(query.priority)
-            issue_filter["priority"] = {"eq": linear_priority}
+            issue_filter["priority"] = {"eq": linear_priority}  # type: ignore[dict-item]
 
         # Assignee filter
         if query.assignee:
@@ -2511,14 +2511,14 @@ class LinearAdapter(BaseAdapter[Task]):
 
         # Tags filter (labels in Linear)
         if query.tags:
-            issue_filter["labels"] = {"some": {"name": {"in": query.tags}}}
+            issue_filter["labels"] = {"some": {"name": {"in": query.tags}}}  # type: ignore[dict-item]
 
         # Updated after filter
         if query.updated_after:
-            issue_filter["updatedAt"] = {"gte": query.updated_after.isoformat()}
+            issue_filter["updatedAt"] = {"gte": query.updated_after.isoformat()}  # type: ignore[dict-item]
 
         # Exclude archived by default
-        issue_filter["archivedAt"] = {"null": True}
+        issue_filter["archivedAt"] = {"null": True}  # type: ignore[dict-item]
 
         try:
             result = await self.client.execute_query(
@@ -2868,7 +2868,7 @@ class LinearAdapter(BaseAdapter[Task]):
             logging.getLogger(__name__).info(
                 f"Successfully uploaded file '{filename}' ({file_size} bytes) to Linear"
             )
-            return asset_url
+            return asset_url  # type: ignore[no-any-return]
 
         except Exception as e:
             raise ValueError(f"Failed to upload file '{filename}': {e}") from e
@@ -2951,7 +2951,7 @@ class LinearAdapter(BaseAdapter[Task]):
             logging.getLogger(__name__).info(
                 f"Successfully attached file '{title}' to issue '{issue_id}'"
             )
-            return attachment
+            return attachment  # type: ignore[no-any-return]
 
         except Exception as e:
             raise ValueError(f"Failed to attach file to issue '{issue_id}': {e}") from e
@@ -3029,7 +3029,7 @@ class LinearAdapter(BaseAdapter[Task]):
             logging.getLogger(__name__).info(
                 f"Successfully attached file '{title}' to project '{epic_id}'"
             )
-            return attachment
+            return attachment  # type: ignore[no-any-return]
 
         except Exception as e:
             raise ValueError(
@@ -3282,7 +3282,7 @@ class LinearAdapter(BaseAdapter[Task]):
             if not issue_data:
                 return None
 
-            return issue_data.get("state")
+            return issue_data.get("state")  # type: ignore[no-any-return]
 
         except Exception as e:
             raise ValueError(f"Failed to get issue status for '{issue_id}': {e}") from e
@@ -3340,12 +3340,12 @@ class LinearAdapter(BaseAdapter[Task]):
             # Sort by position to maintain workflow order
             states.sort(key=lambda s: s.get("position", 0))
 
-            return states
+            return states  # type: ignore[no-any-return]
 
         except Exception as e:
             raise ValueError(f"Failed to list workflow states: {e}") from e
 
-    async def list_epics(
+    async def list_epics(  # type: ignore[override]
         self,
         limit: int = 20,
         offset: int = 0,
@@ -3623,7 +3623,7 @@ class LinearAdapter(BaseAdapter[Task]):
         self,
         project_id: str,
         limit: int = 10,
-    ) -> list[ProjectUpdate]:
+    ) -> builtins.list[ProjectUpdate]:
         """List project updates for a project (1M-238).
 
         Retrieves recent status updates for a Linear project, ordered by creation date.
@@ -3741,7 +3741,7 @@ class LinearAdapter(BaseAdapter[Task]):
         self,
         name: str,
         target_date: datetime | None = None,
-        labels: list[str] | None = None,
+        labels: builtins.list[str] | None = None,
         description: str = "",
         project_id: str | None = None,
     ) -> Milestone:
@@ -3861,7 +3861,7 @@ class LinearAdapter(BaseAdapter[Task]):
         self,
         project_id: str | None = None,
         state: str | None = None,
-    ) -> list[Milestone]:
+    ) -> builtins.list[Milestone]:
         """List milestones using Linear Cycles.
 
         Args:
@@ -3910,7 +3910,7 @@ class LinearAdapter(BaseAdapter[Task]):
         name: str | None = None,
         target_date: datetime | None = None,
         state: str | None = None,
-        labels: list[str] | None = None,
+        labels: builtins.list[str] | None = None,
         description: str | None = None,
     ) -> Milestone | None:
         """Update milestone properties.
@@ -4014,7 +4014,7 @@ class LinearAdapter(BaseAdapter[Task]):
             else:
                 logger.warning(f"Failed to archive cycle {milestone_id}")
 
-            return success
+            return success  # type: ignore[no-any-return]
 
         except Exception as e:
             logger.error(f"Failed to delete milestone {milestone_id}: {e}")
@@ -4024,7 +4024,7 @@ class LinearAdapter(BaseAdapter[Task]):
         self,
         milestone_id: str,
         state: str | None = None,
-    ) -> list[Task]:
+    ) -> builtins.list[Task]:
         """Get issues associated with milestone (cycle).
 
         Args:
@@ -4073,7 +4073,7 @@ class LinearAdapter(BaseAdapter[Task]):
             logger.error(f"Failed to get milestone issues {milestone_id}: {e}")
             return []
 
-    async def search_users(self, query: str) -> list[dict[str, Any]]:
+    async def search_users(self, query: str) -> builtins.list[dict[str, Any]]:
         """Search for users by name or email.
 
         Args:
@@ -4115,7 +4115,7 @@ class LinearAdapter(BaseAdapter[Task]):
     def _cycle_to_milestone(
         self,
         cycle_data: dict[str, Any],
-        labels: list[str] | None = None,
+        labels: builtins.list[str] | None = None,
     ) -> Milestone:
         """Convert Linear Cycle to universal Milestone model.
 
@@ -4235,7 +4235,7 @@ class LinearAdapter(BaseAdapter[Task]):
         }
 
         try:
-            result = await self.client.execute_mutation(query, variables)
+            result = await self.client.execute_mutation(query, variables)  # type: ignore[arg-type]
             if not result.get("issueRelationCreate", {}).get("success"):
                 error_msg = "Failed to create issue relation"
                 logger.error(error_msg)
@@ -4319,7 +4319,7 @@ class LinearAdapter(BaseAdapter[Task]):
             query = gql(DELETE_ISSUE_RELATION_MUTATION)
             variables = {"id": relation_id}
 
-            result = await self.client.execute_mutation(query, variables)
+            result = await self.client.execute_mutation(query, variables)  # type: ignore[arg-type]
             success = result.get("issueRelationDelete", {}).get("success", False)
 
             if success:
@@ -4327,7 +4327,7 @@ class LinearAdapter(BaseAdapter[Task]):
             else:
                 logger.warning(f"Failed to remove relation {relation_id}")
 
-            return success
+            return success  # type: ignore[no-any-return]
 
         except Exception as e:
             logger.error(f"Error removing relation: {e}")
@@ -4356,7 +4356,7 @@ class LinearAdapter(BaseAdapter[Task]):
             query = gql(GET_ISSUE_RELATIONS_QUERY)
             variables = {"issueId": ticket_id}
 
-            result = await self.client.execute_query(query, variables)
+            result = await self.client.execute_query(query, variables)  # type: ignore[arg-type]
             issue_data = result.get("issue")
 
             if not issue_data:

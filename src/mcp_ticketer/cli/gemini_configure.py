@@ -47,7 +47,7 @@ def load_gemini_config(config_path: Path) -> dict:
     if config_path.exists():
         try:
             with open(config_path) as f:
-                return json.load(f)
+                return json.load(f)  # type: ignore[no-any-return]
         except json.JSONDecodeError as e:
             console.print(
                 f"[yellow]⚠ Warning: Could not parse existing config: {e}[/yellow]"

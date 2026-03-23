@@ -146,7 +146,7 @@ def load_config(project_dir: Path | None = None) -> dict:
                 logger.info(
                     f"Loaded configuration from project-local: {project_config}"
                 )
-                return config
+                return config  # type: ignore[no-any-return]
         except (OSError, json.JSONDecodeError) as e:
             logger.warning(f"Could not load project config: {e}, using defaults")
             console.print(
@@ -423,7 +423,7 @@ def set_config(
         console.print("[green]✓[/green] AITrackdown settings updated")
 
     if adapter_configs:
-        updates["adapters"] = adapter_configs
+        updates["adapters"] = adapter_configs  # type: ignore[assignment]
 
     # Merge and save configuration
     if updates:

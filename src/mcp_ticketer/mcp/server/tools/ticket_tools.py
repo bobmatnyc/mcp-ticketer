@@ -57,7 +57,7 @@ def _build_adapter_metadata(
         metadata["ticket_id"] = ticket_id
 
     if is_routed:
-        metadata["routed_from_url"] = True
+        metadata["routed_from_url"] = True  # type: ignore[assignment]
 
     return metadata
 
@@ -224,7 +224,7 @@ async def detect_and_apply_labels(
     final_labels = list(existing_labels or [])
     for label in matched_labels[:max_auto_labels]:  # Apply max limit
         if label not in final_labels:
-            final_labels.append(label)
+            final_labels.append(label)  # type: ignore[arg-type]
 
     return final_labels
 
@@ -253,8 +253,8 @@ async def ticket(
     priority: str = "medium",
     tags: list[str] | None = None,
     assignee: str | None = None,
-    parent_epic: str | None = _UNSET,
-    milestone_id: str | None = _UNSET,
+    parent_epic: str | None = _UNSET,  # type: ignore[assignment]
+    milestone_id: str | None = _UNSET,  # type: ignore[assignment]
     auto_detect_labels: bool = True,
     max_auto_labels: int = 4,
     # Update parameters
@@ -515,8 +515,8 @@ async def ticket_create(
     priority: str = "medium",
     tags: list[str] | None = None,
     assignee: str | None = None,
-    parent_epic: str | None = _UNSET,
-    milestone_id: str | None = _UNSET,
+    parent_epic: str | None = _UNSET,  # type: ignore[assignment]
+    milestone_id: str | None = _UNSET,  # type: ignore[assignment]
     auto_detect_labels: bool = True,
     max_auto_labels: int = 4,
 ) -> dict[str, Any]:
@@ -692,7 +692,7 @@ async def ticket_create(
             )
             try:
                 quick_info = await get_quick_diagnostic_info()
-                error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(
+                error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(  # type: ignore[assignment]
                     e, quick_info
                 )
             except Exception as diag_error:
@@ -783,7 +783,7 @@ async def ticket_read(ticket_id: str) -> dict[str, Any]:
             )
             try:
                 quick_info = await get_quick_diagnostic_info()
-                error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(
+                error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(  # type: ignore[assignment]
                     e, quick_info
                 )
             except Exception as diag_error:
@@ -801,7 +801,7 @@ async def ticket_update(
     state: str | None = None,
     assignee: str | None = None,
     tags: list[str] | None = None,
-    milestone_id: str | None = _UNSET,
+    milestone_id: str | None = _UNSET,  # type: ignore[assignment]
 ) -> dict[str, Any]:
     """Update ticket using ID or URL (semantic priority matching, workflow states).
 
@@ -920,7 +920,7 @@ async def ticket_update(
             )
             try:
                 quick_info = await get_quick_diagnostic_info()
-                error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(
+                error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(  # type: ignore[assignment]
                     e, quick_info
                 )
             except Exception as diag_error:
@@ -1179,7 +1179,7 @@ async def ticket_list(
             )
             try:
                 quick_info = await get_quick_diagnostic_info()
-                error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(
+                error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(  # type: ignore[assignment]
                     e, quick_info
                 )
             except Exception as diag_error:
@@ -1368,7 +1368,7 @@ async def ticket_latest(ticket_id: str, limit: int = 5) -> dict[str, Any]:
             )
             try:
                 quick_info = await get_quick_diagnostic_info()
-                error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(
+                error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(  # type: ignore[assignment]
                     e, quick_info
                 )
             except Exception as diag_error:
@@ -1589,7 +1589,7 @@ async def ticket_assign(
             )
             try:
                 quick_info = await get_quick_diagnostic_info()
-                error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(
+                error_response["diagnostic_suggestion"] = build_diagnostic_suggestion(  # type: ignore[assignment]
                     e, quick_info
                 )
             except Exception as diag_error:

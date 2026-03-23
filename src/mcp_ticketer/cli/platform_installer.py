@@ -352,27 +352,27 @@ def install(
 
         # Map platform names to configuration functions
         platform_mapping = {
-            "claude-code": {
+            "claude-code": {  # type: ignore[dict-item]
                 "func": lambda: configure_claude_mcp(global_config=False, force=True),
                 "name": "Claude Code",
             },
-            "claude-desktop": {
+            "claude-desktop": {  # type: ignore[dict-item]
                 "func": lambda: configure_claude_mcp(global_config=True, force=True),
                 "name": "Claude Desktop",
             },
-            "cursor": {
+            "cursor": {  # type: ignore[dict-item]
                 "func": lambda: configure_cursor_mcp(force=True),
                 "name": "Cursor",
             },
-            "auggie": {
+            "auggie": {  # type: ignore[dict-item]
                 "func": lambda: configure_auggie_mcp(force=True),
                 "name": "Auggie",
             },
-            "gemini": {
+            "gemini": {  # type: ignore[dict-item]
                 "func": lambda: configure_gemini_mcp(scope="project", force=True),
                 "name": "Gemini CLI",
             },
-            "codex": {
+            "codex": {  # type: ignore[dict-item]
                 "func": lambda: configure_codex_mcp(force=True),
                 "name": "Codex",
             },
@@ -388,11 +388,11 @@ def install(
         config = platform_mapping[platform]
 
         if dry_run:
-            console.print(f"[cyan]DRY RUN - Would install for {config['name']}[/cyan]")
+            console.print(f"[cyan]DRY RUN - Would install for {config['name']}[/cyan]")  # type: ignore[index]
             return
 
         try:
-            config["func"]()
+            config["func"]()  # type: ignore[index]
 
             # Update credentials in parent .mcp.json for Claude platforms
             if platform in ("claude-code", "claude-desktop"):
@@ -505,7 +505,7 @@ def remove(
     config = platform_mapping[platform]
 
     try:
-        config["func"]()
+        config["func"]()  # type: ignore[operator]
     except Exception as e:
         console.print(f"[red]Removal failed: {e}[/red]")
         raise typer.Exit(1) from e

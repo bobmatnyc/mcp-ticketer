@@ -110,7 +110,7 @@ async def _validate_adapter_credentials(
             try:
                 from ..adapters.jira import JiraAdapter
 
-                adapter = JiraAdapter(adapter_config)
+                adapter = JiraAdapter(adapter_config)  # type: ignore[assignment]
                 await adapter.list(limit=1)
             except Exception as e:
                 error_msg = str(e)
@@ -143,7 +143,7 @@ async def _validate_adapter_credentials(
             try:
                 from ..adapters.github import GitHubAdapter
 
-                adapter = GitHubAdapter(adapter_config)
+                adapter = GitHubAdapter(adapter_config)  # type: ignore[assignment]
                 await adapter.list(limit=1)
             except Exception as e:
                 error_msg = str(e)
@@ -570,13 +570,13 @@ def _init_adapter_internal(
                 )
 
                 # Use consolidated configure function (interactive if missing params)
-                adapter_config, default_values = _configure_linear(
+                adapter_config, default_values = _configure_linear(  # type: ignore[assignment]
                     interactive=not has_all_params,
                     api_key=api_key,
                     team_id=team_id,
                 )
 
-                config["adapters"]["linear"] = adapter_config.to_dict()
+                config["adapters"]["linear"] = adapter_config.to_dict()  # type: ignore[attr-defined]
 
                 # Merge default values into top-level config
                 if default_values.get("default_user"):
@@ -605,7 +605,7 @@ def _init_adapter_internal(
 
                 # Use consolidated configure function (interactive if missing params)
                 # Returns tuple: (AdapterConfig, default_values_dict) - following Linear pattern
-                adapter_config, default_values = _configure_jira(
+                adapter_config, default_values = _configure_jira(  # type: ignore[assignment]
                     interactive=not has_all_params,
                     server=jira_server,
                     email=jira_email,
@@ -613,7 +613,7 @@ def _init_adapter_internal(
                     project_key=jira_project,
                 )
 
-                config["adapters"]["jira"] = adapter_config.to_dict()
+                config["adapters"]["jira"] = adapter_config.to_dict()  # type: ignore[attr-defined]
 
                 # Merge default values into top-level config
                 if default_values.get("default_user"):
@@ -651,7 +651,7 @@ def _init_adapter_internal(
 
                 # Use consolidated configure function (interactive if missing params)
                 # Returns tuple: (AdapterConfig, default_values_dict) - following Linear pattern
-                adapter_config, default_values = _configure_github(
+                adapter_config, default_values = _configure_github(  # type: ignore[assignment]
                     interactive=not has_all_params,
                     repo_url=github_url,
                     owner=github_owner,
@@ -659,7 +659,7 @@ def _init_adapter_internal(
                     token=github_token,
                 )
 
-                config["adapters"]["github"] = adapter_config.to_dict()
+                config["adapters"]["github"] = adapter_config.to_dict()  # type: ignore[attr-defined]
 
                 # Merge default values into top-level config
                 if default_values.get("default_user"):

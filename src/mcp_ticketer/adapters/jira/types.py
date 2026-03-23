@@ -210,7 +210,7 @@ def extract_text_from_adf(adf_content: str | dict[str, Any]) -> str:
 
         # If this is a text node, return its text
         if node.get("type") == "text":
-            return node.get("text", "")
+            return node.get("text", "")  # type: ignore[no-any-return]
 
         # If this node has content, process it recursively
         content = node.get("content", [])

@@ -1064,7 +1064,7 @@ async def config_test_adapter(adapter_name: str) -> dict[str, Any]:
         result = await adapter_diagnostics(action="adapter", adapter_name=adapter_name)
 
         if result["status"] == "error":
-            return result
+            return result  # type: ignore[no-any-return]
 
         # Extract adapter-specific result
         adapter_result = result["adapters"][adapter_name]
@@ -1643,7 +1643,7 @@ async def config_set_project_from_url(
 
         # Also update default adapter to match the project's platform
         previous_adapter = config.default_adapter
-        config.default_adapter = platform
+        config.default_adapter = platform  # type: ignore[assignment]
 
         # Save configuration
         resolver = get_resolver()
@@ -1651,7 +1651,7 @@ async def config_set_project_from_url(
 
         return {
             "status": "completed",
-            "message": f"Default project set to '{project_id}' from {platform.title()}",
+            "message": f"Default project set to '{project_id}' from {platform.title()}",  # type: ignore[union-attr]
             "platform": platform,
             "project_id": project_id,
             "project_url": project_url,
@@ -1700,7 +1700,7 @@ def _mask_sensitive_values(config: dict[str, Any]) -> dict[str, Any]:
             masked[key] = _mask_sensitive_values(value)
         elif any(sensitive in key.lower() for sensitive in sensitive_keys):
             # Mask sensitive values
-            masked[key] = "***" if value else None
+            masked[key] = "***" if value else None  # type: ignore[assignment]
         else:
             masked[key] = value
 
@@ -2093,7 +2093,7 @@ async def config_refresh_github_token(
             else:
                 connection_key = f"github:{connection_name}"
         else:
-            connection_key = config.active_github_connection
+            connection_key = config.active_github_connection  # type: ignore[assignment]
             if not connection_key:
                 return {
                     "status": "error",

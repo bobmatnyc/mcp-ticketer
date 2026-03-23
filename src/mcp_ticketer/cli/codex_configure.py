@@ -49,7 +49,7 @@ def load_codex_config(config_path: Path) -> dict[str, Any]:
     if config_path.exists():
         try:
             with open(config_path, "rb") as f:
-                return tomllib.load(f)
+                return tomllib.load(f)  # type: ignore[no-any-return]
         except Exception as e:
             console.print(
                 f"[yellow]⚠ Warning: Could not parse existing config: {e}[/yellow]"
@@ -347,8 +347,8 @@ def configure_codex_mcp(force: bool = False) -> None:
         console.print(
             "[yellow]Your current configuration uses the legacy line-delimited JSON server:[/yellow]"
         )
-        console.print(f"[dim]  Command: {legacy_config.get('command')}[/dim]")
-        console.print(f"[dim]  Args: {legacy_config.get('args')}[/dim]")
+        console.print(f"[dim]  Command: {legacy_config.get('command')}[/dim]")  # type: ignore[union-attr]
+        console.print(f"[dim]  Args: {legacy_config.get('args')}[/dim]")  # type: ignore[union-attr]
         console.print(
             "\n[red]This legacy server is incompatible with modern MCP clients (Codex, Claude Desktop/Code).[/red]"
         )

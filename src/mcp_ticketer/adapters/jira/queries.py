@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 
 from ...core.models import SearchQuery
 from .types import map_priority_to_jira
@@ -11,7 +11,7 @@ from .types import map_priority_to_jira
 def build_list_jql(
     project_key: str,
     filters: dict[str, Any] | None = None,
-    state_mapper: callable | None = None,
+    state_mapper: Callable[..., Any] | None = None,
 ) -> str:
     """Build JQL query for listing issues.
 
@@ -53,7 +53,7 @@ def build_list_jql(
 def build_search_jql(
     project_key: str,
     query: SearchQuery,
-    state_mapper: callable | None = None,
+    state_mapper: Callable[..., Any] | None = None,
 ) -> str:
     """Build JQL query for searching issues.
 

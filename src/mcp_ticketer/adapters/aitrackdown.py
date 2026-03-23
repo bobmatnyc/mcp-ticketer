@@ -25,14 +25,14 @@ logger = logging.getLogger(__name__)
 
 # Import ai-trackdown-pytools when available
 try:
-    from ai_trackdown_pytools import AITrackdown  # type: ignore[attr-defined]
-    from ai_trackdown_pytools import Ticket as AITicket  # type: ignore[attr-defined]
+    from ai_trackdown_pytools import AITrackdown
+    from ai_trackdown_pytools import Ticket as AITicket
 
     HAS_AITRACKDOWN = True
 except ImportError:
     HAS_AITRACKDOWN = False
-    AITrackdown = None  # type: ignore[assignment]
-    AITicket = None  # type: ignore[assignment]
+    AITrackdown = None
+    AITicket = None
 
 
 class AITrackdownAdapter(BaseAdapter[Task]):
@@ -245,7 +245,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         ticket_file = self.tickets_dir / f"{ticket_id}.json"
         if ticket_file.exists():
             with open(ticket_file) as f:
-                return json.load(f)
+                return json.load(f)  # type: ignore[no-any-return]
         return None
 
     def _write_ticket_file(self, ticket_id: str, data: dict[str, Any]) -> None:
@@ -254,7 +254,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         with open(ticket_file, "w") as f:
             json.dump(data, f, indent=2, default=str)
 
-    async def create(self, ticket: Task | Epic) -> Task | Epic:
+    async def create(self, ticket: Task | Epic) -> Task | Epic:  # type: ignore[override]
         """Create a new task."""
         # Generate ID if not provided
         if not ticket.id:
@@ -291,7 +291,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         return ticket
 
     async def create_epic(
-        self, title: str, description: str = None, **kwargs: Any
+        self, title: str, description: str = None, **kwargs: Any  # type: ignore[assignment, override]
     ) -> Epic:
         """Create a new epic.
 
@@ -307,13 +307,13 @@ class AITrackdownAdapter(BaseAdapter[Task]):
 
         """
         epic = Epic(title=title, description=description, **kwargs)
-        return await self.create(epic)
+        return await self.create(epic)  # type: ignore[return-value]
 
     async def create_issue(
         self,
         title: str,
-        parent_epic: str = None,
-        description: str = None,
+        parent_epic: str = None,  # type: ignore[assignment, override]
+        description: str = None,  # type: ignore[assignment, override]
         **kwargs: Any,
     ) -> Task:
         """Create a new issue.
@@ -333,10 +333,10 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         task = Task(
             title=title, description=description, parent_epic=parent_epic, **kwargs
         )
-        return await self.create(task)
+        return await self.create(task)  # type: ignore[return-value]
 
     async def create_task(
-        self, title: str, parent_id: str, description: str = None, **kwargs: Any
+        self, title: str, parent_id: str, description: str = None, **kwargs: Any  # type: ignore[assignment, override]
     ) -> Task:
         """Create a new task under an issue.
 
@@ -355,9 +355,9 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         task = Task(
             title=title, description=description, parent_issue=parent_id, **kwargs
         )
-        return await self.create(task)
+        return await self.create(task)  # type: ignore[return-value]
 
-    async def read(self, ticket_id: str) -> Task | Epic | None:
+    async def read(self, ticket_id: str) -> Task | Epic | None:  # type: ignore[override]
         """Read a task by ID."""
         if self.tracker:
             ai_ticket = self.tracker.get_ticket(ticket_id)
@@ -372,7 +372,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
                     return self._task_from_ai_ticket(ai_ticket)
         return None
 
-    async def update(
+    async def update(  # type: ignore[override]
         self, ticket_id: str, updates: dict[str, Any] | Task
     ) -> Task | Epic | None:
         """Update a task or epic.
@@ -430,7 +430,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
     async def delete(self, ticket_id: str) -> bool:
         """Delete a task."""
         if self.tracker:
-            return self.tracker.delete_ticket(ticket_id)
+            return self.tracker.delete_ticket(ticket_id)  # type: ignore[no-any-return]
         else:
             ticket_file = self.tickets_dir / f"{ticket_id}.json"
             if ticket_file.exists():
@@ -490,7 +490,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         if query.state:
             filters["state"] = query.state
         if query.priority:
-            filters["priority"] = query.priority
+            filters["priority"] = query.priority  # type: ignore[assignment]
 
         # Get all matching tasks
         all_tasks = await self.list(limit=100, filters=filters)
@@ -549,7 +549,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
             return None
 
         # Update state
-        return await self.update(ticket_id, {"state": target_state})
+        return await self.update(ticket_id, {"state": target_state})  # type: ignore[return-value]
 
     async def add_comment(self, comment: Comment) -> Comment:
         """Add comment to a task."""
@@ -616,7 +616,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
                 return Epic(**ticket.model_dump())
         return None
 
-    async def list_epics(self, limit: int = 10, offset: int = 0) -> builtins.list[Epic]:
+    async def list_epics(self, limit: int = 10, offset: int = 0) -> builtins.list[Epic]:  # type: ignore[override]
         """List all epics.
 
         Args:
@@ -1267,7 +1267,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         self,
         name: str,
         target_date: datetime | None = None,
-        labels: list[str] | None = None,
+        labels: builtins.list[str] | None = None,
         description: str = "",
         project_id: str | None = None,
     ) -> Any:
@@ -1306,7 +1306,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         self,
         project_id: str | None = None,
         state: str | None = None,
-    ) -> list[Any]:
+    ) -> builtins.list[Any]:
         """List milestones - not yet implemented for AITrackdown.
 
         Args:
@@ -1327,7 +1327,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         name: str | None = None,
         target_date: datetime | None = None,
         state: str | None = None,
-        labels: list[str] | None = None,
+        labels: builtins.list[str] | None = None,
         description: str | None = None,
     ) -> Any:
         """Update milestone - not yet implemented for AITrackdown.
@@ -1366,7 +1366,7 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         self,
         milestone_id: str,
         state: str | None = None,
-    ) -> list[Any]:
+    ) -> builtins.list[Any]:
         """Get milestone issues - not yet implemented for AITrackdown.
 
         Args:

@@ -174,8 +174,8 @@ def cache_decorator(
             return result
 
         # Add cache control methods
-        wrapper.cache_clear = lambda: cache.clear()
-        wrapper.cache_delete = lambda *a, **k: cache.delete(
+        wrapper.cache_clear = lambda: cache.clear()  # type: ignore[attr-defined]
+        wrapper.cache_delete = lambda *a, **k: cache.delete(  # type: ignore[attr-defined]
             f"{key_prefix}:{func.__name__}:{MemoryCache.generate_key(*a, **k)}"
         )
 

@@ -509,7 +509,7 @@ class SystemDiagnostics:
             from ..core.models import Priority, Task
             from ..queue.queue import Queue
 
-            test_task = Task(  # type: ignore[call-arg]
+            test_task = Task(
                 title="[DIAGNOSTIC TEST] Queue functionality test",
                 description="This is a diagnostic test - safe to ignore",
                 priority=Priority.LOW,
@@ -544,7 +544,7 @@ class SystemDiagnostics:
             from ..adapters.aitrackdown import AITrackdownAdapter
             from ..core.models import Priority, Task
 
-            test_task = Task(  # type: ignore[call-arg]
+            test_task = Task(
                 title="[DIAGNOSTIC TEST] Direct adapter test",
                 description="Testing direct adapter functionality",
                 priority=Priority.LOW,

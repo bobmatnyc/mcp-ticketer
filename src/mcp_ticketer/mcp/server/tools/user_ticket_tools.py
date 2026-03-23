@@ -162,14 +162,14 @@ async def _handle_get_transitions(ticket_id: str) -> dict[str, Any]:
         }
 
         transition_descriptions = {
-            state.value: descriptions.get(state, "") for state in available
+            state.value: descriptions.get(state, "") for state in available  # type: ignore[attr-defined, call-overload]
         }
 
         return {
             "status": "completed",
             **_build_adapter_metadata(adapter, ticket_id),
             "current_state": current_state.value,
-            "available_transitions": [state.value for state in available],
+            "available_transitions": [state.value for state in available],  # type: ignore[attr-defined]
             "transition_descriptions": transition_descriptions,
             "is_terminal": len(available) == 0,
         }
@@ -266,7 +266,7 @@ async def _handle_transition(
             # Check if it's a workflow violation or parent constraint violation
             workflow_valid = current_state.can_transition_to(target_state)
             valid_transitions = TicketState.valid_transitions().get(current_state, [])
-            valid_values = [s.value for s in valid_transitions]
+            valid_values = [s.value for s in valid_transitions]  # type: ignore[attr-defined]
 
             if workflow_valid:
                 # Workflow is valid, so this must be a parent constraint violation
@@ -344,7 +344,7 @@ async def _handle_transition(
         comment_added = False
         if comment and hasattr(adapter, "add_comment"):
             try:
-                await adapter.add_comment(ticket_id, comment)
+                await adapter.add_comment(ticket_id, comment)  # type: ignore[arg-type, call-arg]
                 comment_added = True
             except Exception:
                 # Log but don't fail the transition

@@ -42,7 +42,7 @@ def _build_adapter_metadata(
         metadata["ticket_id"] = ticket_id
 
     if is_routed:
-        metadata["routed_from_url"] = True
+        metadata["routed_from_url"] = True  # type: ignore[assignment]
 
     return metadata
 

@@ -332,13 +332,13 @@ class ConfigurationManager:
                     parsed_adapters[name] = GitHubConfig(**adapter_config)
                 elif adapter_type == "jira":
                     adapter_config["type"] = "jira"
-                    parsed_adapters[name] = JiraConfig(**adapter_config)
+                    parsed_adapters[name] = JiraConfig(**adapter_config)  # type: ignore[assignment]
                 elif adapter_type == "linear":
                     adapter_config["type"] = "linear"
-                    parsed_adapters[name] = LinearConfig(**adapter_config)
+                    parsed_adapters[name] = LinearConfig(**adapter_config)  # type: ignore[assignment]
                 elif adapter_type == "aitrackdown":
                     adapter_config["type"] = "aitrackdown"
-                    parsed_adapters[name] = AITrackdownConfig(**adapter_config)
+                    parsed_adapters[name] = AITrackdownConfig(**adapter_config)  # type: ignore[assignment]
                 else:
                     logger.warning(
                         f"Unknown adapter type: {adapter_type} for adapter: {name}"

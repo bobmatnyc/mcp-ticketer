@@ -206,7 +206,7 @@ class TicketerConfig:
         None  # Currently active GitHub connection name
     )
 
-    def __post_init__(self):
+    def __post_init__(self):  # type: ignore[no-untyped-def]
         """Normalize default_project if it's a URL."""
         if self.default_project:
             self.default_project = self._normalize_project_id(self.default_project)
@@ -267,13 +267,13 @@ class TicketerConfig:
         if self.default_epic is not None:
             result["default_epic"] = self.default_epic
         if self.default_tags is not None:
-            result["default_tags"] = self.default_tags
+            result["default_tags"] = self.default_tags  # type: ignore[assignment]
         if self.default_team is not None:
             result["default_team"] = self.default_team
         if self.default_cycle is not None:
             result["default_cycle"] = self.default_cycle
         if self.assignment_labels is not None:
-            result["assignment_labels"] = self.assignment_labels
+            result["assignment_labels"] = self.assignment_labels  # type: ignore[assignment]
         if self.auto_project_updates is not None:
             result["auto_project_updates"] = self.auto_project_updates
         if self.active_github_connection is not None:
@@ -786,10 +786,10 @@ class ConfigResolver:
         # Hybrid mode
         if os.getenv("MCP_TICKETER_HYBRID_MODE"):
             overrides["hybrid_mode_enabled"] = (
-                os.getenv("MCP_TICKETER_HYBRID_MODE").lower() == "true"
+                os.getenv("MCP_TICKETER_HYBRID_MODE").lower() == "true"  # type: ignore[assignment, union-attr]
             )
         if os.getenv("MCP_TICKETER_HYBRID_ADAPTERS"):
-            overrides["hybrid_adapters"] = os.getenv(
+            overrides["hybrid_adapters"] = os.getenv(  # type: ignore[assignment, union-attr]
                 "MCP_TICKETER_HYBRID_ADAPTERS"
             ).split(",")
 

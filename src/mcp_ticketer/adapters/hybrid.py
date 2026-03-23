@@ -100,7 +100,7 @@ class HybridAdapter(BaseAdapter):
         if self.mapping_file.exists():
             try:
                 with open(self.mapping_file) as f:
-                    return json.load(f)
+                    return json.load(f)  # type: ignore[no-any-return]
             except Exception as e:
                 logger.error(f"Failed to load mapping file: {e}")
 
@@ -615,7 +615,7 @@ class HybridAdapter(BaseAdapter):
         self,
         name: str,
         target_date: Any = None,
-        labels: list[str] | None = None,
+        labels: builtins.list[str] | None = None,
         description: str = "",
         project_id: str | None = None,
     ) -> Any:
@@ -658,7 +658,7 @@ class HybridAdapter(BaseAdapter):
         self,
         project_id: str | None = None,
         state: str | None = None,
-    ) -> list[Any]:
+    ) -> builtins.list[Any]:
         """List milestones from primary adapter.
 
         Args:
@@ -680,7 +680,7 @@ class HybridAdapter(BaseAdapter):
         name: str | None = None,
         target_date: Any = None,
         state: str | None = None,
-        labels: list[str] | None = None,
+        labels: builtins.list[str] | None = None,
         description: str | None = None,
     ) -> Any:
         """Update milestone in primary adapter.
@@ -723,7 +723,7 @@ class HybridAdapter(BaseAdapter):
         self,
         milestone_id: str,
         state: str | None = None,
-    ) -> list[Any]:
+    ) -> builtins.list[Any]:
         """Get milestone issues from primary adapter.
 
         Args:
@@ -739,7 +739,7 @@ class HybridAdapter(BaseAdapter):
         primary = self.adapters[self.primary_adapter_name]
         return await primary.milestone_get_issues(milestone_id, state)
 
-    async def search_users(self, query: str) -> list[dict[str, Any]]:
+    async def search_users(self, query: str) -> builtins.list[dict[str, Any]]:
         """Search for users in primary adapter.
 
         Args:

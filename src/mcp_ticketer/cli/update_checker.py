@@ -19,7 +19,7 @@ try:
 except ImportError:
     HAS_PACKAGING = False
 
-    class Version:
+    class Version:  # type: ignore[no-redef]
         """Fallback version comparison using simple string sorting.
 
         This is a minimal fallback when packaging is not available.
@@ -46,23 +46,23 @@ except ImportError:
                         self.parts.append(int(digits))
             except (ValueError, AttributeError):
                 # Fallback to string comparison if parsing fails
-                self.parts = None
+                self.parts = None  # type: ignore[assignment]
 
         def __gt__(self, other: "Version") -> bool:
             """Compare versions."""
-            if self.parts is not None and other.parts is not None:
+            if self.parts is not None and other.parts is not None:  # type: ignore[attr-defined]
                 # Proper numeric comparison
-                return self.parts > other.parts
+                return self.parts > other.parts  # type: ignore[attr-defined, no-any-return]
             # Fallback to string comparison
-            return self.version_string > other.version_string
+            return self.version_string > other.version_string  # type: ignore[attr-defined, no-any-return]
 
         def __eq__(self, other: object) -> bool:
             """Check equality."""
             if not isinstance(other, Version):
                 return False
-            if self.parts is not None and other.parts is not None:
-                return self.parts == other.parts
-            return self.version_string == other.version_string
+            if self.parts is not None and other.parts is not None:  # type: ignore[attr-defined]
+                return self.parts == other.parts  # type: ignore[attr-defined, no-any-return]
+            return self.version_string == other.version_string  # type: ignore[attr-defined, no-any-return]
 
 
 from ..__version__ import __version__
