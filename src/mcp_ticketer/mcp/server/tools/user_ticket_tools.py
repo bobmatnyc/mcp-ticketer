@@ -162,7 +162,8 @@ async def _handle_get_transitions(ticket_id: str) -> dict[str, Any]:
         }
 
         transition_descriptions = {
-            state.value: descriptions.get(state, "") for state in available  # type: ignore[attr-defined, call-overload]
+            state.value: descriptions.get(state, "")
+            for state in available  # type: ignore[attr-defined, call-overload]
         }
 
         return {

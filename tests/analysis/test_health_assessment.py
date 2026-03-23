@@ -148,7 +148,7 @@ def test_health_status_on_track():
         for i in range(6)
     ] + [
         Task(
-            id=f"TEST-{i+6}",
+            id=f"TEST-{i + 6}",
             title=f"Open {i}",
             state=TicketState.OPEN,
             priority=Priority.LOW,

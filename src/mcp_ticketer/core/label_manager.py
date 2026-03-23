@@ -215,8 +215,7 @@ class LabelNormalizer:
         except ValueError as e:
             valid_options = ", ".join(c.value for c in CasingStrategy)
             raise ValueError(
-                f"Invalid casing strategy '{casing}'. "
-                f"Valid options: {valid_options}"
+                f"Invalid casing strategy '{casing}'. Valid options: {valid_options}"
             ) from e
 
         # Build reverse spelling lookup for O(1) correction

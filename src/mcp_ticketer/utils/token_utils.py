@@ -231,7 +231,7 @@ def paginate_response(
     if estimated_tokens > max_tokens * 0.8:
         logging.warning(
             f"Response approaching token limit: {estimated_tokens}/{max_tokens} tokens "
-            f"({estimated_tokens/max_tokens*100:.1f}%). Consider using compact mode or reducing limit."
+            f"({estimated_tokens / max_tokens * 100:.1f}%). Consider using compact mode or reducing limit."
         )
 
     return {

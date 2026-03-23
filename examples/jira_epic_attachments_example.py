@@ -28,7 +28,6 @@ async def main():
 
     adapter = JiraAdapter(config)
 
-
     # Example 1: Create and Update an Epic
     epic = Epic(
         title=f"Example Epic - {datetime.now().strftime('%Y-%m-%d %H:%M')}",
@@ -47,14 +46,11 @@ async def main():
             "description": "Updated description with **formatted** text",
             "priority": Priority.HIGH,
             "tags": ["example", "demo", "updated"],
-        }
+        },
     )
 
     # Example 3: Update Epic State
-    await adapter.update_epic(
-        created_epic.id,
-        {"state": TicketState.IN_PROGRESS}
-    )
+    await adapter.update_epic(created_epic.id, {"state": TicketState.IN_PROGRESS})
 
     # Example 4: Add Attachment
     # Create a temporary file
@@ -71,9 +67,7 @@ async def main():
 
     try:
         attachment = await adapter.add_attachment(
-            created_epic.id,
-            temp_file_path,
-            description="Example attachment"
+            created_epic.id, temp_file_path, description="Example attachment"
         )
 
         # Example 5: List Attachments
@@ -104,7 +98,6 @@ async def main():
         pass
 
 
-
 if __name__ == "__main__":
     try:
         asyncio.run(main())
@@ -112,4 +105,5 @@ if __name__ == "__main__":
         pass
     except Exception:
         import traceback
+
         traceback.print_exc()

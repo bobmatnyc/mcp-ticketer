@@ -79,9 +79,9 @@ class AsanaAdapter(BaseAdapter[Task]):
         self._team_gid: str | None = None
         self._default_project_gid: str | None = None
         self._priority_field_gid: str | None = None
-        self._project_custom_fields_cache: dict[str, dict[str, dict]] = (
-            {}
-        )  # Map project_gid -> {field_name: field_data}
+        self._project_custom_fields_cache: dict[
+            str, dict[str, dict]
+        ] = {}  # Map project_gid -> {field_name: field_data}
         self._initialized = False
 
         super().__init__(config)
@@ -292,9 +292,9 @@ class AsanaAdapter(BaseAdapter[Task]):
 
         """
         if project_gid not in self._project_custom_fields_cache:
-            self._project_custom_fields_cache[project_gid] = (
-                await self._load_project_custom_fields(project_gid)
-            )
+            self._project_custom_fields_cache[
+                project_gid
+            ] = await self._load_project_custom_fields(project_gid)
         return self._project_custom_fields_cache[project_gid]
 
     def _map_state_to_status_option(

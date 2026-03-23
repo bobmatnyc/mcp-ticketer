@@ -177,7 +177,7 @@ publish-test: check-release format lint test test-e2e build
 
 **Execution Order**:
 1. `check-release` - Validate git state and version
-2. `format` - Format code (black + isort)
+2. `format` - Format code (ruff format)
 3. `lint` - Run linters (ruff + mypy)
 4. `test` - Run all unit tests
 5. `test-e2e` - **NEW**: Run E2E tests

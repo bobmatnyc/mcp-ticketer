@@ -574,9 +574,9 @@ class TestRelationshipActionIntegration:
                         entity_type=entity_type, action=action, **params
                     )
 
-                    assert (
-                        result["status"] == "completed"
-                    ), f"Failed for entity_type={entity_type}, action={action}"
+                    assert result["status"] == "completed", (
+                        f"Failed for entity_type={entity_type}, action={action}"
+                    )
                     assert result["operation"] == action
 
 
@@ -641,9 +641,9 @@ class TestRelationshipCodeStructure:
         )
 
         # Relationship checks come BEFORE entity checks (fixed!)
-        assert (
-            add_relation_line < entity_epic_line
-        ), "Relationship actions should be checked before entity_type branches"
+        assert add_relation_line < entity_epic_line, (
+            "Relationship actions should be checked before entity_type branches"
+        )
         assert relationship_comment_line < add_relation_line
         assert add_relation_line < entity_epic_line
 

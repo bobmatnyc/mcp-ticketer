@@ -172,7 +172,7 @@ class TicketRegistry:
                 conn.execute(
                     f"""
                     UPDATE ticket_registry
-                    SET {', '.join(update_fields)}
+                    SET {", ".join(update_fields)}
                     WHERE queue_id = ?
                 """,
                     values,

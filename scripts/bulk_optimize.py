@@ -8,9 +8,9 @@ from pathlib import Path
 def extract_function_call(lines, start_idx, end_idx):
     """Extract the function call from verbose example block."""
     for line in lines[start_idx:end_idx]:
-        if '>>> ' in line and '(' in line:
+        if ">>> " in line and "(" in line:
             # Extract function name and call
-            match = re.search(r'(\w+)\([^)]*\)', line)
+            match = re.search(r"(\w+)\([^)]*\)", line)
             if match:
                 return match.group(0)
     return None
@@ -19,7 +19,7 @@ def extract_function_call(lines, start_idx, end_idx):
 def optimize_file(filepath):
     """Optimize all verbose examples in a file."""
     content = filepath.read_text()
-    lines = content.split('\n')
+    lines = content.split("\n")
     result_lines = []
     i = 0
     optimized_count = 0
@@ -28,11 +28,11 @@ def optimize_file(filepath):
         line = lines[i]
 
         # Check for verbose example pattern
-        if '>>> print(result)' in line:
+        if ">>> print(result)" in line:
             # Find Example: start (look back up to 20 lines)
             example_start = None
-            for j in range(i-1, max(0, i-20), -1):
-                if lines[j].strip().startswith('Example:'):
+            for j in range(i - 1, max(0, i - 20), -1):
+                if lines[j].strip().startswith("Example:"):
                     example_start = j
                     break
 
@@ -45,13 +45,13 @@ def optimize_file(filepath):
             json_end = None
             brace_count = 0
             started = False
-            for j in range(i+1, min(len(lines), i+50)):
+            for j in range(i + 1, min(len(lines), i + 50)):
                 stripped = lines[j].strip()
-                if '{' in stripped:
+                if "{" in stripped:
                     started = True
                 if started:
-                    brace_count += stripped.count('{') - stripped.count('}')
-                    if brace_count == 0 and '}' in stripped:
+                    brace_count += stripped.count("{") - stripped.count("}")
+                    if brace_count == 0 and "}" in stripped:
                         json_end = j
                         break
 
@@ -64,9 +64,12 @@ def optimize_file(filepath):
 
                 # Create concise replacement
                 if func_call:
-                    concise = ' ' * indent + f'Example: `{func_call}` → {{"status": "completed", ...}}'
+                    concise = (
+                        " " * indent
+                        + f'Example: `{func_call}` → {{"status": "completed", ...}}'
+                    )
                 else:
-                    concise = ' ' * indent + 'Example: See Returns section'
+                    concise = " " * indent + "Example: See Returns section"
 
                 # Add everything before example block
                 # Skip the verbose block, add concise version
@@ -81,19 +84,19 @@ def optimize_file(filepath):
         i += 1
 
     # Write optimized content
-    filepath.write_text('\n'.join(result_lines))
+    filepath.write_text("\n".join(result_lines))
 
     return optimized_count
 
 
 def main():
     """Optimize remaining files."""
-    tools_dir = Path('src/mcp_ticketer/mcp/server/tools')
+    tools_dir = Path("src/mcp_ticketer/mcp/server/tools")
 
     files = [
-        'config_tools.py',
-        'label_tools.py',
-        'project_update_tools.py',
+        "config_tools.py",
+        "label_tools.py",
+        "project_update_tools.py",
     ]
 
     total_optimized = 0
@@ -110,10 +113,12 @@ def main():
         saved = before_size - after_size
         total_optimized += count
 
-        print(f"{filename}: {count} examples optimized, {saved:,} bytes saved (~{saved//4:,} tokens)")
+        print(
+            f"{filename}: {count} examples optimized, {saved:,} bytes saved (~{saved // 4:,} tokens)"
+        )
 
     print(f"\nTotal: {total_optimized} examples optimized")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -516,7 +516,7 @@ class UserAssignmentTester:
         print(f"    Total tests: {total_tests}")
         print(f"    Successful: {successful_tests}")
         print(
-            f"    Success rate: {(successful_tests/total_tests*100):.1f}%"
+            f"    Success rate: {(successful_tests / total_tests * 100):.1f}%"
             if total_tests > 0
             else "No tests run"
         )

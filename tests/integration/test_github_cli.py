@@ -331,9 +331,9 @@ class TestGitHubStateMappings:
 
             # Check that state label exists
             has_state_label = any(expected_label_part in label for label in labels)
-            assert (
-                has_state_label
-            ), f"State '{state}' should have label with '{expected_label_part}'"
+            assert has_state_label, (
+                f"State '{state}' should have label with '{expected_label_part}'"
+            )
 
     def test_priority_label_mapping(
         self,

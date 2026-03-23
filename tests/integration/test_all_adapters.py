@@ -2,6 +2,7 @@
 """
 Test all configured adapters with credentials from .env.local
 """
+
 import asyncio
 import os
 from datetime import datetime
@@ -415,11 +416,11 @@ async def test_aitrackdown():
             for i in range(3):
                 test_task = Task(
                     id="",
-                    title=f"[TEST] Task {i+1} - {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-                    description=f"Test task #{i+1} for integration testing",
+                    title=f"[TEST] Task {i + 1} - {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+                    description=f"Test task #{i + 1} for integration testing",
                     state=TicketState.OPEN,
                     priority=Priority.MEDIUM if i == 0 else Priority.HIGH,
-                    tags=["test", "automation", f"batch-{i+1}"],
+                    tags=["test", "automation", f"batch-{i + 1}"],
                     parent_epic=created_epic_id if i < 2 else None,
                 )
 
@@ -462,7 +463,7 @@ async def test_aitrackdown():
                     id="",
                     ticket_id=task_id,
                     author="test-user",
-                    content=f"Test comment {i+1} from integration tests",
+                    content=f"Test comment {i + 1} from integration tests",
                 )
                 await adapter.add_comment(comment)
             console.print("  ✓ Added comments to tasks")
@@ -563,22 +564,22 @@ async def main():
     console.print("\n[bold]Running Integration Tests...[/bold]")
 
     # AI-Trackdown (local file-based, should be most reliable)
-    console.print(f"\n{'='*60}")
+    console.print(f"\n{'=' * 60}")
     result_aitrackdown = await test_aitrackdown()
     results.append(("AI-Trackdown", result_aitrackdown, "Local file-based adapter"))
 
     # Linear (if credentials available)
-    console.print(f"\n{'='*60}")
+    console.print(f"\n{'=' * 60}")
     result_linear = await test_linear()
     results.append(("Linear", result_linear, "Using 1m-hyperdev workspace, team BTA"))
 
     # GitHub (if credentials available)
-    console.print(f"\n{'='*60}")
+    console.print(f"\n{'=' * 60}")
     result_github = await test_github()
     results.append(("GitHub", result_github, "Using bobmatnyc/mcp-ticketer repository"))
 
     # JIRA (if credentials available)
-    console.print(f"\n{'='*60}")
+    console.print(f"\n{'=' * 60}")
     result_jira = await test_jira()
     results.append(
         ("JIRA", result_jira, "Using 1m-hyperdev.atlassian.net, SMS project")
@@ -589,7 +590,7 @@ async def main():
     duration = (end_time - start_time).total_seconds()
 
     # Enhanced summary table
-    console.print(f"\n{'='*80}")
+    console.print(f"\n{'=' * 80}")
     console.print(
         Panel.fit(
             f"[bold]Integration Test Results Summary[/bold]\n"

@@ -308,11 +308,19 @@ def test_state_mappings():
         )
         epic = project_to_epic(project)
         # Note: Pydantic serializes enums to strings with use_enum_values=True
-        expected_str = expected_ticket_state.value if hasattr(expected_ticket_state, 'value') else expected_ticket_state
-        actual_str = epic.state.value if hasattr(epic.state, 'value') else epic.state
+        expected_str = (
+            expected_ticket_state.value
+            if hasattr(expected_ticket_state, "value")
+            else expected_ticket_state
+        )
+        actual_str = epic.state.value if hasattr(epic.state, "value") else epic.state
         status = "✓" if actual_str == expected_str else "✗"
-        proj_state_str = project_state.value if hasattr(project_state, 'value') else project_state
-        print(f"{status} {proj_state_str:12} -> {actual_str:12} (expected {expected_str})")
+        proj_state_str = (
+            project_state.value if hasattr(project_state, "value") else project_state
+        )
+        print(
+            f"{status} {proj_state_str:12} -> {actual_str:12} (expected {expected_str})"
+        )
         assert actual_str == expected_str
 
 

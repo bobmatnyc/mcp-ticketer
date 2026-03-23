@@ -370,7 +370,8 @@ class TestValidationIntegration:
         matcher = SemanticStateMatcher()
 
         result = matcher.validate_transition(
-            TicketState.OPEN, "working on it"  # Should resolve to IN_PROGRESS
+            TicketState.OPEN,
+            "working on it",  # Should resolve to IN_PROGRESS
         )
 
         assert result.is_valid
@@ -705,14 +706,14 @@ class TestSynonymUniqueness:
         done_synonyms = ["completed", "finished", "done", "resolved"]
         for synonym in done_synonyms:
             result = matcher.match_state(synonym)
-            assert (
-                result.state == TicketState.DONE
-            ), f"'{synonym}' should map to DONE, got {result.state.value}"
+            assert result.state == TicketState.DONE, (
+                f"'{synonym}' should map to DONE, got {result.state.value}"
+            )
 
         # Test CLOSED synonyms map to CLOSED
         closed_synonyms = ["closed", "cancelled", "canceled", "archived"]
         for synonym in closed_synonyms:
             result = matcher.match_state(synonym)
-            assert (
-                result.state == TicketState.CLOSED
-            ), f"'{synonym}' should map to CLOSED, got {result.state.value}"
+            assert result.state == TicketState.CLOSED, (
+                f"'{synonym}' should map to CLOSED, got {result.state.value}"
+            )

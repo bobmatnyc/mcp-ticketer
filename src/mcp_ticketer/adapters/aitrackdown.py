@@ -291,7 +291,10 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         return ticket
 
     async def create_epic(
-        self, title: str, description: str = None, **kwargs: Any  # type: ignore[assignment, override]
+        self,
+        title: str,
+        description: str = None,
+        **kwargs: Any,  # type: ignore[assignment, override]
     ) -> Epic:
         """Create a new epic.
 
@@ -336,7 +339,11 @@ class AITrackdownAdapter(BaseAdapter[Task]):
         return await self.create(task)  # type: ignore[return-value]
 
     async def create_task(
-        self, title: str, parent_id: str, description: str = None, **kwargs: Any  # type: ignore[assignment, override]
+        self,
+        title: str,
+        parent_id: str,
+        description: str = None,
+        **kwargs: Any,  # type: ignore[assignment, override]
     ) -> Task:
         """Create a new task under an issue.
 

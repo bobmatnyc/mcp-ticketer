@@ -16,17 +16,16 @@ lint-fix: ## Run linters with auto-fix
 	@echo "Linting complete!"
 
 .PHONY: format
-format: ## Format code (black, ruff for imports)
+format: ## Format code (ruff format + import sorting)
 	@echo "Formatting code..."
 	ruff check --select I --fix src tests
-	black src tests
+	ruff format src tests
 	@echo "Code formatted!"
 
 .PHONY: format-check
 format-check: ## Check code formatting without modifying
 	@echo "Checking code formatting..."
-	black --check src tests
-	isort --check src tests
+	ruff format --check src tests
 
 .PHONY: typecheck
 typecheck: ## Run type checking with mypy

@@ -26,7 +26,7 @@ def get_tool_definition_size(func) -> dict:
     try:
         source = inspect.getsource(func)
         # Only count the decorator and definition, not implementation
-        source_lines = source.split('\n')
+        source_lines = source.split("\n")
         definition_lines = []
         in_docstring = False
         docstring_delim_count = 0
@@ -38,10 +38,10 @@ def get_tool_definition_size(func) -> dict:
                 definition_lines.append(line)
                 if docstring_delim_count == 2:
                     break
-            elif in_docstring or '@' in line or 'def ' in line or 'async def' in line:
+            elif in_docstring or "@" in line or "def " in line or "async def" in line:
                 definition_lines.append(line)
 
-        definition = '\n'.join(definition_lines)
+        definition = "\n".join(definition_lines)
     except:
         definition = f"{signature_str}\n{docstring}"
 
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     print(f"  Full definition: {session_info['full_tokens']} tokens")
     print()
 
-    original_total = my_tickets['full_tokens'] + session_info['full_tokens']
+    original_total = my_tickets["full_tokens"] + session_info["full_tokens"]
     print(f"TOTAL (2 tools): {original_total} tokens")
     print()
 
@@ -106,7 +106,7 @@ if __name__ == "__main__":
     print("      removed in v2.0.0, leaving only the unified user_session tool.")
     print()
 
-    consolidated_total = unified['full_tokens']
+    consolidated_total = unified["full_tokens"]
     print(f"TOTAL (1 unified tool): {consolidated_total} tokens")
     print()
 

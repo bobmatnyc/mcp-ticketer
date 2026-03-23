@@ -193,8 +193,7 @@ def _prompt_for_adapter_selection(console: Console) -> str:
 
 
 def setup(
-    project_path: str
-    | None = typer.Option(
+    project_path: str | None = typer.Option(
         None, "--path", help="Project path (default: current directory)"
     ),
     skip_platforms: bool = typer.Option(

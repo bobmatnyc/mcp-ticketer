@@ -257,9 +257,9 @@ class TestResolveProjectIdURLParsing:
 
         for url in test_cases:
             result = await linear_adapter._resolve_project_id(url)
-            assert (
-                result == "12345678-1234-1234-1234-123456789int"
-            ), f"Failed for URL: {url}"
+            assert result == "12345678-1234-1234-1234-123456789int", (
+                f"Failed for URL: {url}"
+            )
 
 
 class TestResolveProjectIdEdgeCases:
@@ -338,6 +338,6 @@ class TestResolveProjectIdEdgeCases:
 
         for test_input in test_inputs:
             result = await linear_adapter._resolve_project_id(test_input)
-            assert (
-                result == "12345678-1234-1234-1234-123456789cas"
-            ), f"Failed for input: {test_input}"
+            assert result == "12345678-1234-1234-1234-123456789cas", (
+                f"Failed for input: {test_input}"
+            )

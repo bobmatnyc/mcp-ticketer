@@ -816,9 +816,10 @@ class LinearAdapter(BaseAdapter[Task]):
 
         """
         # First check current association
-        is_associated, existing_team_ids = (
-            await self._validate_project_team_association(project_id, team_id)
-        )
+        (
+            is_associated,
+            existing_team_ids,
+        ) = await self._validate_project_team_association(project_id, team_id)
 
         if is_associated:
             return True  # Already associated, nothing to do

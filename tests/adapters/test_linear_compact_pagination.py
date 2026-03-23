@@ -156,9 +156,9 @@ class TestCompactFormatTokenReduction:
         compact_size = len(str(compact_dict))
 
         reduction_percentage = ((full_size - compact_size) / full_size) * 100
-        assert (
-            reduction_percentage > 70
-        ), f"Expected >70% reduction, got {reduction_percentage:.1f}%"
+        assert reduction_percentage > 70, (
+            f"Expected >70% reduction, got {reduction_percentage:.1f}%"
+        )
 
 
 @pytest.mark.asyncio
@@ -295,8 +295,8 @@ class TestCompactFormatPerformance:
         tasks = []
         for i in range(50):
             task = Task(
-                id=f"PROJ-{i+1}",
-                title=f"Task {i+1}: Implement feature XYZ",
+                id=f"PROJ-{i + 1}",
+                title=f"Task {i + 1}: Implement feature XYZ",
                 description="A" * 200,  # ~200 char description
                 state=TicketState.IN_PROGRESS,
                 priority=Priority.MEDIUM,
@@ -323,12 +323,12 @@ class TestCompactFormatPerformance:
         print(f"  Reduction: {reduction_percentage:.1f}%")
 
         # Verify target reduction achieved
-        assert (
-            reduction_percentage >= 70
-        ), f"Target: 70-80% reduction. Achieved: {reduction_percentage:.1f}%"
-        assert (
-            reduction_percentage <= 85
-        ), f"Reduction too high ({reduction_percentage:.1f}%), verify fields are useful"
+        assert reduction_percentage >= 70, (
+            f"Target: 70-80% reduction. Achieved: {reduction_percentage:.1f}%"
+        )
+        assert reduction_percentage <= 85, (
+            f"Reduction too high ({reduction_percentage:.1f}%), verify fields are useful"
+        )
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@
 """
 Test script to find the correct Linear team key
 """
+
 import asyncio
 import os
 from pathlib import Path

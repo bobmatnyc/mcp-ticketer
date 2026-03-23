@@ -74,7 +74,6 @@ dev = [
     "pytest-timeout>=2.2.0",
     "pytest-mock>=3.12.0",
     "pytest-xdist>=3.0.0",  # Parallel test execution for `make test-parallel`
-    "black>=23.0.0",
     "ruff>=0.1.0",
     "mypy>=1.5.0",
     "types-PyYAML>=6.0.0",  # Type stubs for PyYAML
@@ -150,21 +149,6 @@ mcp_ticketer = ["py.typed", "*.json", "*.yaml", "*.yml", "defaults/*.md"]
 version_file = "src/mcp_ticketer/_version_scm.py"
 version_file_template = "__version__ = '{version}'\n"
 
-[tool.black]
-line-length = 88
-target-version = ['py310', 'py311', 'py312']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-    \.git
-  | \.venv
-  | build
-  | dist
-  | \.tox
-  | \.eggs
-)/
-'''
-
 [tool.ruff]
 target-version = "py310"
 line-length = 88
@@ -184,7 +168,7 @@ select = [
     "T",  # flake8-print
 ]
 ignore = [
-    "E501",  # line too long (handled by black)
+    "E501",  # line too long (handled by ruff format)
     "B008",  # do not perform function calls in argument defaults
     "B019",  # lru_cache on methods (acceptable for singleton-like objects)
     "W191",  # indentation contains tabs
@@ -307,11 +291,10 @@ commands =
 
 [testenv:lint]
 deps =
-    black
     ruff
 commands =
-    black --check src tests
     ruff check src tests
+    ruff format --check src tests
 
 [testenv:mypy]
 deps =

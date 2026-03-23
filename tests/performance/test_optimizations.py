@@ -26,8 +26,8 @@ async def test_batch_processing():
 
     for i in range(5):
         task_data = {
-            "title": f"[TEST-BATCH] Ticket {i+1}",
-            "description": f"Testing batch processing optimization #{i+1}",
+            "title": f"[TEST-BATCH] Ticket {i + 1}",
+            "description": f"Testing batch processing optimization #{i + 1}",
             "priority": Priority.MEDIUM.value,
             "tags": ["test", "batch", "optimization"],
         }
@@ -63,7 +63,7 @@ async def test_batch_processing():
     print("\nBatch Processing Results:")
     print(f"  Completed: {completed}/5")
     print(f"  Total time: {total_time:.3f} seconds")
-    print(f"  Average per ticket: {total_time/5:.3f} seconds")
+    print(f"  Average per ticket: {total_time / 5:.3f} seconds")
 
     return completed == 5
 
@@ -83,7 +83,7 @@ async def test_concurrent_adapters():
 
     for i, adapter in enumerate(adapters):
         task_data = {
-            "title": f"[TEST-CONCURRENT] {adapter} ticket {i+1}",
+            "title": f"[TEST-CONCURRENT] {adapter} ticket {i + 1}",
             "description": f"Testing concurrent processing for {adapter}",
             "priority": Priority.HIGH.value,
         }

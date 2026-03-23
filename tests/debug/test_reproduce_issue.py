@@ -7,6 +7,7 @@ This test reproduces the exact scenario the user is experiencing:
 - Expected: Issue created successfully
 - Actual: "Argument Validation Error"
 """
+
 import asyncio
 import logging
 import os

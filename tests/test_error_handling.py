@@ -122,9 +122,9 @@ class ErrorHandlingTestSuite:
             query = SearchQuery(state="invalid_state", limit=10)
             results = await self.adapter.search(query)
             # Should return empty results, not crash
-            assert isinstance(
-                results, list
-            ), "Should return list even with invalid state"
+            assert isinstance(results, list), (
+                "Should return list even with invalid state"
+            )
 
         self.run_test("Search with invalid state", search_invalid_state)
 

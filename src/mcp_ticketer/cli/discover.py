@@ -467,7 +467,7 @@ def onepassword_status() -> None:
     console.print(table)
 
     if not status["authenticated"]:
-        console.print("\n[yellow]Sign in to 1Password:[/yellow]\n" "  Run: op signin\n")
+        console.print("\n[yellow]Sign in to 1Password:[/yellow]\n  Run: op signin\n")
     else:
         console.print(
             "\n[green]✓ 1Password CLI is ready to use![/green]\n\n"
@@ -588,9 +588,7 @@ def onepassword_test(
         raise typer.Exit(1)
 
     if not status["authenticated"]:
-        console.print(
-            "[red]1Password CLI not authenticated.[/red]\n\n" "Run: op signin"
-        )
+        console.print("[red]1Password CLI not authenticated.[/red]\n\nRun: op signin")
         raise typer.Exit(1)
 
     console.print(

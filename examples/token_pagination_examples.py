@@ -70,8 +70,12 @@ async def example_basic_pagination():
     )
     print(f"\n📊 Summary:")
     print(f"  Total pages fetched: {2 if page1['has_more'] else 1}")
-    print(f"  Total tokens used: {total_tokens} ({total_tokens/20000*100:.1f}% of limit)")
-    print(f"  Tokens per ticket: ~{total_tokens // (page1['count'] + (page2['count'] if page1['has_more'] else 0))}")
+    print(
+        f"  Total tokens used: {total_tokens} ({total_tokens / 20000 * 100:.1f}% of limit)"
+    )
+    print(
+        f"  Tokens per ticket: ~{total_tokens // (page1['count'] + (page2['count'] if page1['has_more'] else 0))}"
+    )
 
 
 # ==============================================================================
@@ -98,7 +102,9 @@ async def example_compact_vs_full():
     print(f"✓ Compact mode:")
     print(f"  Tickets: {compact_result['count']}")
     print(f"  Estimated tokens: {compact_result['estimated_tokens']}")
-    print(f"  Tokens per ticket: ~{compact_result['estimated_tokens'] // compact_result['count']}")
+    print(
+        f"  Tokens per ticket: ~{compact_result['estimated_tokens'] // compact_result['count']}"
+    )
 
     # Fetch in full mode (same tickets)
     print("\n📦 Fetching 20 tickets in FULL mode...")
@@ -107,20 +113,30 @@ async def example_compact_vs_full():
     print(f"✓ Full mode:")
     print(f"  Tickets: {full_result['count']}")
     print(f"  Estimated tokens: {full_result['estimated_tokens']}")
-    print(f"  Tokens per ticket: ~{full_result['estimated_tokens'] // full_result['count']}")
+    print(
+        f"  Tokens per ticket: ~{full_result['estimated_tokens'] // full_result['count']}"
+    )
 
     # Comparison
     print(f"\n📊 Comparison:")
-    print(f"  Token reduction: {full_result['estimated_tokens'] - compact_result['estimated_tokens']} tokens saved")
-    print(f"  Reduction factor: {full_result['estimated_tokens'] / compact_result['estimated_tokens']:.1f}x")
-    print(f"  Compact: {compact_result['estimated_tokens']/20000*100:.1f}% of limit")
-    print(f"  Full: {full_result['estimated_tokens']/20000*100:.1f}% of limit")
+    print(
+        f"  Token reduction: {full_result['estimated_tokens'] - compact_result['estimated_tokens']} tokens saved"
+    )
+    print(
+        f"  Reduction factor: {full_result['estimated_tokens'] / compact_result['estimated_tokens']:.1f}x"
+    )
+    print(
+        f"  Compact: {compact_result['estimated_tokens'] / 20000 * 100:.1f}% of limit"
+    )
+    print(f"  Full: {full_result['estimated_tokens'] / 20000 * 100:.1f}% of limit")
 
     # Show what's included in each mode
     if compact_result["items"] and full_result["items"]:
         print(f"\n🔍 Fields comparison (first ticket):")
         print(f"  Compact fields: {list(compact_result['items'][0].keys())}")
-        print(f"  Full fields: {list(full_result['items'][0].keys())[:10]}... (truncated)")
+        print(
+            f"  Full fields: {list(full_result['items'][0].keys())[:10]}... (truncated)"
+        )
 
 
 # ==============================================================================
@@ -181,7 +197,9 @@ async def example_progressive_disclosure():
     print(f"  Step 1 (overview): {overview['estimated_tokens']} tokens")
     print(f"  Step 2 (filtered): {high_priority['estimated_tokens']} tokens")
     print(f"  Step 3 (details): ~{tokens_for_details} tokens")
-    print(f"  Total: ~{total_tokens} tokens ({total_tokens/20000*100:.1f}% of limit)")
+    print(
+        f"  Total: ~{total_tokens} tokens ({total_tokens / 20000 * 100:.1f}% of limit)"
+    )
     print(f"  ✅ Well under 20k limit!")
 
 
@@ -216,9 +234,7 @@ async def example_large_dataset_pagination():
         total_tokens += page["estimated_tokens"]
         pages_fetched += 1
 
-        print(
-            f"     Got {page['count']} labels, {page['estimated_tokens']} tokens"
-        )
+        print(f"     Got {page['count']} labels, {page['estimated_tokens']} tokens")
 
         # Check if more pages exist
         if not page["has_more"]:
@@ -229,9 +245,7 @@ async def example_large_dataset_pagination():
 
         # Safety check: don't exceed reasonable limits
         if pages_fetched >= 10:
-            print(
-                f"     ⚠️ Stopping after {pages_fetched} pages (safety limit)"
-            )
+            print(f"     ⚠️ Stopping after {pages_fetched} pages (safety limit)")
             break
 
     # Summary
@@ -239,7 +253,9 @@ async def example_large_dataset_pagination():
     print(f"  Total labels: {len(all_labels)}")
     print(f"  Pages fetched: {pages_fetched}")
     print(f"  Total tokens: {total_tokens}")
-    print(f"  Avg tokens/page: {total_tokens // pages_fetched if pages_fetched > 0 else 0}")
+    print(
+        f"  Avg tokens/page: {total_tokens // pages_fetched if pages_fetched > 0 else 0}"
+    )
     print(f"  Max single page: ≤ {page_size * 15} tokens (well under 20k limit)")
 
 
@@ -279,9 +295,7 @@ async def example_similarity_analysis():
     # Best practice: Targeted similarity search
     print("\n🎯 Best practice: Target specific ticket...")
     # In real usage: await ticket_find_similar(ticket_id="PROJ-123", limit=10)
-    print(
-        f"  ✓ Analyze similarities for specific ticket (most efficient)"
-    )
+    print(f"  ✓ Analyze similarities for specific ticket (most efficient)")
     print(f"  ✓ Reduces analysis scope significantly")
     print(f"  ✓ Stays well under token limits")
 
@@ -318,18 +332,14 @@ async def example_cleanup_report():
     # Step 2: Get detailed report for specific section if needed
     print("\n📋 Step 2: Get detailed report (if issues found)...")
     if summary.get("summary", {}).get("similar_count", 0) > 0:
-        print(
-            "  Found duplicate issues, fetching detailed analysis..."
-        )
+        print("  Found duplicate issues, fetching detailed analysis...")
         # In real usage:
         # detailed = await ticket_cleanup_report(
         #     include_similar=True,
         #     include_stale=False,
         #     include_orphaned=False
         # )
-        print(
-            f"  Would fetch detailed similarity analysis (~3,000 tokens)"
-        )
+        print(f"  Would fetch detailed similarity analysis (~3,000 tokens)")
     else:
         print("  ✓ No issues found, skipping detailed analysis")
 
@@ -370,7 +380,7 @@ async def example_token_budgeting():
     op1_tokens = 300  # ticket_list(compact=True)
     budget_used += op1_tokens
     print(
-        f"  Used: {op1_tokens} tokens ({op1_tokens/budget_available*100:.1f}% of tool budget)"
+        f"  Used: {op1_tokens} tokens ({op1_tokens / budget_available * 100:.1f}% of tool budget)"
     )
     print(f"  Remaining: {budget_available - budget_used:,} tokens")
 
@@ -379,7 +389,7 @@ async def example_token_budgeting():
     op2_tokens = 3000  # ticket_find_similar(limit=10)
     budget_used += op2_tokens
     print(
-        f"  Used: {op2_tokens} tokens ({op2_tokens/budget_available*100:.1f}% of tool budget)"
+        f"  Used: {op2_tokens} tokens ({op2_tokens / budget_available * 100:.1f}% of tool budget)"
     )
     print(f"  Remaining: {budget_available - budget_used:,} tokens")
 
@@ -388,7 +398,7 @@ async def example_token_budgeting():
     op3_tokens = 1500  # label_list(limit=100)
     budget_used += op3_tokens
     print(
-        f"  Used: {op3_tokens} tokens ({op3_tokens/budget_available*100:.1f}% of tool budget)"
+        f"  Used: {op3_tokens} tokens ({op3_tokens / budget_available * 100:.1f}% of tool budget)"
     )
     print(f"  Remaining: {budget_available - budget_used:,} tokens")
 
@@ -397,17 +407,21 @@ async def example_token_budgeting():
     op4_tokens = 1500  # ticket_cleanup_report(summary_only=True)
     budget_used += op4_tokens
     print(
-        f"  Used: {op4_tokens} tokens ({op4_tokens/budget_available*100:.1f}% of tool budget)"
+        f"  Used: {op4_tokens} tokens ({op4_tokens / budget_available * 100:.1f}% of tool budget)"
     )
     print(f"  Remaining: {budget_available - budget_used:,} tokens")
 
     # Summary
     print(f"\n📊 Budget Summary:")
     print(f"  Operations: 4")
-    print(f"  Tool tokens used: {budget_used:,} ({budget_used/budget_available*100:.1f}% of tool budget)")
+    print(
+        f"  Tool tokens used: {budget_used:,} ({budget_used / budget_available * 100:.1f}% of tool budget)"
+    )
     print(f"  Tool tokens remaining: {budget_available - budget_used:,}")
     print(f"  Total tokens remaining: {budget_total - budget_reserve - budget_used:,}")
-    print(f"  Status: {'✅ Under budget' if budget_used < budget_available else '❌ Over budget'}")
+    print(
+        f"  Status: {'✅ Under budget' if budget_used < budget_available else '❌ Over budget'}"
+    )
 
 
 # ==============================================================================

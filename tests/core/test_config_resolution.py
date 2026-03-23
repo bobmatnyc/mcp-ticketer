@@ -55,15 +55,15 @@ def test_project_specific_config_takes_precedence() -> None:
                 config = load_config()
 
                 # Verify project-specific config was loaded
-                assert (
-                    config["default_adapter"] == "linear"
-                ), f"Expected 'linear', got '{config['default_adapter']}'"
-                assert (
-                    "linear" in config["adapters"]
-                ), "Expected 'linear' adapter in config"
-                assert (
-                    config["adapters"]["linear"]["team_key"] == "PROJECT-SPECIFIC"
-                ), "Expected project-specific config values"
+                assert config["default_adapter"] == "linear", (
+                    f"Expected 'linear', got '{config['default_adapter']}'"
+                )
+                assert "linear" in config["adapters"], (
+                    "Expected 'linear' adapter in config"
+                )
+                assert config["adapters"]["linear"]["team_key"] == "PROJECT-SPECIFIC", (
+                    "Expected project-specific config values"
+                )
 
                 print("✓ Test passed: Project-specific config takes precedence")
 
@@ -93,13 +93,13 @@ def test_global_config_fallback() -> None:
             config = load_config()
 
             # Verify default config was loaded (aitrackdown fallback)
-            assert (
-                config["adapter"] == "aitrackdown"
-            ), f"Expected 'aitrackdown', got '{config.get('adapter')}'"
+            assert config["adapter"] == "aitrackdown", (
+                f"Expected 'aitrackdown', got '{config.get('adapter')}'"
+            )
             assert "config" in config, "Expected 'config' key in default config"
-            assert (
-                config["config"]["base_path"] == ".aitrackdown"
-            ), "Expected default base_path"
+            assert config["config"]["base_path"] == ".aitrackdown", (
+                "Expected default base_path"
+            )
 
             print("✓ Test passed: Default config used when project config missing")
 
@@ -125,13 +125,13 @@ def test_default_fallback() -> None:
                 config = load_config()
 
                 # Verify default config was loaded
-                assert (
-                    config["adapter"] == "aitrackdown"
-                ), f"Expected 'aitrackdown', got '{config.get('adapter')}'"
+                assert config["adapter"] == "aitrackdown", (
+                    f"Expected 'aitrackdown', got '{config.get('adapter')}'"
+                )
                 assert "config" in config, "Expected default config structure"
-                assert (
-                    config["config"]["base_path"] == ".aitrackdown"
-                ), "Expected default base_path"
+                assert config["config"]["base_path"] == ".aitrackdown", (
+                    "Expected default base_path"
+                )
 
                 print("✓ Test passed: Default config used when no configs exist")
 

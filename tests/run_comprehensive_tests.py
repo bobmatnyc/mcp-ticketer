@@ -17,7 +17,10 @@ def run_command(cmd: list[str], description: str) -> tuple[bool, str]:
 
     try:
         result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=300  # 5 minute timeout
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=300,  # 5 minute timeout
         )
 
         if result.returncode == 0:

@@ -430,8 +430,8 @@ class TestCompleteWorkflow:
             issue_request = {
                 "method": "issue/create",
                 "params": {
-                    "title": f"Concurrent Issue {i+1}",
-                    "description": f"Issue created concurrently #{i+1}",
+                    "title": f"Concurrent Issue {i + 1}",
+                    "description": f"Issue created concurrently #{i + 1}",
                     "epic_id": epic_id,
                     "priority": "medium",
                 },

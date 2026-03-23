@@ -142,21 +142,23 @@ async def example_project_updates():
     summary = status["summary"]
     metrics = status["health_metrics"]
 
-    update_body = f"""Project Status Update - {datetime.now().strftime('%Y-%m-%d')}
+    update_body = f"""Project Status Update - {datetime.now().strftime("%Y-%m-%d")}
 
-**Health**: {status['health']} (score: {metrics['health_score']:.2f}/1.00)
+**Health**: {status["health"]} (score: {metrics["health_score"]:.2f}/1.00)
 
 **Progress**:
-- Total tickets: {summary['total']}
-- Completed: {summary.get('done', 0)} ({metrics['completion_rate']:.0%})
-- In Progress: {summary.get('in_progress', 0)}
-- Blocked: {summary.get('blocked', 0)}
+- Total tickets: {summary["total"]}
+- Completed: {summary.get("done", 0)} ({metrics["completion_rate"]:.0%})
+- In Progress: {summary.get("in_progress", 0)}
+- Blocked: {summary.get("blocked", 0)}
 
 **Top Priorities**:
 """
 
     for i, ticket in enumerate(status["recommended_next"], 1):
-        update_body += f"{i}. {ticket['ticket_id']}: {ticket['title']} ({ticket['priority']})\n"
+        update_body += (
+            f"{i}. {ticket['ticket_id']}: {ticket['title']} ({ticket['priority']})\n"
+        )
 
     update_body += "\n**Recommendations**:\n"
     for rec in status["recommendations"]:
@@ -233,9 +235,7 @@ async def example_dependency_analysis():
             print(f"    {i + 1}. {ticket_id}")
             if i < len(critical_path) - 1:
                 print(f"       ↓ blocks")
-        print(
-            f"\n  ⏱️ Impact: Delays in critical path directly affect project timeline"
-        )
+        print(f"\n  ⏱️ Impact: Delays in critical path directly affect project timeline")
     else:
         print(f"  ✅ No dependency chain (tickets are independent)")
 
@@ -260,16 +260,16 @@ async def example_dependency_analysis():
         total_blocked = sum(b["blocks_count"] for b in blockers)
         print(f"\n  📊 Blocker Impact:")
         print(f"     {total_blocked} tickets are waiting on blockers")
-        print(f"     Resolving top blocker would unblock {blockers[0]['blocks_count']} tickets")
+        print(
+            f"     Resolving top blocker would unblock {blockers[0]['blocks_count']} tickets"
+        )
     else:
         print(f"  ✅ No active blockers - work is flowing smoothly")
 
     # Dependency patterns
     print(f"\n🔍 Dependency Insights:")
     if critical_path and blockers:
-        print(
-            f"  ⚠️ High dependency complexity - careful coordination needed"
-        )
+        print(f"  ⚠️ High dependency complexity - careful coordination needed")
     elif critical_path:
         print(f"  📌 Sequential work - focus on maintaining critical path flow")
     elif blockers:
@@ -321,7 +321,9 @@ async def example_pm_agent_workflow():
     summary = status["summary"]
 
     print(f"\n📈 Progress:")
-    print(f"  Completion: {metrics['completion_rate']:.0%} ({summary.get('done', 0)}/{summary['total']} tickets)")
+    print(
+        f"  Completion: {metrics['completion_rate']:.0%} ({summary.get('done', 0)}/{summary['total']} tickets)"
+    )
     print(f"  In Progress: {summary.get('in_progress', 0)} tickets")
     print(f"  Blocked: {summary.get('blocked', 0)} tickets")
     print(f"  Health Score: {metrics['health_score']:.2f}/1.00")
@@ -338,7 +340,9 @@ async def example_pm_agent_workflow():
             print(f"     Blocking: {blocker['blocks_count']} ticket(s)")
 
         # Action item for blockers
-        print(f"\n  ⚡ ACTION: Resolve {blockers[0]['ticket_id']} to unblock {blockers[0]['blocks_count']} tickets")
+        print(
+            f"\n  ⚡ ACTION: Resolve {blockers[0]['ticket_id']} to unblock {blockers[0]['blocks_count']} tickets"
+        )
     else:
         print(f"  ✅ No blockers - work flowing smoothly")
 
@@ -387,7 +391,9 @@ async def example_pm_agent_workflow():
         max_tickets = max(ticket_counts)
         min_tickets = min(ticket_counts)
         if max_tickets > min_tickets * 2:
-            print(f"\n  ⚖️ NOTICE: Workload imbalance detected - consider redistribution")
+            print(
+                f"\n  ⚖️ NOTICE: Workload imbalance detected - consider redistribution"
+            )
 
     # Step 6: Recommendations
     print(f"\n💡 Step 5: Recommendations")
@@ -408,7 +414,9 @@ async def example_pm_agent_workflow():
 
     # Actions from recommendations
     if recommended:
-        print(f"\n{action_count}. Work on priority ticket {recommended[0]['ticket_id']}")
+        print(
+            f"\n{action_count}. Work on priority ticket {recommended[0]['ticket_id']}"
+        )
         action_count += 1
 
     # Actions from health status
@@ -552,9 +560,7 @@ async def example_sprint_planning():
         if capacity_usage > 1.0:
             print(f"     ⚠️ WARNING: Over capacity - reduce ticket count")
         elif capacity_usage < 0.5:
-            print(
-                f"     ℹ️ NOTE: Under capacity - consider adding more tickets"
-            )
+            print(f"     ℹ️ NOTE: Under capacity - consider adding more tickets")
         else:
             print(f"     ✅ Capacity looks good")
 

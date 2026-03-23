@@ -66,9 +66,7 @@ class VersionManager:
 
         """
         if not self.version_file.exists():
-            raise FileNotFoundError(
-                f"Version file not found: {self.version_file}"
-            )
+            raise FileNotFoundError(f"Version file not found: {self.version_file}")
 
         content = self.version_file.read_text()
         match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)

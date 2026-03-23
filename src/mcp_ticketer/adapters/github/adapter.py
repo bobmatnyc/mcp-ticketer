@@ -1094,7 +1094,8 @@ class GitHubAdapter(BaseAdapter[Task]):
         }
 
         response = await self.client.get(
-            f"/repos/{self.owner}/{self.repo}/milestones", params=params  # type: ignore[arg-type]
+            f"/repos/{self.owner}/{self.repo}/milestones",
+            params=params,  # type: ignore[arg-type]
         )
         response.raise_for_status()
 
@@ -2060,7 +2061,8 @@ Fixes #{issue_number}
             }
 
             response = await self.client.get(
-                f"/repos/{self.owner}/{self.repo}/issues", params=params  # type: ignore[arg-type]
+                f"/repos/{self.owner}/{self.repo}/issues",
+                params=params,  # type: ignore[arg-type]
             )
             response.raise_for_status()
             issues = response.json()

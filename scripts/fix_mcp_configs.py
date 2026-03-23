@@ -31,9 +31,17 @@ CANONICAL_GITHUB_TOKEN = "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"
 # Projects that should have mcp-ticketer configured
 TICKETER_PROJECTS = {
     "claude-mpm": {"adapter": "github", "owner": "bobmatnyc", "repo": "claude-mpm"},
-    "mcp-ticketer": {"adapter": "linear", "team_key": "1M", "default_epic": "eac28953c267"},
+    "mcp-ticketer": {
+        "adapter": "linear",
+        "team_key": "1M",
+        "default_epic": "eac28953c267",
+    },
     "kuzu-memory": {"adapter": "github", "owner": "bobmatnyc", "repo": "kuzu-memory"},
-    "mcp-vector-search": {"adapter": "github", "owner": "bobmatnyc", "repo": "mcp-vector-search"},
+    "mcp-vector-search": {
+        "adapter": "github",
+        "owner": "bobmatnyc",
+        "repo": "mcp-vector-search",
+    },
 }
 
 
@@ -75,14 +83,16 @@ def fix_parent_mcp_json(dry_run: bool = False) -> None:
             "github": {
                 "command": "npx",
                 "args": ["-y", "@modelcontextprotocol/server-github"],
-                "env": {
-                    "GITHUB_PERSONAL_ACCESS_TOKEN": CANONICAL_GITHUB_TOKEN
-                }
+                "env": {"GITHUB_PERSONAL_ACCESS_TOKEN": CANONICAL_GITHUB_TOKEN},
             },
             "filesystem": {
                 "command": "npx",
-                "args": ["-y", "@modelcontextprotocol/server-filesystem", str(PROJECTS_DIR)]
-            }
+                "args": [
+                    "-y",
+                    "@modelcontextprotocol/server-filesystem",
+                    str(PROJECTS_DIR),
+                ],
+            },
         }
     }
 
@@ -105,8 +115,8 @@ def create_standard_mcp_json(project_path: Path, project_name: str) -> dict[str,
         "args": ["mcp"],
         "env": {
             "KUZU_MEMORY_PROJECT_ROOT": str(project_path),
-            "KUZU_MEMORY_DB": str(project_path / "kuzu-memories")
-        }
+            "KUZU_MEMORY_DB": str(project_path / "kuzu-memories"),
+        },
     }
 
     # All projects get mcp-vector-search (points to current project)
@@ -114,9 +124,7 @@ def create_standard_mcp_json(project_path: Path, project_name: str) -> dict[str,
         "type": "stdio",
         "command": "uv",
         "args": ["run", "mcp-vector-search", "mcp"],
-        "env": {
-            "MCP_ENABLE_FILE_WATCHING": "true"
-        }
+        "env": {"MCP_ENABLE_FILE_WATCHING": "true"},
     }
 
     # Projects with ticketer config get mcp-ticketer
@@ -126,7 +134,7 @@ def create_standard_mcp_json(project_path: Path, project_name: str) -> dict[str,
             "type": "stdio",
             "command": "mcp-ticketer",
             "args": ["mcp", "--path", str(project_path)],
-            "env": {}
+            "env": {},
         }
 
     return config
@@ -184,10 +192,10 @@ def fix_ticketer_config(project_path: Path, dry_run: bool = False) -> None:
                             "owner": settings["owner"],
                             "repo": settings["repo"],
                             "project_id": f"{settings['owner']}/{settings['repo']}",
-                            "additional_config": {}
+                            "additional_config": {},
                         }
                     },
-                    "default_user": "bobmatnyc"
+                    "default_user": "bobmatnyc",
                 }
             elif settings["adapter"] == "linear":
                 config = {
@@ -197,10 +205,10 @@ def fix_ticketer_config(project_path: Path, dry_run: bool = False) -> None:
                             "adapter": "linear",
                             "enabled": True,
                             "team_key": settings["team_key"],
-                            "additional_config": {}
+                            "additional_config": {},
                         }
                     },
-                    "default_epic": settings.get("default_epic")
+                    "default_epic": settings.get("default_epic"),
                 }
             else:
                 return
@@ -214,7 +222,10 @@ def fix_ticketer_config(project_path: Path, dry_run: bool = False) -> None:
     if "adapters" in existing:
         for adapter_name, adapter_config in existing["adapters"].items():
             if adapter_name == "github" and isinstance(adapter_config, dict):
-                if adapter_config.get("token") and adapter_config["token"] != CANONICAL_GITHUB_TOKEN:
+                if (
+                    adapter_config.get("token")
+                    and adapter_config["token"] != CANONICAL_GITHUB_TOKEN
+                ):
                     print(f"  Updating GitHub token in {config_path}")
                     adapter_config["token"] = CANONICAL_GITHUB_TOKEN
                     modified = True
@@ -238,13 +249,15 @@ def scan_and_fix_projects(base_dir: Path, dry_run: bool = False) -> None:
             continue
 
         # Check if this looks like a project (has some code files or configs)
-        has_indicators = any([
-            (project_path / ".git").exists(),
-            (project_path / "pyproject.toml").exists(),
-            (project_path / "package.json").exists(),
-            (project_path / ".mcp.json").exists(),
-            (project_path / ".mcp-ticketer").exists(),
-        ])
+        has_indicators = any(
+            [
+                (project_path / ".git").exists(),
+                (project_path / "pyproject.toml").exists(),
+                (project_path / "package.json").exists(),
+                (project_path / ".mcp.json").exists(),
+                (project_path / ".mcp-ticketer").exists(),
+            ]
+        )
 
         if not has_indicators:
             continue
@@ -255,8 +268,12 @@ def scan_and_fix_projects(base_dir: Path, dry_run: bool = False) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Fix MCP configurations across projects")
-    parser.add_argument("--dry-run", action="store_true", help="Preview changes without applying")
+    parser = argparse.ArgumentParser(
+        description="Fix MCP configurations across projects"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Preview changes without applying"
+    )
     args = parser.parse_args()
 
     print("=" * 60)

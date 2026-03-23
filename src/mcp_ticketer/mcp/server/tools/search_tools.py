@@ -292,9 +292,9 @@ async def ticket_search(
                     try:
                         parent_epic = await adapter.read(parent_epic_id)
                         if parent_epic:
-                            ticket_data["hierarchy"][
-                                "parent_epic"
-                            ] = parent_epic.model_dump()
+                            ticket_data["hierarchy"]["parent_epic"] = (
+                                parent_epic.model_dump()
+                            )
                     except Exception:
                         pass  # Parent not found, continue
 
@@ -304,9 +304,9 @@ async def ticket_search(
                     try:
                         parent_issue = await adapter.read(parent_issue_id)
                         if parent_issue:
-                            ticket_data["hierarchy"][
-                                "parent_issue"
-                            ] = parent_issue.model_dump()
+                            ticket_data["hierarchy"]["parent_issue"] = (
+                                parent_issue.model_dump()
+                            )
                     except Exception:
                         pass  # Parent not found, continue
 

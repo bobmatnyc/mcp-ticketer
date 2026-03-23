@@ -12,9 +12,9 @@ test_results: list[tuple[str, bool, str]] = []
 
 def test_section(name: str):
     """Print test section header."""
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print(f"  {name}")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
 
 
 def record_test(test_name: str, passed: bool, message: str = ""):
@@ -28,9 +28,9 @@ def record_test(test_name: str, passed: bool, message: str = ""):
 
 def print_summary():
     """Print test summary."""
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("  TEST SUMMARY")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
 
     total = len(test_results)
     passed = sum(1 for _, p, _ in test_results if p)

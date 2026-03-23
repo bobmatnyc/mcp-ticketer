@@ -1955,7 +1955,8 @@ def set_adapter_config(
         # Get or create adapter config
         if target_adapter not in config.adapters:
             config.adapters[target_adapter] = AdapterConfig(
-                adapter=target_adapter, **updates  # type: ignore[arg-type]
+                adapter=target_adapter,
+                **updates,  # type: ignore[arg-type]
             )
         else:
             # Update existing

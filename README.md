@@ -6,7 +6,7 @@
 [![Tests](https://github.com/mcp-ticketer/mcp-ticketer/workflows/Tests/badge.svg)](https://github.com/mcp-ticketer/mcp-ticketer/actions)
 [![Coverage Status](https://codecov.io/gh/mcp-ticketer/mcp-ticketer/branch/main/graph/badge.svg)](https://codecov.io/gh/mcp-ticketer/mcp-ticketer)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 Universal ticket management interface for AI agents with MCP (Model Context Protocol) support.
 
@@ -1175,7 +1175,7 @@ make test-coverage      # Tests with HTML coverage report
 # Code Quality
 make lint               # Run linters (Ruff + MyPy)
 make lint-fix           # Auto-fix linting issues
-make format             # Format code (Black + isort)
+make format             # Format code (Ruff)
 make typecheck          # Run MyPy type checking
 make quality            # Run all quality checks
 
@@ -1219,12 +1219,12 @@ pytest -n auto          # Manual parallel execution
 # Using Makefile (recommended)
 make lint               # Run Ruff and MyPy
 make lint-fix           # Auto-fix issues
-make format             # Format with Black and isort
+make format             # Format with Ruff
 make typecheck          # Type checking with MyPy
 make quality            # All quality checks
 
 # Direct commands (still supported)
-black src tests         # Format code
+ruff format src tests   # Format code
 ruff check src tests    # Lint code
 mypy src                # Type checking
 tox                     # Run all checks

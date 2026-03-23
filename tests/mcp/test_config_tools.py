@@ -1102,12 +1102,12 @@ class TestConfigGetAdapterRequirements:
 
                 # All fields should have descriptions
                 for field_name, field_spec in result["requirements"].items():
-                    assert (
-                        "description" in field_spec
-                    ), f"{adapter_name}.{field_name} missing description"
-                    assert (
-                        len(field_spec["description"]) > 10
-                    ), f"{adapter_name}.{field_name} description too short"
+                    assert "description" in field_spec, (
+                        f"{adapter_name}.{field_name} missing description"
+                    )
+                    assert len(field_spec["description"]) > 10, (
+                        f"{adapter_name}.{field_name} description too short"
+                    )
 
     async def test_requirements_total_fields_accurate(self, tmp_path: Path) -> None:
         """Test that total_fields count is accurate."""

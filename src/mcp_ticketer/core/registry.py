@@ -99,7 +99,7 @@ class AdapterRegistry:
         if name not in cls._adapters:
             available = ", ".join(cls._adapters.keys())
             raise ValueError(
-                f"Adapter '{name}' not registered. " f"Available adapters: {available}"
+                f"Adapter '{name}' not registered. Available adapters: {available}"
             )
 
         # Generate cache key (supports connection-based caching)

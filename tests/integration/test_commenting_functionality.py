@@ -299,7 +299,7 @@ class CommentingTester:
         print(f"  ✅ Successful: {successful_adapters}")
         print(f"  ❌ Failed: {total_adapters - successful_adapters}")
         print(
-            f"  📈 Success rate: {(successful_adapters/total_adapters*100):.1f}%"
+            f"  📈 Success rate: {(successful_adapters / total_adapters * 100):.1f}%"
             if total_adapters > 0
             else "  📈 Success rate: 0%"
         )

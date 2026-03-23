@@ -19,9 +19,9 @@ async def test_attachment_tools_in_mcp():
     tool_names = [tool.name for tool in tools]
 
     # Verify attachment tool is present (consolidated)
-    assert (
-        "attachment" in tool_names
-    ), "attachment should be present in MCP (consolidated from ticket_attach and ticket_attachments)"
+    assert "attachment" in tool_names, (
+        "attachment should be present in MCP (consolidated from ticket_attach and ticket_attachments)"
+    )
 
 
 @pytest.mark.asyncio
@@ -34,12 +34,12 @@ async def test_pr_tools_not_in_mcp():
     tool_names = [tool.name for tool in tools]
 
     # Verify PR tools are NOT present
-    assert (
-        "ticket_create_pr" not in tool_names
-    ), "ticket_create_pr should be removed from MCP (CLI-only as of v1.5.0)"
-    assert (
-        "ticket_link_pr" not in tool_names
-    ), "ticket_link_pr should be removed from MCP (CLI-only as of v1.5.0)"
+    assert "ticket_create_pr" not in tool_names, (
+        "ticket_create_pr should be removed from MCP (CLI-only as of v1.5.0)"
+    )
+    assert "ticket_link_pr" not in tool_names, (
+        "ticket_link_pr should be removed from MCP (CLI-only as of v1.5.0)"
+    )
 
 
 @pytest.mark.asyncio
@@ -92,9 +92,9 @@ async def test_alternative_tools_still_present():
 
     # ticket_comment was consolidated into ticket(action="add_comment"|"list_comments")
     # Verify the unified ticket tool is present with comment actions
-    assert (
-        "ticket" in tool_names
-    ), "ticket tool should be present (supports add_comment/list_comments actions)"
+    assert "ticket" in tool_names, (
+        "ticket tool should be present (supports add_comment/list_comments actions)"
+    )
 
 
 @pytest.mark.integration
@@ -125,9 +125,9 @@ def test_migration_guide_exists():
         / "ATTACHMENT_PR_REMOVAL.md"
     )
 
-    assert (
-        migration_guide.exists()
-    ), "Migration guide should exist at docs/_archive/migrations/ATTACHMENT_PR_REMOVAL.md"
+    assert migration_guide.exists(), (
+        "Migration guide should exist at docs/_archive/migrations/ATTACHMENT_PR_REMOVAL.md"
+    )
 
     # Verify guide has content about PR removal
     content = migration_guide.read_text()

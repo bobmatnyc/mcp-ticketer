@@ -3,7 +3,7 @@
 # This Makefile uses a modular architecture with specialized modules in .makefiles/
 # Each module handles a specific aspect of the build system:
 #   - common.mk: Infrastructure and environment detection
-#   - quality.mk: Code quality checks (Ruff, MyPy, Black, isort)
+#   - quality.mk: Code quality checks (Ruff, MyPy)
 #   - testing.mk: Testing infrastructure (pytest, coverage, parallel execution)
 #   - release.mk: Release automation (versioning, building, publishing)
 #   - docs.mk: Documentation build and management

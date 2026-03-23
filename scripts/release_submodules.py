@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Check and release submodules with changes."""
+
 import subprocess
 import sys
 from pathlib import Path

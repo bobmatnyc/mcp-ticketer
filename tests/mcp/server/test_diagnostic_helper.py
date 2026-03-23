@@ -43,9 +43,9 @@ class TestErrorClassification:
 
         for error in critical_errors:
             severity = get_error_severity(error)
-            assert (
-                severity == ErrorSeverity.CRITICAL
-            ), f"{type(error).__name__} should be CRITICAL, got {severity}"
+            assert severity == ErrorSeverity.CRITICAL, (
+                f"{type(error).__name__} should be CRITICAL, got {severity}"
+            )
 
     def test_medium_errors(self) -> None:
         """Test that MEDIUM errors are classified correctly."""
@@ -57,9 +57,9 @@ class TestErrorClassification:
 
         for error in medium_errors:
             severity = get_error_severity(error)
-            assert (
-                severity == ErrorSeverity.MEDIUM
-            ), f"{type(error).__name__} should be MEDIUM, got {severity}"
+            assert severity == ErrorSeverity.MEDIUM, (
+                f"{type(error).__name__} should be MEDIUM, got {severity}"
+            )
 
     def test_low_errors(self) -> None:
         """Test that LOW errors are classified correctly."""
@@ -74,9 +74,9 @@ class TestErrorClassification:
 
         for error in low_errors:
             severity = get_error_severity(error)
-            assert (
-                severity == ErrorSeverity.LOW
-            ), f"{type(error).__name__} should be LOW, got {severity}"
+            assert severity == ErrorSeverity.LOW, (
+                f"{type(error).__name__} should be LOW, got {severity}"
+            )
 
     def test_unknown_error_defaults_to_medium(self) -> None:
         """Test that unknown errors default to MEDIUM severity."""
@@ -113,9 +113,9 @@ class TestDiagnosticSuggestion:
         ]
 
         for error in critical_errors:
-            assert (
-                should_suggest_diagnostics(error) is True
-            ), f"{type(error).__name__} should suggest diagnostics"
+            assert should_suggest_diagnostics(error) is True, (
+                f"{type(error).__name__} should suggest diagnostics"
+            )
 
     def test_low_errors_never_suggest(self) -> None:
         """Verify all LOW error types never suggest diagnostics."""
@@ -125,9 +125,9 @@ class TestDiagnosticSuggestion:
         ]
 
         for error in low_errors:
-            assert (
-                should_suggest_diagnostics(error) is False
-            ), f"{type(error).__name__} should not suggest diagnostics"
+            assert should_suggest_diagnostics(error) is False, (
+                f"{type(error).__name__} should not suggest diagnostics"
+            )
 
 
 @pytest.mark.asyncio
@@ -292,9 +292,9 @@ class TestPerformance:
             elapsed = (time.time() - start) * 1000  # Convert to ms
 
             # Allow some margin for test overhead (200ms instead of 100ms)
-            assert (
-                elapsed < 200
-            ), f"Quick diagnostics took {elapsed:.1f}ms, should be < 200ms"
+            assert elapsed < 200, (
+                f"Quick diagnostics took {elapsed:.1f}ms, should be < 200ms"
+            )
 
 
 if __name__ == "__main__":

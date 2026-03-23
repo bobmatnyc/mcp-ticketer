@@ -140,7 +140,7 @@ class TestCommentsAndAttachments:
         for i in range(num_comments):
             comment = Comment(
                 ticket_id=created_task.id,
-                content=f"Comment number {i+1} - testing pagination functionality",
+                content=f"Comment number {i + 1} - testing pagination functionality",
                 author=f"user{i % 5}@example.com",  # Rotate between 5 users
             )
             await adapter.add_comment(comment)
@@ -404,20 +404,20 @@ class TestCommentsAndAttachments:
         tasks = []
         for i in range(3):
             task = Task(
-                title=f"Search Test Task {i+1}",
-                description=f"Task {i+1} for comment search testing",
+                title=f"Search Test Task {i + 1}",
+                description=f"Task {i + 1} for comment search testing",
                 priority=Priority.MEDIUM,
-                assignee=f"dev{i+1}@example.com",
+                assignee=f"dev{i + 1}@example.com",
             )
             created_task = await adapter.create(task)
             tasks.append(created_task)
 
             # Add comments with searchable content
             comments = [
-                f"Starting work on task {i+1} - implementing feature X",
+                f"Starting work on task {i + 1} - implementing feature X",
                 "Bug found in feature X implementation - needs debugging",
                 "Feature X testing complete - all tests passing",
-                f"Task {i+1} ready for deployment to production",
+                f"Task {i + 1} ready for deployment to production",
             ]
 
             for j, comment_text in enumerate(comments):

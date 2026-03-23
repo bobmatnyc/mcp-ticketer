@@ -330,7 +330,7 @@ def test_generate_recommendations_healthy_project():
         for i in range(7)
     ] + [
         Task(
-            id=f"TEST-{i+7}",
+            id=f"TEST-{i + 7}",
             title=f"Task {i}",
             state=TicketState.OPEN,
             priority=Priority.LOW,

@@ -192,7 +192,7 @@ class TicketSimilarityAnalyzer:
         if tags1 and tags2:
             overlap = len(tags1 & tags2) / len(tags1 | tags2)
             if overlap > 0.5:
-                reasons.append(f"tag_overlap_{int(overlap*100)}%")
+                reasons.append(f"tag_overlap_{int(overlap * 100)}%")
 
         # Same state
         if ticket1.state == ticket2.state:

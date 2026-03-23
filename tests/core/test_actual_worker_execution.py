@@ -149,17 +149,17 @@ async def analyze_log_file():
     for i, line in enumerate(lines):
         # HTTP requests
         if "HTTP Request:" in line:
-            api_calls.append(f"Line {i+1}: {line}")
+            api_calls.append(f"Line {i + 1}: {line}")
 
         # Team references
         if any(team in line.lower() for team in ["clu", "1m", "team"]):
-            team_references.append(f"Line {i+1}: {line}")
+            team_references.append(f"Line {i + 1}: {line}")
 
         # Config loading
         if "config" in line.lower() and any(
             word in line.lower() for word in ["load", "read", "get"]
         ):
-            config_loads.append(f"Line {i+1}: {line}")
+            config_loads.append(f"Line {i + 1}: {line}")
 
     print("\n🔍 Log Analysis Results:")
     print(f"  📡 API Calls: {len(api_calls)}")

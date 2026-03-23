@@ -95,9 +95,9 @@ class TestCrossAdapterEpicUpdate:
         adapter = request.getfixturevalue(adapter_fixture)
 
         # All adapters should have either update_epic or update method
-        assert hasattr(adapter, "update_epic") or hasattr(
-            adapter, "update"
-        ), f"{adapter.__class__.__name__} missing update methods"
+        assert hasattr(adapter, "update_epic") or hasattr(adapter, "update"), (
+            f"{adapter.__class__.__name__} missing update methods"
+        )
 
     @pytest.mark.asyncio
     async def test_linear_epic_update_structure(
@@ -470,9 +470,9 @@ class TestCrossAdapterAttachments:
         )
         has_upload_file = hasattr(adapter, "upload_file")
 
-        assert (
-            has_add_attachment or has_attach_file or has_upload_file
-        ), f"{adapter.__class__.__name__} missing attachment methods"
+        assert has_add_attachment or has_attach_file or has_upload_file, (
+            f"{adapter.__class__.__name__} missing attachment methods"
+        )
 
     @pytest.mark.asyncio
     async def test_linear_native_file_upload(

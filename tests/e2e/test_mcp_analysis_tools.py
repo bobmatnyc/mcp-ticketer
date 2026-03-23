@@ -286,12 +286,12 @@ class TestMCPAnalysisToolsGracefulDegradation:
                     # Verify inputSchema is valid JSON Schema
                     schema = tool["inputSchema"]
                     assert "type" in schema, f"inputSchema missing type: {schema}"
-                    assert (
-                        schema["type"] == "object"
-                    ), f"inputSchema type should be object: {schema}"
-                    assert (
-                        "properties" in schema
-                    ), f"inputSchema missing properties: {schema}"
+                    assert schema["type"] == "object", (
+                        f"inputSchema type should be object: {schema}"
+                    )
+                    assert "properties" in schema, (
+                        f"inputSchema missing properties: {schema}"
+                    )
 
         finally:
             if process:
@@ -391,9 +391,9 @@ class TestMCPAnalysisToolsGracefulDegradation:
                 tool_output = json.loads(content_items[0]["text"])
 
                 # Verify graceful error response
-                assert (
-                    tool_output.get("status") == "error"
-                ), f"Expected error status, got: {tool_output}"
+                assert tool_output.get("status") == "error", (
+                    f"Expected error status, got: {tool_output}"
+                )
                 assert "error" in tool_output or "message" in tool_output
                 assert (
                     "dependencies" in tool_output.get("message", "").lower()
@@ -402,9 +402,9 @@ class TestMCPAnalysisToolsGracefulDegradation:
 
                 # Verify installation instructions are provided
                 message = tool_output.get("message", "")
-                assert (
-                    "pip install" in message or "required_packages" in tool_output
-                ), f"Missing installation instructions: {tool_output}"
+                assert "pip install" in message or "required_packages" in tool_output, (
+                    f"Missing installation instructions: {tool_output}"
+                )
 
             # Verify server still works - call another tool
             await self.send_jsonrpc_request(
@@ -523,16 +523,16 @@ class TestMCPAnalysisToolsGracefulDegradation:
                 )
 
                 tool_response = await self.read_jsonrpc_response(process, timeout=10.0)
-                assert (
-                    "result" in tool_response
-                ), f"{tool_name} failed: {tool_response.get('error')}"
+                assert "result" in tool_response, (
+                    f"{tool_name} failed: {tool_response.get('error')}"
+                )
 
                 # Parse result
                 result_content = json.loads(
                     tool_response["result"]["content"][0]["text"]
                 )
                 assert result_content.get("status") == "completed", (
-                    f"{tool_name} returned error: " f"{result_content.get('error')}"
+                    f"{tool_name} returned error: {result_content.get('error')}"
                 )
 
         finally:
@@ -615,14 +615,13 @@ class TestMCPAnalysisToolsGracefulDegradation:
                         combined = f"{error} {message}".lower()
 
                         # Should mention analysis or dependencies
-                        assert (
-                            "analysis" in combined or "dependencies" in combined
-                        ), f"{tool_name}: Error message not clear: {tool_output}"
+                        assert "analysis" in combined or "dependencies" in combined, (
+                            f"{tool_name}: Error message not clear: {tool_output}"
+                        )
 
                         # Should include installation command
                         assert "pip install" in message, (
-                            f"{tool_name}: Missing pip install command: "
-                            f"{tool_output}"
+                            f"{tool_name}: Missing pip install command: {tool_output}"
                         )
 
                         # Should list required packages

@@ -687,11 +687,11 @@ class MCPTicketServer:
 
             if isinstance(self.adapter, GitHubAdapter):
                 try:
-                    result: dict[str, Any] = (
-                        await self.adapter.link_existing_pull_request(
-                            ticket_id=ticket_id,
-                            pr_url=pr_url,
-                        )
+                    result: dict[
+                        str, Any
+                    ] = await self.adapter.link_existing_pull_request(
+                        ticket_id=ticket_id,
+                        pr_url=pr_url,
                     )
                     return result
                 except Exception as e:
@@ -713,11 +713,11 @@ class MCPTicketServer:
 
             if isinstance(self.adapter, LinearAdapter):
                 try:
-                    link_result: dict[str, Any] = (
-                        await self.adapter.link_to_pull_request(
-                            ticket_id=ticket_id,
-                            pr_url=pr_url,
-                        )
+                    link_result: dict[
+                        str, Any
+                    ] = await self.adapter.link_to_pull_request(
+                        ticket_id=ticket_id,
+                        pr_url=pr_url,
                     )
                     return link_result
                 except Exception as e:

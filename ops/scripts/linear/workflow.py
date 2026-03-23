@@ -97,7 +97,9 @@ async def run_async(coro):
 def create_bug(
     title: str = typer.Argument(..., help="Bug title"),
     description: str = typer.Argument("", help="Bug description"),
-    priority: str = typer.Option("medium", help="Priority: low, medium, high, critical"),
+    priority: str = typer.Option(
+        "medium", help="Priority: low, medium, high, critical"
+    ),
 ) -> None:
     """Create a bug ticket.
 
@@ -135,7 +137,9 @@ def create_bug(
 def create_feature(
     title: str = typer.Argument(..., help="Feature title"),
     description: str = typer.Argument("", help="Feature description"),
-    priority: str = typer.Option("medium", help="Priority: low, medium, high, critical"),
+    priority: str = typer.Option(
+        "medium", help="Priority: low, medium, high, critical"
+    ),
 ) -> None:
     """Create a feature request ticket.
 
@@ -172,7 +176,9 @@ def create_feature(
 def create_task(
     title: str = typer.Argument(..., help="Task title"),
     description: str = typer.Argument("", help="Task description"),
-    priority: str = typer.Option("medium", help="Priority: low, medium, high, critical"),
+    priority: str = typer.Option(
+        "medium", help="Priority: low, medium, high, critical"
+    ),
 ) -> None:
     """Create a task ticket.
 
@@ -298,9 +304,7 @@ def start_work(
 
         await adapter.add_comment(comment_obj)
         console.print(f"[green]✓[/green] Started work on {ticket_id}")
-        console.print(
-            "[dim]Note: Update status manually in Linear web interface[/dim]"
-        )
+        console.print("[dim]Note: Update status manually in Linear web interface[/dim]")
 
     asyncio.run(run_async(_start_work))
 
@@ -327,9 +331,7 @@ def ready_review(
 
         await adapter.add_comment(comment_obj)
         console.print(f"[green]✓[/green] {ticket_id} marked ready for review")
-        console.print(
-            "[dim]Note: Update status manually in Linear web interface[/dim]"
-        )
+        console.print("[dim]Note: Update status manually in Linear web interface[/dim]")
 
     asyncio.run(run_async(_ready_review))
 
@@ -356,10 +358,10 @@ def deployed(
         )
 
         await adapter.add_comment(comment_obj)
-        console.print(f"[green]✓[/green] {ticket_id} marked as deployed to {environment}")
         console.print(
-            "[dim]Note: Update status manually in Linear web interface[/dim]"
+            f"[green]✓[/green] {ticket_id} marked as deployed to {environment}"
         )
+        console.print("[dim]Note: Update status manually in Linear web interface[/dim]")
 
     asyncio.run(run_async(_deployed))
 

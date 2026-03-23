@@ -2,6 +2,7 @@
 """
 Test GitHub token permissions
 """
+
 import os
 from pathlib import Path
 

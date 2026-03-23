@@ -329,15 +329,15 @@ class TestAITrackdownAdapterList:
 
         # Verify files were created
         ticket_files = list(adapter.tickets_dir.glob("*.json"))
-        assert (
-            len(ticket_files) == 3
-        ), f"Expected 3 files, found {len(ticket_files)}: {[f.name for f in ticket_files]}"
+        assert len(ticket_files) == 3, (
+            f"Expected 3 files, found {len(ticket_files)}: {[f.name for f in ticket_files]}"
+        )
 
         # List them
         tickets = await adapter.list(limit=10)
-        assert (
-            len(tickets) == 3
-        ), f"Expected 3 tickets, got {len(tickets)}: {[t.title for t in tickets]}"
+        assert len(tickets) == 3, (
+            f"Expected 3 tickets, got {len(tickets)}: {[t.title for t in tickets]}"
+        )
 
     @pytest.mark.asyncio
     async def test_list_with_limit(

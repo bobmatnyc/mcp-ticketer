@@ -348,7 +348,9 @@ def build_linear_issue_update_input(updates: dict[str, Any]) -> dict[str, Any]:
     # Handles both assignment (UUID string) and removal (None).
     # Takes priority over the metadata["linear"]["cycle_id"] fallback above.
     if "milestone_id" in updates:
-        update_input["cycleId"] = updates["milestone_id"]  # None removes cycle assignment
+        update_input["cycleId"] = updates[
+            "milestone_id"
+        ]  # None removes cycle assignment
 
     return update_input
 

@@ -111,9 +111,9 @@ class TestLinearProjectIDResolution:
         # Should use direct query (optimization) - verify it was called with project(id:)
         adapter.client.execute_query.assert_called_once()
         call_args = adapter.client.execute_query.call_args[0]
-        assert (
-            "project(id: $id)" in call_args[0]
-        ), "Should use direct query optimization"
+        assert "project(id: $id)" in call_args[0], (
+            "Should use direct query optimization"
+        )
 
     async def test_resolve_by_full_slug_id(self, adapter, mock_projects_response):
         """Test resolving project ID by full slugId using optimized direct query."""
@@ -146,9 +146,9 @@ class TestLinearProjectIDResolution:
         # Should use direct query (optimization) - verify it was called with project(id:)
         adapter.client.execute_query.assert_called_once()
         call_args = adapter.client.execute_query.call_args[0]
-        assert (
-            "project(id: $id)" in call_args[0]
-        ), "Should use direct query optimization"
+        assert "project(id: $id)" in call_args[0], (
+            "Should use direct query optimization"
+        )
 
     async def test_resolve_by_name(self, adapter, mock_projects_response):
         """Test resolving project ID by exact name match."""
@@ -200,9 +200,9 @@ class TestLinearProjectIDResolution:
         # Should use direct query after extracting slugId from URL
         adapter.client.execute_query.assert_called_once()
         call_args = adapter.client.execute_query.call_args[0]
-        assert (
-            "project(id: $id)" in call_args[0]
-        ), "Should use direct query optimization"
+        assert "project(id: $id)" in call_args[0], (
+            "Should use direct query optimization"
+        )
 
     async def test_resolve_from_url_without_trailing_path(
         self, adapter, mock_projects_response
@@ -236,9 +236,9 @@ class TestLinearProjectIDResolution:
         # Should use direct query after extracting slugId from URL
         adapter.client.execute_query.assert_called_once()
         call_args = adapter.client.execute_query.call_args[0]
-        assert (
-            "project(id: $id)" in call_args[0]
-        ), "Should use direct query optimization"
+        assert "project(id: $id)" in call_args[0], (
+            "Should use direct query optimization"
+        )
 
     async def test_resolve_invalid_url_format_raises_error(self, adapter):
         """Test that invalid URL format raises ValueError."""
@@ -315,9 +315,9 @@ class TestLinearProjectIDResolution:
         # Verify direct query was used
         adapter.client.execute_query.assert_called_once()
         call_args = adapter.client.execute_query.call_args[0]
-        assert (
-            "project(id: $id)" in call_args[0]
-        ), "Should use direct query optimization"
+        assert "project(id: $id)" in call_args[0], (
+            "Should use direct query optimization"
+        )
 
     async def test_resolve_project_with_no_slug_id(self, adapter):
         """Test handling projects that might have missing slugId."""
@@ -386,9 +386,9 @@ class TestLinearProjectIDResolution:
         # Should use list query since "project-and-special" doesn't look like a short ID
         adapter.client.execute_query.assert_called_once()
         call_args = adapter.client.execute_query.call_args[0]
-        assert (
-            "projects(first:" in call_args[0]
-        ), "Should use list query for partial slug"
+        assert "projects(first:" in call_args[0], (
+            "Should use list query for partial slug"
+        )
 
     async def test_resolve_with_pagination_multiple_pages(self, adapter):
         """Test that pagination works correctly across multiple pages."""

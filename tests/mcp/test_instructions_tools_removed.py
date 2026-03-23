@@ -18,9 +18,9 @@ async def test_instructions_get_not_in_mcp():
     tool_names = [tool.name for tool in tools]
 
     # Verify instructions_get is NOT present
-    assert (
-        "instructions_get" not in tool_names
-    ), "instructions_get should be removed from MCP (CLI-only as of v1.5.0)"
+    assert "instructions_get" not in tool_names, (
+        "instructions_get should be removed from MCP (CLI-only as of v1.5.0)"
+    )
 
 
 @pytest.mark.asyncio
@@ -33,9 +33,9 @@ async def test_instructions_set_not_in_mcp():
     tool_names = [tool.name for tool in tools]
 
     # Verify instructions_set is NOT present
-    assert (
-        "instructions_set" not in tool_names
-    ), "instructions_set should be removed from MCP (CLI-only as of v1.5.0)"
+    assert "instructions_set" not in tool_names, (
+        "instructions_set should be removed from MCP (CLI-only as of v1.5.0)"
+    )
 
 
 @pytest.mark.asyncio
@@ -48,9 +48,9 @@ async def test_instructions_reset_not_in_mcp():
     tool_names = [tool.name for tool in tools]
 
     # Verify instructions_reset is NOT present
-    assert (
-        "instructions_reset" not in tool_names
-    ), "instructions_reset should be removed from MCP (CLI-only as of v1.5.0)"
+    assert "instructions_reset" not in tool_names, (
+        "instructions_reset should be removed from MCP (CLI-only as of v1.5.0)"
+    )
 
 
 @pytest.mark.asyncio
@@ -63,9 +63,9 @@ async def test_instructions_validate_not_in_mcp():
     tool_names = [tool.name for tool in tools]
 
     # Verify instructions_validate is NOT present
-    assert (
-        "instructions_validate" not in tool_names
-    ), "instructions_validate should be removed from MCP (CLI-only as of v1.5.0)"
+    assert "instructions_validate" not in tool_names, (
+        "instructions_validate should be removed from MCP (CLI-only as of v1.5.0)"
+    )
 
 
 @pytest.mark.asyncio
@@ -163,8 +163,7 @@ def test_migration_guide_exists():
     )
 
     assert migration_guide.exists(), (
-        "Migration guide should exist at "
-        "docs/migrations/INSTRUCTIONS_TOOLS_REMOVAL.md"
+        "Migration guide should exist at docs/migrations/INSTRUCTIONS_TOOLS_REMOVAL.md"
     )
 
     # Verify guide has content

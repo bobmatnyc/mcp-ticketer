@@ -60,7 +60,6 @@ async def example_file_upload_and_attachment():
             mime_type="text/plain",  # Optional, will auto-detect if not provided
         )
 
-
         # ===================================================================
         # Example 3: Attach File to an Issue
         # ===================================================================
@@ -74,7 +73,6 @@ async def example_file_upload_and_attachment():
             comment_body="Attaching test document for review",
         )
 
-
         # ===================================================================
         # Example 4: Attach File to an Epic
         # ===================================================================
@@ -85,7 +83,6 @@ async def example_file_upload_and_attachment():
             title="Epic Documentation",
             subtitle="Project overview document",
         )
-
 
         # ===================================================================
         # Example 5: Attach External URL
@@ -98,7 +95,6 @@ async def example_file_upload_and_attachment():
             title="External Document",
             subtitle="Reference document",
         )
-
 
         # ===================================================================
         # Example 6: Upload Multiple Files
@@ -124,7 +120,6 @@ async def example_file_upload_and_attachment():
                 file_url=url,
                 title=f"Batch Upload {i + 1}",
             )
-
 
     except Exception:
         pass

@@ -58,9 +58,9 @@ class TestBug1ProjectCustomFields:
 
                 # If it's an enum field (like Priority/Status), verify structure
                 if field_data.get("resource_subtype") == "enum":
-                    assert (
-                        "enum_options" in field_data
-                    ), f"Enum field {field_name} missing 'enum_options'"
+                    assert "enum_options" in field_data, (
+                        f"Enum field {field_name} missing 'enum_options'"
+                    )
 
     async def test_project_custom_fields_cached(self):
         """Test that project custom fields are cached after first load."""
@@ -101,9 +101,9 @@ class TestBug2PriorityUpdates:
 
                 # Verify priority was set
                 assert updated is not None, "Update returned None"
-                assert (
-                    updated.priority == Priority.HIGH
-                ), f"Expected HIGH, got {updated.priority}"
+                assert updated.priority == Priority.HIGH, (
+                    f"Expected HIGH, got {updated.priority}"
+                )
 
                 # Verify in Asana API directly
                 raw_task = await adapter.client.get(
@@ -121,12 +121,12 @@ class TestBug2PriorityUpdates:
                 )
 
                 if priority_field:
-                    assert (
-                        priority_field.get("enum_value") is not None
-                    ), "Priority field has no value"
-                    assert (
-                        priority_field["enum_value"]["name"].lower() == "high"
-                    ), f"Expected 'high' in Asana, got {priority_field['enum_value']['name']}"
+                    assert priority_field.get("enum_value") is not None, (
+                        "Priority field has no value"
+                    )
+                    assert priority_field["enum_value"]["name"].lower() == "high", (
+                        f"Expected 'high' in Asana, got {priority_field['enum_value']['name']}"
+                    )
                 else:
                     print(
                         "\nWARNING: Priority custom field not found in project - skipping field verification"
@@ -218,9 +218,9 @@ class TestBug3StateManagement:
                 for state in states_to_test:
                     updated = await adapter.transition_state(task.id, state)
 
-                    assert (
-                        updated is not None
-                    ), f"Update returned None for state {state}"
+                    assert updated is not None, (
+                        f"Update returned None for state {state}"
+                    )
 
                     # Verify state is preserved (not just mapped to OPEN/DONE)
                     # Note: If Status field is not configured, state may fall back to OPEN/DONE
@@ -288,9 +288,9 @@ class TestBug3StateManagement:
                         f"Status field value: {status_field['enum_value'].get('name', 'None')}"
                     )
                     # If Status field exists, we should be able to preserve state
-                    assert (
-                        read_back.state == TicketState.IN_PROGRESS
-                    ), f"Expected IN_PROGRESS with Status field, got {read_back.state}"
+                    assert read_back.state == TicketState.IN_PROGRESS, (
+                        f"Expected IN_PROGRESS with Status field, got {read_back.state}"
+                    )
                 elif status_field:
                     print(
                         f"WARNING: Status field exists but has no value set: {status_field}"

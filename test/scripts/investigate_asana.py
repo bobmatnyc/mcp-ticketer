@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Investigation script to check Asana project tasks and create verification ticket."""
+
 import asyncio
 import os
 
@@ -11,7 +12,7 @@ from src.mcp_ticketer.core.models import Task, TicketState, TicketType
 
 async def investigate():
     # Load environment variables
-    load_dotenv('.env.local')
+    load_dotenv(".env.local")
 
     api_key = os.getenv("ASANA_PAT")
     if not api_key:
@@ -23,30 +24,28 @@ async def investigate():
 
     project_id = "1211955750346310"
 
-
     # 1. Check all tasks in project (including completed)
     try:
         all_tasks = await adapter.client.get(
             f"/projects/{project_id}/tasks",
             params={
                 "opt_fields": "name,completed,created_at,modified_at,gid,notes",
-                "limit": 100
-            }
+                "limit": 100,
+            },
         )
-
 
         if all_tasks:
             for _i, task in enumerate(all_tasks, 1):
-                "COMPLETED" if task.get('completed') else "OPEN"
-                if task.get('notes'):
+                "COMPLETED" if task.get("completed") else "OPEN"
+                if task.get("notes"):
                     pass
         else:
             pass
 
     except Exception:
         import traceback
-        traceback.print_exc()
 
+        traceback.print_exc()
 
     # 2. Create a verification test ticket
     try:
@@ -67,13 +66,14 @@ Project ID: 1211955750346310
 """,
             ticket_type=TicketType.ISSUE,
             state=TicketState.OPEN,
-            parent_epic=project_id  # This assigns to the project
+            parent_epic=project_id,  # This assigns to the project
         )
 
         await adapter.create(test_ticket)
 
     except Exception:
         import traceback
+
         traceback.print_exc()
 
 

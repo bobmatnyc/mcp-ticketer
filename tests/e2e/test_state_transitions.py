@@ -48,9 +48,9 @@ class TestStateTransitions:
 
             # Verify new state
             current_state = await self._get_ticket_state(mcp_server, task_id)
-            assert (
-                current_state.upper() == expected_state
-            ), f"Expected {expected_state}, got {current_state}"
+            assert current_state.upper() == expected_state, (
+                f"Expected {expected_state}, got {current_state}"
+            )
 
     @pytest.mark.asyncio
     async def test_blocked_and_waiting_states(self, mcp_server: MCPTicketServer):
@@ -162,7 +162,7 @@ class TestStateTransitions:
         # Create multiple tasks
         task_ids = []
         for i in range(3):
-            task_id = await self._create_test_task(mcp_server, f"Bulk Task {i+1}")
+            task_id = await self._create_test_task(mcp_server, f"Bulk Task {i + 1}")
             task_ids.append(task_id)
 
         # Bulk update to move all to in_progress

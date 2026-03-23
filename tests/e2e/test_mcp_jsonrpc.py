@@ -243,9 +243,9 @@ class TestMCPJsonRpcProtocol:
             # Verify JSON-RPC structure
             assert response.get("jsonrpc") == "2.0", "Missing or invalid jsonrpc field"
             assert response.get("id") == 1, "Response ID doesn't match request"
-            assert (
-                "result" in response or "error" in response
-            ), "Response must contain 'result' or 'error'"
+            assert "result" in response or "error" in response, (
+                "Response must contain 'result' or 'error'"
+            )
 
             # If successful, verify MCP initialize response structure
             if "result" in response:
@@ -257,9 +257,9 @@ class TestMCPJsonRpcProtocol:
 
                 # Verify protocol version is compatible
                 protocol_version = result["protocolVersion"]
-                assert protocol_version.startswith(
-                    "2024-"
-                ), f"Unexpected protocol version: {protocol_version}"
+                assert protocol_version.startswith("2024-"), (
+                    f"Unexpected protocol version: {protocol_version}"
+                )
 
         finally:
             if process:
@@ -301,9 +301,9 @@ class TestMCPJsonRpcProtocol:
 
             # Wait for initialize response
             init_response = await self.read_jsonrpc_response(process, timeout=5.0)
-            assert (
-                "result" in init_response
-            ), f"Initialize failed: {init_response.get('error')}"
+            assert "result" in init_response, (
+                f"Initialize failed: {init_response.get('error')}"
+            )
 
             # Step 2: Send initialized notification
             await self.send_jsonrpc_request(
@@ -343,9 +343,9 @@ class TestMCPJsonRpcProtocol:
                     # Verify inputSchema is valid JSON Schema
                     schema = tool["inputSchema"]
                     assert "type" in schema, f"inputSchema missing type: {schema}"
-                    assert (
-                        schema["type"] == "object"
-                    ), f"inputSchema type should be object: {schema}"
+                    assert schema["type"] == "object", (
+                        f"inputSchema type should be object: {schema}"
+                    )
 
                 # Verify expected core tools are present
                 tool_names = {tool["name"] for tool in tools}

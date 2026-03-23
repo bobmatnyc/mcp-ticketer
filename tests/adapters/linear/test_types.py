@@ -144,17 +144,17 @@ class TestLinearStateMapping:
         done_states = ["done", "completed", "finished", "resolved"]
         for state_name in done_states:
             result = get_universal_state("unknown", state_name)
-            assert (
-                result == TicketState.DONE
-            ), f"{state_name} should map to DONE, not {result}"
+            assert result == TicketState.DONE, (
+                f"{state_name} should map to DONE, not {result}"
+            )
 
         # Verify CLOSED synonyms don't return DONE
         closed_states = ["closed", "canceled", "cancelled", "won't do", "rejected"]
         for state_name in closed_states:
             result = get_universal_state("unknown", state_name)
-            assert (
-                result == TicketState.CLOSED
-            ), f"{state_name} should map to CLOSED, not {result}"
+            assert result == TicketState.CLOSED, (
+                f"{state_name} should map to CLOSED, not {result}"
+            )
 
 
 @pytest.mark.unit

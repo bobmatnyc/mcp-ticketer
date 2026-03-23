@@ -81,7 +81,9 @@ async def demo_new_operations():
         # You can change this to an actual issue number from your repo
         try:
             issue_number = int(
-                input("\nEnter an issue number to check status (or press Enter to skip): ")
+                input(
+                    "\nEnter an issue number to check status (or press Enter to skip): "
+                )
                 or "0"
             )
 
@@ -101,7 +103,9 @@ async def demo_new_operations():
 
                 print("\nMetadata:")
                 print(f"  Labels:     {', '.join(status['labels']) or 'None'}")
-                print(f"  Assignees:  {', '.join(status['metadata']['assignees']) or 'None'}")
+                print(
+                    f"  Assignees:  {', '.join(status['metadata']['assignees']) or 'None'}"
+                )
                 print(f"  Milestone:  {status['metadata']['milestone'] or 'None'}")
                 print(f"  Created:    {status['metadata']['created_at']}")
                 print(f"  Updated:    {status['metadata']['updated_at']}")
@@ -143,7 +147,9 @@ async def demo_new_operations():
                     milestone_number=milestone_number
                 )
 
-                print(f"\n✓ Found {len(milestone_labels)} labels in milestone {milestone_number}")
+                print(
+                    f"\n✓ Found {len(milestone_labels)} labels in milestone {milestone_number}"
+                )
                 if milestone_labels:
                     print("\nLabels by usage:")
                     for label in milestone_labels[:10]:  # Top 10
@@ -174,9 +180,7 @@ async def demo_new_operations():
 
             if project_id:
                 print(f"\nFetching iterations for project {project_id[:20]}...")
-                iterations = await adapter.list_cycles(
-                    project_id=project_id, limit=10
-                )
+                iterations = await adapter.list_cycles(project_id=project_id, limit=10)
 
                 print(f"\n✓ Found {len(iterations)} iterations")
 

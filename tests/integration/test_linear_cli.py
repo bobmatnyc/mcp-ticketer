@@ -41,9 +41,9 @@ class TestLinearCLI:
         )
 
         assert ticket_id is not None, "Ticket ID should be returned"
-        assert ticket_id.startswith(
-            "1M-"
-        ), f"Ticket ID format should be 1M-XXX: {ticket_id}"
+        assert ticket_id.startswith("1M-"), (
+            f"Ticket ID format should be 1M-XXX: {ticket_id}"
+        )
 
         # Verify ticket details
         ticket = cli_helper.get_ticket(ticket_id)

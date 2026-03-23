@@ -383,7 +383,7 @@ class ComprehensiveQATest:
                 total_tests += 1
 
             print(
-                f"  {'Score:':<12} {adapter_passed}/{adapter_total} ({adapter_passed/adapter_total*100:.1f}%)"
+                f"  {'Score:':<12} {adapter_passed}/{adapter_total} ({adapter_passed / adapter_total * 100:.1f}%)"
             )
 
             if results["errors"]:
@@ -395,7 +395,7 @@ class ComprehensiveQATest:
                 print(f"  Created ticket: {self.created_tickets[adapter_name]}")
 
         print(
-            f"\n🎯 OVERALL SCORE: {passed_tests}/{total_tests} ({passed_tests/total_tests*100:.1f}%)"
+            f"\n🎯 OVERALL SCORE: {passed_tests}/{total_tests} ({passed_tests / total_tests * 100:.1f}%)"
         )
 
         if passed_tests == total_tests:

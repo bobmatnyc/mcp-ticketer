@@ -63,7 +63,6 @@ def test_adapter_imports() -> None:
     print("\n=== Testing Adapter Imports ===")
 
     try:
-
         print("✓ AITrackdown adapter imported")
 
         print("✓ Linear adapter imported")
@@ -127,7 +126,6 @@ def test_cli_components():
     print("\n=== Testing CLI Components ===")
 
     try:
-
         print("✓ CLI main app imported")
 
         return True

@@ -754,7 +754,9 @@ class SystemDiagnostics:
         queue_status = (
             "✅ OK"
             if queue_health > 80
-            else "⚠️  DEGRADED" if queue_health > 50 else "❌ FAILED"
+            else "⚠️  DEGRADED"
+            if queue_health > 50
+            else "❌ FAILED"
         )
         stats_table.add_row(
             "Queue System", queue_status, f"{queue_health}/100 health score"

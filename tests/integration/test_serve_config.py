@@ -62,9 +62,9 @@ def test_serve_command_respects_project_config() -> None:
                 adapter_config = adapters_config.get(adapter_type, {})
                 base_path = adapter_config.get("base_path")
 
-                assert (
-                    base_path == ".aitrackdown-project"
-                ), f"Expected '.aitrackdown-project', got '{base_path}'"
+                assert base_path == ".aitrackdown-project", (
+                    f"Expected '.aitrackdown-project', got '{base_path}'"
+                )
 
                 print("✓ Test passed: serve command would use project config")
                 print(f"  Adapter: {adapter_type}")
@@ -114,12 +114,12 @@ def test_mcp_server_cwd_scenario() -> None:
             config = load_config()
 
             # Verify correct config was loaded
-            assert (
-                config["default_adapter"] == "linear"
-            ), "Expected project's default adapter"
-            assert (
-                config["adapters"]["linear"]["team_key"] == "PROJ"
-            ), "Expected project-specific team_key"
+            assert config["default_adapter"] == "linear", (
+                "Expected project's default adapter"
+            )
+            assert config["adapters"]["linear"]["team_key"] == "PROJ", (
+                "Expected project-specific team_key"
+            )
 
             print("✓ Test passed: MCP server cwd scenario")
             print(f"  Project root: {project_path}")

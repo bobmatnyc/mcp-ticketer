@@ -26,9 +26,9 @@ class TestAdapterDetectionFromURL:
 
         for url in urls:
             detected = _detect_adapter_from_url(url)
-            assert (
-                detected == AdapterType.GITHUB.value
-            ), f"Failed to detect GitHub from: {url}"
+            assert detected == AdapterType.GITHUB.value, (
+                f"Failed to detect GitHub from: {url}"
+            )
 
     def test_detect_jira_url(self):
         """Should detect JIRA adapter from atlassian.net URLs."""
@@ -43,9 +43,9 @@ class TestAdapterDetectionFromURL:
 
         for url in urls:
             detected = _detect_adapter_from_url(url)
-            assert (
-                detected == AdapterType.JIRA.value
-            ), f"Failed to detect JIRA from: {url}"
+            assert detected == AdapterType.JIRA.value, (
+                f"Failed to detect JIRA from: {url}"
+            )
 
     def test_detect_linear_url(self):
         """Should detect Linear adapter from linear.app URLs."""
@@ -58,9 +58,9 @@ class TestAdapterDetectionFromURL:
 
         for url in urls:
             detected = _detect_adapter_from_url(url)
-            assert (
-                detected == AdapterType.LINEAR.value
-            ), f"Failed to detect Linear from: {url}"
+            assert detected == AdapterType.LINEAR.value, (
+                f"Failed to detect Linear from: {url}"
+            )
 
     def test_detect_unknown_url(self):
         """Should return None for unknown URLs."""

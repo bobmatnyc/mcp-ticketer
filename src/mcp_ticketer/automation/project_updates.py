@@ -137,8 +137,7 @@ class AutoProjectUpdateManager:
             epic_data = await self._fetch_epic_data(parent_epic)
             if not epic_data:
                 logger.warning(
-                    f"Could not fetch epic data for {parent_epic}, "
-                    f"skipping auto-update"
+                    f"Could not fetch epic data for {parent_epic}, skipping auto-update"
                 )
                 return {
                     "status": "error",
@@ -149,8 +148,7 @@ class AutoProjectUpdateManager:
             tickets = await self._fetch_epic_tickets(parent_epic)
             if not tickets:
                 logger.debug(
-                    f"No tickets found for epic {parent_epic}, "
-                    f"creating minimal update"
+                    f"No tickets found for epic {parent_epic}, creating minimal update"
                 )
                 # Still create update with just the transition info
                 tickets = []
@@ -178,8 +176,7 @@ class AutoProjectUpdateManager:
                         health = ProjectUpdateHealth(health_value.lower())
                     except ValueError:
                         logger.warning(
-                            f"Invalid health value '{health_value}', "
-                            f"defaulting to None"
+                            f"Invalid health value '{health_value}', defaulting to None"
                         )
 
             # Post update using project_update_create via adapter
@@ -336,7 +333,7 @@ class AutoProjectUpdateManager:
             for rec in analysis.recommended_next[:3]:
                 priority_label = rec.priority.upper()
                 lines.append(
-                    f"- {rec.ticket_id}: {rec.title} " f"(Priority: {priority_label})"
+                    f"- {rec.ticket_id}: {rec.title} (Priority: {priority_label})"
                 )
             lines.append("")
 
