@@ -6,12 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
-### Changed
+## [2.3.19] - 2026-03-22
+
+### Added
 
 - GitHub adapter now uses native sub-issues API for PARENT/CHILD relations instead of cross-reference simulation (#78)
 - Added `PARENT` and `CHILD` values to `RelationType` enum with proper inverse mapping
 - GitHub adapter `create()` now links parent issues via sub-issues API when `parent_issue` is provided
 - GitHub adapter implements `add_relation()`, `remove_relation()`, and `list_relations()` with sub-issues support
+
+### Fixed
+
+- Resolved all pre-existing mypy errors across the codebase (493 errors reduced to 0)
+
+### Changed
+
+- Replaced `black` and `isort` with `ruff format` for code formatting
 
 ## [2.3.18] - 2026-03-19
 
