@@ -657,6 +657,34 @@ LIST_LABELS = (
 )
 
 # =============================================================================
+# Sub-Issues REST API Endpoints (GitHub Native Hierarchy)
+# =============================================================================
+#
+# GitHub now supports native sub-issues via REST API:
+#
+#   POST   /repos/{owner}/{repo}/issues/{issue_number}/sub_issues
+#          Body: {"sub_issue_id": <child_issue_id>}
+#          Adds an existing issue as a sub-issue (child) of the parent.
+#
+#   DELETE /repos/{owner}/{repo}/issues/{issue_number}/sub_issues/{sub_issue_id}
+#          Removes a sub-issue link (does not delete the issue itself).
+#
+#   GET    /repos/{owner}/{repo}/issues/{issue_number}/sub_issues
+#          Lists all sub-issues of the given parent issue.
+#
+# These endpoints require the Accept: application/vnd.github+json header.
+# The sub_issue_id in POST body and DELETE path is the *issue ID* (not number).
+# Use the REST API /repos/{owner}/{repo}/issues/{number} to get the issue ID.
+#
+# RelationType mapping:
+#   PARENT: source is child of target
+#     -> POST /repos/{owner}/{repo}/issues/{target_number}/sub_issues
+#        body: {"sub_issue_id": source_issue_id}
+#   CHILD: source is parent of target
+#     -> POST /repos/{owner}/{repo}/issues/{source_number}/sub_issues
+#        body: {"sub_issue_id": target_issue_id}
+
+# =============================================================================
 # Comment Queries
 # =============================================================================
 

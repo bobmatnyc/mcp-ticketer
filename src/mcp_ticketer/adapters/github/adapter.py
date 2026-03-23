@@ -24,8 +24,10 @@ from ...core.models import (
     ProjectScope,
     ProjectState,
     ProjectStatistics,
+    RelationType,
     SearchQuery,
     Task,
+    TicketRelation,
     TicketState,
 )
 from ...core.registry import AdapterRegistry
@@ -159,7 +161,7 @@ def _resolve_github_token(config: dict[str, Any]) -> str | None:
     token = config.get("api_key") or config.get("token")
     if token:
         logger.debug("Using GitHub token from config/environment")
-        return token
+        return token  # type: ignore[no-any-return]
 
     # Fallback to gh CLI default account
     token = _get_gh_cli_token()
@@ -226,9 +228,9 @@ class GitHubAdapter(BaseAdapter[Task]):
 
         # Initialize GitHub API client
         self.gh_client = GitHubClient(
-            token=self.token,
-            owner=self.owner,
-            repo=self.repo,
+            token=self.token,  # type: ignore[arg-type]
+            owner=self.owner,  # type: ignore[arg-type]
+            repo=self.repo,  # type: ignore[arg-type]
             api_url=self.api_url,
             timeout=30.0,
         )
@@ -385,7 +387,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         if "errors" in data:
             raise ValueError(f"GraphQL errors: {data['errors']}")
 
-        return data["data"]
+        return data["data"]  # type: ignore[no-any-return]
 
     async def create(self, ticket: Task) -> Task:
         """Create a new GitHub issue."""
@@ -439,7 +441,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         if ticket.milestone_id is not None:
             try:
                 milestone_number = int(ticket.milestone_id)
-                issue_data["milestone"] = milestone_number
+                issue_data["milestone"] = milestone_number  # type: ignore[assignment]
             except ValueError:
                 # Resolve milestone by title - strict: raise if not found
                 cache_key = "github_milestones"
@@ -463,13 +465,13 @@ class GitHubAdapter(BaseAdapter[Task]):
                     raise ValueError(
                         f"Milestone not found: '{ticket.milestone_id}'. "
                         f"Provide a valid milestone number or an existing milestone title."
-                    )
+                    ) from None
 
         # Fallback to parent_epic with silent ignore (backward compatibility)
         elif ticket.parent_epic:
             try:
                 milestone_number = int(ticket.parent_epic)
-                issue_data["milestone"] = milestone_number
+                issue_data["milestone"] = milestone_number  # type: ignore[assignment]
             except ValueError:
                 # Resolve milestone by title - silent: log and skip if not found
                 cache_key = "github_milestones"
@@ -511,9 +513,27 @@ class GitHubAdapter(BaseAdapter[Task]):
             )
             created_issue["state"] = "closed"
 
+        # Link to parent issue via sub-issues API if parent_issue is set
+        if ticket.parent_issue:
+            try:
+                await self.add_relation(
+                    source_id=str(created_issue["number"]),
+                    target_id=str(ticket.parent_issue),
+                    relation_type=RelationType.PARENT,
+                )
+                logger.info(
+                    f"Linked issue #{created_issue['number']} as sub-issue of #{ticket.parent_issue}"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to link issue #{created_issue['number']} to parent "
+                    f"#{ticket.parent_issue} via sub-issues API: {e}. "
+                    f"Issue was created successfully but parent link was not established."
+                )
+
         return self._task_from_github_issue(created_issue)
 
-    async def read(self, ticket_id: str) -> Task | Epic | None:
+    async def read(self, ticket_id: str) -> Task | Epic | None:  # type: ignore[override]
         """Read a GitHub issue OR milestone by number with unified find.
 
         Tries to find the entity in the following order:
@@ -701,7 +721,7 @@ class GitHubAdapter(BaseAdapter[Task]):
                         raise ValueError(
                             f"Milestone not found: '{milestone_id}'. "
                             f"Provide a valid milestone number or an existing milestone title."
-                        )
+                        ) from None
 
         # Handle assignee updates
         if "assignee" in updates:
@@ -753,7 +773,7 @@ class GitHubAdapter(BaseAdapter[Task]):
             updated_issue = response.json()
             return self._task_from_github_issue(updated_issue)
 
-        return await self.read(ticket_id)
+        return await self.read(ticket_id)  # type: ignore[return-value]
 
     async def delete(self, ticket_id: str) -> bool:
         """Delete (close) a GitHub issue."""
@@ -1030,7 +1050,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         """Get current rate limit status."""
         response = await self.client.get("/rate_limit")
         response.raise_for_status()
-        return response.json()
+        return response.json()  # type: ignore[no-any-return]
 
     async def create_milestone(self, epic: Epic) -> Epic:
         """Create a GitHub milestone as an Epic."""
@@ -1074,7 +1094,7 @@ class GitHubAdapter(BaseAdapter[Task]):
         }
 
         response = await self.client.get(
-            f"/repos/{self.owner}/{self.repo}/milestones", params=params
+            f"/repos/{self.owner}/{self.repo}/milestones", params=params  # type: ignore[arg-type]
         )
         response.raise_for_status()
 
@@ -1425,13 +1445,13 @@ Fixes #{issue_number}
             f"/repos/{self.owner}/{self.repo}/collaborators"
         )
         response.raise_for_status()
-        return response.json()
+        return response.json()  # type: ignore[no-any-return]
 
     async def get_current_user(self) -> dict[str, Any] | None:
         """Get current authenticated user information."""
         response = await self.client.get("/user")
         response.raise_for_status()
-        return response.json()
+        return response.json()  # type: ignore[no-any-return]
 
     async def list_labels(self) -> builtins.list[dict[str, Any]]:
         """List all labels available in the repository.
@@ -1444,7 +1464,7 @@ Fixes #{issue_number}
         cache_key = "github_labels"
         cached = await self._labels_cache.get(cache_key)
         if cached is not None:
-            return cached
+            return cached  # type: ignore[no-any-return]
 
         response = await self.client.get(f"/repos/{self.owner}/{self.repo}/labels")
         response.raise_for_status()
@@ -1668,7 +1688,7 @@ Fixes #{issue_number}
             milestone_number, {"description": new_description}
         )
 
-    async def add_attachment(
+    async def add_attachment(  # type: ignore[override]
         self, ticket_id: str, file_path: str, description: str | None = None
     ) -> dict[str, Any]:
         """Add attachment to GitHub ticket (issue or milestone).
@@ -2040,7 +2060,7 @@ Fixes #{issue_number}
             }
 
             response = await self.client.get(
-                f"/repos/{self.owner}/{self.repo}/issues", params=params
+                f"/repos/{self.owner}/{self.repo}/issues", params=params  # type: ignore[arg-type]
             )
             response.raise_for_status()
             issues = response.json()
@@ -2081,7 +2101,7 @@ Fixes #{issue_number}
         self,
         name: str,
         target_date: date | None = None,
-        labels: list[str] | None = None,
+        labels: builtins.list[str] | None = None,
         description: str = "",
         project_id: str | None = None,
     ) -> Milestone:
@@ -2201,7 +2221,7 @@ Fixes #{issue_number}
         self,
         project_id: str | None = None,
         state: str | None = None,
-    ) -> list[Milestone]:
+    ) -> builtins.list[Milestone]:
         """List milestones from GitHub repository.
 
         Note: project_id is ignored for GitHub (repo-scoped).
@@ -2243,7 +2263,7 @@ Fixes #{issue_number}
 
         response = await self.client.get(
             f"/repos/{self.owner}/{self.repo}/milestones",
-            params=params,
+            params=params,  # type: ignore[arg-type]
         )
         response.raise_for_status()
 
@@ -2271,7 +2291,7 @@ Fixes #{issue_number}
         name: str | None = None,
         target_date: date | None = None,
         state: str | None = None,
-        labels: list[str] | None = None,
+        labels: builtins.list[str] | None = None,
         description: str | None = None,
     ) -> Milestone | None:
         """Update milestone properties.
@@ -2405,11 +2425,11 @@ Fixes #{issue_number}
             logger.error(f"Failed to delete milestone {milestone_id}: {e}")
             return False
 
-    async def milestone_get_issues(
+    async def milestone_get_issues(  # type: ignore[override]
         self,
         milestone_id: str,
         state: str | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> builtins.list[dict[str, Any]]:
         """Get issues in milestone.
 
         Args:
@@ -2437,7 +2457,7 @@ Fixes #{issue_number}
 
         response = await self.client.get(
             f"/repos/{self.owner}/{self.repo}/issues",
-            params=params,
+            params=params,  # type: ignore[arg-type]
         )
         response.raise_for_status()
 
@@ -2463,7 +2483,7 @@ Fixes #{issue_number}
         logger.info(f"Retrieved {len(issues)} issues from milestone {milestone_id}")
         return issues
 
-    async def search_users(self, query: str) -> list[dict[str, Any]]:
+    async def search_users(self, query: str) -> builtins.list[dict[str, Any]]:
         """Search for users by name or email.
 
         Args:
@@ -2486,23 +2506,23 @@ Fixes #{issue_number}
     def _github_milestone_to_milestone(
         self,
         gh_milestone: dict[str, Any],
-        labels: list[str] | None = None,
+        labels: builtins.list[str] | None = None,
     ) -> Milestone:
         """Convert GitHub Milestone to universal Milestone model (delegated to mappers module)."""
-        return map_github_milestone_to_milestone(gh_milestone, self.repo, labels)
+        return map_github_milestone_to_milestone(gh_milestone, self.repo, labels)  # type: ignore[arg-type]
 
     # =============================================================================
     # GitHub Projects V2 Operations (Week 2: Core CRUD)
     # =============================================================================
 
-    async def project_list(
+    async def project_list(  # type: ignore[override]
         self,
         owner: str | None = None,
         scope: ProjectScope = ProjectScope.ORGANIZATION,
         state: ProjectState | None = None,
         limit: int = 10,
         cursor: str | None = None,
-    ) -> list[Project]:
+    ) -> builtins.list[Project]:
         """List projects for an organization or user.
 
         Args:
@@ -2663,7 +2683,7 @@ Fixes #{issue_number}
             logger.error(f"Failed to get project {project_id}: {e}")
             raise RuntimeError(f"Failed to get project: {e}") from e
 
-    async def project_create(
+    async def project_create(  # type: ignore[override]
         self,
         title: str,
         description: str | None = None,
@@ -2757,7 +2777,7 @@ Fixes #{issue_number}
             logger.error(f"Failed to create project '{title}': {e}")
             raise RuntimeError(f"Failed to create project: {e}") from e
 
-    async def project_update(
+    async def project_update(  # type: ignore[override]
         self,
         project_id: str,
         title: str | None = None,
@@ -3193,7 +3213,7 @@ Fixes #{issue_number}
         state: str | None = None,
         limit: int = 10,
         cursor: str | None = None,
-    ) -> list[Task]:
+    ) -> builtins.list[Task]:
         """Get issues in a GitHub Projects V2 project.
 
         Args:
@@ -3310,40 +3330,20 @@ Fixes #{issue_number}
             # Filter by state if provided (post-query filtering)
             if state:
                 state_lower = state.lower()
+                # TicketState inherits from str, and use_enum_values=True
+                # stores the string value, so str() is safe for both cases.
                 tasks = [
                     task
                     for task in tasks
-                    if (isinstance(task.state, str) and task.state == state_lower)
-                    or (
-                        hasattr(task.state, "value") and task.state.value == state_lower
-                    )
+                    if str(task.state) == state_lower
                     or (
                         state_lower == "open"
-                        and (
-                            (
-                                isinstance(task.state, str)
-                                and task.state
-                                in ["open", "in_progress", "blocked", "waiting"]
-                            )
-                            or (
-                                hasattr(task.state, "value")
-                                and task.state.value
-                                in ["open", "in_progress", "blocked", "waiting"]
-                            )
-                        )
+                        and str(task.state)
+                        in ["open", "in_progress", "blocked", "waiting"]
                     )
                     or (
                         state_lower == "closed"
-                        and (
-                            (
-                                isinstance(task.state, str)
-                                and task.state in ["done", "closed"]
-                            )
-                            or (
-                                hasattr(task.state, "value")
-                                and task.state.value in ["done", "closed"]
-                            )
-                        )
+                        and str(task.state) in ["done", "closed"]
                     )
                 ]
 
@@ -3513,6 +3513,292 @@ Fixes #{issue_number}
         )
 
         return stats
+
+    # =========================================================================
+    # Sub-Issues / Relations API
+    # =========================================================================
+
+    async def _get_issue_node_id(self, issue_number: str) -> str | None:
+        """Get the GitHub node ID for an issue given its number.
+
+        The sub-issues REST API requires the issue's node ID (not number).
+
+        Args:
+            issue_number: Issue number as string
+
+        Returns:
+            GitHub node ID string, or None if not found
+
+        """
+        try:
+            response = await self.client.get(
+                f"/repos/{self.owner}/{self.repo}/issues/{int(issue_number)}"
+            )
+            if response.status_code == 404:
+                return None
+            response.raise_for_status()
+            return response.json().get("node_id")  # type: ignore[no-any-return]
+        except (httpx.HTTPError, ValueError):
+            return None
+
+    async def add_relation(
+        self, source_id: str, target_id: str, relation_type: RelationType
+    ) -> TicketRelation:
+        """Create relationship between GitHub issues.
+
+        For PARENT/CHILD relations, uses the native sub-issues API.
+        For other relation types, falls back to cross-reference comments.
+
+        Args:
+            source_id: Source issue number (as string)
+            target_id: Target issue number (as string)
+            relation_type: Type of relationship to create
+
+        Returns:
+            Created TicketRelation with populated metadata
+
+        Raises:
+            ValueError: If the sub-issues API call fails
+
+        """
+        rt = (
+            relation_type
+            if isinstance(relation_type, RelationType)
+            else RelationType(relation_type)
+        )
+
+        if rt in (RelationType.PARENT, RelationType.CHILD):
+            return await self._add_sub_issue_relation(source_id, target_id, rt)
+
+        # Fallback: cross-reference comment for non-hierarchy relations
+        label = rt.value.replace("_", " ")
+        comment_body = f"[{label}] #{target_id}"
+        response = await self.client.post(
+            f"/repos/{self.owner}/{self.repo}/issues/{int(source_id)}/comments",
+            json={"body": comment_body},
+        )
+        response.raise_for_status()
+
+        return TicketRelation(
+            source_ticket_id=source_id,
+            target_ticket_id=target_id,
+            relation_type=rt,
+            metadata={"github": {"method": "cross_reference"}},
+        )
+
+    async def _add_sub_issue_relation(
+        self, source_id: str, target_id: str, relation_type: RelationType
+    ) -> TicketRelation:
+        """Add a parent/child sub-issue relation using the GitHub sub-issues API.
+
+        PARENT: source is child of target
+          -> POST /repos/{owner}/{repo}/issues/{target}/sub_issues  body: {"sub_issue_id": source_node_id}
+        CHILD: source is parent of target
+          -> POST /repos/{owner}/{repo}/issues/{source}/sub_issues  body: {"sub_issue_id": target_node_id}
+        """
+        if relation_type == RelationType.PARENT:
+            parent_number = target_id
+            child_number = source_id
+        else:  # CHILD
+            parent_number = source_id
+            child_number = target_id
+
+        # Get the node ID of the child issue (required by the API)
+        child_node_id = await self._get_issue_node_id(child_number)
+        if not child_node_id:
+            raise ValueError(
+                f"Could not resolve issue #{child_number} to a node ID. "
+                f"Ensure the issue exists in {self.owner}/{self.repo}."
+            )
+
+        try:
+            response = await self.client.post(
+                f"/repos/{self.owner}/{self.repo}/issues/{int(parent_number)}/sub_issues",
+                json={"sub_issue_id": child_node_id},
+                headers={"Accept": "application/vnd.github+json"},
+            )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            status = e.response.status_code
+            if status in (404, 422):
+                logger.warning(
+                    f"Sub-issues API returned {status} when adding "
+                    f"#{child_number} as sub-issue of #{parent_number}: {e}"
+                )
+                raise ValueError(
+                    f"Failed to add sub-issue relation: HTTP {status}. "
+                    f"Ensure the sub-issues feature is enabled for {self.owner}/{self.repo}."
+                ) from e
+            raise
+
+        return TicketRelation(
+            source_ticket_id=source_id,
+            target_ticket_id=target_id,
+            relation_type=relation_type,
+            metadata={
+                "github": {
+                    "method": "sub_issues_api",
+                    "parent_number": int(parent_number),
+                    "child_number": int(child_number),
+                    "child_node_id": child_node_id,
+                }
+            },
+        )
+
+    async def remove_relation(
+        self, source_id: str, target_id: str, relation_type: RelationType
+    ) -> bool:
+        """Remove relationship between GitHub issues.
+
+        For PARENT/CHILD relations, uses the native sub-issues DELETE API.
+        For other relation types, returns False (cross-reference comments
+        cannot be reliably removed).
+
+        Args:
+            source_id: Source issue number (as string)
+            target_id: Target issue number (as string)
+            relation_type: Type of relationship to remove
+
+        Returns:
+            True if removed successfully, False otherwise
+
+        """
+        rt = (
+            relation_type
+            if isinstance(relation_type, RelationType)
+            else RelationType(relation_type)
+        )
+
+        if rt not in (RelationType.PARENT, RelationType.CHILD):
+            logger.warning(
+                f"Cannot remove non-hierarchy relation type '{rt.value}' via GitHub API. "
+                f"Cross-reference comments must be removed manually."
+            )
+            return False
+
+        if rt == RelationType.PARENT:
+            parent_number = target_id
+            child_number = source_id
+        else:  # CHILD
+            parent_number = source_id
+            child_number = target_id
+
+        # Get the node ID of the child issue
+        child_node_id = await self._get_issue_node_id(child_number)
+        if not child_node_id:
+            logger.warning(f"Could not resolve issue #{child_number} to a node ID.")
+            return False
+
+        try:
+            response = await self.client.delete(
+                f"/repos/{self.owner}/{self.repo}/issues/{int(parent_number)}/sub_issues/{child_node_id}",
+                headers={"Accept": "application/vnd.github+json"},
+            )
+            if response.status_code == 204:
+                return True
+            if response.status_code in (404, 422):
+                logger.warning(
+                    f"Sub-issues API returned {response.status_code} when removing "
+                    f"sub-issue #{child_number} from #{parent_number}."
+                )
+                return False
+            response.raise_for_status()
+            return True
+        except httpx.HTTPError as e:
+            logger.error(f"Failed to remove sub-issue relation: {e}")
+            return False
+
+    async def list_relations(
+        self, ticket_id: str, relation_type: RelationType | None = None
+    ) -> builtins.list[TicketRelation]:
+        """List relationships for a GitHub issue.
+
+        Uses the sub-issues API to list child issues. If the issue itself
+        has a parent, that relationship is also included.
+
+        Args:
+            ticket_id: Issue number (as string)
+            relation_type: Optional filter for specific relation type.
+                           Only PARENT and CHILD are supported via the API.
+
+        Returns:
+            List of TicketRelation objects
+
+        """
+        rt = (
+            relation_type
+            if isinstance(relation_type, str)
+            else (relation_type.value if relation_type else None)
+        )
+        relations: builtins.list[TicketRelation] = []
+
+        # List child sub-issues (CHILD relations where ticket_id is the parent)
+        if rt is None or rt == RelationType.CHILD.value or rt == "child":
+            try:
+                response = await self.client.get(
+                    f"/repos/{self.owner}/{self.repo}/issues/{int(ticket_id)}/sub_issues",
+                    headers={"Accept": "application/vnd.github+json"},
+                )
+                if response.status_code == 200:
+                    sub_issues = response.json()
+                    if isinstance(sub_issues, list):
+                        for sub in sub_issues:
+                            child_number = str(sub.get("number", ""))
+                            if child_number:
+                                relations.append(
+                                    TicketRelation(
+                                        source_ticket_id=ticket_id,
+                                        target_ticket_id=child_number,
+                                        relation_type=RelationType.CHILD,
+                                        metadata={
+                                            "github": {
+                                                "method": "sub_issues_api",
+                                                "child_id": sub.get("node_id"),
+                                                "child_title": sub.get("title"),
+                                                "child_state": sub.get("state"),
+                                            }
+                                        },
+                                    )
+                                )
+                elif response.status_code != 404:
+                    logger.warning(
+                        f"Sub-issues API returned {response.status_code} "
+                        f"when listing sub-issues of #{ticket_id}."
+                    )
+            except httpx.HTTPError as e:
+                logger.error(f"Failed to list sub-issues for #{ticket_id}: {e}")
+
+        # Check if the issue has a parent (PARENT relation)
+        if rt is None or rt == RelationType.PARENT.value or rt == "parent":
+            try:
+                response = await self.client.get(
+                    f"/repos/{self.owner}/{self.repo}/issues/{int(ticket_id)}",
+                    headers={"Accept": "application/vnd.github+json"},
+                )
+                if response.status_code == 200:
+                    issue_data = response.json()
+                    # GitHub includes parent in the sub_issues_summary or parent field
+                    parent = issue_data.get("parent")
+                    if parent and parent.get("number"):
+                        relations.append(
+                            TicketRelation(
+                                source_ticket_id=ticket_id,
+                                target_ticket_id=str(parent["number"]),
+                                relation_type=RelationType.PARENT,
+                                metadata={
+                                    "github": {
+                                        "method": "sub_issues_api",
+                                        "parent_id": parent.get("node_id"),
+                                        "parent_title": parent.get("title"),
+                                        "parent_state": parent.get("state"),
+                                    }
+                                },
+                            )
+                        )
+            except httpx.HTTPError as e:
+                logger.error(f"Failed to check parent for #{ticket_id}: {e}")
+
+        return relations
 
     async def close(self) -> None:
         """Close the HTTP client connection."""

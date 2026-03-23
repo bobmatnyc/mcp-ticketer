@@ -523,8 +523,13 @@ class TestLinearTypeMappings:
         assert result == RelationType.RELATES_TO
 
     def test_round_trip_mapping(self) -> None:
-        """Test that type mappings are reversible."""
+        """Test that type mappings are reversible for types with Linear equivalents."""
+        # PARENT and CHILD are GitHub-native types with no Linear equivalent;
+        # they map to RELATES in Linear and cannot round-trip.
+        skip_types = {RelationType.PARENT, RelationType.CHILD}
         for universal_type in RelationType:
+            if universal_type in skip_types:
+                continue
             linear_type = get_linear_relation_type(universal_type)
             back_to_universal = get_universal_relation_type(linear_type)
             assert back_to_universal == universal_type

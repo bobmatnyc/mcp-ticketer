@@ -34,6 +34,8 @@ class TestRelationType:
             "relates_to",
             "duplicates",
             "duplicated_by",
+            "parent",
+            "child",
         }
         actual_types = {rt.value for rt in RelationType}
         assert actual_types == expected_types
@@ -96,7 +98,7 @@ class TestTicketRelation:
     def test_create_relation_missing_required_fields(self) -> None:
         """Test that creating a relation without required fields raises ValidationError."""
         with pytest.raises(ValidationError) as exc_info:
-            TicketRelation(source_ticket_id="ISSUE-123")
+            TicketRelation(source_ticket_id="ISSUE-123")  # type: ignore[call-arg]
 
         error_str = str(exc_info.value)
         assert "target_ticket_id" in error_str

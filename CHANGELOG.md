@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- GitHub adapter now uses native sub-issues API for PARENT/CHILD relations instead of cross-reference simulation (#78)
+- Added `PARENT` and `CHILD` values to `RelationType` enum with proper inverse mapping
+- GitHub adapter `create()` now links parent issues via sub-issues API when `parent_issue` is provided
+- GitHub adapter implements `add_relation()`, `remove_relation()`, and `list_relations()` with sub-issues support
+
 ## [2.3.18] - 2026-03-19
 
 ### Fixed

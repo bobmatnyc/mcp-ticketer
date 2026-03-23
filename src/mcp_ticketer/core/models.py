@@ -202,7 +202,7 @@ class RelationType(str, Enum):
     Platform Mappings:
     - Linear: blocks, blockedBy, duplicate, duplicatedBy, relates
     - JIRA: Blocks, is blocked by, Duplicates, is duplicated by, Relates to
-    - GitHub: Uses labels or custom fields (no native relation support)
+    - GitHub: Native sub-issues API for PARENT/CHILD; cross-references for others
     - Asana: Uses dependencies (blocks/blocked_by mapping)
 
     Attributes:
@@ -226,6 +226,8 @@ class RelationType(str, Enum):
     RELATES_TO = "relates_to"
     DUPLICATES = "duplicates"
     DUPLICATED_BY = "duplicated_by"
+    PARENT = "parent"
+    CHILD = "child"
 
 
 class TicketRelation(BaseModel):
@@ -268,12 +270,12 @@ class TicketRelation(BaseModel):
 
     model_config = ConfigDict(use_enum_values=True)
 
-    id: str | None = Field(None, description="Unique relation identifier")
+    id: str | None = Field(default=None, description="Unique relation identifier")
     source_ticket_id: str = Field(..., description="Source ticket ID")
     target_ticket_id: str = Field(..., description="Target ticket ID")
     relation_type: RelationType = Field(..., description="Type of relationship")
-    created_at: datetime | None = Field(None, description="Creation timestamp")
-    created_by: str | None = Field(None, description="Creator user ID")
+    created_at: datetime | None = Field(default=None, description="Creation timestamp")
+    created_by: str | None = Field(default=None, description="Creator user ID")
     metadata: dict[str, Any] = Field(
         default_factory=dict, description="Platform-specific relation metadata"
     )
@@ -304,6 +306,8 @@ class TicketRelation(BaseModel):
             RelationType.DUPLICATES: RelationType.DUPLICATED_BY,
             RelationType.DUPLICATED_BY: RelationType.DUPLICATES,
             RelationType.RELATES_TO: RelationType.RELATES_TO,
+            RelationType.PARENT: RelationType.CHILD,
+            RelationType.CHILD: RelationType.PARENT,
         }
         return inverse_map.get(self.relation_type)
 
@@ -530,11 +534,11 @@ class Comment(BaseModel):
 
     model_config = ConfigDict(use_enum_values=True)
 
-    id: str | None = Field(None, description="Comment ID")
+    id: str | None = Field(default=None, description="Comment ID")
     ticket_id: str = Field(..., description="Parent ticket ID")
-    author: str | None = Field(None, description="Comment author")
+    author: str | None = Field(default=None, description="Comment author")
     content: str = Field(..., min_length=1, description="Comment text")
-    created_at: datetime | None = Field(None, description="Creation timestamp")
+    created_at: datetime | None = Field(default=None, description="Creation timestamp")
     metadata: dict[str, Any] = Field(
         default_factory=dict, description="System-specific metadata"
     )
