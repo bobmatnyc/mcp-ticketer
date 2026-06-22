@@ -103,6 +103,35 @@ AITRACKDOWN_PATH_PATTERNS = [
     "MCP_TICKETER_AITRACKDOWN_BASE_PATH",
 ]
 
+CLICKUP_TOKEN_PATTERNS = [
+    "CLICKUP_API_TOKEN",
+    "CLICKUP_TOKEN",
+    "CLICKUP_API_KEY",
+    "CLICKUP_KEY",
+    "MCP_TICKETER_CLICKUP_API_TOKEN",
+]
+
+CLICKUP_TEAM_PATTERNS = [
+    "CLICKUP_TEAM_ID",
+    "CLICKUP_WORKSPACE_ID",
+    "MCP_TICKETER_CLICKUP_TEAM_ID",
+]
+
+CLICKUP_LIST_PATTERNS = [
+    "CLICKUP_LIST_ID",
+    "MCP_TICKETER_CLICKUP_LIST_ID",
+]
+
+CLICKUP_SPACE_PATTERNS = [
+    "CLICKUP_SPACE_ID",
+    "MCP_TICKETER_CLICKUP_SPACE_ID",
+]
+
+CLICKUP_FOLDER_PATTERNS = [
+    "CLICKUP_FOLDER_ID",
+    "MCP_TICKETER_CLICKUP_FOLDER_ID",
+]
+
 
 @dataclass
 class DiscoveredAdapter:
@@ -213,6 +242,12 @@ class EnvDiscovery:
         )
         if jira_adapter:
             result.adapters.append(jira_adapter)
+
+        clickup_adapter = self._detect_clickup(
+            env_vars, result.env_files_found[0] if result.env_files_found else ".env"
+        )
+        if clickup_adapter:
+            result.adapters.append(clickup_adapter)
 
         aitrackdown_adapter = self._detect_aitrackdown(
             env_vars, result.env_files_found[0] if result.env_files_found else ".env"
@@ -470,6 +505,65 @@ class EnvDiscovery:
             found_in=found_in,
         )
 
+    def _detect_clickup(
+        self, env_vars: dict[str, str], found_in: str
+    ) -> DiscoveredAdapter | None:
+        """Detect ClickUp adapter configuration.
+
+        Args:
+            env_vars: Environment variables.
+            found_in: Which file the config was found in.
+
+        Returns:
+            DiscoveredAdapter if ClickUp config detected, None otherwise.
+
+        """
+        api_token = self._find_key_value(env_vars, CLICKUP_TOKEN_PATTERNS)
+
+        if not api_token:
+            return None
+
+        config: dict[str, Any] = {
+            "api_token": api_token,
+            "adapter": "clickup",
+        }
+
+        missing_fields: list[str] = []
+        confidence = 0.5  # Has token
+
+        # Team (workspace) id (recommended for create/list operations).
+        team_id = self._find_key_value(env_vars, CLICKUP_TEAM_PATTERNS)
+        if team_id:
+            config["team_id"] = team_id
+            confidence += 0.2
+        else:
+            missing_fields.append("team_id (recommended)")
+
+        # Default list id for task creation (optional but commonly needed).
+        list_id = self._find_key_value(env_vars, CLICKUP_LIST_PATTERNS)
+        if list_id:
+            config["list_id"] = list_id
+            confidence += 0.2
+
+        # Optional space / folder scoping.
+        space_id = self._find_key_value(env_vars, CLICKUP_SPACE_PATTERNS)
+        if space_id:
+            config["space_id"] = space_id
+            confidence += 0.05
+
+        folder_id = self._find_key_value(env_vars, CLICKUP_FOLDER_PATTERNS)
+        if folder_id:
+            config["folder_id"] = folder_id
+            confidence += 0.05
+
+        return DiscoveredAdapter(
+            adapter_type="clickup",
+            config=config,
+            confidence=min(confidence, 1.0),
+            missing_fields=missing_fields,
+            found_in=found_in,
+        )
+
     def _detect_aitrackdown(
         self, env_vars: dict[str, str], found_in: str
     ) -> DiscoveredAdapter | None:
@@ -501,6 +595,7 @@ class EnvDiscovery:
             any(key.startswith("LINEAR_") for key in env_vars)
             or any(key.startswith("GITHUB_") for key in env_vars)
             or any(key.startswith("JIRA_") for key in env_vars)
+            or any(key.startswith("CLICKUP_") for key in env_vars)
         )
 
         if not base_path and not aitrackdown_dir.exists():

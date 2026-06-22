@@ -13,7 +13,7 @@ Universal ticket management interface for AI agents with MCP (Model Context Prot
 ## 🚀 Features
 
 - **🎯 Universal Ticket Model**: Simplified to Epic, Task, and Comment types
-- **🔌 Multiple Adapters**: Support for JIRA, Linear, GitHub Issues, and AI-Trackdown
+- **🔌 Multiple Adapters**: Support for JIRA, Linear, GitHub Issues, Asana, ClickUp, and AI-Trackdown
 - **🤖 MCP Integration**: Native support for AI agent interactions
 - **⚡ High Performance**: Smart caching and async operations
 - **🎨 Rich CLI**: Beautiful terminal interface with colors and tables
@@ -1067,6 +1067,45 @@ Linear project and issue URLs work with any path suffix (`/issues`, `/overview`,
 **Finding your team information:**
 1. **Easiest**: Copy the URL from your Linear team's issues page
 2. **Alternative**: Go to Linear Settings → Teams → Your Team → "Key" field (e.g., "ENG", "DESIGN", "PRODUCT")
+
+### ClickUp Configuration
+
+Configure ClickUp with a personal API token plus your workspace (team) and a
+default list:
+
+```bash
+# In .env or environment
+CLICKUP_API_TOKEN=pk_...        # ClickUp -> Settings -> Apps -> API Token
+CLICKUP_TEAM_ID=9007012345      # Workspace id (from the app URL after login)
+CLICKUP_LIST_ID=901234567       # Default list new tasks/issues are created in
+
+# Optional: scope Epic (list) creation/listing to a space or folder
+# CLICKUP_SPACE_ID=90120001
+# CLICKUP_FOLDER_ID=90130002
+```
+
+**Hierarchy mapping:**
+
+| Universal | ClickUp        |
+|-----------|----------------|
+| Epic      | List           |
+| Issue     | Task (no parent) |
+| Task      | Subtask (has parent) |
+
+**State mapping:** ClickUp statuses are defined *per list*. The adapter reads
+each list's statuses (`GET /list/{id}`) and maps the status `type`
+(`open`/`custom`/`done`/`closed`) and name to the universal `TicketState`,
+resolving the reverse direction to a concrete status name that exists in the
+target list.
+
+**Limitations:** ClickUp has **no native milestone concept** (ClickUp Goals
+have different semantics — they aggregate targets/key-results rather than
+grouping issues by label under a due date), so the `milestone_*` operations
+are not supported and raise `NotImplementedError`.
+
+**Finding your ids:**
+1. **Team (workspace) id**: the number right after `app.clickup.com/` in the URL.
+2. **List id**: open a list, copy the number after `/v/li/` in the URL.
 
 ### Environment Variables
 
