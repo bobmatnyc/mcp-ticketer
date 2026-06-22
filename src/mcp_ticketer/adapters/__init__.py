@@ -6,6 +6,7 @@ from .github import GitHubAdapter
 from .hybrid import HybridAdapter
 from .jira import JiraAdapter
 from .linear import LinearAdapter
+from .plane import PlaneAdapter
 
 __all__ = [
     "AITrackdownAdapter",
@@ -14,4 +15,5 @@ __all__ = [
     "JiraAdapter",
     "GitHubAdapter",
     "HybridAdapter",
+    "PlaneAdapter",
 ]

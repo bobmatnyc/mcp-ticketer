@@ -13,7 +13,7 @@ Universal ticket management interface for AI agents with MCP (Model Context Prot
 ## 🚀 Features
 
 - **🎯 Universal Ticket Model**: Simplified to Epic, Task, and Comment types
-- **🔌 Multiple Adapters**: Support for JIRA, Linear, GitHub Issues, and AI-Trackdown
+- **🔌 Multiple Adapters**: Support for JIRA, Linear, GitHub Issues, Asana, Plane, and AI-Trackdown
 - **🤖 MCP Integration**: Native support for AI agent interactions
 - **⚡ High Performance**: Smart caching and async operations
 - **🎨 Rich CLI**: Beautiful terminal interface with colors and tables
@@ -53,7 +53,27 @@ pip install mcp-ticketer[linear]    # Linear support
 pip install mcp-ticketer[github]    # GitHub Issues support
 pip install mcp-ticketer[analysis]  # PM monitoring tools
 pip install mcp-ticketer[all]       # All adapters and features
+
+# Note: the Asana and Plane adapters use the bundled httpx client and
+# require no extra — they work with the base `pip install mcp-ticketer`.
 ```
+
+### Plane
+
+Plane (https://plane.so, self-hostable) is configured with an API key,
+workspace slug, and project ID:
+
+```bash
+export PLANE_API_KEY=plane_api_...           # Workspace Settings → API Tokens
+export PLANE_WORKSPACE_SLUG=your-workspace   # slug from your Plane URL
+export PLANE_PROJECT_ID=<project-uuid>       # project UUID
+# Optional - defaults to https://api.plane.so; set for self-hosted instances:
+# export PLANE_INSTANCE_URL=https://plane.example.com   # must be https
+```
+
+The Plane adapter maps Epics to Plane projects, Issues/Tasks to Plane issues
+and sub-issues, and Milestones to Plane modules. See `.env.example` for the
+full list of supported variable names.
 
 **Note (v0.15.0+)**: The `setup` command now automatically detects and installs adapter dependencies! When you run `mcp-ticketer setup`, it will prompt you to install any missing adapter-specific dependencies, eliminating the need for manual `pip install mcp-ticketer[adapter]` after setup.
 
