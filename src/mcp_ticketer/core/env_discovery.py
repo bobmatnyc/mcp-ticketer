@@ -103,6 +103,32 @@ AITRACKDOWN_PATH_PATTERNS = [
     "MCP_TICKETER_AITRACKDOWN_BASE_PATH",
 ]
 
+PLANE_KEY_PATTERNS = [
+    "PLANE_API_KEY",
+    "PLANE_TOKEN",
+    "PLANE_KEY",
+    "MCP_TICKETER_PLANE_API_KEY",
+]
+
+PLANE_INSTANCE_PATTERNS = [
+    "PLANE_INSTANCE_URL",
+    "PLANE_URL",
+    "PLANE_HOST",
+    "MCP_TICKETER_PLANE_INSTANCE_URL",
+]
+
+PLANE_WORKSPACE_PATTERNS = [
+    "PLANE_WORKSPACE_SLUG",
+    "PLANE_WORKSPACE",
+    "MCP_TICKETER_PLANE_WORKSPACE_SLUG",
+]
+
+PLANE_PROJECT_PATTERNS = [
+    "PLANE_PROJECT_ID",
+    "PLANE_PROJECT",
+    "MCP_TICKETER_PLANE_PROJECT_ID",
+]
+
 
 @dataclass
 class DiscoveredAdapter:
@@ -213,6 +239,12 @@ class EnvDiscovery:
         )
         if jira_adapter:
             result.adapters.append(jira_adapter)
+
+        plane_adapter = self._detect_plane(
+            env_vars, result.env_files_found[0] if result.env_files_found else ".env"
+        )
+        if plane_adapter:
+            result.adapters.append(plane_adapter)
 
         aitrackdown_adapter = self._detect_aitrackdown(
             env_vars, result.env_files_found[0] if result.env_files_found else ".env"
@@ -470,6 +502,62 @@ class EnvDiscovery:
             found_in=found_in,
         )
 
+    def _detect_plane(
+        self, env_vars: dict[str, str], found_in: str
+    ) -> DiscoveredAdapter | None:
+        """Detect Plane adapter configuration.
+
+        Args:
+            env_vars: Environment variables
+            found_in: Which file the config was found in
+
+        Returns:
+            DiscoveredAdapter if Plane config detected, None otherwise
+
+        """
+        api_key = self._find_key_value(env_vars, PLANE_KEY_PATTERNS)
+
+        if not api_key:
+            return None
+
+        config: dict[str, Any] = {
+            "api_key": api_key,
+            "adapter": "plane",
+        }
+
+        missing_fields: list[str] = []
+        confidence = 0.4  # Has API key
+
+        # Instance URL (optional - defaults to https://api.plane.so)
+        instance_url = self._find_key_value(env_vars, PLANE_INSTANCE_PATTERNS)
+        if instance_url:
+            config["instance_url"] = instance_url
+            confidence += 0.1
+
+        # Workspace slug (required)
+        workspace_slug = self._find_key_value(env_vars, PLANE_WORKSPACE_PATTERNS)
+        if workspace_slug:
+            config["workspace_slug"] = workspace_slug
+            confidence += 0.25
+        else:
+            missing_fields.append("workspace_slug")
+
+        # Project ID (required)
+        project_id = self._find_key_value(env_vars, PLANE_PROJECT_PATTERNS)
+        if project_id:
+            config["project_id"] = project_id
+            confidence += 0.25
+        else:
+            missing_fields.append("project_id")
+
+        return DiscoveredAdapter(
+            adapter_type="plane",
+            config=config,
+            confidence=min(confidence, 1.0),
+            missing_fields=missing_fields,
+            found_in=found_in,
+        )
+
     def _detect_aitrackdown(
         self, env_vars: dict[str, str], found_in: str
     ) -> DiscoveredAdapter | None:
@@ -501,6 +589,7 @@ class EnvDiscovery:
             any(key.startswith("LINEAR_") for key in env_vars)
             or any(key.startswith("GITHUB_") for key in env_vars)
             or any(key.startswith("JIRA_") for key in env_vars)
+            or any(key.startswith("PLANE_") for key in env_vars)
         )
 
         if not base_path and not aitrackdown_dir.exists():
